@@ -5724,22 +5724,12 @@ if (typeof window !== 'undefined') {
     }
     // 野生宝可梦：evLevel = 0（无 EV）
     
-    // 验证宝可梦数据是否存在 (带回退机制)
-    const pokemonDataResult = getPokemonDataSafe(name);
-    let finalName = name;
+    // ST 插件没有 POKEDEX，只做名称规范化，数据验证由前端处理
+    // 规范化后的名称传给前端，前端的 battle-engine.js 会做智能回退
+    const finalName = name;
+    console.log(`${PLUGIN_NAME} [GEN] Pokemon name normalized: "${rawName}" -> "${finalName}"`);
     
-    if (pokemonDataResult) {
-      finalName = pokemonDataResult.usedName;
-      if (pokemonDataResult.fallbackType !== 'direct') {
-        console.log(`${PLUGIN_NAME} [GEN] Pokemon "${rawName}" resolved to "${finalName}" (fallback: ${pokemonDataResult.fallbackType})`);
-      }
-    } else {
-      // 最终兜底：使用 Pikachu
-      console.error(`${PLUGIN_NAME} [GEN] Pokemon "${rawName}" unknown, using Pikachu as fallback`);
-      finalName = 'Pikachu';
-    }
-    
-    // 随机性格和特性 (使用最终确定的名称)
+    // 随机性格和特性
     const nature = baseData.nature || getRandomNature();
     const ability = baseData.ability || getRandomAbility(finalName);
     

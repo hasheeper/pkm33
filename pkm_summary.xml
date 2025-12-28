@@ -4666,20 +4666,98 @@ function getTypeEffectiveness(atkType, defTypes, moveName = '') {
     return multiplier;
 }
 /**
- * 从 Pokemon Showdown POKEDEX 获取宝可梦数据
+ * 宝可梦名称规范化器 ("宽进"策略)
+ * 将 AI 生成的自然语言形容词转换为标准的 ID 后缀
+ * 例如: "Grimer-Alolan" -> "Grimer-Alola"
+ * @param {string} rawName - 原始名称
+ * @returns {string} 规范化后的名称
+ */
+function normalizePokemonName(rawName) {
+    if (!rawName) return '';
+    let name = String(rawName).trim();
+    // 处理形容词后缀 (Alolan -> Alola, Galarian -> Galar, etc.)
+    const adjectiveMap = [
+        { pattern: /-Alolan$/i, replacement: '-Alola' },
+        { pattern: /\s+Alolan$/i, replacement: '-Alola' },
+        { pattern: /-Galarian$/i, replacement: '-Galar' },
+        { pattern: /\s+Galarian$/i, replacement: '-Galar' },
+        { pattern: /-Hisuian$/i, replacement: '-Hisui' },
+        { pattern: /\s+Hisuian$/i, replacement: '-Hisui' },
+        { pattern: /-Paldean$/i, replacement: '-Paldea' },
+        { pattern: /\s+Paldean$/i, replacement: '-Paldea' }
+    ];
+    for (const { pattern, replacement } of adjectiveMap) {
+        if (pattern.test(name)) {
+            const normalized = name.replace(pattern, replacement);
+            console.log(`[PKM] [NORMALIZE] "${rawName}" -> "${normalized}"`);
+            return normalized;
+        }
+    }
+    return name;
+}
+/**
+ * 从 Pokemon Showdown POKEDEX 获取宝可梦数据 (带智能回退机制)
+ * 策略: 规范化名称 -> 直接查找 -> 修正后缀 -> 回退到基础形态
  * @param {string} name - 英文名 (如 'Pikachu')
  * @returns {object|null}
  */
 function getPokemonData(name) {
-    // Pokemon Showdown 使用小写 ID
-    const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const data = typeof POKEDEX !== 'undefined' ? POKEDEX[id] : null;
-    if (!data) return null;
-    return {
-        name: data.name,
-        types: data.types || ['Normal'],
-        baseStats: data.baseStats // { hp, atk, def, spa, spd, spe }
-    };
+    if (typeof POKEDEX === 'undefined') return null;
+    // === 第一步: 规范化名称 (宽进) ===
+    const normalizedName = normalizePokemonName(name);
+    let id = normalizedName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // === 第二步: 直接查找 ===
+    if (POKEDEX[id]) {
+        const data = POKEDEX[id];
+        return {
+            name: data.name,
+            types: data.types || ['Normal'],
+            baseStats: data.baseStats
+        };
+    }
+    // === 第三步: 修正常见的形容词后缀错误 ===
+    const suffixFixes = [
+        { from: 'alolan', to: 'alola' },
+        { from: 'galarian', to: 'galar' },
+        { from: 'hisuian', to: 'hisui' },
+        { from: 'paldean', to: 'paldea' }
+    ];
+    for (const fix of suffixFixes) {
+        if (id.endsWith(fix.from)) {
+            const fixedId = id.slice(0, -fix.from.length) + fix.to;
+            if (POKEDEX[fixedId]) {
+                console.log(`[PKM] [SUFFIX FIX] "${id}" -> "${fixedId}"`);
+                const data = POKEDEX[fixedId];
+                return {
+                    name: data.name,
+                    types: data.types || ['Normal'],
+                    baseStats: data.baseStats
+                };
+            }
+        }
+    }
+    // === 第四步: 智能回退到基础形态 ===
+    const splitChars = ['-', ' '];
+    for (const splitChar of splitChars) {
+        if (normalizedName.includes(splitChar)) {
+            const potentialBaseName = normalizedName.split(splitChar)[0];
+            if (potentialBaseName && potentialBaseName !== normalizedName) {
+                const baseId = potentialBaseName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (POKEDEX[baseId]) {
+                    console.log(`[PKM] [FALLBACK] Using base species "${potentialBaseName}" instead of "${normalizedName}"`);
+                    const data = POKEDEX[baseId];
+                    return {
+                        name: data.name,
+                        types: data.types || ['Normal'],
+                        baseStats: data.baseStats
+                    };
+                }
+            }
+        }
+    }
+    // === 第五步: 找不到 ===
+    console.warn(`[PKM] [NOT FOUND] Pokemon "${name}" not found in POKEDEX`);
+    return null;
 }
 /**
  * 从 Pokemon Showdown MOVES 获取技能数据
@@ -4887,8 +4965,9 @@ class Pokemon {
         if (config.ability) {
             this.ability = config.ability;
         } else {
-            // 从 POKEDEX 获取默认特性
-            const pokeData = typeof POKEDEX !== 'undefined' ? POKEDEX[name.toLowerCase().replace(/[^a-z0-9]/g, '')] : null;
+            // 从 POKEDEX 获取默认特性 (使用规范化名称)
+            const normalizedId = normalizePokemonName(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+            const pokeData = typeof POKEDEX !== 'undefined' ? POKEDEX[normalizedId] : null;
             if (pokeData && pokeData.abilities) {
                 this.ability = pokeData.abilities['0'] || null;
             } else {
@@ -6182,7 +6261,9 @@ if (typeof window !== 'undefined') {
  *  基于 mechanic 字段和数据库自动检测可用形态
  * ========================================================== */ 
 function autoDetectFormChangeEligibility(pokemon, explicitFormFlag = null) {
-    const baseId = pokemon.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // 使用规范化名称查找 POKEDEX
+    const normalizedName = normalizePokemonName(pokemon.name);
+    const baseId = normalizedName.toLowerCase().replace(/[^a-z0-9]/g, '');
     const data = typeof POKEDEX !== 'undefined' ? POKEDEX[baseId] : null;
     // 获取玩家在 JSON 配置里指定的"意愿" (Mechanic Lock)
     const desiredMechanic = pokemon.mechanic || 'any'; // 'mega', 'dynamax', 'zmove', 'any'(Auto)
@@ -13023,163 +13104,7 @@ if (typeof module !== 'undefined' && module.exports) {
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {
-  "difficulty": "expert",
-  "script": null,
-  "player": {
-    "name": "{{user}}",
-    "unlocks": {
-      "enable_bond": true,
-      "enable_styles": true,
-      "enable_insight": true,
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_dynamax": true,
-      "enable_tera": true
-    },
-    "//comment": "为您配备了针对玛俐恶毒队的打击面均衡队伍，平均等级 LV.80",
-    "party": [
-      {
-        "name": "Lucario",
-        "lv": 82,
-        "gender": "M",
-        "item": "Lucarionite",
-        "mechanic": "mega",
-        "isAce": true,
-        "ability": "Justified",
-        "nature": "Jolly",
-        "stats_meta": { "ev_level": 252 },
-        "moves": ["Close Combat", "Meteor Mash", "Bullet Punch", "Swords Dance"]
-      },
-      {
-        "name": "Gardevoir",
-        "lv": 80,
-        "gender": "F",
-        "item": "Choice Scarf",
-        "ability": "Pixilate",
-        "nature": "Timid",
-        "stats_meta": { "ev_level": 252 },
-        "moves": ["Hyper Voice", "Psychic", "Moonblast", "Shadow Ball"]
-      },
-      {
-        "name": "Pikachu-Partner",
-        "lv": 80,
-        "gender": "M",
-        "item": "Light Ball",
-        "ability": "Static",
-        "stats_meta": { "ev_level": 252 },
-        "moves": ["Zippy Zap", "Rising Voltage", "Play Rough", "Fake Out"]
-      },
-      {
-        "name": "Togekiss",
-        "lv": 78,
-        "gender": "F",
-        "item": "Leftovers",
-        "ability": "Serene Grace",
-        "stats_meta": { "ev_level": 200 },
-        "moves": ["Air Slash", "Dazzling Gleam", "Thunder Wave", "Roost"]
-      },
-      {
-        "name": "Garchomp",
-        "lv": 78,
-        "gender": "F",
-        "item": "Rocky Helmet",
-        "ability": "Rough Skin",
-        "nature": "Jolly",
-        "stats_meta": { "ev_level": 252 },
-        "moves": ["Earthquake", "Dragon Claw", "Stealth Rock", "Stone Edge"]
-      },
-      {
-        "name": "Volcarona",
-        "lv": 79,
-        "gender": "M",
-        "item": "Heavy-Duty Boots",
-        "ability": "Flame Body",
-        "nature": "Modest", 
-        "moves": ["Quiver Dance", "Fiery Dance", "Bug Buzz", "Giga Drain"]
-      }
-    ]
-  },
-  "enemy": {
-    "id": "marnie_gym",
-    "name": "Gym Leader Marnie",
-    "type": "trainer", 
-    "tier": 3, 
-    "lines": {
-      "start": "想在尖钉镇撒野？我和我的伙伴们可不会袖手旁观！",
-      "gmax_trigger": "还没完呢……虽然有点丢人，但这招是为了赢！去吧，极巨化！",
-      "win": "看来你也只是这种程度而已……没受伤吧？",
-      "lose": "呜……居然还是输了……（不甘心地咬着嘴唇）",
-      "escape": "怎么？被这里的气势吓到了？"
-    },
-    "unlocks": {
-        "enable_mega": false,
-        "enable_z_move": false,
-        "enable_dynamax": true, // 核心机制：G-Max
-        "enable_tera": false
-    }
-  },
-  "//comment": "玛俐经典的 6v6 阵容 (Shadow/Dark Core)",
-  "party": [
-    {
-      "name": "Liepard",
-      "lv": 76,
-      "gender": "F",
-      "ability": "Prankster",
-      "item": "Focus Sash", // 气腰首发
-      "nature": "Jolly",
-      "stats_meta": { "ev_level": 252 },
-      "moves": ["Fake Out", "Thunder Wave", "Ensore", "Play Rough"]
-    },
-    {
-      "name": "Scrafty",
-      "lv": 77,
-      "gender": "M",
-      "ability": "Intimidate",
-      "item": "Roseli Berry", // 抗妖果
-      "stats_meta": { "ev_level": 200 },
-      "moves": ["Close Combat", "Crunch", "Ice Punch", "Poison Jab"]
-    },
-    {
-      "name": "Toxicroak",
-      "lv": 77,
-      "gender": "M",
-      "ability": "Dry Skin",
-      "item": "Life Orb",
-      "moves": ["Gunk Shot", "Drain Punch", "Sucker Punch", "Swords Dance"]
-    },
-    {
-      "name": "Morpeko",
-      "lv": 78,
-      "gender": "F",
-      "ability": "Hunger Switch",
-      "item": "Choice Band",
-      "moves": ["Aura Wheel", "Seed Bomb", "Pseudon", "Parting Shot"]
-    },
-    {
-      "name": "Umbreon",
-      "lv": 79,
-      "gender": "M",
-      "ability": "Synchronize",
-      "item": "Leftovers",
-      "moves": ["Foul Play", "Wish", "Protect", "Yawn"]
-    },
-    {
-      "//comment": "最后的底牌：超极巨长毛巨魔",
-      "name": "Grimmsnarl",
-      "lv": 80,
-      "gender": "M",
-      "isAce": true, 
-      "mechanic": "dynamax",
-      "mega_target": "grimmsnarlgmax",
-      "ability": "Prankster",
-      "item": "Light Clay", 
-      "stats_meta": { "ev_level": 252 }, 
-      "//comment": "精神冲击 -> G-Max Snooze; 全力一击 -> Max Starfall",
-      "moves": ["Spirit Break", "Darkest Lariat", "Thunder Wave", "Bulk Up"]
-    }
-  ]
-};
+    return {"difficulty":"normal","player":{"name":"User","party":[{"slot":1,"name":"Sprigatito","nickname":null,"species":null,"gender":"F","lv":11,"quality":"high","nature":"Jolly","ability":"Overgrow","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"moves":["Scratch","Tail Whip","Leafage","Bite"],"stats_meta":{"ivs":{"hp":3,"atk":25,"def":31,"spa":29,"spd":31,"spe":31},"ev_level":23,"ev_up":0},"notes":null,"avs":{"trust":32,"passion":19,"insight":4,"devotion":0}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"enemy":{"id":"Sludge anomaly","type":"wild","name":"Sludge anomaly","lines":{"start":"The Grimer lunges forward, dripping with neon sludge!","win":"The sludge loses its form and splatters across the floor!","lose":"Overwhelmed by the toxic fumes...","escape":"You scramble back up the ladder, gasping for air!"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"party":[{"name":"Grimer-Alola","gender":"F","lv":14,"nature":"Brave","ability":"Poison Touch","shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":2,"atk":1,"def":15,"spa":12,"spd":8,"spe":3},"ev_level":0},"moves":["Pound","Poison Gas","Harden","Bite"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null};
 }
 // ============================================
 // JSON 数据加载
@@ -13469,10 +13394,12 @@ function playCachedCry(name, volume = 0.45) {
         clone.play().catch(() => {});
         console.log(`[CRY] Playing cached: ${name} -> ${id}`);
     } else {
-        // Fallback to online
-        if (typeof window.playPokemonCry === 'function') {
-            window.playPokemonCry(name);
-        }
+        // Fallback: 直接在线加载 (避免递归调用 playPokemonCry)
+        const url = `https://play.pokemonshowdown.com/audio/cries/${id}.mp3`;
+        const cryAudio = new Audio(url);
+        cryAudio.volume = volume;
+        cryAudio.play().catch(() => {});
+        console.log(`[CRY] Playing online (cache miss): ${name} -> ${id}`);
     }
 }
 // 导出
@@ -20823,7 +20750,6 @@ function generateBattleReport(result) {
     } else {
         summaryLine = `- 综述：${pName} 对阵 ${eName}，${result === 'win' ? '获得胜利' : '遗憾落败'}。`;
     }
-    rows.push(`[系统指令：参考数据，生成相应的剧情]`);
     rows.push(`- 交互结果：${resultTextDisplay}`);
     rows.push(`- 评级：${rank}`);
     rows.push(summaryLine);

@@ -26,7 +26,7 @@ EXCLUDED_ITEMS: set[str] = {
     "venv",
     ".venv",
     "env",
-    "experimental",  # 排除实验性内容
+    "ST",  # 排除实验性内容
     "其他内容",      # 排除临时内容
     "docs",
     OUTPUT_XML_FILE.name,

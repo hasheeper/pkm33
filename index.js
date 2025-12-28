@@ -2429,7 +2429,6 @@ function generateBattleReport(result) {
     } else {
         summaryLine = `- 综述：${pName} 对阵 ${eName}，${result === 'win' ? '获得胜利' : '遗憾落败'}。`;
     }
-    rows.push(`[系统指令：参考数据，生成相应的剧情]`);
     rows.push(`- 交互结果：${resultTextDisplay}`);
     rows.push(`- 评级：${rank}`);
     rows.push(summaryLine);
@@ -2663,17 +2662,17 @@ window.EvolutionSystem = {
             const nextData = typeof POKEDEX !== 'undefined' ? POKEDEX[nextId] : null;
             if (!nextData) return null;
 
-            // 1. 等级锁 (允许越级5级)
+            // 1. 等级锁 (允许越级3级)
             const reqLevel = Math.max(1, (nextData.evoLevel || 1) - 3);
             if (pokemon.level < reqLevel) return null;
 
-            // 2. AVs 阈值：一阶(无prevo)要100，二阶(有prevo)要300
+            // 2. AVs 阈值（放宽）：一阶(无prevo)需 60，二阶(有prevo)需 200
             const isFirstStage = !data.prevo;
-            const reqAVs = isFirstStage ? 100 : 300;
+            const reqAVs = isFirstStage ? 80 : 160;
             if (totalAVs < reqAVs) return null;
 
             // 3. 危机锁 (HP 35% 以下) 或 Ace 宝可梦 60% 以下
-            const isCrisis = hpRatio <= 0.35;
+            const isCrisis = hpRatio <= 0.45;
             const isAceMoment = pokemon.isAce && hpRatio <= 0.6;
             
             if (isCrisis || isAceMoment) {
@@ -2701,8 +2700,8 @@ window.EvolutionSystem = {
             if (battle.playerBondUsed) return null;
             
             // 最终形态 (无进化型)
-            // 1. AVs 绝对阈值：300
-            if (totalAVs < 300) return null;
+            // 1. AVs 绝对阈值（放宽至 220）
+            if (totalAVs < 220) return null;
             
             // 2. 必须是 Ace 宝可梦
             if (!pokemon.isAce) return null;
