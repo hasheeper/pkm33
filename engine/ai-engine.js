@@ -1606,6 +1606,112 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         let statusScore = 10;
         
         // =========================================================
+        // 【Soft-Coded】使用 MOVES 数据中的 volatileStatus 字段判断
+        // 自我施加 volatile 状态的技能：已有状态时禁止重复使用
+        // =========================================================
+        if (fullMoveData.volatileStatus && fullMoveData.target === 'self') {
+            const volatileKey = fullMoveData.volatileStatus;
+            
+            // 1. 已有状态，禁止重复使用
+            if (attacker.volatile && attacker.volatile[volatileKey]) {
+                console.log(`[AI BAN] ${moveName}：已有 ${volatileKey} 状态，禁止重复使用`);
+                return -99999;
+            }
+            
+            // 2. 持续回复类 volatile (aquaring, ingrain) 在残血时无意义
+            const hotVolatiles = ['aquaring', 'ingrain'];
+            if (hotVolatiles.includes(volatileKey)) {
+                if (hpPercent < 0.30) {
+                    console.log(`[AI BAN] ${moveName}：残血 (${Math.round(hpPercent * 100)}%) 使用持续回复无意义`);
+                    return -99999;
+                }
+                if (hpPercent < 0.50) {
+                    console.log(`[AI PENALTY] ${moveName}：血量不足 (${Math.round(hpPercent * 100)}%)，降低优先级`);
+                    return 5;
+                }
+                if (hpPercent >= 0.70) {
+                    return 40;
+                }
+                return 15;
+            }
+            
+            // 3. focusenergy: 残血时不要聚气
+            if (volatileKey === 'focusenergy') {
+                if (hpPercent < 0.30) {
+                    return -100;
+                }
+                return 30;
+            }
+        }
+        
+        // =========================================================
+        // 【Soft-Coded】对目标施加 volatile 状态的技能
+        // 检查目标是否已有该状态
+        // =========================================================
+        if (fullMoveData.volatileStatus && fullMoveData.target !== 'self') {
+            const volatileKey = fullMoveData.volatileStatus;
+            
+            // 目标已有该 volatile 状态，禁止使用
+            if (defender.volatile && defender.volatile[volatileKey]) {
+                console.log(`[AI BAN] ${moveName}：目标已有 ${volatileKey} 状态`);
+                return -99999;
+            }
+            
+            // yawn: 对手已有异常状态时无效
+            if (volatileKey === 'yawn' && defender.status) {
+                console.log(`[AI BAN] ${moveName}：对手已有异常状态 (${defender.status})`);
+                return -99999;
+            }
+            
+            // curse (幽灵系): 对手已被诅咒
+            if (volatileKey === 'curse') {
+                // 幽灵系诅咒需要检查自身血量
+                if (attacker.types && attacker.types.includes('Ghost')) {
+                    if (hpPercent <= 0.50) {
+                        console.log(`[AI BAN] Curse：血量不足 50%，使用会自杀`);
+                        return -99999;
+                    }
+                }
+            }
+            
+            // leechseed: 对草系无效
+            if (volatileKey === 'leechseed') {
+                if (defender.types && defender.types.includes('Grass')) {
+                    console.log(`[AI BAN] Leech Seed：对手是草系，无效`);
+                    return -99999;
+                }
+                const defHpPercent = defender.currHp / defender.maxHp;
+                if (defHpPercent < 0.20) {
+                    return 5;
+                }
+                return 50;
+            }
+        }
+        
+        // =========================================================
+        // 【Soft-Coded】延迟生效技能 (slotCondition 或特定 volatileStatus)
+        // 残血时使用无意义
+        // =========================================================
+        const isDelayedEffect = fullMoveData.slotCondition || 
+            (fullMoveData.volatileStatus === 'yawn') ||
+            (fullMoveData.isFutureMove);
+        
+        if (isDelayedEffect && hpPercent < 0.25) {
+            console.log(`[AI BAN] ${moveName}：残血使用延迟技能无意义`);
+            return -99999;
+        }
+        
+        // Wish: 血量健康时不需要（使用 slotCondition 检测）
+        if (fullMoveData.slotCondition === 'wish') {
+            if (hpPercent > 0.70) {
+                return 5; // 血量健康，不需要许愿
+            }
+            if (hpPercent < 0.50) {
+                return 60; // 血量中等，可以许愿
+            }
+        }
+        
+        // =========================================================
         // 【Critical Fix】自我牺牲技能 (Memento, Healing Wish, Lunar Dance)
         // 检查 selfdestruct 字段，防止无效使用导致死循环
         // =========================================================

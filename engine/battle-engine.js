@@ -1842,6 +1842,24 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         }
     }
 
+    // ----------------------------------------
+    // 7. 水流环 (Aqua Ring): 每回合回复 1/16 HP
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile.aquaring) {
+        const heal = Math.max(1, Math.floor(poke.maxHp / 16));
+        poke.heal(heal);
+        logs.push(`${poke.cnName} 的水流环恢复了体力! (+${heal})`);
+    }
+
+    // ----------------------------------------
+    // 8. 扎根 (Ingrain): 每回合回复 1/16 HP
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile.ingrain) {
+        const heal = Math.max(1, Math.floor(poke.maxHp / 16));
+        poke.heal(heal);
+        logs.push(`${poke.cnName} 从地面吸收了养分! (+${heal})`);
+    }
+
     // =====================================================
     // === AVs: Devotion (献身) - 状态治愈 + 残血回复 ===
     // 【v3.4 重写】两个独立触发条件：

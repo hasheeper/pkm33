@@ -825,6 +825,17 @@ function applyVolatileStatus(user, target, move) {
     if (!target.volatile) target.volatile = {};
     if (!user.volatile) user.volatile = {};
     
+    // 【Soft-Coded】通用 volatileStatus 重复检查
+    const moveId = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    if (fullMoveData.volatileStatus && fullMoveData.target === 'self') {
+        const volatileKey = fullMoveData.volatileStatus;
+        if (user.volatile[volatileKey]) {
+            logs.push(`但是失败了! (${user.cnName} 已经处于该状态)`);
+            return { success: false, logs };
+        }
+    }
+    
     switch (moveName) {
         case 'Taunt':
             // 挑衅：3回合内无法使用变化技
@@ -1016,7 +1027,7 @@ function applyVolatileStatus(user, target, move) {
             return { success: true, logs };
             
         case 'Focus Energy':
-            // 聚气：暴击率 +2
+            // 聚气：暴击率 +2 (重复检查已由通用逻辑处理)
             user.volatile.focusenergy = true;
             logs.push(`${user.cnName} 深呼吸，集中精神!`);
             return { success: true, logs };
@@ -1034,13 +1045,13 @@ function applyVolatileStatus(user, target, move) {
             return { success: true, logs };
             
         case 'Aqua Ring':
-            // 水流环：每回合回复 1/16 HP
+            // 水流环：每回合回复 1/16 HP (重复检查已由通用逻辑处理)
             user.volatile.aquaring = true;
             logs.push(`${user.cnName} 用水流环包裹住了自己!`);
             return { success: true, logs };
             
         case 'Ingrain':
-            // 扎根：每回合回复 1/16 HP，无法换人
+            // 扎根：每回合回复 1/16 HP，无法换人 (重复检查已由通用逻辑处理)
             user.volatile.ingrain = true;
             logs.push(`${user.cnName} 扎下了根!`);
             return { success: true, logs };
