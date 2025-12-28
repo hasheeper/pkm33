@@ -197,10 +197,12 @@ function playCachedCry(name, volume = 0.45) {
         clone.play().catch(() => {});
         console.log(`[CRY] Playing cached: ${name} -> ${id}`);
     } else {
-        // Fallback to online
-        if (typeof window.playPokemonCry === 'function') {
-            window.playPokemonCry(name);
-        }
+        // Fallback: 直接在线加载 (避免递归调用 playPokemonCry)
+        const url = `https://play.pokemonshowdown.com/audio/cries/${id}.mp3`;
+        const cryAudio = new Audio(url);
+        cryAudio.volume = volume;
+        cryAudio.play().catch(() => {});
+        console.log(`[CRY] Playing online (cache miss): ${name} -> ${id}`);
     }
 }
 
