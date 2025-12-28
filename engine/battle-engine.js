@@ -161,20 +161,108 @@ function getTypeEffectiveness(atkType, defTypes, moveName = '') {
 }
 
 /**
- * 从 Pokemon Showdown POKEDEX 获取宝可梦数据
+ * 宝可梦名称规范化器 ("宽进"策略)
+ * 将 AI 生成的自然语言形容词转换为标准的 ID 后缀
+ * 例如: "Grimer-Alolan" -> "Grimer-Alola"
+ * @param {string} rawName - 原始名称
+ * @returns {string} 规范化后的名称
+ */
+function normalizePokemonName(rawName) {
+    if (!rawName) return '';
+    let name = String(rawName).trim();
+    
+    // 处理形容词后缀 (Alolan -> Alola, Galarian -> Galar, etc.)
+    const adjectiveMap = [
+        { pattern: /-Alolan$/i, replacement: '-Alola' },
+        { pattern: /\s+Alolan$/i, replacement: '-Alola' },
+        { pattern: /-Galarian$/i, replacement: '-Galar' },
+        { pattern: /\s+Galarian$/i, replacement: '-Galar' },
+        { pattern: /-Hisuian$/i, replacement: '-Hisui' },
+        { pattern: /\s+Hisuian$/i, replacement: '-Hisui' },
+        { pattern: /-Paldean$/i, replacement: '-Paldea' },
+        { pattern: /\s+Paldean$/i, replacement: '-Paldea' }
+    ];
+
+    for (const { pattern, replacement } of adjectiveMap) {
+        if (pattern.test(name)) {
+            const normalized = name.replace(pattern, replacement);
+            console.log(`[PKM] [NORMALIZE] "${rawName}" -> "${normalized}"`);
+            return normalized;
+        }
+    }
+
+    return name;
+}
+
+/**
+ * 从 Pokemon Showdown POKEDEX 获取宝可梦数据 (带智能回退机制)
+ * 策略: 规范化名称 -> 直接查找 -> 修正后缀 -> 回退到基础形态
  * @param {string} name - 英文名 (如 'Pikachu')
  * @returns {object|null}
  */
 function getPokemonData(name) {
-    // Pokemon Showdown 使用小写 ID
-    const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const data = typeof POKEDEX !== 'undefined' ? POKEDEX[id] : null;
-    if (!data) return null;
-    return {
-        name: data.name,
-        types: data.types || ['Normal'],
-        baseStats: data.baseStats // { hp, atk, def, spa, spd, spe }
-    };
+    if (typeof POKEDEX === 'undefined') return null;
+    
+    // === 第一步: 规范化名称 (宽进) ===
+    const normalizedName = normalizePokemonName(name);
+    let id = normalizedName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    // === 第二步: 直接查找 ===
+    if (POKEDEX[id]) {
+        const data = POKEDEX[id];
+        return {
+            name: data.name,
+            types: data.types || ['Normal'],
+            baseStats: data.baseStats
+        };
+    }
+    
+    // === 第三步: 修正常见的形容词后缀错误 ===
+    const suffixFixes = [
+        { from: 'alolan', to: 'alola' },
+        { from: 'galarian', to: 'galar' },
+        { from: 'hisuian', to: 'hisui' },
+        { from: 'paldean', to: 'paldea' }
+    ];
+    
+    for (const fix of suffixFixes) {
+        if (id.endsWith(fix.from)) {
+            const fixedId = id.slice(0, -fix.from.length) + fix.to;
+            if (POKEDEX[fixedId]) {
+                console.log(`[PKM] [SUFFIX FIX] "${id}" -> "${fixedId}"`);
+                const data = POKEDEX[fixedId];
+                return {
+                    name: data.name,
+                    types: data.types || ['Normal'],
+                    baseStats: data.baseStats
+                };
+            }
+        }
+    }
+    
+    // === 第四步: 智能回退到基础形态 ===
+    const splitChars = ['-', ' '];
+    for (const splitChar of splitChars) {
+        if (normalizedName.includes(splitChar)) {
+            const potentialBaseName = normalizedName.split(splitChar)[0];
+            if (potentialBaseName && potentialBaseName !== normalizedName) {
+                const baseId = potentialBaseName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (POKEDEX[baseId]) {
+                    console.log(`[PKM] [FALLBACK] Using base species "${potentialBaseName}" instead of "${normalizedName}"`);
+                    const data = POKEDEX[baseId];
+                    return {
+                        name: data.name,
+                        types: data.types || ['Normal'],
+                        baseStats: data.baseStats
+                    };
+                }
+            }
+        }
+    }
+    
+    // === 第五步: 找不到 ===
+    console.warn(`[PKM] [NOT FOUND] Pokemon "${name}" not found in POKEDEX`);
+    return null;
 }
 
 /**
@@ -403,8 +491,9 @@ class Pokemon {
         if (config.ability) {
             this.ability = config.ability;
         } else {
-            // 从 POKEDEX 获取默认特性
-            const pokeData = typeof POKEDEX !== 'undefined' ? POKEDEX[name.toLowerCase().replace(/[^a-z0-9]/g, '')] : null;
+            // 从 POKEDEX 获取默认特性 (使用规范化名称)
+            const normalizedId = normalizePokemonName(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+            const pokeData = typeof POKEDEX !== 'undefined' ? POKEDEX[normalizedId] : null;
             if (pokeData && pokeData.abilities) {
                 this.ability = pokeData.abilities['0'] || null;
             } else {
@@ -1874,7 +1963,9 @@ if (typeof window !== 'undefined') {
  *  基于 mechanic 字段和数据库自动检测可用形态
  * ========================================================== */ 
 function autoDetectFormChangeEligibility(pokemon, explicitFormFlag = null) {
-    const baseId = pokemon.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // 使用规范化名称查找 POKEDEX
+    const normalizedName = normalizePokemonName(pokemon.name);
+    const baseId = normalizedName.toLowerCase().replace(/[^a-z0-9]/g, '');
     const data = typeof POKEDEX !== 'undefined' ? POKEDEX[baseId] : null;
     
     // 获取玩家在 JSON 配置里指定的"意愿" (Mechanic Lock)

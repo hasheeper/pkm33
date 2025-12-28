@@ -4585,73 +4585,6 @@ if (typeof window !== 'undefined') {
     };
   }
 
-  /**
-   * 初始化玩家队伍结构（如果不存在）
-   */
-  async function initializePlayerData() {
-    const eraVars = await getEraVars();
-    const existing = _.get(eraVars, 'pkm.player', null);
-
-    if (!existing) {
-      console.log(`${PLUGIN_NAME} 初始化玩家队伍结构...`);
-      
-      // 使用新的对象槽位格式
-      const defaultPlayerData = {
-        name: '训练家',
-        unlocks: {
-          enable_bond: false,
-          enable_styles: false,
-          enable_insight: false,
-          enable_mega: false,
-          enable_z_move: false,
-          enable_dynamax: false,
-          enable_tera: false
-        },
-        party: {
-          slot1: createEmptySlot(1),
-          slot2: createEmptySlot(2),
-          slot3: createEmptySlot(3),
-          slot4: createEmptySlot(4),
-          slot5: createEmptySlot(5),
-          slot6: createEmptySlot(6)
-        },
-        reserve: {}  // 备用库也使用对象格式
-      };
-
-      insertEraVars({
-        pkm: {
-          player: defaultPlayerData
-        }
-      });
-
-      console.log(`${PLUGIN_NAME} ✓ 玩家队伍结构已初始化（slot1-slot6 格式）`);
-    }
-    
-    // 初始化路人 NPC 模板（如果不存在）
-    const passerbyTemplate = _.get(eraVars, 'pkm.world_state.passerby_npcs', null);
-    if (!passerbyTemplate) {
-      console.log(`${PLUGIN_NAME} 初始化路人 NPC 模板...`);
-      
-      insertEraVars({
-        pkm: {
-          world_state: {
-            passerby_npcs: {
-              "$template": {
-                "stage": 0,
-                "love": 0,
-                "love_up": 0,
-                "tags": ""
-              }
-            }
-          }
-        }
-      });
-      
-      console.log(`${PLUGIN_NAME} ✓ 路人 NPC 模板已初始化`);
-    }
-
-    return existing;
-  }
 
   /**
    * 获取所有宝可梦（从 party 和 reserve 中）
@@ -5556,6 +5489,100 @@ if (typeof window !== 'undefined') {
   }
 
   /**
+   * 宝可梦名称规范化器 ("宽进"策略)
+   * 将 AI 生成的自然语言形容词转换为标准的 ID 后缀
+   * 例如: "Grimer-Alolan" -> "Grimer-Alola"
+   * @param {string} rawName - 原始名称
+   * @returns {string} 规范化后的名称
+   */
+  function normalizePokemonName(rawName) {
+    if (!rawName) return '';
+    let name = String(rawName).trim();
+    
+    // 处理形容词后缀 (Alolan -> Alola, Galarian -> Galar, etc.)
+    const adjectiveMap = [
+      { pattern: /-Alolan$/i, replacement: '-Alola' },
+      { pattern: /\s+Alolan$/i, replacement: '-Alola' },
+      { pattern: /-Galarian$/i, replacement: '-Galar' },
+      { pattern: /\s+Galarian$/i, replacement: '-Galar' },
+      { pattern: /-Hisuian$/i, replacement: '-Hisui' },
+      { pattern: /\s+Hisuian$/i, replacement: '-Hisui' },
+      { pattern: /-Paldean$/i, replacement: '-Paldea' },
+      { pattern: /\s+Paldean$/i, replacement: '-Paldea' }
+    ];
+
+    for (const { pattern, replacement } of adjectiveMap) {
+      if (pattern.test(name)) {
+        name = name.replace(pattern, replacement);
+        console.log(`${PLUGIN_NAME} [NORMALIZE] "${rawName}" -> "${name}"`);
+        break;
+      }
+    }
+
+    return name;
+  }
+
+  /**
+   * 安全获取宝可梦数据 (带智能回退机制)
+   * 策略: 规范化名称 -> 直接查找 -> 修正后缀 -> 回退到基础形态 -> 最终兜底
+   * @param {string} pokemonName - 宝可梦名称
+   * @returns {object|null} 宝可梦数据对象，包含 { data, usedName, fallbackType }
+   */
+  function getPokemonDataSafe(pokemonName) {
+    if (!pokemonName || typeof POKEDEX === 'undefined') return null;
+
+    // === 第一步: 规范化名称 (宽进) ===
+    const normalizedName = normalizePokemonName(pokemonName);
+    let id = normalizedName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // === 第二步: 直接查找 ===
+    if (POKEDEX[id]) {
+      return { data: POKEDEX[id], usedName: normalizedName, fallbackType: 'direct' };
+    }
+
+    // === 第三步: 修正常见的形容词后缀错误 ===
+    // 处理 "alolan" -> "alola" 等情况
+    const suffixFixes = [
+      { from: 'alolan', to: 'alola' },
+      { from: 'galarian', to: 'galar' },
+      { from: 'hisuian', to: 'hisui' },
+      { from: 'paldean', to: 'paldea' }
+    ];
+
+    for (const fix of suffixFixes) {
+      if (id.endsWith(fix.from)) {
+        const fixedId = id.slice(0, -fix.from.length) + fix.to;
+        if (POKEDEX[fixedId]) {
+          console.log(`${PLUGIN_NAME} [SUFFIX FIX] "${id}" -> "${fixedId}"`);
+          return { data: POKEDEX[fixedId], usedName: normalizedName, fallbackType: 'suffix_fix' };
+        }
+      }
+    }
+
+    // === 第四步: 智能回退到基础形态 ===
+    // 尝试去除横杠或空格后的后缀: "Grimer-Alola" -> "Grimer"
+    console.warn(`${PLUGIN_NAME} [FALLBACK] Data missing for "${pokemonName}" (normalized: "${normalizedName}", id: "${id}"). Trying base form...`);
+    
+    const splitChars = ['-', ' '];
+    for (const splitChar of splitChars) {
+      if (normalizedName.includes(splitChar)) {
+        const potentialBaseName = normalizedName.split(splitChar)[0];
+        if (potentialBaseName && potentialBaseName !== normalizedName) {
+          const baseId = potentialBaseName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (POKEDEX[baseId]) {
+            console.log(`${PLUGIN_NAME} [FALLBACK SUCCESS] Using base species "${potentialBaseName}" (id: "${baseId}") instead of "${normalizedName}"`);
+            return { data: POKEDEX[baseId], usedName: potentialBaseName, fallbackType: 'base_form' };
+          }
+        }
+      }
+    }
+
+    // === 第五步: 最终兜底 (返回 null，让调用者决定是否使用 Pikachu) ===
+    console.error(`${PLUGIN_NAME} [FATAL] Pokemon "${pokemonName}" totally unknown. No fallback available.`);
+    return null;
+  }
+
+  /**
    * 从 POKEDEX 获取宝可梦的可用特性并随机抽取
    * @param {string} pokemonName
    * @returns {string|null}
@@ -5563,9 +5590,10 @@ if (typeof window !== 'undefined') {
   function getRandomAbility(pokemonName) {
     if (typeof POKEDEX === 'undefined') return null;
     
-    const id = pokemonName.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const data = POKEDEX[id];
-    if (!data || !data.abilities) return null;
+    const result = getPokemonDataSafe(pokemonName);
+    if (!result || !result.data || !result.data.abilities) return null;
+    
+    const data = result.data;
     
     // 收集所有可用特性
     const abilities = [];
@@ -5591,9 +5619,10 @@ if (typeof window !== 'undefined') {
       return ['Tackle', 'Scratch', 'Growl', 'Leer']; // Fallback
     }
     
-    const id = pokemonName.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const data = POKEDEX[id];
-    if (!data) return ['Tackle', 'Scratch', 'Growl', 'Leer'];
+    const result = getPokemonDataSafe(pokemonName);
+    if (!result || !result.data) return ['Tackle', 'Scratch', 'Growl', 'Leer'];
+    
+    const data = result.data;
     
     // 从 learnset 获取可学技能（简化处理）
     // Pokemon Showdown 的 learnset 格式较复杂，这里用类型匹配作为后备
@@ -5643,7 +5672,9 @@ if (typeof window !== 'undefined') {
    * @param {boolean} isCustomNpc - 是否为自定义 NPC（决定 EV 是否生效）
    */
   function generateWildPokemon(baseData, tier = null, isCustomNpc = false) {
-    const name = baseData.name || 'Rattata';
+    // 规范化名称 (处理 Alolan/Galarian 等形容词)
+    const rawName = baseData.name || 'Rattata';
+    const name = normalizePokemonName(rawName);
     
     // 等级优先级：AI 指定 > tier 推断 > 默认 5
     let level = baseData.lv || baseData.level;
@@ -5693,23 +5724,38 @@ if (typeof window !== 'undefined') {
     }
     // 野生宝可梦：evLevel = 0（无 EV）
     
-    // 随机性格和特性
-    const nature = baseData.nature || getRandomNature();
-    const ability = baseData.ability || getRandomAbility(name);
+    // 验证宝可梦数据是否存在 (带回退机制)
+    const pokemonDataResult = getPokemonDataSafe(name);
+    let finalName = name;
     
-    // 技能：优先使用 AI 指定，否则随机生成
+    if (pokemonDataResult) {
+      finalName = pokemonDataResult.usedName;
+      if (pokemonDataResult.fallbackType !== 'direct') {
+        console.log(`${PLUGIN_NAME} [GEN] Pokemon "${rawName}" resolved to "${finalName}" (fallback: ${pokemonDataResult.fallbackType})`);
+      }
+    } else {
+      // 最终兜底：使用 Pikachu
+      console.error(`${PLUGIN_NAME} [GEN] Pokemon "${rawName}" unknown, using Pikachu as fallback`);
+      finalName = 'Pikachu';
+    }
+    
+    // 随机性格和特性 (使用最终确定的名称)
+    const nature = baseData.nature || getRandomNature();
+    const ability = baseData.ability || getRandomAbility(finalName);
+    
+    // 技能：优先使用 AI 指定，否则随机生成 (使用最终确定的名称)
     const moves = (baseData.moves && baseData.moves.length > 0) 
       ? sanitizeMoves(baseData.moves) 
-      : getRandomMoves(name, level);
+      : getRandomMoves(finalName, level);
     
     // 性别随机
     const gender = baseData.gender || (Math.random() > 0.5 ? 'M' : 'F');
     
-    // 自动检测特殊形态
-    const autoForm = autoDetectSpecialForm(name);
+    // 自动检测特殊形态 (使用最终确定的名称)
+    const autoForm = autoDetectSpecialForm(finalName);
     
     return {
-      name: name,
+      name: finalName,
       gender: gender,
       lv: level,
       nature: nature,
@@ -7575,21 +7621,6 @@ ${inventorySection}
       
       const promptContent = `<npc_status_brief>
 ${sections.join('\n\n')}
-
-[系统提示] 请根据互动在输出的 <VariableEdit> 中更新对应 NPC 的 love_up/stage 值。
-
-格式示例（主要NPC）:
-<VariableEdit>
-{
-  "pkm": {
-    "world_state": {
-      "npcs": {
-        "npc_id": { "love_up": 数值, "stage": X, }
-      }
-    }
-  }
-}
-</VariableEdit>
 </npc_status_brief>`;
       
       // 6. 注入到世界书上下文
@@ -7868,10 +7899,6 @@ ${unlockItem.effect}
     console.error(`${PLUGIN_NAME} 酒馆助手API不可用，插件无法启动`);
     return;
   }
-
-  // 初始化玩家数据结构
-  await wait(500);
-  await initializePlayerData();
 
   // 监听事件
   eventOn('CHAT_CHANGED', () => resetState('切换对话'));
