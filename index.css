@@ -3594,7 +3594,7 @@ body {
     background: linear-gradient(135deg, #FFF 0%, #f3f4f6 40%, rgba(255,255,255,0.8) 100%);
     border: 2px solid transparent !important;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
@@ -3685,7 +3685,7 @@ body {
     background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 40%, rgba(255,255,255,0.9) 100%);
     border: 2px solid transparent !important;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 4px 6px rgba(255,0,85,0.2);
 }
 
