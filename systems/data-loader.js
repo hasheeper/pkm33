@@ -28,45 +28,178 @@
  */
 function getDefaultBattleData() {
     return {
-        "player": {
-            "name": "User(No-Data)", // 暗示没有读到用户数据
-            "party": [
-                // 仅有一招 Splash 的 100级 鲤鱼王 (凑齐3只)
-                { "name": "Magikarp", "lv": 20, "moves": ["Splash"] },
-                { "name": "Magikarp", "lv": 20, "moves": ["Splash"] },
-                { "name": "Feebas", "lv": 20, "moves": ["Splash"] }
-            ]
-        },
-        "enemy": {
-            "type": "Runtime Error", // HUD右上角名字
-            "name": "Exception",     // 中间显示栏名字(如果没头像)
-            "lines": {
-                // 开场白改为系统提示文案
-                "start": "[警告] 战斗数据格式异常或未载入。目前使用缺省测试数据。",
-                "win": "Task Completed.",
-                "lose": "Run Failure.",
-                "escape": "Aborting Process..."
-            }
-        },
-        "party": [
-            { 
-                "name": "Magikarp", 
-                "lv": 20, 
-                "moves": ["Splash"] // 水溅跃是对面唯一的技能
-            },
-            { 
-                "name": "Magikarp", 
-                "lv": 20, 
-                "moves": ["Splash"] 
-            },
-            { 
-                "name": "Feebas", // 这只也是只会水溅跃的丑丑鱼，增加点视觉变化
-                "lv": 20, 
-                "moves": ["Splash"] 
-            }
-        ],
-        "script": null
-    };
+  "difficulty": "expert",
+  "script": null,
+  "player": {
+    "name": "player",
+    "unlocks": {
+      "enable_bond": true,
+      "enable_styles": true,
+      "enable_insight": true,
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_dynamax": true,
+      "enable_tera": true
+    },
+    "party": [
+      {
+        "name": "Lucario",
+        "lv": 100,
+        "gender": "M",
+        "item": "Lucarionite",
+        "isAce": true, 
+        "mechanic": "mega",
+        "ability": "Justified",
+        "moves": ["Close Combat", "Meteor Mash", "Bullet Punch", "Aura Sphere"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Pikachu-Partner",
+        "lv": 100,
+        "gender": "M",
+        "item": "Pikashunium Z",
+        "isAce": true,
+        "mechanic": "zmove",
+        "ability": "Static",
+        "//comment": "Thunderbolt 将被这里的 Z 纯晶自动升级为 10,000,000 Volt Thunderbolt",
+        "moves": ["Thunderbolt", "Quick Attack", "Iron Tail", "Electroweb"], 
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Charizard",
+        "lv": 100,
+        "gender": "M",
+        "item": "Life Orb",
+        "isAce": true,
+        "mechanic": "dynamax",
+        "mega_target": "charizardgmax",
+        "ability": "Solar Power",
+        "moves": ["Blast Burn", "Hurricane", "Solar Beam", "Ancient Power"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Dragonite",
+        "lv": 100,
+        "gender": "F",
+        "item": "Leftovers",
+        "isAce": true,
+        "mechanic": "tera",
+        "teraType": "Normal",
+        "ability": "Multiscale",
+        "moves": ["Extreme Speed", "Dragon Dance", "Earthquake", "Thunder Punch"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Zoroark-Hisui",
+        "lv": 100,
+        "gender": "M",
+        "item": "Focus Sash",
+        "isAce": true,
+        "mechanic": null,
+        "ability": "Illusion",
+        "moves": ["Bitter Malice", "Nasty Plot", "Hyper Voice", "Grass Knot"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Greninja",
+        "lv": 100,
+        "gender": "M",
+        "item": "Choice Specs",
+        "isAce": true,
+        "mechanic": null,
+        "ability": "Battle Bond",
+        "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "U-turn"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      }
+    ]
+  },
+  "enemy": {
+    "id": "Red",
+    "name": "Trainer Legend Red",
+    "type": "trainer",
+     "lines": {
+      "start": "...",
+      "win": "...!",
+      "lose": "...",
+      "escape": "..."
+    },
+    "unlocks": {
+        "enable_bond": true,
+        "enable_styles": true,
+        "enable_insight": true,
+        "enable_mega": true,
+        "enable_z_move": true,
+        "enable_dynamax": true,
+        "enable_tera": true
+    }
+  },
+  "party": [
+    {
+      "name": "Koraidon",
+      "lv": 100,
+      "item": "Clear Amulet",
+      "mechanic": "tera",
+      "teraType": "Fire",
+      "ability": "Orichalcum Pulse",
+      "moves": ["Collision Course", "Flare Blitz", "Dragon Claw", "Swords Dance"],
+      "stats_meta": { "ev_level": 252 }
+    },
+    {
+      "name": "Groudon-Primal",
+      "lv": 100,
+      "item": "Red Orb",
+      "mechanic": null,
+      "ability": "Desolate Land",
+      "moves": ["Precipice Blades", "Fire Punch", "Solar Beam", "Stone Edge"],
+      "stats_meta": { "ev_level": 252 }
+    },
+    {
+      "name": "Necrozma-Ultra",
+      "lv": 100,
+      "item": "Ultranecrozium Z",
+      "mechanic": "zmove",
+      "ability": "Neuroforce",
+      "moves": ["Photon Geyser", "Dragon Pulse", "Heat Wave", "Calm Mind"],
+      "stats_meta": { "ev_level": 252 }
+    },
+    {
+      "name": "Snorlax",
+      "lv": 100,
+      "item": "Figy Berry",
+      "mechanic": "dynamax",
+      "mega_target": "snorlaxgmax",
+      "ability": "Gluttony",
+      "moves": ["Body Slam", "Darkest Lariat", "Curse", "Recycle"],
+      "stats_meta": { "ev_level": 252 },
+      "avs": { "trust": 150, "passion": 100, "insight": 100, "devotion": 200 }
+    },
+    {
+      "name": "Zacian-Crowned",
+      "lv": 100,
+      "item": "Rusted Sword",
+      "ability": "Intrepid Sword",
+      "moves": ["Behemoth Blade", "Play Rough", "Sacred Sword", "Swords Dance"],
+      "stats_meta": { "ev_level": 252 }
+    },
+    {
+      "name": "Mewtwo",
+      "lv": 100,
+      "item": "Mewtwonite Y",
+      "mechanic": "mega",
+      "ability": "Insomnia",
+      "moves": ["Psystrike", "Ice Beam", "Focus Blast", "Recover"],
+      "isAce": true, 
+      "avs": { "passion": 200, "insight": 200, "trust": 200, "devotion": 200 }
+    }
+  ]
+};
+
 }
 
 // ============================================

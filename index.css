@@ -1,3 +1,12 @@
+/* ============================================
+   Web Font Imports - 视觉升级
+   ============================================ */
+/* M PLUS Rounded 1c - 日系圆体，完美契合宝可梦UI风格 */
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&display=swap');
+
+/* Noto Sans SC - 思源黑体，中文显示更优 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
 .trainer-avatar-wrap img {
     text-indent: -9999px;
     color: transparent;
@@ -25,7 +34,10 @@
     --hp-mid: #fbc63e;
     --hp-low: #ff6b6b;
 
-    --font-main: 'Rubik', sans-serif;
+    /* 字体升级：优先圆体，回退到系统字体 */
+    --font-main: 'M PLUS Rounded 1c', 'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+    --font-number: 'Rubik', 'M PLUS Rounded 1c', monospace;
+    
     --radius-l: 18px;
     --radius-m: 12px;
 
@@ -69,6 +81,9 @@ body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    /* 字体抗锯齿优化 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background: transparent;
     width: 100vw;
     height: 100vh;
@@ -1336,6 +1351,7 @@ body {
     margin-bottom: 4px;
     pointer-events: none;
     text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
+    font-family: var(--font-main);
 }
 
 .action-btn .move-type {
@@ -1344,6 +1360,7 @@ body {
     pointer-events: none;
     text-transform: uppercase;
     font-weight: bold;
+    font-family: var(--font-main);
 }
 
 .action-btn.util {
@@ -1365,6 +1382,7 @@ body {
     box-shadow: none;
     border-radius: 8px;
     font-size: 0.7em;
+    font-family: var(--font-main);
 }
 
 .overlay-modal {
@@ -1494,6 +1512,7 @@ body {
     margin-bottom: 4px;
     display: flex;
     align-items: center;
+    font-family: var(--font-main);
 }
 
 .container-enemy .party-track.enemy-side {
@@ -1681,6 +1700,7 @@ body {
     overflow: hidden;
     transition: all 0.3s ease;
     padding: 0;
+    font-family: var(--font-main);
 }
 
 .msg-header,
@@ -1715,6 +1735,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    font-family: var(--font-main);
 }
 
 .sys-label::before {
@@ -1734,8 +1755,13 @@ body {
     flex: 1;
     padding: 12px 10px;
     overflow-y: auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #334155;
     scrollbar-width: none;
-    -ms-overflow-style: none;
+    padding-right: 20px;
+    margin-right: -10px;
+    font-family: var(--font-main);
     mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 100%);
     margin: 0 10px;
@@ -1754,6 +1780,7 @@ body {
     font-weight: 600;
     opacity: 0.7;
     padding-left: 2px;
+    font-family: var(--font-main);
 }
 
 .log-entry:last-child {
@@ -1871,6 +1898,7 @@ body {
     overflow: hidden; 
     pointer-events: auto;
     animation: simpleOpacity 0.3s ease-out;
+    font-family: Rubik;
 }
 
 @keyframes simpleOpacity { from { opacity: 0; } to { opacity: 1; } }
@@ -1890,6 +1918,7 @@ body {
      margin: 0;
      padding: 10px 25px; 
      box-sizing: border-box;
+     font-family: Rubik;
 }
 
 /* =========================================
@@ -1908,6 +1937,7 @@ body {
     height: 100%;
     position: relative;
     overflow: visible;
+    font-family: var(--font-main);
 }
 
 /* 技能按钮 - 重写 */
@@ -1940,6 +1970,7 @@ body {
     width: 100%;
     height: 100%; 
     box-sizing: border-box;
+    font-family: var(--font-main);
 }
 
 /* 按钮内部的内容容器 - 用来修正 Skew */
@@ -1954,6 +1985,7 @@ body {
     transform: skewX(15deg);
     position: relative;
     z-index: 2;
+    font-family: var(--font-main);
 }
 
 /* [改动] 左侧装饰条 - 变为真正的斜切色块填充 */
@@ -1995,6 +2027,7 @@ body {
     z-index: 100;
     transition: transform 0.2s, background 0.2s;
     transform: skewX(15deg); /* 补偿父级倾斜 */
+    font-family: var(--font-main);
 }
 .back-btn-pill:hover {
     transform: skewX(15deg) scale(1.15) rotate(-10deg);
@@ -2029,6 +2062,7 @@ body {
     transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
     transform: skewX(15deg);
     overflow: hidden;
+    font-family: var(--font-main);
 }
 .mega-btn-pill:hover {
     transform: skewX(15deg) scale(1.1);
@@ -2062,27 +2096,32 @@ body {
 /* 左侧留白给文字，避开色块 */
 .action-btn .move-name {
     margin-left: 22px; /* 让开色条 */
-    font-size: 1rem;   /* 字号改小!! */
+    font-size: 1.15rem;   /* 中文字号增大 */
     font-weight: 700;
-    color: #334155;
-    line-height: 1.1;
+    color: #374151; /* 更柔和的深灰，中文阅读更友好 */
+    letter-spacing: -0.02em;
+    line-height: 1.2;
     text-align: left;
+    font-family: var(--font-main);
     white-space: nowrap; /* 不允许换行撑开高度 */
 }
 
 /* [改动] 技能右侧的小标签 - 恢复为小胶囊 */
 .action-btn .badge-type {
-    font-size: 0.65rem; /* 很小 */
+    font-size: 0.85rem; /* 属性标签字号再加大 */
     font-weight: 800;
     text-transform: uppercase;
-  
-    background: #e2e8f0;
-    color: #64748b;
-    padding: 2px 6px;
-    border-radius: 4px;
-  
-    /* 强制单行 */
-    white-space: nowrap;
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: rgba(100, 116, 139, 0.15);
+    color: #475569;
+    letter-spacing: 0.5px;
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-family: var(--font-main);
+}
+ace: nowrap;
     opacity: 1; /* 可见 */
     box-shadow: 1px 1px 0 rgba(0,0,0,0.1);
 }
@@ -2167,12 +2206,14 @@ body {
     justify-content: flex-end;
 }
 
-.hud-modern .p-name {
-    font-size: 2rem;
+.hud-modern .card-name {
+    font-size: 1.3rem;
     font-weight: 800;
     color: #2d3436;
-    letter-spacing: -1px;
-    text-transform: capitalize;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+    font-family: var(--font-main);
+}capitalize;
     text-shadow:
         2px 2px 0px #fff,
         -1px -1px 0 #fff,
@@ -2431,14 +2472,40 @@ body {
 .p-name {
     font-size: 1.6rem;
     font-weight: 800;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.02em;
+    /* 增强文字立体感 */
+    text-shadow: 2px 2px 0 rgba(255,255,255,0.9), 0px 0px 1px rgba(0,0,0,0.1);
+    /* 防止过长名称换行 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 220px;
 }
 
-.container-enemy .p-name { color: #1e293b; text-shadow: none; }
-.container-player .p-name { color: #1e293b; text-shadow: none; }
+.container-enemy .p-name { 
+    color: #1e293b; 
+}
+.container-player .p-name { 
+    color: #1e293b; 
+}
+
+/* 确保等级显示不被压缩 */
+.sw-top-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.sw-row-right-group,
+.p-lv {
+    flex-shrink: 0;
+}
 
 .p-lv {
     font-size: 1rem;
+    font-family: var(--font-number);
     color: #94a3b8;
     font-weight: 700;
 }
@@ -2729,15 +2796,19 @@ body {
     display: flex;
     align-items: center;
     gap: 15px;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #e0e0e0;
     padding-bottom: 15px;
+    font-family: var(--font-main);
 }
 
 .switch-header-modern h2 {
     font-size: 2.2rem;
     color: #2d3436;
     margin: 0;
-    letter-spacing: -1px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: var(--font-main);
 }
 
 .switch-header-subtitle {
@@ -2746,6 +2817,7 @@ body {
     font-size: 1rem;
     margin-top: 8px;
     letter-spacing: 1px;
+    font-family: var(--font-main);
 }
 
 .party-grid-modern {
@@ -2887,9 +2959,8 @@ body {
     font-size: 0.8rem;
     font-weight: 700;
     color: #636e72;
-    text-align: right;
-    margin-bottom: 3px;
-    font-family: inherit;
+    letter-spacing: 0.5px;
+    font-family: var(--font-number);
 }
 
 .modern-hp-track {
@@ -2937,7 +3008,16 @@ body {
    [改] SWSH 剑盾风格白色面板重构
    ========================================================= */
 body {
-    font-family: 'Rubik', sans-serif;
+    font-family: var(--font-main);
+}
+
+/* 主菜单按钮保持原英文字体 */
+.radical-btn,
+.radical-btn .en,
+.radical-btn .jp,
+.r-label,
+.r-label-min {
+    font-family: 'Rubik', sans-serif !important;
 }
 
 .hud {
@@ -3631,6 +3711,15 @@ body {
     background: linear-gradient(90deg, #333, #666);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-family: var(--font-main);
+}
+
+/* Z招式属性标签统一在右下角 */
+.action-btn.z-move-btn .badge-type {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    z-index: 3;
 }
 
 .action-btn.z-move-btn::before {
@@ -3717,6 +3806,15 @@ body {
     background: linear-gradient(90deg, #e11d48, #be123c);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-family: var(--font-main);
+}
+
+/* 极巨招式属性标签统一在右下角 */
+.action-btn.max-move-btn .badge-type {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    z-index: 3;
 }
 
 .action-btn.max-move-btn::before {

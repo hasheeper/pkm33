@@ -38,7 +38,28 @@ function performFormChange(pokemon, targetFormId, formType = 'mega') {
     
     // 更新基础数据
     pokemon.name = formData.name;
-    pokemon.cnName = formData.name;
+    
+    // [BUG FIX] 重新翻译新形态的名字
+    if (typeof window !== 'undefined' && window.Locale) {
+        const transName = window.Locale.get(formData.name);
+        
+        // 智能后备：如果翻译库里没有这个形态的专有名词
+        if (transName === formData.name && formType === 'minior') {
+            // 小陨星内核，强行翻译
+            pokemon.cnName = `小陨星-${transName.split('-')[1] || '核心'}`;
+        } 
+        else if (transName === formData.name && formData.name.includes("-Hisui")) {
+            // 洗翠形态智能拼装
+            const baseName = window.Locale.get(formData.name.split('-')[0]);
+            pokemon.cnName = `${baseName}-洗翠`;
+        }
+        else {
+            pokemon.cnName = transName;
+        }
+    } else {
+        pokemon.cnName = formData.name;
+    }
+    
     pokemon.types = formData.types || pokemon.types;
     pokemon.baseStats = formData.baseStats;
     

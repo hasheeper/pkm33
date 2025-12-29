@@ -401,6 +401,10 @@ async function handleEnemyPivot() {
         battle.enemyActive = bestIndex;
         const newE = battle.getEnemy();
         log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
+        // 【标记换人】用于重复精灵图修复
+        if (typeof window.markEnemySwitch === 'function') {
+            window.markEnemySwitch();
+        }
         updateAllVisuals('enemy');
         await wait(500);
         triggerEntryAbilities(newE, p);
@@ -467,6 +471,10 @@ async function handleEnemyFainted(e) {
     if (battle.nextAliveEnemy()) {
         const newE = battle.getEnemy();
         log(`敌方派出 <b>${newE.cnName}</b> (Lv.${newE.level})!`);
+        // 【标记换人】用于重复精灵图修复
+        if (typeof window.markEnemySwitch === 'function') {
+            window.markEnemySwitch();
+        }
         // === 播放敌方新宝可梦叫声 ===
         if (typeof window.playPokemonCry === 'function') {
             window.playPokemonCry(newE.name);
@@ -841,6 +849,10 @@ async function enemyTurn() {
             battle.enemyActive = enemyAction.index;
             const newE = battle.getEnemy();
             log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
+            // 【标记换人】用于重复精灵图修复
+            if (typeof window.markEnemySwitch === 'function') {
+                window.markEnemySwitch();
+            }
             // 检查进场变形
             if (typeof window.checkInitTransform === 'function' && newE.needsInitTransform) {
                 const result = window.checkInitTransform(newE);
@@ -3825,6 +3837,100 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     if (isStatus) {
         let statusScore = 10;
         // =========================================================
+        // 【Soft-Coded】使用 MOVES 数据中的 volatileStatus 字段判断
+        // 自我施加 volatile 状态的技能：已有状态时禁止重复使用
+        // =========================================================
+        if (fullMoveData.volatileStatus && fullMoveData.target === 'self') {
+            const volatileKey = fullMoveData.volatileStatus;
+            // 1. 已有状态，禁止重复使用
+            if (attacker.volatile && attacker.volatile[volatileKey]) {
+                console.log(`[AI BAN] ${moveName}：已有 ${volatileKey} 状态，禁止重复使用`);
+                return -99999;
+            }
+            // 2. 持续回复类 volatile (aquaring, ingrain) 在残血时无意义
+            const hotVolatiles = ['aquaring', 'ingrain'];
+            if (hotVolatiles.includes(volatileKey)) {
+                if (hpPercent < 0.30) {
+                    console.log(`[AI BAN] ${moveName}：残血 (${Math.round(hpPercent * 100)}%) 使用持续回复无意义`);
+                    return -99999;
+                }
+                if (hpPercent < 0.50) {
+                    console.log(`[AI PENALTY] ${moveName}：血量不足 (${Math.round(hpPercent * 100)}%)，降低优先级`);
+                    return 5;
+                }
+                if (hpPercent >= 0.70) {
+                    return 40;
+                }
+                return 15;
+            }
+            // 3. focusenergy: 残血时不要聚气
+            if (volatileKey === 'focusenergy') {
+                if (hpPercent < 0.30) {
+                    return -100;
+                }
+                return 30;
+            }
+        }
+        // =========================================================
+        // 【Soft-Coded】对目标施加 volatile 状态的技能
+        // 检查目标是否已有该状态
+        // =========================================================
+        if (fullMoveData.volatileStatus && fullMoveData.target !== 'self') {
+            const volatileKey = fullMoveData.volatileStatus;
+            // 目标已有该 volatile 状态，禁止使用
+            if (defender.volatile && defender.volatile[volatileKey]) {
+                console.log(`[AI BAN] ${moveName}：目标已有 ${volatileKey} 状态`);
+                return -99999;
+            }
+            // yawn: 对手已有异常状态时无效
+            if (volatileKey === 'yawn' && defender.status) {
+                console.log(`[AI BAN] ${moveName}：对手已有异常状态 (${defender.status})`);
+                return -99999;
+            }
+            // curse (幽灵系): 对手已被诅咒
+            if (volatileKey === 'curse') {
+                // 幽灵系诅咒需要检查自身血量
+                if (attacker.types && attacker.types.includes('Ghost')) {
+                    if (hpPercent <= 0.50) {
+                        console.log(`[AI BAN] Curse：血量不足 50%，使用会自杀`);
+                        return -99999;
+                    }
+                }
+            }
+            // leechseed: 对草系无效
+            if (volatileKey === 'leechseed') {
+                if (defender.types && defender.types.includes('Grass')) {
+                    console.log(`[AI BAN] Leech Seed：对手是草系，无效`);
+                    return -99999;
+                }
+                const defHpPercent = defender.currHp / defender.maxHp;
+                if (defHpPercent < 0.20) {
+                    return 5;
+                }
+                return 50;
+            }
+        }
+        // =========================================================
+        // 【Soft-Coded】延迟生效技能 (slotCondition 或特定 volatileStatus)
+        // 残血时使用无意义
+        // =========================================================
+        const isDelayedEffect = fullMoveData.slotCondition || 
+            (fullMoveData.volatileStatus === 'yawn') ||
+            (fullMoveData.isFutureMove);
+        if (isDelayedEffect && hpPercent < 0.25) {
+            console.log(`[AI BAN] ${moveName}：残血使用延迟技能无意义`);
+            return -99999;
+        }
+        // Wish: 血量健康时不需要（使用 slotCondition 检测）
+        if (fullMoveData.slotCondition === 'wish') {
+            if (hpPercent > 0.70) {
+                return 5; // 血量健康，不需要许愿
+            }
+            if (hpPercent < 0.50) {
+                return 60; // 血量中等，可以许愿
+            }
+        }
+        // =========================================================
         // 【Critical Fix】自我牺牲技能 (Memento, Healing Wish, Lunar Dance)
         // 检查 selfdestruct 字段，防止无效使用导致死循环
         // =========================================================
@@ -6157,6 +6263,22 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         } else {
             logs.push(`${poke.cnName} 更加困倦了...`);
         }
+    }
+    // ----------------------------------------
+    // 7. 水流环 (Aqua Ring): 每回合回复 1/16 HP
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile.aquaring) {
+        const heal = Math.max(1, Math.floor(poke.maxHp / 16));
+        poke.heal(heal);
+        logs.push(`${poke.cnName} 的水流环恢复了体力! (+${heal})`);
+    }
+    // ----------------------------------------
+    // 8. 扎根 (Ingrain): 每回合回复 1/16 HP
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile.ingrain) {
+        const heal = Math.max(1, Math.floor(poke.maxHp / 16));
+        poke.heal(heal);
+        logs.push(`${poke.cnName} 从地面吸收了养分! (+${heal})`);
     }
     // =====================================================
     // === AVs: Devotion (献身) - 状态治愈 + 残血回复 ===
@@ -8939,6 +9061,16 @@ function applyVolatileStatus(user, target, move) {
     // 初始化 volatile 对象
     if (!target.volatile) target.volatile = {};
     if (!user.volatile) user.volatile = {};
+    // 【Soft-Coded】通用 volatileStatus 重复检查
+    const moveId = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    if (fullMoveData.volatileStatus && fullMoveData.target === 'self') {
+        const volatileKey = fullMoveData.volatileStatus;
+        if (user.volatile[volatileKey]) {
+            logs.push(`但是失败了! (${user.cnName} 已经处于该状态)`);
+            return { success: false, logs };
+        }
+    }
     switch (moveName) {
         case 'Taunt':
             // 挑衅：3回合内无法使用变化技
@@ -9110,7 +9242,7 @@ function applyVolatileStatus(user, target, move) {
             logs.push(`${target.cnName} 着迷了!`);
             return { success: true, logs };
         case 'Focus Energy':
-            // 聚气：暴击率 +2
+            // 聚气：暴击率 +2 (重复检查已由通用逻辑处理)
             user.volatile.focusenergy = true;
             logs.push(`${user.cnName} 深呼吸，集中精神!`);
             return { success: true, logs };
@@ -9125,12 +9257,12 @@ function applyVolatileStatus(user, target, move) {
             logs.push(`${target.cnName} 无法使用道具了!`);
             return { success: true, logs };
         case 'Aqua Ring':
-            // 水流环：每回合回复 1/16 HP
+            // 水流环：每回合回复 1/16 HP (重复检查已由通用逻辑处理)
             user.volatile.aquaring = true;
             logs.push(`${user.cnName} 用水流环包裹住了自己!`);
             return { success: true, logs };
         case 'Ingrain':
-            // 扎根：每回合回复 1/16 HP，无法换人
+            // 扎根：每回合回复 1/16 HP，无法换人 (重复检查已由通用逻辑处理)
             user.volatile.ingrain = true;
             logs.push(`${user.cnName} 扎下了根!`);
             return { success: true, logs };
@@ -12518,6 +12650,7 @@ const sfxCache = {};
 (function preloadSFX() {
     console.log('[SFX] Starting preload...');
     let loadedCount = 0;
+    const totalCount = Object.keys(SFX_CONFIG).length;
     for (const [key, path] of Object.entries(SFX_CONFIG)) {
         const audio = new Audio();
         audio.src = path;
@@ -12525,14 +12658,17 @@ const sfxCache = {};
         audio.volume = SFX_VOLUME_CONFIG[key] || 0.6;
         audio.addEventListener('canplaythrough', () => {
             loadedCount++;
-            if (loadedCount === Object.keys(SFX_CONFIG).length) {
+            if (loadedCount === totalCount) {
                 console.log(`[SFX] All ${loadedCount} files preloaded.`);
             }
         }, { once: true });
         audio.addEventListener('error', () => {
             console.warn(`[SFX] Failed to load: ${key} (${path})`);
+            loadedCount++; // 计入失败的也算完成
         }, { once: true });
         sfxCache[key] = audio;
+        // 【强制预加载】调用 load() 确保浏览器开始加载
+        audio.load();
     }
     console.log(`[SFX] Queued ${Object.keys(sfxCache).length} files for preload.`);
 })();
@@ -13104,7 +13240,46 @@ if (typeof module !== 'undefined' && module.exports) {
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"difficulty":"normal","player":{"name":"User","party":[{"slot":1,"name":"Sprigatito","nickname":null,"species":null,"gender":"F","lv":11,"quality":"high","nature":"Jolly","ability":"Overgrow","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"moves":["Scratch","Tail Whip","Leafage","Bite"],"stats_meta":{"ivs":{"hp":3,"atk":25,"def":31,"spa":29,"spd":31,"spe":31},"ev_level":23,"ev_up":0},"notes":null,"avs":{"trust":32,"passion":19,"insight":4,"devotion":0}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"enemy":{"id":"Sludge anomaly","type":"wild","name":"Sludge anomaly","lines":{"start":"The Grimer lunges forward, dripping with neon sludge!","win":"The sludge loses its form and splatters across the floor!","lose":"Overwhelmed by the toxic fumes...","escape":"You scramble back up the ladder, gasping for air!"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"party":[{"name":"Grimer-Alola","gender":"F","lv":14,"nature":"Brave","ability":"Poison Touch","shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":2,"atk":1,"def":15,"spa":12,"spd":8,"spe":3},"ev_level":0},"moves":["Pound","Poison Gas","Harden","Bite"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null};
+    return {
+        "player": {
+            "name": "User(No-Data)", // 暗示没有读到用户数据
+            "party": [
+                // 仅有一招 Splash 的 100级 鲤鱼王 (凑齐3只)
+                { "name": "Magikarp", "lv": 20, "moves": ["Splash"] },
+                { "name": "Magikarp", "lv": 20, "moves": ["Splash"] },
+                { "name": "Feebas", "lv": 20, "moves": ["Splash"] }
+            ]
+        },
+        "enemy": {
+            "type": "Runtime Error", // HUD右上角名字
+            "name": "Exception",     // 中间显示栏名字(如果没头像)
+            "lines": {
+                // 开场白改为系统提示文案
+                "start": "[警告] 战斗数据格式异常或未载入。目前使用缺省测试数据。",
+                "win": "Task Completed.",
+                "lose": "Run Failure.",
+                "escape": "Aborting Process..."
+            }
+        },
+        "party": [
+            { 
+                "name": "Magikarp", 
+                "lv": 20, 
+                "moves": ["Splash"] // 水溅跃是对面唯一的技能
+            },
+            { 
+                "name": "Magikarp", 
+                "lv": 20, 
+                "moves": ["Splash"] 
+            },
+            { 
+                "name": "Feebas", // 这只也是只会水溅跃的丑丑鱼，增加点视觉变化
+                "lv": 20, 
+                "moves": ["Splash"] 
+            }
+        ],
+        "script": null
+    };
 }
 // ============================================
 // JSON 数据加载
@@ -13411,6 +13586,120 @@ window.PreloadCache = PreloadCache;
 ]]></file>
     </directory>
     <directory name="ui">
+        <file name="sprite-duplicate-fix.js"><![CDATA[/**
+ * ===========================================
+ * SPRITE-DUPLICATE-FIX.JS - 重复精灵图修复
+ * ===========================================
+ * 
+ * 问题：当多只相同宝可梦出现时，浏览器缓存 GIF 导致
+ *       后续相同 URL 的精灵图不会重新播放动画
+ * 
+ * 解决方案：销毁并重建 img 元素，强制浏览器重新渲染 GIF
+ */
+(function() {
+    'use strict';
+    // 记录当前显示的精灵图 URL（去除查询参数后的基础 URL）
+    let currentEnemySpriteUrl = null;
+    // 标记是否是真正的换人（由外部调用设置）
+    let isActualSwitch = false;
+    /**
+     * 销毁并重建精灵图元素（终极方案）
+     * 【优化】使用淡入淡出效果，避免突然消失
+     * @param {string} spriteId - DOM 元素 ID
+     * @param {string} url - 图片 URL
+     */
+    function recreateSpriteElement(spriteId, url) {
+        const oldImg = document.getElementById(spriteId);
+        if (!oldImg) return;
+        const parent = oldImg.parentNode;
+        if (!parent) return;
+        console.log(`[SPRITE-FIX] Recreating element for: ${url}`);
+        // 添加唯一参数确保不使用缓存
+        const separator = url.includes('?') ? '&' : '?';
+        const uniqueUrl = `${url}${separator}_t=${Date.now()}`;
+        // 【同步替换】立即创建新元素并替换
+        const newImg = document.createElement('img');
+        newImg.id = spriteId;
+        newImg.className = 'p-sprite';  // 基础类
+        newImg.alt = oldImg.alt || '';
+        // 设置加载回调
+        newImg.onload = function() {
+            newImg.classList.add('loaded');
+            newImg.classList.remove('entering');
+            void newImg.offsetWidth;
+            newImg.classList.add('entering');
+            setTimeout(() => newImg.classList.remove('entering'), 650);
+            console.log(`[SPRITE-FIX] Recreate complete: ${spriteId}`);
+        };
+        newImg.onerror = function() {
+            console.error(`[SPRITE-FIX] Failed to load: ${uniqueUrl}`);
+        };
+        // 先设置 src
+        newImg.src = uniqueUrl;
+        // 立即替换旧元素
+        parent.replaceChild(newImg, oldImg);
+    }
+    /**
+     * 包装原始的 smartLoadSprite 函数
+     * 检测重复 URL 并重建元素
+     */
+    function wrapSmartLoadSprite() {
+        const originalSmartLoadSprite = window.smartLoadSprite;
+        if (!originalSmartLoadSprite) {
+            console.warn('[SPRITE-FIX] smartLoadSprite not found, retrying...');
+            setTimeout(wrapSmartLoadSprite, 100);
+            return;
+        }
+        window.smartLoadSprite = function(id, url, forceAnim = false) {
+            // 只处理敌方精灵图的重复问题
+            if (id === 'enemy-sprite') {
+                const baseUrl = url.split('?')[0];
+                // 【简化逻辑】只有当 isActualSwitch=true 且 URL 相同时才触发重建
+                // isActualSwitch 由外部在换人前设置为 true
+                if (isActualSwitch && currentEnemySpriteUrl === baseUrl) {
+                    console.log(`[SPRITE-FIX] Duplicate enemy sprite on switch: ${baseUrl}`);
+                    isActualSwitch = false; // 重置标记
+                    recreateSpriteElement(id, url);
+                    return;
+                }
+                // 重置标记（无论是否触发重建）
+                isActualSwitch = false;
+                // 记录当前 URL
+                currentEnemySpriteUrl = baseUrl;
+            }
+            // 调用原始函数
+            originalSmartLoadSprite.call(this, id, url, forceAnim);
+        };
+        console.log('[SPRITE-FIX] smartLoadSprite wrapped successfully');
+    }
+    /**
+     * 重置状态（战斗结束时调用）
+     */
+    function resetDuplicateFix() {
+        currentEnemySpriteUrl = null;
+        isActualSwitch = false;
+        console.log('[SPRITE-FIX] State reset');
+    }
+    /**
+     * 标记即将进行换人（在换人前调用）
+     * 这样 smartLoadSprite 就知道这是真正的换人，而不是形态切换或回合更新
+     */
+    function markEnemySwitch() {
+        isActualSwitch = true;
+        console.log('[SPRITE-FIX] Enemy switch marked');
+    }
+    // 导出函数
+    window.resetSpriteDuplicateFix = resetDuplicateFix;
+    window.markEnemySwitch = markEnemySwitch;
+    // 初始化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', wrapSmartLoadSprite);
+    } else {
+        setTimeout(wrapSmartLoadSprite, 50);
+    }
+    console.log('[SPRITE-FIX] Module loaded');
+})();
+]]></file>
         <file name="ui-menus.js"><![CDATA[/**
  * ===========================================
  * UI-MENUS.JS - 菜单系统
@@ -13970,12 +14259,24 @@ function smartLoadSprite(id, url, forceAnim = false) {
         const preloader = new Image();
         preloader.onload = () => {
             console.log(`[SPRITE] SUCCESS: ${preloader.src}`);
-            img.style.transition = 'none';
-            img.classList.remove('loaded', 'fainted-hidden', 'fainting', 'entering');
-            img.src = preloader.src;
-            void img.offsetWidth;
-            img.style.transition = '';
-            img.classList.add('loaded');
+            // 【关键】如果 URL 变化了（真正的精灵图切换），触发淡入效果
+            const isUrlChanged = img.src !== preloader.src;
+            if (isUrlChanged) {
+                // URL 变化：移除 loaded 类触发淡入
+                img.style.transition = 'none';
+                img.classList.remove('loaded', 'fainted-hidden', 'fainting', 'entering');
+                img.src = preloader.src;
+                void img.offsetWidth; // 强制重排
+                img.style.transition = '';
+                img.classList.add('loaded');
+            } else {
+                // URL 未变：只移除动画类，保持显示状态
+                img.classList.remove('fainted-hidden', 'fainting', 'entering');
+                img.src = preloader.src;
+                if (!img.classList.contains('loaded')) {
+                    img.classList.add('loaded');
+                }
+            }
             playEntryAnimation();
         };
         preloader.onerror = () => {
@@ -17760,7 +18061,7 @@ body {
     background: linear-gradient(135deg, #FFF 0%, #f3f4f6 40%, rgba(255,255,255,0.8) 100%);
     border: 2px solid transparent !important;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 /* 动态彩虹边框 (用伪元素裁切) */
@@ -17841,7 +18142,7 @@ body {
     background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 40%, rgba(255,255,255,0.9) 100%);
     border: 2px solid transparent !important;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 4px 6px rgba(255,0,85,0.2);
 }
 .action-btn.max-move-btn::after {
@@ -18312,6 +18613,7 @@ body {
     <!-- UI 模块 (必须在 index.js 之前加载) -->
     <script src="./ui/ui-renderer.js"></script>
     <script src="./ui/ui-sprites.js"></script>
+    <script src="./ui/sprite-duplicate-fix.js"></script>
     <script src="./ui/ui-trainer-hud.js"></script>
     <script src="./ui/ui-menus.js"></script>
     <!-- 系统模块 (必须在 index.js 之前加载) -->
@@ -19825,6 +20127,10 @@ async function handleAttack(moveIndex, options = {}) {
         battle.enemyActive = switchTargetIndex;
         const newE = battle.getEnemy();
         log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
+        // 【标记换人】用于重复精灵图修复
+        if (typeof window.markEnemySwitch === 'function') {
+            window.markEnemySwitch();
+        }
         // 检查进场变形
         const checkInitTransformFunc = typeof window.checkInitTransform === 'function' ? window.checkInitTransform : null;
         if (checkInitTransformFunc && newE.needsInitTransform) {
@@ -20953,15 +21259,15 @@ window.EvolutionSystem = {
             const nextId = nextFormName.toLowerCase().replace(/[^a-z0-9]/g, '');
             const nextData = typeof POKEDEX !== 'undefined' ? POKEDEX[nextId] : null;
             if (!nextData) return null;
-            // 1. 等级锁 (允许越级5级)
+            // 1. 等级锁 (允许越级3级)
             const reqLevel = Math.max(1, (nextData.evoLevel || 1) - 3);
             if (pokemon.level < reqLevel) return null;
-            // 2. AVs 阈值：一阶(无prevo)要100，二阶(有prevo)要300
+            // 2. AVs 阈值（放宽）：一阶(无prevo)需 60，二阶(有prevo)需 200
             const isFirstStage = !data.prevo;
-            const reqAVs = isFirstStage ? 100 : 300;
+            const reqAVs = isFirstStage ? 80 : 160;
             if (totalAVs < reqAVs) return null;
             // 3. 危机锁 (HP 35% 以下) 或 Ace 宝可梦 60% 以下
-            const isCrisis = hpRatio <= 0.35;
+            const isCrisis = hpRatio <= 0.45;
             const isAceMoment = pokemon.isAce && hpRatio <= 0.6;
             if (isCrisis || isAceMoment) {
                 return {
@@ -20986,8 +21292,8 @@ window.EvolutionSystem = {
             // 【全局限制】每场战斗只能使用一次 Bond Resonance
             if (battle.playerBondUsed) return null;
             // 最终形态 (无进化型)
-            // 1. AVs 绝对阈值：300
-            if (totalAVs < 300) return null;
+            // 1. AVs 绝对阈值（放宽至 220）
+            if (totalAVs < 220) return null;
             // 2. 必须是 Ace 宝可梦
             if (!pokemon.isAce) return null;
             // 3. 【严格劣势判断】与 AI 一致

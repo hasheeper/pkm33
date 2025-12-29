@@ -4623,7 +4623,7 @@ function generateZoneStatusCard(zoneCode) {
     }
     
     card += `\n---
-注: 以上仅为参考。角色可能已在场，舒适度影响其态度与状态。
+注: 以上仅为作为剧情参考的信息，不是实际的情况。不应该过度引入，适当把握
 </pkm_zone_info>`;
     
     return card;

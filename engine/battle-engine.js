@@ -477,7 +477,13 @@ class Pokemon {
      */
     _initCore(name, types, baseStats, level, moveNames, config = {}) {
         this.name = name;
-        this.cnName = name; // 暂时使用英文名，可后续添加中文映射
+        // 使用增强版 Locale 工具获取中文名（支持智能后缀解析）
+        if (typeof window !== 'undefined' && window.Locale) {
+            // Locale.get 现在会自动处理 "Zoroark-Hisui" -> "索罗亚克-洗翠" 这类转换
+            this.cnName = window.Locale.get(name);
+        } else {
+            this.cnName = name;
+        }
         this.types = types;
         this.baseStats = baseStats;
         this.level = level;
@@ -663,12 +669,15 @@ class Pokemon {
                 const randomFallback = FALLBACK_MOVES[Math.floor(Math.random() * FALLBACK_MOVES.length)];
                 md = getMoveData(randomFallback);
             }
-            return { name: md.name, cn: md.name, type: md.type, power: md.power || 0, cat: md.cat || 'phys' };
+            // 使用 Locale 工具获取技能中文名
+            const cnName = (typeof window !== 'undefined' && window.Locale) ? window.Locale.get(md.name) : md.name;
+            return { name: md.name, cn: cnName, type: md.type, power: md.power || 0, cat: md.cat || 'phys' };
         });
         
         // 如果没给技能或过滤后为空，给个默认的
         if (this.moves.length === 0) {
-            this.moves = [{ name: 'Tackle', cn: 'Tackle', type: 'Normal', power: 40, cat: 'phys' }];
+            const tackleCN = (typeof window !== 'undefined' && window.Locale) ? window.Locale.get('Tackle') : 'Tackle';
+            this.moves = [{ name: 'Tackle', cn: tackleCN, type: 'Normal', power: 40, cat: 'phys' }];
         }
     }
     
@@ -2208,7 +2217,22 @@ function performMegaEvolution(pokemon) {
     
     // 更新基础数据
     pokemon.name = megaData.name;
-    pokemon.cnName = megaData.name;
+    
+    // [BUG FIX] 强制刷新中文名，防止变回英文
+    if (typeof window !== 'undefined' && window.Locale) {
+        // 先尝试查全名 "Lucario-Mega" => "超级路卡利欧"
+        let cn = window.Locale.get(megaData.name);
+        
+        // 如果查不到翻译(还是英文)，尝试智能拼装: "超级" + 基础名
+        if (cn === megaData.name) {
+            const baseCn = window.Locale.get(pokemon.name.split('-')[0]);
+            cn = `超级${baseCn}`;
+        }
+        pokemon.cnName = cn;
+    } else {
+        pokemon.cnName = megaData.name;
+    }
+    
     pokemon.types = megaData.types || pokemon.types;
     pokemon.baseStats = megaData.baseStats;
     

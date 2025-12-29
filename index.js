@@ -416,15 +416,11 @@ function updateAllVisuals(forceSpriteAnim = false) {
                 
                 if (showZStyle) {
                     // Z 招式样式
-                    const zMoveId = zTarget.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const zMoveData = (typeof MOVES !== 'undefined' && MOVES[zMoveId]) ? MOVES[zMoveId] : {};
-                    displayName = zMoveData.cn || zTarget.name;
+                    displayName = (window.Locale) ? window.Locale.get(zTarget.name) : zTarget.name;
                     displayType = zTarget.type;
                 } else if (showMaxStyle) {
                     // Max 招式样式
-                    const maxMoveId = maxTarget.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const maxMoveData = (typeof MOVES !== 'undefined' && MOVES[maxMoveId]) ? MOVES[maxMoveId] : {};
-                    displayName = maxMoveData.cn || maxTarget.name;
+                    displayName = (window.Locale) ? window.Locale.get(maxTarget.name) : maxTarget.name;
                     displayType = maxTarget.type;
                 }
                 
@@ -460,17 +456,19 @@ function updateAllVisuals(forceSpriteAnim = false) {
                     }
                     
                     const labelText = showZStyle ? 'Z' : 'MAX';
+                    const typeNameCN = (window.Locale) ? window.Locale.get(displayType) : displayType;
                     btn.innerHTML = `
                         <div class="z-bg-overlay"></div>
                         <div class="z-badge-icon">${labelText}</div>
                         <span class="move-name">${displayName}${insightHint}</span>
-                        <span class="badge-type type-${displayType}">${displayType}</span>
+                        <span class="badge-type type-${displayType}">${typeNameCN}</span>
                     `;
                 } else {
                     // 普通技能
+                    const typeNameCN = (window.Locale) ? window.Locale.get(displayType) : displayType;
                     btn.innerHTML = `
                         <span class="move-name">${displayName}${insightHint}</span>
-                        <span class="badge-type type-${displayType}">${displayType}</span>
+                        <span class="badge-type type-${displayType}">${typeNameCN}</span>
                     `;
                 }
                 
@@ -721,7 +719,18 @@ async function handleAttack(moveIndex, options = {}) {
         if (gmaxFormId && gmaxFormId.includes('gmax') && !p.isGenericDynamax) {
             // 保存原始名称，用于回退
             p.originalName = p.name;
-            p.name = gmaxFormId.charAt(0).toUpperCase() + gmaxFormId.slice(1);
+            
+            // [BUG FIX] 格式转换：charizardgmax -> Charizard-Gmax
+            const baseName = gmaxFormId.replace(/gmax$/i, '');
+            const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1) + '-Gmax';
+            p.name = formattedName;
+            
+            // 重新翻译 G-Max 形态名称
+            if (window.Locale) {
+                p.cnName = window.Locale.get(formattedName);
+            } else {
+                p.cnName = formattedName;
+            }
             
             // G-Max 精灵图格式: laprasgmax -> lapras-gmax (带横杠)
             const gmaxSpriteId = gmaxFormId.replace(/gmax$/i, '-gmax');
@@ -878,8 +887,18 @@ async function handleAttack(moveIndex, options = {}) {
             // 【关键】通用极巨化 (isGenericDynamax) 不切换图片，只用 CSS 放大
             const gmaxFormId = e.megaTargetId;
             if (gmaxFormId && gmaxFormId.includes('gmax') && !e.isGenericDynamax) {
-                // 有 G-Max 形态，切换精灵图
-                e.name = gmaxFormId.charAt(0).toUpperCase() + gmaxFormId.slice(1);
+                // [BUG FIX] 格式转换：charizardgmax -> Charizard-Gmax
+                const baseName = gmaxFormId.replace(/gmax$/i, '');
+                const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1) + '-Gmax';
+                e.name = formattedName;
+                
+                // 重新翻译 G-Max 形态名称
+                if (window.Locale) {
+                    e.cnName = window.Locale.get(formattedName);
+                } else {
+                    e.cnName = formattedName;
+                }
+                
                 const gmaxSpriteId = gmaxFormId.replace(/gmax$/i, '-gmax');
                 const gmaxSpriteUrl = `https://play.pokemonshowdown.com/sprites/ani/${gmaxSpriteId}.gif`;
                 smartLoadSprite('enemy-sprite', gmaxSpriteUrl, false);
