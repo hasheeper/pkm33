@@ -145,6 +145,11 @@ async function handleEnemyPivot() {
         const newE = battle.getEnemy();
         log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
         
+        // 【标记换人】用于重复精灵图修复
+        if (typeof window.markEnemySwitch === 'function') {
+            window.markEnemySwitch();
+        }
+        
         updateAllVisuals('enemy');
         await wait(500);
         triggerEntryAbilities(newE, p);
@@ -222,6 +227,11 @@ async function handleEnemyFainted(e) {
     if (battle.nextAliveEnemy()) {
         const newE = battle.getEnemy();
         log(`敌方派出 <b>${newE.cnName}</b> (Lv.${newE.level})!`);
+        
+        // 【标记换人】用于重复精灵图修复
+        if (typeof window.markEnemySwitch === 'function') {
+            window.markEnemySwitch();
+        }
         
         // === 播放敌方新宝可梦叫声 ===
         if (typeof window.playPokemonCry === 'function') {

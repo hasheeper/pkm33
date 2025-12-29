@@ -110,12 +110,15 @@ function smartLoadSprite(id, url, forceAnim = false) {
         const preloader = new Image();
         preloader.onload = () => {
             console.log(`[SPRITE] SUCCESS: ${preloader.src}`);
-            img.style.transition = 'none';
-            img.classList.remove('loaded', 'fainted-hidden', 'fainting', 'entering');
+            // 【优化】形态切换时不移除 loaded 类，避免闪烁
+            // 只移除动画相关的类
+            img.classList.remove('fainted-hidden', 'fainting', 'entering');
+            // 直接切换 src，保持显示状态
             img.src = preloader.src;
-            void img.offsetWidth;
-            img.style.transition = '';
-            img.classList.add('loaded');
+            // 确保 loaded 类存在
+            if (!img.classList.contains('loaded')) {
+                img.classList.add('loaded');
+            }
             playEntryAnimation();
         };
         preloader.onerror = () => {

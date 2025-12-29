@@ -268,6 +268,11 @@ async function enemyTurn() {
             const newE = battle.getEnemy();
             log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
             
+            // 【标记换人】用于重复精灵图修复
+            if (typeof window.markEnemySwitch === 'function') {
+                window.markEnemySwitch();
+            }
+            
             // 检查进场变形
             if (typeof window.checkInitTransform === 'function' && newE.needsInitTransform) {
                 const result = window.checkInitTransform(newE);

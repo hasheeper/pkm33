@@ -3925,6 +3925,7 @@ const NPC_ADDON_DATA = {
     gloria: {
         name_cn: '小优',
         name_en: 'Gloria',
+        zone_affinity: { N: 2, B: 2, S: 1, A: 3, Z: 2 },
         unlock_key: 'enable_dynamax',
         unlock_item: {
             name_cn: '「未被加工的许愿星原型」',
@@ -3954,6 +3955,7 @@ const NPC_ADDON_DATA = {
     rosa: {
         name_cn: '鸣依',
         name_en: 'Rosa',
+        zone_affinity: { N: 3, B: 1, S: 1, A: 1, Z: 2 },
         unlock_key: 'enable_bond',
         unlock_item: {
             name_cn: '「嵌有『未碎之钻』的耳返」',
@@ -3983,6 +3985,7 @@ const NPC_ADDON_DATA = {
     dawn: {
         name_cn: '小光',
         name_en: 'Dawn',
+        zone_affinity: { N: 2, B: 2, S: 1, A: 1, Z: 1 },
         unlock_key: 'enable_insight',
         unlock_item: {
             name_cn: '「按键凹陷的粉闪型号旧表」',
@@ -4012,6 +4015,7 @@ const NPC_ADDON_DATA = {
     akari: {
         name_cn: '小照',
         name_en: 'Akari',
+        zone_affinity: { N: 1, B: 2, S: 3, A: 1, Z: 1 },
         unlock_key: 'enable_styles',
         unlock_item: {
             name_cn: '「留有牙印的朱红色头巾」',
@@ -4041,6 +4045,7 @@ const NPC_ADDON_DATA = {
     serena: {
         name_cn: '瑟蕾娜',
         name_en: 'Serena',
+        zone_affinity: { N: 2, B: 2, S: 1, A: 1, Z: 2 },
         unlock_key: 'enable_mega',
         unlock_item: {
             name_cn: '「蓝色缎带·钥石项圈」',
@@ -4070,6 +4075,7 @@ const NPC_ADDON_DATA = {
     lusamine: {
         name_cn: '露莎米奈',
         name_en: 'Lusamine',
+        zone_affinity: { N: 0, B: 1, S: 0, A: 0, Z: 3 },
         relationship_stage: {
             negative: {
                 '-2': { label: '清理', desc: '眼神如冰，将你判定为必须清除的杂质，毫不留情地指挥安保处理。' },
@@ -4090,6 +4096,7 @@ const NPC_ADDON_DATA = {
     lillie: {
         name_cn: '莉莉艾',
         name_en: 'Lillie',
+        zone_affinity: { N: 1, B: 2, S: 1, A: 1, Z: 3 },
         relationship_stage: {
             negative: {
                 '-2': { label: '畏缩', desc: '心理阴影爆发，像受惊小兽般颤抖躲避，嘴里念叨"只有这次"。' },
@@ -4110,6 +4117,7 @@ const NPC_ADDON_DATA = {
     mallow: {
         name_cn: '玛奥',
         name_en: 'Mallow',
+        zone_affinity: { N: 1, B: 3, S: 0, A: 0, Z: 1 },
         relationship_stage: {
             negative: {
                 '-2': { label: '黑心', desc: '不再热情，皮笑肉不笑，可能会在给你的料理里"意外"加料。' },
@@ -4130,6 +4138,7 @@ const NPC_ADDON_DATA = {
     lana: {
         name_cn: '水莲',
         name_en: 'Lana',
+        zone_affinity: { N: 1, B: 3, S: 0, A: 0, Z: 1 },
         relationship_stage: {
             negative: {
                 '-2': { label: '断线', desc: '假笑都懒得维持，像看死掉的杂鱼一样冷漠，由得你自生自灭。' },
@@ -4150,6 +4159,7 @@ const NPC_ADDON_DATA = {
     irida: {
         name_cn: '珠贝',
         name_en: 'Irida',
+        zone_affinity: { N: 0, B: 0, S: 0, A: 1, Z: 3 },
         relationship_stage: {
             negative: {
                 '-2': { label: '断绝', desc: '首领威严回归，即使热死也不接受带有侮辱性质的现代施舍。' },
@@ -4170,6 +4180,7 @@ const NPC_ADDON_DATA = {
     sonia: {
         name_cn: '索妮亚',
         name_en: 'Sonia',
+        zone_affinity: { N: 1, B: 1, S: 0, A: 0, Z: 3 },
         relationship_stage: {
             negative: {
                 '-2': { label: '拉黑', desc: '触到底线后变得冰冷拒绝，连门都不让你进，彻底的学者式冷暴力。' },
@@ -4190,6 +4201,7 @@ const NPC_ADDON_DATA = {
     roxie: {
         name_cn: '霍米加',
         name_en: 'Roxie',
+        zone_affinity: { N: 3, B: 0, S: 2, A: 0, Z: 0 },
         relationship_stage: {
             negative: {
                 '-2': { label: '噪音', desc: '视你为污染舞台的垃圾，直接竖中指并让保安叉出去。' },
@@ -4210,6 +4222,7 @@ const NPC_ADDON_DATA = {
     iono: {
         name_cn: '奇树',
         name_en: 'Iono',
+        zone_affinity: { N: 3, B: 1, S: 1, A: 2, Z: 1 },
         relationship_stage: {
             negative: {
                 '-2': { label: '黑粉', desc: '下播眼神如看害虫，极度厌恶，只把你当那种最麻烦的anti处理。' },
@@ -4230,6 +4243,7 @@ const NPC_ADDON_DATA = {
     erika: {
         name_cn: '艾莉卡',
         name_en: 'Erika',
+        zone_affinity: { N: 0, B: 3, S: 0, A: 1, Z: 1 },
         relationship_stage: {
             negative: {
                 '-2': { label: '驱逐', desc: '优雅地下达逐客令，如同拔除杂草般将你从视野中彻底清除。' },
@@ -4250,6 +4264,7 @@ const NPC_ADDON_DATA = {
     nessa: {
         name_cn: '露璃娜',
         name_en: 'Nessa',
+        zone_affinity: { N: 1, B: 3, S: 0, A: 2, Z: 1 },
         relationship_stage: {
             negative: {
                 '-2': { label: '黑名单', desc: '模特的冷酷全开，直接让经纪人把你列入永久拒绝往来名单。' },
@@ -4270,6 +4285,7 @@ const NPC_ADDON_DATA = {
     marnie: {
         name_cn: '玛俐',
         name_en: 'Marnie',
+        zone_affinity: { N: 2, B: 1, S: 3, A: 0, Z: 0 },
         relationship_stage: {
             negative: {
                 '-2': { label: '出局', desc: '冷酷压迫感全开，直接把你列入黑名单，像屏蔽垃圾信息一样无视。' },
@@ -4290,6 +4306,7 @@ const NPC_ADDON_DATA = {
     hex: {
         name_cn: '海克丝',
         name_en: 'Hex Maniac',
+        zone_affinity: { N: 0, B: 0, S: 3, A: 0, Z: 0 },
         relationship_stage: {
             negative: {
                 '-2': { label: '死咒', desc: '纯粹的恶意爆发，发出尖叫驱使怨灵攻击，视你为必须要消灭的仇敌。' },
@@ -4310,6 +4327,7 @@ const NPC_ADDON_DATA = {
     bea: {
         name_cn: '彩豆',
         name_en: 'Bea',
+        zone_affinity: { N: 2, B: 0, S: 0, A: 3, Z: 1 },
         relationship_stage: {
             negative: {
                 '-2': { label: '制裁', desc: '毫不留情地武力压制，眼神如看违反道艺之人般冰冷，出手极重。' },
@@ -4330,6 +4348,7 @@ const NPC_ADDON_DATA = {
     cynthia: {
         name_cn: '竹兰',
         name_en: 'Cynthia',
+        zone_affinity: { N: 2, B: 2, S: 2, A: 2, Z: 2 },
         relationship_stage: {
             negative: {
                 '-2': { label: '放逐', desc: '甚至不需要动手，但冰冷的眼神比暴风雪还可怕，那是让人生理冻结的压迫。' },
@@ -4350,6 +4369,7 @@ const NPC_ADDON_DATA = {
     selene: {
         name_cn: '美月',
         name_en: 'Selene',
+        zone_affinity: { N: 1, B: 3, S: 1, A: 2, Z: 1 },
         unlock_key: 'enable_z_move',
         unlock_item: {
             name_cn: '「刻有名字的Z手环」',
@@ -4380,6 +4400,7 @@ const NPC_ADDON_DATA = {
     juliana: {
         name_cn: '小青',
         name_en: 'Juliana',
+        zone_affinity: { N: 2, B: 2, S: 2, A: 2, Z: 2 },
         unlock_key: 'enable_tera',
         unlock_item: {
             name_cn: '「满载的收纳箱与太晶珠」',
@@ -4409,10 +4430,212 @@ const NPC_ADDON_DATA = {
     }
 };
 
+// ================================================================
+//  区域数据 (Zone Data)
+// ================================================================
+/* 
+ * 区域数据定义 (v1.2 Updated)
+ * 整合了最新的氛围描述优化：
+ * - A区：增加旷野与体育公馆的热血感
+ * - S区：强调烟火气与野蛮生长
+ * - Z区：强调过度保护的学院感
+ */
+const ZONE_DATA = {
+    N: {
+        name_cn: '霓虹商业辖区',
+        name_en: 'Neon District',
+        security: 'B',
+        security_note: '最繁华中心，治安虽好但充斥着信息与算法裹挟',
+        landmarks: '全息直播塔 / LiveHouse<猛毒核心> / 电竞中心 / 24h百货商圈',
+        mist: '弥漫着像融化糖果一样的电子甜味',
+        dominant_desc: { // N3
+            iono: '无处不在的全息投影。不一定能见到本人，但你永远在她流量监控下。',
+            roxie: '地下乐团主唱，即便在深夜，贝斯不仅的轰鸣也是这一带的心跳。',
+            rosa: '这里的形象代言人。从巨大的广告牌到快闪活动，哪里热闹哪里就有她。'
+        },
+        avoid_reasons: { // N0
+            erika: '太吵了，这种充斥着人造糖精味的地方，没有丝毫风雅可言。',
+            hex: '光......太亮了......要在众目睽睽下被蒸发了......',
+            irida: '这种闷热的热气和嗡嗡作响的声音......难道是某种新式的酷刑？',
+            lusamine: '这种喧闹的平民娱乐场所，不符合理事长的美学。'
+        }
+    },
+    B: {
+        name_cn: '繁花海滨辖区',
+        name_en: 'Bloom District',
+        security: 'A-',
+        security_note: '高端生态度假村，容易让人产生产生“过度放松”的幸福困倦感',
+        landmarks: '深蓝洄游迷宫 / 玉虹别苑(SPA) / 阿罗拉风情食堂 / 珊瑚礁海岸',
+        mist: '湿度98%，高浓度的植物费洛蒙与海风混合',
+        dominant_desc: { // B3
+            erika: '这带高端会所的实际控制者，在这儿她比在关都更放得开。',
+            nessa: '水上竞技场与时尚界的双重女王，整个泳池都是她的T台。',
+            mallow: '把这里当成了也是第二个家，正在充满活力地推销阿罗拉料理。',
+            lana: '完全融入了这里的水域，可能正潜伏在某个礁石后面钓鱼。',
+            selene: '享受着这里的阳光，把“过度亲密”当成了自然的阿罗拉礼仪。'
+        },
+        avoid_reasons: { // B0
+            roxie: '比起海浪声，我更想让吉他箱炸掉。这种软得像棉花糖的地方不适合我。',
+            hex: '(阳光过于充足，该单位已判定此地为禁区，遁入地底)',
+            bea: '水中游玩并非修行，甜食会让身体迟钝......太松懈了。',
+            irida: '(尽管有水，但这湿热的空气甚至更致命，死守Z区不出来)'
+        }
+    },
+    S: {
+        name_cn: '暗影旧街辖区',
+        name_en: 'Shadow District',
+        security: 'D',
+        security_note: '充满烟火气的底层老街，虽然路况复杂且无规则，但有着野蛮生长的活力',
+        landmarks: '生锈管网迷宫 / 废弃电厂 / 灵骨塔 / 深夜大排档与黑市',
+        mist: '浓稠且阴冷，令人焦躁冲动，会放大心中阴暗或狂暴的一面',
+        dominant_desc: { // S3
+            marnie: '区域管控者。她在后面维持这个烂摊子的秩序，混混们的大姐头。',
+            hex: '潜伏在那个最深的阴影里。千万别回头，她一直盯着你看。',
+            akari: '为了生存什么都干的万事屋。比起那些太刺眼的地方，这里的旧房子让她安心。'
+        },
+        avoid_reasons: { // S0
+            erika: '这种地方......不仅脏，还会弄坏这一身昂贵的和服。',
+            lusamine: '污秽。这是特区最不优雅的角落。',
+            lillie: '(会因为阴森的气氛和路面也是不良少年吓得走不动路)',
+            mallow: '这里没有新鲜食材，只有腐烂和铁锈的味道。',
+            lana: '(没有适合游泳的水域，只有污水)',
+            irida: '(虽然比外面凉快一点，但这种压抑感比头目精灵还可怕)',
+            sonia: '这种环境太糟糕了...我、我的研究不需要来这种地方......'
+        }
+    },
+    A: {
+        name_cn: '极诣竞技辖区',
+        name_en: 'Apex District',
+        security: 'B+',
+        security_note: '融合了“旷野地带”辽阔与“体育公馆”宏大的职业赛区，排斥一切娱乐',
+        landmarks: '极诣螺旋塔 / 钢铁意志道场 / 红土荒原竞技场 / 运动理疗中心',
+        mist: '几乎无味。空气中只有让人血脉偾张的焦糊味',
+        dominant_desc: { // A3
+            bea: '魔鬼教官。如果你没做好流汗流血及骨折的准备，别靠近她的道场。',
+            gloria: '即使不背着那些锅，她也是顶级的战斗狂人，这座塔常驻的梦魇。',
+            cynthia: '虽然经常四处乱跑，但这里依然是她作为特邀冠军最终镇守的王座。'
+        },
+        avoid_reasons: { // A0
+            mallow: '比起痛苦的肌肉训练，大家坐下来吃点好吃的不好吗？',
+            lana: '(这里太干燥了，也没有可以让水系宝可梦发挥的深水区)',
+            hex: '(太多强悍的格斗系和阳刚之气了......会死的......)',
+            sonia: '我是脑力劳动者，这种野蛮人的聚会就......',
+            roxie: '规矩太多了！不管是裁判还是制服！我要的是Live上的混乱和自由！',
+            lusamine: '一群只懂得破坏和流汗的野蛮人，不懂得欣赏爱的真谛。',
+            marnie: '(偶尔也许回来挑战，但这种斯巴达式的氛围实在太累人了)'
+        }
+    },
+    Z: {
+        name_cn: '天顶中枢区',
+        name_en: 'Zenith Central',
+        security: 'S',
+        security_note: '学院都市与安全屋，生活极其便利但时刻处于被过度保护之下',
+        landmarks: '洛迪亚皇家学院(宿舍) / 大衍实验室 / PC存储中心 / 以太行政大楼',
+        mist: '被高效净化。全岛唯一的“贤者模式”地带',
+        dominant_desc: { // Z3
+            lusamine: '这一带的女皇，如果你需要最高权限或资源，就得去大楼顶层求她。',
+            irida: '博物馆导游(自称)。实际情况是赖在全岛空调冷气最足的地方死不肯走。',
+            sonia: '研究所里的地缚灵。如果不去实验室把她刨出来，她可能会被论文埋没。',
+            lillie: '在这里学习和当助手。对于不想打架的人来说，这里是最好的避风港。'
+        },
+        avoid_reasons: { // Z0
+            roxie: '讨厌那种充满漂白剂味道的干净地板，在这里连大声说话都会被当成异类。',
+            hex: '(太亮了，太干净了，连个躲藏的阴影都没有......)',
+            akari: '这里的自动门和机器人太可怕了......而且太昂贵了，甚至不敢走路。',
+            marnie: '(不喜欢这里那种高高在上的规矩，也不想看到这就是那些西装革履的大人)'
+        }
+    }
+};
+
+/**
+ * 根据当前区域获取角色活跃度分组
+ * @param {string} zoneCode - 区域代码 (N/B/S/A/Z)
+ * @returns {object} - { dominant: [], active: [], occasional: [], rare: [] }
+ */
+function getZoneCharacters(zoneCode) {
+    const zone = ZONE_DATA[zoneCode];
+    const result = {
+        dominant: [],   // 活跃度 3：主场势力
+        active: [],     // 活跃度 2：经常出没
+        occasional: [], // 活跃度 1：偶尔路过
+        rare: []        // 活跃度 0：几乎不来
+    };
+    
+    for (const [npcId, data] of Object.entries(NPC_ADDON_DATA)) {
+        if (!data.zone_affinity) continue;
+        const affinity = data.zone_affinity[zoneCode] || 0;
+        const entry = { 
+            id: npcId, 
+            name_cn: data.name_cn, 
+            name_en: data.name_en, 
+            affinity,
+            desc: zone?.dominant_desc?.[npcId] || null,
+            avoid_reason: zone?.avoid_reasons?.[npcId] || null
+        };
+        
+        if (affinity === 3) result.dominant.push(entry);
+        else if (affinity === 2) result.active.push(entry);
+        else if (affinity === 1) result.occasional.push(entry);
+        else result.rare.push(entry);
+    }
+    
+    return result;
+}
+
+/**
+ * 生成区域状态卡文本（凝练版）
+ * @param {string} zoneCode - 区域代码 (N/B/S/A/Z)
+ * @returns {string} - 格式化的状态卡文本
+ */
+function generateZoneStatusCard(zoneCode) {
+    const zone = ZONE_DATA[zoneCode];
+    if (!zone) return `[未知区域: ${zoneCode}]`;
+    
+    const chars = getZoneCharacters(zoneCode);
+    
+    let card = `<pkm_zone_info>
+[LOC] 洛迪亚 · ${zone.name_cn} (${zone.name_en})
+治安: ${zone.security} - ${zone.security_note}
+地标: ${zone.landmarks}
+粉雾: ${zone.mist}
+---
+[主场势力] (舒适度=3，大概率已在场):`;
+
+    chars.dominant.forEach(c => {
+        const desc = c.desc ? `: ${c.desc}` : '';
+        card += `\n  ${c.name_cn}(${c.name_en})${desc}`;
+    });
+    
+    if (chars.active.length > 0) {
+        card += `\n[经常出没] (舒适度=2): ${chars.active.map(c => c.name_cn).join(' / ')}`;
+    }
+    
+    if (chars.occasional.length > 0) {
+        card += `\n[偶尔路过] (舒适度=1): ${chars.occasional.map(c => c.name_cn).join(' / ')}`;
+    }
+    
+    if (chars.rare.length > 0) {
+        card += `\n[不适应此地] (舒适度=0，若已在场会表现不适):`;
+        chars.rare.forEach(c => {
+            const reason = c.avoid_reason ? ` - ${c.avoid_reason}` : '';
+            card += `\n  ${c.name_cn}${reason}`;
+        });
+    }
+    
+    card += `\n---
+注: 以上仅为参考。角色可能已在场，舒适度影响其态度与状态。
+</pkm_zone_info>`;
+    
+    return card;
+}
+
 // 挂载到 window
 if (typeof window !== 'undefined') {
     window.NPC_TRIGGERS = NPC_TRIGGERS;
     window.NPC_ADDON_DATA = NPC_ADDON_DATA;
+    window.ZONE_DATA = ZONE_DATA;
+    window.getZoneCharacters = getZoneCharacters;
+    window.generateZoneStatusCard = generateZoneStatusCard;
 }
 
 
@@ -7514,6 +7737,7 @@ ${inventorySection}
       const npcsState = _.get(eraVars, 'pkm.world_state.npcs', {});
       const passerbyState = _.get(eraVars, 'pkm.world_state.passerby_npcs', {});
       const playerBonds = _.get(eraVars, 'pkm.player.bonds', {});
+      const currentLocation = _.get(eraVars, 'pkm.world_state.location', 'Z');
       
       // 合并快照数据（快照优先，因为是最新的）
       const mergedNpcsState = {};
@@ -7563,18 +7787,19 @@ ${inventorySection}
         }
       }
       
-      // 如果没有任何活跃 NPC，清除注入
-      if (activeNpcs.length === 0 && activePasserby.length === 0) {
-        console.log(`${PLUGIN_NAME} [NPC] 未检测到活跃 NPC，清除注入`);
-        uninjectPrompts([NPC_INJECT_ID]);
-        return;
-      }
+      // 即使没有活跃 NPC，也保留区域状态卡注入
+      // （不再清除注入，因为区域信息始终有用）
       
+      console.log(`${PLUGIN_NAME} [NPC] 当前区域: ${currentLocation} (${ZONE_DATA[currentLocation]?.name_cn || '未知'})`);
       console.log(`${PLUGIN_NAME} [NPC] 激活主要角色: ${activeNpcs.join(', ') || '无'}`);
       console.log(`${PLUGIN_NAME} [NPC] 激活路人: ${activePasserby.map(p => p.name).join(', ') || '无'}`);
       
       // 5. 生成状态卡
       const sections = [];
+      
+      // 区域状态卡（始终显示当前区域信息）
+      const zoneCard = generateZoneStatusCard(currentLocation);
+      sections.push(zoneCard);
       
       // 主要 NPC 状态卡
       if (activeNpcs.length > 0) {

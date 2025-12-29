@@ -14,9 +14,12 @@
     
     // 记录当前显示的精灵图 URL（去除查询参数后的基础 URL）
     let currentEnemySpriteUrl = null;
+    // 标记是否是真正的换人（由外部调用设置）
+    let isActualSwitch = false;
     
     /**
      * 销毁并重建精灵图元素（终极方案）
+     * 【优化】使用淡入淡出效果，避免突然消失
      * @param {string} spriteId - DOM 元素 ID
      * @param {string} url - 图片 URL
      */
@@ -29,15 +32,15 @@
         
         console.log(`[SPRITE-FIX] Recreating element for: ${url}`);
         
-        // 创建新的 img 元素
-        const newImg = document.createElement('img');
-        newImg.id = spriteId;
-        newImg.className = 'p-sprite'; // 基础类
-        newImg.alt = oldImg.alt || '';
-        
         // 添加唯一参数确保不使用缓存
         const separator = url.includes('?') ? '&' : '?';
         const uniqueUrl = `${url}${separator}_t=${Date.now()}`;
+        
+        // 【同步替换】立即创建新元素并替换
+        const newImg = document.createElement('img');
+        newImg.id = spriteId;
+        newImg.className = 'p-sprite';  // 基础类
+        newImg.alt = oldImg.alt || '';
         
         // 设置加载回调
         newImg.onload = function() {
@@ -53,11 +56,11 @@
             console.error(`[SPRITE-FIX] Failed to load: ${uniqueUrl}`);
         };
         
-        // 替换旧元素
-        parent.replaceChild(newImg, oldImg);
-        
-        // 设置 src 触发加载
+        // 先设置 src
         newImg.src = uniqueUrl;
+        
+        // 立即替换旧元素
+        parent.replaceChild(newImg, oldImg);
     }
     
     /**
@@ -77,12 +80,17 @@
             if (id === 'enemy-sprite') {
                 const baseUrl = url.split('?')[0];
                 
-                // 检测是否是相同 URL（重复宝可梦换入）
-                if (forceAnim && currentEnemySpriteUrl === baseUrl) {
-                    console.log(`[SPRITE-FIX] Duplicate enemy sprite detected: ${baseUrl}`);
+                // 【简化逻辑】只有当 isActualSwitch=true 且 URL 相同时才触发重建
+                // isActualSwitch 由外部在换人前设置为 true
+                if (isActualSwitch && currentEnemySpriteUrl === baseUrl) {
+                    console.log(`[SPRITE-FIX] Duplicate enemy sprite on switch: ${baseUrl}`);
+                    isActualSwitch = false; // 重置标记
                     recreateSpriteElement(id, url);
                     return;
                 }
+                
+                // 重置标记（无论是否触发重建）
+                isActualSwitch = false;
                 
                 // 记录当前 URL
                 currentEnemySpriteUrl = baseUrl;
@@ -100,11 +108,22 @@
      */
     function resetDuplicateFix() {
         currentEnemySpriteUrl = null;
+        isActualSwitch = false;
         console.log('[SPRITE-FIX] State reset');
     }
     
-    // 导出重置函数
+    /**
+     * 标记即将进行换人（在换人前调用）
+     * 这样 smartLoadSprite 就知道这是真正的换人，而不是形态切换或回合更新
+     */
+    function markEnemySwitch() {
+        isActualSwitch = true;
+        console.log('[SPRITE-FIX] Enemy switch marked');
+    }
+    
+    // 导出函数
     window.resetSpriteDuplicateFix = resetDuplicateFix;
+    window.markEnemySwitch = markEnemySwitch;
     
     // 初始化
     if (document.readyState === 'loading') {

@@ -27,7 +27,46 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"difficulty":"hard","player":{"name":"User & Irida","party":[{"slot":1,"name":"Floragato","nickname":null,"species":null,"gender":"F","lv":23,"quality":"high","nature":"Jolly","ability":"Overgrow","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"moves":["Scratch","Tail Whip","Leafage","Bite"],"stats_meta":{"ivs":{"hp":3,"atk":25,"def":31,"spa":29,"spd":31,"spe":31},"ev_level":71,"ev_up":0},"notes":null,"avs":{"trust":74,"passion":56,"insight":23,"devotion":8}},{"name":"Glaceon","lv":86,"gender":"F","nature":"Modest","ability":"Snow Cloak","item":"Bright Powder","stats_meta":{"ivs":{"hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31},"ev_level":252},"moves":["Blizzard","Freeze-Dry","Calm Mind","Shadow Ball"],"isAce":true,"avs":{"trust":160,"passion":100,"insight":255,"devotion":120}}],"unlocks":{"enable_bond":false,"enable_styles":true,"enable_insight":true,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"enemy":{"id":"Ambush Party","type":"wild","name":"Ambush Party","lines":{},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"party":[{"name":"Sneasel","gender":"M","lv":25,"nature":"Bold","ability":null,"shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":10,"atk":0,"def":3,"spa":3,"spd":11,"spe":11},"ev_level":0},"moves":["Metal Claw","Hone Claws"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}},{"name":"Sneasel","gender":"F","lv":24,"nature":"Docile","ability":null,"shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":12,"atk":12,"def":13,"spa":11,"spd":5,"spe":14},"ev_level":0},"moves":["Icy Wind","Quick Attack"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}},{"name":"Sneasel","gender":"F","lv":24,"nature":"Sassy","ability":null,"shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":12,"atk":14,"def":15,"spa":7,"spd":6,"spe":9},"ev_level":0},"moves":["Feint Attack","Ice Shard"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null};
+    return {
+        "player": {
+            "name": "User(No-Data)", // 暗示没有读到用户数据
+            "party": [
+                // 仅有一招 Splash 的 100级 鲤鱼王 (凑齐3只)
+                { "name": "Magikarp", "lv": 20, "moves": ["Splash"] },
+                { "name": "Magikarp", "lv": 20, "moves": ["Splash"] },
+                { "name": "Feebas", "lv": 20, "moves": ["Splash"] }
+            ]
+        },
+        "enemy": {
+            "type": "Runtime Error", // HUD右上角名字
+            "name": "Exception",     // 中间显示栏名字(如果没头像)
+            "lines": {
+                // 开场白改为系统提示文案
+                "start": "[警告] 战斗数据格式异常或未载入。目前使用缺省测试数据。",
+                "win": "Task Completed.",
+                "lose": "Run Failure.",
+                "escape": "Aborting Process..."
+            }
+        },
+        "party": [
+            { 
+                "name": "Magikarp", 
+                "lv": 20, 
+                "moves": ["Splash"] // 水溅跃是对面唯一的技能
+            },
+            { 
+                "name": "Magikarp", 
+                "lv": 20, 
+                "moves": ["Splash"] 
+            },
+            { 
+                "name": "Feebas", // 这只也是只会水溅跃的丑丑鱼，增加点视觉变化
+                "lv": 20, 
+                "moves": ["Splash"] 
+            }
+        ],
+        "script": null
+    };
 }
 
 // ============================================
