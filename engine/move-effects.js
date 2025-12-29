@@ -19,9 +19,11 @@
 /**
  * 获取技能优先级
  * @param {object} move 技能数据
+ * @param {object} user 使用者（可选，用于特性修正）
+ * @param {object} target 目标（可选，用于恶作剧之心免疫判定）
  * @returns {number} 优先级 (-7 ~ +5)
  */
-function getMovePriority(move) {
+function getMovePriority(move, user = null, target = null) {
     // 【古武系统】如果招式对象已有 priority 属性（被 style 修改过），直接使用
     if (typeof move.priority === 'number') {
         return move.priority;
@@ -31,41 +33,71 @@ function getMovePriority(move) {
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
     
     // 从数据中读取优先级
+    let basePriority = 0;
     if (typeof fullMoveData.priority === 'number') {
-        return fullMoveData.priority;
+        basePriority = fullMoveData.priority;
     }
     
-    // 硬编码常见优先级技能
-    const priorityMap = {
-        // +5
-        'Helping Hand': 5,
-        // +4
-        'Protect': 4, 'Detect': 4, 'Endure': 4, 'Magic Coat': 4, 'Snatch': 4,
-        'Baneful Bunker': 4, 'Spiky Shield': 4, "King's Shield": 4, 'Obstruct': 4,
-        'Silk Trap': 4, 'Burning Bulwark': 4,
-        // +3
-        'Fake Out': 3, 'Quick Guard': 3, 'Wide Guard': 3, 'Crafty Shield': 3,
-        // +2
-        'Extreme Speed': 2, 'Feint': 2, 'First Impression': 2, 'Accelerock': 2,
-        // +1
-        'Aqua Jet': 1, 'Baby-Doll Eyes': 1, 'Bullet Punch': 1, 'Ice Shard': 1,
-        'Mach Punch': 1, 'Quick Attack': 1, 'Shadow Sneak': 1, 'Sucker Punch': 1,
-        'Vacuum Wave': 1, 'Water Shuriken': 1, 'Grassy Glide': 1, 'Jet Punch': 1,
-        // -1
-        'Vital Throw': -1,
-        // -3
-        'Focus Punch': -3,
-        // -4
-        'Avalanche': -4, 'Revenge': -4,
-        // -5
-        'Counter': -5, 'Mirror Coat': -5,
-        // -6
-        'Circle Throw': -6, 'Dragon Tail': -6, 'Roar': -6, 'Whirlwind': -6, 'Teleport': -6,
-        // -7
-        'Trick Room': -7
-    };
+    // 硬编码常见优先级技能（如果数据库没有）
+    if (basePriority === 0) {
+        const priorityMap = {
+            // +5
+            'Helping Hand': 5,
+            // +4
+            'Protect': 4, 'Detect': 4, 'Endure': 4, 'Magic Coat': 4, 'Snatch': 4,
+            'Baneful Bunker': 4, 'Spiky Shield': 4, "King's Shield": 4, 'Obstruct': 4,
+            'Silk Trap': 4, 'Burning Bulwark': 4,
+            // +3
+            'Fake Out': 3, 'Quick Guard': 3, 'Wide Guard': 3, 'Crafty Shield': 3,
+            // +2
+            'Extreme Speed': 2, 'Feint': 2, 'First Impression': 2, 'Accelerock': 2,
+            // +1
+            'Aqua Jet': 1, 'Baby-Doll Eyes': 1, 'Bullet Punch': 1, 'Ice Shard': 1,
+            'Mach Punch': 1, 'Quick Attack': 1, 'Shadow Sneak': 1, 'Sucker Punch': 1,
+            'Vacuum Wave': 1, 'Water Shuriken': 1, 'Grassy Glide': 1, 'Jet Punch': 1,
+            // -1
+            'Vital Throw': -1,
+            // -3
+            'Focus Punch': -3,
+            // -4
+            'Avalanche': -4, 'Revenge': -4,
+            // -5
+            'Counter': -5, 'Mirror Coat': -5,
+            // -6
+            'Circle Throw': -6, 'Dragon Tail': -6, 'Roar': -6, 'Whirlwind': -6, 'Teleport': -6,
+            // -7
+            'Trick Room': -7
+        };
+        basePriority = priorityMap[move.name] || 0;
+    }
     
-    return priorityMap[move.name] || 0;
+    // === 【恶作剧之心 Prankster】特性处理 ===
+    // 变化技优先度+1，但对恶系目标无效
+    if (user && user.ability === 'Prankster') {
+        const category = fullMoveData.category || (move.cat === 'spec' ? 'Special' : (move.cat === 'phys' ? 'Physical' : 'Status'));
+        if (category === 'Status' || move.cat === 'status') {
+            // 检查目标是否为恶系（恶系免疫恶作剧之心的变化技）
+            if (target && target.types && target.types.includes('Dark')) {
+                console.log(`[PRANKSTER] ${target.cnName} 是恶属性，免疫恶作剧之心的变化技！`);
+                // 返回一个特殊标记，让调用方知道技能无效
+                move.pranksterBlocked = true;
+            } else {
+                basePriority += 1;
+                console.log(`[PRANKSTER] ${user.cnName} 的恶作剧之心使 ${move.name} 优先度+1`);
+            }
+        }
+    }
+    
+    // === 【疾风之翼 Gale Wings】特性处理 ===
+    // 满血时飞行系招式优先度+1
+    if (user && user.ability === 'Gale Wings' && move.type === 'Flying') {
+        if (user.currHp === user.maxHp) {
+            basePriority += 1;
+            console.log(`[GALE WINGS] ${user.cnName} 的疾风之翼使飞行系招式优先度+1`);
+        }
+    }
+    
+    return basePriority;
 }
 
 /**
@@ -203,20 +235,45 @@ function processStatusEffects(pokemon) {
 
 /**
  * 处理回合结束时的状态伤害
+ * 【软编码】支持毒疗、魔法防守等特性
  * @param {Pokemon} pokemon 
- * @returns {object} { damage, message }
+ * @returns {object} { damage, message, healed }
  */
 function processStatusDamage(pokemon) {
     if (!pokemon.status) {
-        return { damage: 0, message: null };
+        return { damage: 0, message: null, healed: false };
     }
     
     const status = pokemon.status;
+    const abilityId = (pokemon.ability || '').toLowerCase().replace(/[^a-z]/g, '');
     let damage = 0;
     let message = null;
     
+    // === 【毒疗 Poison Heal】特性处理 ===
+    // 中毒/剧毒时回复 1/8 HP 而非受伤
+    if (abilityId === 'poisonheal' && (status === 'psn' || status === 'tox')) {
+        const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 8));
+        if (typeof pokemon.heal === 'function') {
+            pokemon.heal(healAmount);
+        } else {
+            pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+        }
+        return { 
+            damage: 0, 
+            message: `<span style="color:#4cd137">💚 ${pokemon.cnName} 的毒疗特性发动，回复了 ${healAmount} 点体力!</span>`,
+            healed: true
+        };
+    }
+    
+    // === 【魔法防守 Magic Guard】特性处理 ===
+    // 免疫所有非直接攻击伤害（包括状态伤害）
+    if (abilityId === 'magicguard') {
+        return { damage: 0, message: null, healed: false };
+    }
+    
     switch (status) {
         case 'brn':
+            // 【根性 Guts / 毅力】不减少灼伤伤害，但提升攻击
             damage = Math.max(1, Math.floor(pokemon.maxHp / 16));
             pokemon.takeDamage(damage);
             message = `${pokemon.cnName} 因灼伤受到了 ${damage} 点伤害!`;
@@ -236,7 +293,7 @@ function processStatusDamage(pokemon) {
             break;
     }
     
-    return { damage, message };
+    return { damage, message, healed: false };
 }
 
 // ========== 技能附加状态效果 ==========
@@ -1293,6 +1350,274 @@ function tickVolatileStatus(pokemon, opponent = null) {
     return logs;
 }
 
+// ========== 道具回合末效果 (End-Turn Item Effects) ==========
+
+/**
+ * 【软编码】处理回合结束时的道具效果
+ * 支持剧毒宝珠、火焰宝珠等自赋状态道具
+ * @param {Pokemon} pokemon 
+ * @returns {Array} 日志消息数组
+ */
+function processEndTurnItemEffects(pokemon) {
+    const logs = [];
+    
+    if (!pokemon || !pokemon.item) return logs;
+    if (typeof pokemon.isAlive === 'function' && !pokemon.isAlive()) return logs;
+    
+    // 【软编码】从 items-data.js 获取道具数据
+    const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const itemData = (typeof window.getItem === 'function') ? window.getItem(pokemon.item) : null;
+    
+    if (!itemData) return logs;
+    
+    // === 自赋状态道具 (Toxic Orb, Flame Orb) ===
+    if (itemData.selfStatus && !pokemon.status) {
+        const statusToApply = itemData.selfStatus;
+        
+        // 检查免疫（钢/毒系免疫中毒，火系免疫灼伤）
+        let immune = false;
+        if ((statusToApply === 'psn' || statusToApply === 'tox') && pokemon.types) {
+            if (pokemon.types.includes('Steel') || pokemon.types.includes('Poison')) {
+                immune = true;
+            }
+        }
+        if (statusToApply === 'brn' && pokemon.types && pokemon.types.includes('Fire')) {
+            immune = true;
+        }
+        
+        // 检查特性免疫
+        const abilityId = (pokemon.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (abilityId === 'immunity' && (statusToApply === 'psn' || statusToApply === 'tox')) {
+            immune = true;
+        }
+        if (abilityId === 'waterveil' && statusToApply === 'brn') {
+            immune = true;
+        }
+        
+        if (!immune) {
+            pokemon.status = statusToApply;
+            pokemon.statusTurns = 0;
+            
+            const statusName = statusToApply === 'tox' ? '剧毒' : (statusToApply === 'brn' ? '灼伤' : '中毒');
+            const itemCnName = itemData.cnName || pokemon.item;
+            logs.push(`<span style="color:#9b59b6">💎 ${pokemon.cnName} 受到 ${itemCnName} 的影响，陷入了${statusName}状态!</span>`);
+        }
+    }
+    
+    // === 黑色淤泥 (Black Sludge) ===
+    if (itemId === 'blacksludge') {
+        if (pokemon.types && pokemon.types.includes('Poison')) {
+            // 毒系回复 1/16 HP
+            const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 16));
+            if (typeof pokemon.heal === 'function') {
+                pokemon.heal(healAmount);
+            } else {
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+            }
+            logs.push(`<span style="color:#4cd137">${pokemon.cnName} 通过黑色淤泥回复了 ${healAmount} 点体力!</span>`);
+        } else {
+            // 非毒系受到 1/8 HP 伤害
+            const damage = Math.max(1, Math.floor(pokemon.maxHp / 8));
+            pokemon.takeDamage(damage);
+            logs.push(`<span style="color:#e74c3c">${pokemon.cnName} 被黑色淤泥伤害了 ${damage} 点!</span>`);
+        }
+    }
+    
+    // === 剩饭 (Leftovers) ===
+    if (itemId === 'leftovers') {
+        if (pokemon.currHp < pokemon.maxHp) {
+            const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 16));
+            if (typeof pokemon.heal === 'function') {
+                pokemon.heal(healAmount);
+            } else {
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+            }
+            logs.push(`<span style="color:#4cd137">${pokemon.cnName} 通过剩饭回复了 ${healAmount} 点体力!</span>`);
+        }
+    }
+    
+    return logs;
+}
+
+// ========== 拍落效果 (Knock Off) ==========
+
+/**
+ * 【软编码】检查道具是否可以被拍落
+ * 使用 items-data.js 中的函数进行判定
+ * @param {string} itemId 道具ID
+ * @returns {boolean} 是否可以被拍落
+ */
+function canKnockOffItem(itemId) {
+    if (!itemId) return false;
+    const id = itemId.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    // 【软编码】使用 items-data.js 的函数
+    if (typeof window.isMegaStone === 'function' && window.isMegaStone(id)) return false;
+    if (typeof window.isZCrystal === 'function' && window.isZCrystal(id)) return false;
+    if (typeof window.isSwappable === 'function' && !window.isSwappable(id)) return false;
+    
+    return true;
+}
+
+/**
+ * 【软编码】处理拍落效果 - 移除对手道具
+ * 使用 items-data.js 的 isSwappable/isMegaStone/isZCrystal 判定
+ * @param {Object} attacker 攻击方
+ * @param {Object} defender 防御方
+ * @param {Object} move 技能数据
+ * @returns {Object} { success: boolean, logs: Array, bonusDamage: number }
+ */
+function applyKnockOff(attacker, defender, move) {
+    const logs = [];
+    let bonusDamage = 1.0;
+    
+    if (move.name !== 'Knock Off') return { success: false, logs, bonusDamage };
+    
+    // 检查对手是否有道具
+    if (defender.item && defender.item !== '') {
+        // 【软编码】使用 canKnockOffItem 函数判定
+        const isUnremovable = !canKnockOffItem(defender.item);
+        
+        if (!isUnremovable) {
+            const knockedItem = defender.item;
+            defender.item = null;
+            defender.knockedOffItem = knockedItem; // 记录被拍落的道具
+            logs.push(`${attacker.cnName} 拍落了 ${defender.cnName} 的 ${knockedItem}！`);
+            bonusDamage = 1.5; // 拍落有道具的对手伤害 x1.5
+        }
+    }
+    
+    return { success: logs.length > 0, logs, bonusDamage };
+}
+
+// ========== 束缚招式 (Trapping Moves) ==========
+
+/**
+ * 【软编码】处理束缚招式效果 - 困住对手并造成持续伤害
+ * 使用 moves-data.js 中的 volatileStatus: 'partiallytrapped' 标记判定
+ * @param {Object} attacker 攻击方
+ * @param {Object} defender 防御方
+ * @param {Object} move 技能数据
+ * @returns {Object} { success: boolean, logs: Array }
+ */
+function applyTrappingMove(attacker, defender, move) {
+    const logs = [];
+    
+    // 【软编码】从 moves-data.js 读取技能数据
+    const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    
+    // 检查是否为束缚招式（通过 volatileStatus 字段判定）
+    const isTrappingMove = fullMoveData.volatileStatus === 'partiallytrapped';
+    if (!isTrappingMove) return { success: false, logs };
+    
+    // 幽灵系免疫束缚
+    if (defender.types && defender.types.includes('Ghost')) {
+        return { success: false, logs };
+    }
+    
+    // 已经被束缚则不重复施加
+    if (defender.volatile && defender.volatile.partiallyTrapped) {
+        return { success: false, logs };
+    }
+    
+    // 初始化 volatile
+    if (!defender.volatile) defender.volatile = {};
+    
+    // 施加束缚状态
+    const turns = Math.random() < 0.5 ? 4 : 5; // 4-5 回合
+    defender.volatile.partiallyTrapped = turns;
+    defender.volatile.trappedBy = attacker;
+    defender.volatile.trapDamage = 1/8; // 标准束缚伤害
+    
+    // 【软编码】获取技能中文名（从翻译系统或使用原名）
+    const moveCnName = (typeof window.Locale !== 'undefined' && window.Locale.get) 
+        ? window.Locale.get(move.name) 
+        : move.name;
+    defender.volatile.trapMove = moveCnName;
+    
+    logs.push(`${defender.cnName} 被 ${moveCnName} 困住了！`);
+    
+    return { success: true, logs };
+}
+
+/**
+ * 【软编码】处理黑色目光/挡路等硬控招式
+ * 通过检查 moves-data.js 中的 flags 或 onHit 字段判定
+ * @param {Object} attacker 攻击方
+ * @param {Object} defender 防御方
+ * @param {Object} move 技能数据
+ * @returns {Object} { success: boolean, logs: Array }
+ */
+function applyMeanLook(attacker, defender, move) {
+    const logs = [];
+    
+    // 【软编码】从 moves-data.js 读取技能数据
+    const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    
+    // 检查是否为抓人招式（通过多种方式判定）
+    // 1. 检查 flags 中是否有 trap 标记
+    // 2. 检查是否为已知的抓人招式（作为后备）
+    const knownTrapMoves = ['meanlook', 'block', 'spiderweb', 'anchorshot', 'spiritshackle', 'jawlock'];
+    const isTrapMove = (fullMoveData.flags && fullMoveData.flags.trap) || knownTrapMoves.includes(moveId);
+    
+    if (!isTrapMove) return { success: false, logs };
+    
+    // 幽灵系免疫
+    if (defender.types && defender.types.includes('Ghost')) {
+        logs.push(`${defender.cnName} 是幽灵属性，不受影响！`);
+        return { success: false, logs };
+    }
+    
+    // 初始化 volatile
+    if (!defender.volatile) defender.volatile = {};
+    
+    // 施加无法逃走状态
+    defender.volatile.cantEscape = true;
+    defender.volatile.trappedBy = attacker;
+    
+    // 【软编码】获取技能中文名
+    const moveCnName = (typeof window.Locale !== 'undefined' && window.Locale.get) 
+        ? window.Locale.get(move.name) 
+        : move.name;
+    
+    logs.push(`${defender.cnName} 被 ${moveCnName} 困住，无法逃走了！`);
+    
+    // Jaw Lock 特殊处理：双方都被困住
+    if (moveId === 'jawlock') {
+        if (!attacker.volatile) attacker.volatile = {};
+        attacker.volatile.cantEscape = true;
+        logs.push(`${attacker.cnName} 也因紧咬不放而无法逃走！`);
+    }
+    
+    return { success: true, logs };
+}
+
+/**
+ * 处理束缚状态的回合结束伤害
+ * @param {Object} pokemon 宝可梦
+ * @returns {Object} { damage: number, logs: Array }
+ */
+function processTrappingDamage(pokemon) {
+    const logs = [];
+    let damage = 0;
+    
+    if (!pokemon.volatile || !pokemon.volatile.partiallyTrapped) {
+        return { damage, logs };
+    }
+    
+    // 计算束缚伤害
+    const trapDamage = pokemon.volatile.trapDamage || 1/8;
+    damage = Math.floor(pokemon.maxHp * trapDamage);
+    if (damage < 1) damage = 1;
+    
+    const trapMove = pokemon.volatile.trapMove || '束缚';
+    logs.push(`${pokemon.cnName} 受到了 ${trapMove} 的伤害！`);
+    
+    return { damage, logs };
+}
+
 // ========== 导出 ==========
 
 window.MoveEffects = {
@@ -1335,7 +1660,19 @@ window.MoveEffects = {
     checkConfusion,
     checkAttract,
     checkSubstitute,
-    tickVolatileStatus
+    tickVolatileStatus,
+    
+    // 道具回合末效果
+    processEndTurnItemEffects,
+    
+    // 拍落效果
+    applyKnockOff,
+    canKnockOffItem,
+    
+    // 束缚招式
+    applyTrappingMove,
+    applyMeanLook,
+    processTrappingDamage
 };
 
 console.log('[PKM] MoveEffects 模块已加载');

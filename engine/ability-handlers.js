@@ -569,6 +569,57 @@ const AbilityHandlers = {
         noIndirectDamage: true
     },
 
+    // 【毒疗】中毒时回复HP而非受伤
+    'Poison Heal': {
+        onStatusDamage: (pokemon, status) => {
+            if (status === 'psn' || status === 'tox') {
+                // 回复 1/8 HP
+                const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 8));
+                if (typeof pokemon.heal === 'function') {
+                    pokemon.heal(healAmount);
+                } else {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+                }
+                return { 
+                    blocked: true, 
+                    healed: true,
+                    message: `<span style="color:#4cd137">💚 ${pokemon.cnName} 的毒疗特性发动，回复了 ${healAmount} 点体力!</span>`
+                };
+            }
+            return { blocked: false };
+        }
+    },
+
+    // 【根性】异常状态时攻击力x1.5
+    'Guts': {
+        onModifyStat: (pokemon, stat, value) => {
+            if (stat === 'atk' && pokemon.status) {
+                return Math.floor(value * 1.5);
+            }
+            return value;
+        }
+    },
+
+    // 【毅力】异常状态时速度x1.5
+    'Quick Feet': {
+        onModifyStat: (pokemon, stat, value) => {
+            if (stat === 'spe' && pokemon.status) {
+                return Math.floor(value * 1.5);
+            }
+            return value;
+        }
+    },
+
+    // 【神奇鳞片】异常状态时防御x1.5
+    'Marvel Scale': {
+        onModifyStat: (pokemon, stat, value) => {
+            if (stat === 'def' && pokemon.status) {
+                return Math.floor(value * 1.5);
+            }
+            return value;
+        }
+    },
+
     // 【不服输】被降能力时攻击+2
     'Defiant': {
         onAfterStatDrop: (pokemon, stat, stages, logs) => {
@@ -672,10 +723,159 @@ const AbilityHandlers = {
             }
             return damage;
         }
+    },
+
+    // ============================================
+    // L. 抓人特性 (Trapping Abilities)
+    // ============================================
+
+    // 【踩影】对手无法换人（幽灵系除外，对方也是踩影则可逃）
+    'Shadow Tag': {
+        isTrapping: true,
+        canTrap: (self, target) => {
+            // 幽灵系免疫
+            if (target.types && target.types.includes('Ghost')) return false;
+            // 对方也是踩影则不困
+            if (target.ability === 'Shadow Tag') return false;
+            return true;
+        }
+    },
+
+    // 【磁力】钢属性无法换人
+    'Magnet Pull': {
+        isTrapping: true,
+        canTrap: (self, target) => {
+            // 幽灵系免疫
+            if (target.types && target.types.includes('Ghost')) return false;
+            // 只困住钢系
+            if (target.types && target.types.includes('Steel')) return true;
+            return false;
+        }
+    },
+
+    // 【沙穴】地面上的对手无法换人
+    'Arena Trap': {
+        isTrapping: true,
+        canTrap: (self, target) => {
+            // 幽灵系免疫
+            if (target.types && target.types.includes('Ghost')) return false;
+            // 飞行系免疫
+            if (target.types && target.types.includes('Flying')) return false;
+            // 漂浮特性免疫
+            if (target.ability === 'Levitate') return false;
+            // 气球道具免疫
+            if (target.item === 'Air Balloon') return false;
+            return true;
+        }
+    },
+
+    // ============================================
+    // M. 恶作剧之心 (Prankster) - 优先度修正
+    // ============================================
+
+    // 【恶作剧之心】变化技优先度+1，但对恶系无效
+    'Prankster': {
+        onModifyPriority: (priority, user, target, move) => {
+            // 只对变化技生效
+            if (move.cat === 'status' || move.category === 'Status') {
+                return priority + 1;
+            }
+            return priority;
+        },
+        // 恶系免疫恶作剧之心的变化技
+        pranksterImmunity: true
+    },
+
+    // ============================================
+    // N. 纯朴 (Unaware) - 忽略能力变化
+    // ============================================
+
+    // 【纯朴】攻击时忽略对手防御/特防提升，防御时忽略对手攻击/特攻提升
+    'Unaware': {
+        ignoreDefenderBoosts: true,  // 攻击时忽略对手防御提升
+        ignoreAttackerBoosts: true   // 防御时忽略对手攻击提升
+    },
+
+    // ============================================
+    // O. 其他重要特性补充
+    // ============================================
+
+    // 【魔法反射】反弹变化技
+    'Magic Bounce': {
+        reflectStatus: true
+    },
+
+    // 【破格】无视对手特性
+    'Mold Breaker': {
+        ignoreAbility: true
+    },
+    'Teravolt': {
+        ignoreAbility: true
+    },
+    'Turboblaze': {
+        ignoreAbility: true
     }
 };
+
+// ============================================
+// 换人阻断校验函数
+// ============================================
+
+/**
+ * 校验当前宝可梦是否可以主动换人
+ * @param {Object} pokemon - 想要换人的宝可梦
+ * @param {Object} opponent - 对手宝可梦
+ * @param {Object} battle - 战斗对象
+ * @returns {Object} { canSwitch: boolean, reason?: string }
+ */
+function checkCanSwitch(pokemon, opponent, battle) {
+    // 0. 特殊状态直接放行
+    // 如果使用了 U-turn 等 Pivot 招式，或者携带漂亮外壳，无视一切锁定
+    if (pokemon.isPivoting) return { canSwitch: true };
+    if (pokemon.item === 'Shed Shell') return { canSwitch: true };
+
+    // 1. 幽灵系特权：想走就走（六代后）
+    if (pokemon.types && pokemon.types.includes('Ghost')) return { canSwitch: true };
+
+    // 2. 检查自身的异常状态 (Volatile)
+    if (pokemon.volatile) {
+        // 黑色目光/挡路等造成的 cantEscape 状态
+        if (pokemon.volatile.cantEscape) {
+            return { canSwitch: false, reason: `${pokemon.cnName} 被困住了，无法逃走！` };
+        }
+        // 束缚状态（熔岩风暴、火焰旋涡等）
+        if (pokemon.volatile.partiallyTrapped) {
+            return { canSwitch: false, reason: `${pokemon.cnName} 正处于束缚状态，无法逃走！` };
+        }
+    }
+
+    // 3. 检查对手特性 (Abilities)
+    if (opponent && opponent.isAlive && opponent.isAlive()) {
+        const ability = opponent.ability || '';
+        const handler = AbilityHandlers[ability];
+
+        if (handler && handler.isTrapping && handler.canTrap) {
+            if (handler.canTrap(opponent, pokemon)) {
+                // 根据特性返回不同的提示
+                if (ability === 'Shadow Tag') {
+                    return { canSwitch: false, reason: `${opponent.cnName} 的踩影让脚因为恐惧而无法移动！` };
+                }
+                if (ability === 'Magnet Pull') {
+                    return { canSwitch: false, reason: `${opponent.cnName} 的强力磁场吸住了钢属性！` };
+                }
+                if (ability === 'Arena Trap') {
+                    return { canSwitch: false, reason: `${opponent.cnName} 封锁了地面，无法逃走！` };
+                }
+                return { canSwitch: false, reason: `被对手的特性困住了！` };
+            }
+        }
+    }
+
+    return { canSwitch: true };
+}
 
 // 导出到全局
 if (typeof window !== 'undefined') {
     window.AbilityHandlers = AbilityHandlers;
+    window.checkCanSwitch = checkCanSwitch;
 }

@@ -5037,6 +5037,32 @@ var translations={
     "Lucario-Mega": "超级路卡利欧",
     "Greninja-Mega": "超级甲贺忍蛙",
     
+    // 束缚招式翻译
+    "Bind": "紧束",
+    "Wrap": "紧缠",
+    "Fire Spin": "火焰旋涡",
+    "Whirlpool": "潮旋",
+    "Sand Tomb": "流沙地狱",
+    "Magma Storm": "熔岩风暴",
+    "Clamp": "贝壳夹击",
+    "Infestation": "死缠烂打",
+    "Snap Trap": "捕兽夹",
+    "Thunder Cage": "雷电囚笼",
+    
+    // 抓人招式翻译
+    "Mean Look": "黑色目光",
+    "Block": "挡路",
+    "Spider Web": "蛛网",
+    "Anchor Shot": "掷锚",
+    "Spirit Shackle": "缝影",
+    "Jaw Lock": "紧咬不放",
+    
+    // 重要对战招式补充
+    "Knock Off": "拍落",
+    "Perish Song": "灭亡之歌",
+    "Trick": "戏法",
+    "Switcheroo": "掉包",
+    
     // G-Max 形态显式翻译
     "Charizard-Gmax": "超极巨喷火龙",
     "Pikachu-Gmax": "超极巨皮卡丘",

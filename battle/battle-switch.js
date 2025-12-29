@@ -389,6 +389,52 @@ function triggerEntryAbilities(pokemon, opponent) {
 }
 
 // ============================================
+// 换人校验（抓人机制）
+// ============================================
+
+/**
+ * 检查玩家是否可以换人（考虑抓人特性和状态）
+ * @returns {Object} { canSwitch: boolean, reason?: string }
+ */
+function canPlayerSwitch() {
+    const battle = window.battle;
+    if (!battle) return { canSwitch: true };
+    
+    const p = battle.getPlayer();
+    const e = battle.getEnemy();
+    
+    if (!p || !p.isAlive || !p.isAlive()) return { canSwitch: true };
+    
+    // 使用全局的 checkCanSwitch 函数
+    if (typeof window.checkCanSwitch === 'function') {
+        return window.checkCanSwitch(p, e, battle);
+    }
+    
+    return { canSwitch: true };
+}
+
+/**
+ * 检查敌方是否可以换人（考虑抓人特性和状态）
+ * @returns {Object} { canSwitch: boolean, reason?: string }
+ */
+function canEnemySwitch() {
+    const battle = window.battle;
+    if (!battle) return { canSwitch: true };
+    
+    const p = battle.getPlayer();
+    const e = battle.getEnemy();
+    
+    if (!e || !e.isAlive || !e.isAlive()) return { canSwitch: true };
+    
+    // 使用全局的 checkCanSwitch 函数
+    if (typeof window.checkCanSwitch === 'function') {
+        return window.checkCanSwitch(e, p, battle);
+    }
+    
+    return { canSwitch: true };
+}
+
+// ============================================
 // 导出
 // ============================================
 
@@ -399,6 +445,8 @@ if (typeof window !== 'undefined') {
     window.handleEnemyFainted = handleEnemyFainted;
     window.handlePlayerFainted = handlePlayerFainted;
     window.triggerEntryAbilities = triggerEntryAbilities;
+    window.canPlayerSwitch = canPlayerSwitch;
+    window.canEnemySwitch = canEnemySwitch;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -408,6 +456,8 @@ if (typeof module !== 'undefined' && module.exports) {
         handleEnemyPivot,
         handleEnemyFainted,
         handlePlayerFainted,
-        triggerEntryAbilities
+        triggerEntryAbilities,
+        canPlayerSwitch,
+        canEnemySwitch
     };
 }

@@ -232,6 +232,21 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
         pivotTriggered = fxResult.pivot || false;
         fxLogs.forEach(txt => log(`<span style="font-size:0.95em;color:#e67e22">${txt}</span>`));
+        // === 【拍落 Knock Off】处理 ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.applyKnockOff) {
+            const knockOffResult = MoveEffects.applyKnockOff(attacker, defender, move);
+            knockOffResult.logs.forEach(txt => log(`<span style="color:#8b5cf6">${txt}</span>`));
+        }
+        // === 【束缚招式】处理 (Fire Spin, Magma Storm 等) ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.applyTrappingMove) {
+            const trapResult = MoveEffects.applyTrappingMove(attacker, defender, move);
+            trapResult.logs.forEach(txt => log(`<span style="color:#dc2626">${txt}</span>`));
+        }
+        // === 【黑色目光/缝影】处理 ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.applyMeanLook) {
+            const meanLookResult = MoveEffects.applyMeanLook(attacker, defender, move);
+            meanLookResult.logs.forEach(txt => log(`<span style="color:#7c3aed">${txt}</span>`));
+        }
     } else {
         const fxResult = applyMoveSecondaryEffects(attacker, defender, move, result.damage, battle, spriteIdRef !== 'player-sprite');
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
@@ -604,6 +619,41 @@ function triggerEntryAbilities(pokemon, opponent) {
     }
 }
 // ============================================
+// 换人校验（抓人机制）
+// ============================================
+/**
+ * 检查玩家是否可以换人（考虑抓人特性和状态）
+ * @returns {Object} { canSwitch: boolean, reason?: string }
+ */
+function canPlayerSwitch() {
+    const battle = window.battle;
+    if (!battle) return { canSwitch: true };
+    const p = battle.getPlayer();
+    const e = battle.getEnemy();
+    if (!p || !p.isAlive || !p.isAlive()) return { canSwitch: true };
+    // 使用全局的 checkCanSwitch 函数
+    if (typeof window.checkCanSwitch === 'function') {
+        return window.checkCanSwitch(p, e, battle);
+    }
+    return { canSwitch: true };
+}
+/**
+ * 检查敌方是否可以换人（考虑抓人特性和状态）
+ * @returns {Object} { canSwitch: boolean, reason?: string }
+ */
+function canEnemySwitch() {
+    const battle = window.battle;
+    if (!battle) return { canSwitch: true };
+    const p = battle.getPlayer();
+    const e = battle.getEnemy();
+    if (!e || !e.isAlive || !e.isAlive()) return { canSwitch: true };
+    // 使用全局的 checkCanSwitch 函数
+    if (typeof window.checkCanSwitch === 'function') {
+        return window.checkCanSwitch(e, p, battle);
+    }
+    return { canSwitch: true };
+}
+// ============================================
 // 导出
 // ============================================
 if (typeof window !== 'undefined') {
@@ -613,6 +663,8 @@ if (typeof window !== 'undefined') {
     window.handleEnemyFainted = handleEnemyFainted;
     window.handlePlayerFainted = handlePlayerFainted;
     window.triggerEntryAbilities = triggerEntryAbilities;
+    window.canPlayerSwitch = canPlayerSwitch;
+    window.canEnemySwitch = canEnemySwitch;
 }
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -621,7 +673,9 @@ if (typeof module !== 'undefined' && module.exports) {
         handleEnemyPivot,
         handleEnemyFainted,
         handlePlayerFainted,
-        triggerEntryAbilities
+        triggerEntryAbilities,
+        canPlayerSwitch,
+        canEnemySwitch
     };
 }
 ]]></file>
@@ -2353,6 +2407,53 @@ const AbilityHandlers = {
     'Magic Guard': {
         noIndirectDamage: true
     },
+    // 【毒疗】中毒时回复HP而非受伤
+    'Poison Heal': {
+        onStatusDamage: (pokemon, status) => {
+            if (status === 'psn' || status === 'tox') {
+                // 回复 1/8 HP
+                const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 8));
+                if (typeof pokemon.heal === 'function') {
+                    pokemon.heal(healAmount);
+                } else {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+                }
+                return { 
+                    blocked: true, 
+                    healed: true,
+                    message: `<span style="color:#4cd137">💚 ${pokemon.cnName} 的毒疗特性发动，回复了 ${healAmount} 点体力!</span>`
+                };
+            }
+            return { blocked: false };
+        }
+    },
+    // 【根性】异常状态时攻击力x1.5
+    'Guts': {
+        onModifyStat: (pokemon, stat, value) => {
+            if (stat === 'atk' && pokemon.status) {
+                return Math.floor(value * 1.5);
+            }
+            return value;
+        }
+    },
+    // 【毅力】异常状态时速度x1.5
+    'Quick Feet': {
+        onModifyStat: (pokemon, stat, value) => {
+            if (stat === 'spe' && pokemon.status) {
+                return Math.floor(value * 1.5);
+            }
+            return value;
+        }
+    },
+    // 【神奇鳞片】异常状态时防御x1.5
+    'Marvel Scale': {
+        onModifyStat: (pokemon, stat, value) => {
+            if (stat === 'def' && pokemon.status) {
+                return Math.floor(value * 1.5);
+            }
+            return value;
+        }
+    },
     // 【不服输】被降能力时攻击+2
     'Defiant': {
         onAfterStatDrop: (pokemon, stat, stages, logs) => {
@@ -2443,11 +2544,142 @@ const AbilityHandlers = {
             }
             return damage;
         }
+    },
+    // ============================================
+    // L. 抓人特性 (Trapping Abilities)
+    // ============================================
+    // 【踩影】对手无法换人（幽灵系除外，对方也是踩影则可逃）
+    'Shadow Tag': {
+        isTrapping: true,
+        canTrap: (self, target) => {
+            // 幽灵系免疫
+            if (target.types && target.types.includes('Ghost')) return false;
+            // 对方也是踩影则不困
+            if (target.ability === 'Shadow Tag') return false;
+            return true;
+        }
+    },
+    // 【磁力】钢属性无法换人
+    'Magnet Pull': {
+        isTrapping: true,
+        canTrap: (self, target) => {
+            // 幽灵系免疫
+            if (target.types && target.types.includes('Ghost')) return false;
+            // 只困住钢系
+            if (target.types && target.types.includes('Steel')) return true;
+            return false;
+        }
+    },
+    // 【沙穴】地面上的对手无法换人
+    'Arena Trap': {
+        isTrapping: true,
+        canTrap: (self, target) => {
+            // 幽灵系免疫
+            if (target.types && target.types.includes('Ghost')) return false;
+            // 飞行系免疫
+            if (target.types && target.types.includes('Flying')) return false;
+            // 漂浮特性免疫
+            if (target.ability === 'Levitate') return false;
+            // 气球道具免疫
+            if (target.item === 'Air Balloon') return false;
+            return true;
+        }
+    },
+    // ============================================
+    // M. 恶作剧之心 (Prankster) - 优先度修正
+    // ============================================
+    // 【恶作剧之心】变化技优先度+1，但对恶系无效
+    'Prankster': {
+        onModifyPriority: (priority, user, target, move) => {
+            // 只对变化技生效
+            if (move.cat === 'status' || move.category === 'Status') {
+                return priority + 1;
+            }
+            return priority;
+        },
+        // 恶系免疫恶作剧之心的变化技
+        pranksterImmunity: true
+    },
+    // ============================================
+    // N. 纯朴 (Unaware) - 忽略能力变化
+    // ============================================
+    // 【纯朴】攻击时忽略对手防御/特防提升，防御时忽略对手攻击/特攻提升
+    'Unaware': {
+        ignoreDefenderBoosts: true,  // 攻击时忽略对手防御提升
+        ignoreAttackerBoosts: true   // 防御时忽略对手攻击提升
+    },
+    // ============================================
+    // O. 其他重要特性补充
+    // ============================================
+    // 【魔法反射】反弹变化技
+    'Magic Bounce': {
+        reflectStatus: true
+    },
+    // 【破格】无视对手特性
+    'Mold Breaker': {
+        ignoreAbility: true
+    },
+    'Teravolt': {
+        ignoreAbility: true
+    },
+    'Turboblaze': {
+        ignoreAbility: true
     }
 };
+// ============================================
+// 换人阻断校验函数
+// ============================================
+/**
+ * 校验当前宝可梦是否可以主动换人
+ * @param {Object} pokemon - 想要换人的宝可梦
+ * @param {Object} opponent - 对手宝可梦
+ * @param {Object} battle - 战斗对象
+ * @returns {Object} { canSwitch: boolean, reason?: string }
+ */
+function checkCanSwitch(pokemon, opponent, battle) {
+    // 0. 特殊状态直接放行
+    // 如果使用了 U-turn 等 Pivot 招式，或者携带漂亮外壳，无视一切锁定
+    if (pokemon.isPivoting) return { canSwitch: true };
+    if (pokemon.item === 'Shed Shell') return { canSwitch: true };
+    // 1. 幽灵系特权：想走就走（六代后）
+    if (pokemon.types && pokemon.types.includes('Ghost')) return { canSwitch: true };
+    // 2. 检查自身的异常状态 (Volatile)
+    if (pokemon.volatile) {
+        // 黑色目光/挡路等造成的 cantEscape 状态
+        if (pokemon.volatile.cantEscape) {
+            return { canSwitch: false, reason: `${pokemon.cnName} 被困住了，无法逃走！` };
+        }
+        // 束缚状态（熔岩风暴、火焰旋涡等）
+        if (pokemon.volatile.partiallyTrapped) {
+            return { canSwitch: false, reason: `${pokemon.cnName} 正处于束缚状态，无法逃走！` };
+        }
+    }
+    // 3. 检查对手特性 (Abilities)
+    if (opponent && opponent.isAlive && opponent.isAlive()) {
+        const ability = opponent.ability || '';
+        const handler = AbilityHandlers[ability];
+        if (handler && handler.isTrapping && handler.canTrap) {
+            if (handler.canTrap(opponent, pokemon)) {
+                // 根据特性返回不同的提示
+                if (ability === 'Shadow Tag') {
+                    return { canSwitch: false, reason: `${opponent.cnName} 的踩影让脚因为恐惧而无法移动！` };
+                }
+                if (ability === 'Magnet Pull') {
+                    return { canSwitch: false, reason: `${opponent.cnName} 的强力磁场吸住了钢属性！` };
+                }
+                if (ability === 'Arena Trap') {
+                    return { canSwitch: false, reason: `${opponent.cnName} 封锁了地面，无法逃走！` };
+                }
+                return { canSwitch: false, reason: `被对手的特性困住了！` };
+            }
+        }
+    }
+    return { canSwitch: true };
+}
 // 导出到全局
 if (typeof window !== 'undefined') {
     window.AbilityHandlers = AbilityHandlers;
+    window.checkCanSwitch = checkCanSwitch;
 }
 ]]></file>
         <file name="ai-engine.js"><![CDATA[/**
@@ -5059,7 +5291,13 @@ class Pokemon {
      */
     _initCore(name, types, baseStats, level, moveNames, config = {}) {
         this.name = name;
-        this.cnName = name; // 暂时使用英文名，可后续添加中文映射
+        // 使用增强版 Locale 工具获取中文名（支持智能后缀解析）
+        if (typeof window !== 'undefined' && window.Locale) {
+            // Locale.get 现在会自动处理 "Zoroark-Hisui" -> "索罗亚克-洗翠" 这类转换
+            this.cnName = window.Locale.get(name);
+        } else {
+            this.cnName = name;
+        }
         this.types = types;
         this.baseStats = baseStats;
         this.level = level;
@@ -5224,11 +5462,14 @@ class Pokemon {
                 const randomFallback = FALLBACK_MOVES[Math.floor(Math.random() * FALLBACK_MOVES.length)];
                 md = getMoveData(randomFallback);
             }
-            return { name: md.name, cn: md.name, type: md.type, power: md.power || 0, cat: md.cat || 'phys' };
+            // 使用 Locale 工具获取技能中文名
+            const cnName = (typeof window !== 'undefined' && window.Locale) ? window.Locale.get(md.name) : md.name;
+            return { name: md.name, cn: cnName, type: md.type, power: md.power || 0, cat: md.cat || 'phys' };
         });
         // 如果没给技能或过滤后为空，给个默认的
         if (this.moves.length === 0) {
-            this.moves = [{ name: 'Tackle', cn: 'Tackle', type: 'Normal', power: 40, cat: 'phys' }];
+            const tackleCN = (typeof window !== 'undefined' && window.Locale) ? window.Locale.get('Tackle') : 'Tackle';
+            this.moves = [{ name: 'Tackle', cn: tackleCN, type: 'Normal', power: 40, cat: 'phys' }];
         }
     }
     /**
@@ -5670,6 +5911,29 @@ function calcDamage(attacker, defender, move) {
     const isSpecial = (move.cat === 'spec' || category === 'Special');
     let atkStat = isSpecial ? attacker.getStat('spa') : attacker.getStat('atk');
     let defStat = isSpecial ? defender.getStat('spd') : defender.getStat('def');
+    // === 【纯朴 Unaware】特性处理 ===
+    // 攻击方有纯朴：忽略防御方的防御/特防提升
+    // 防御方有纯朴：忽略攻击方的攻击/特攻提升
+    if (typeof AbilityHandlers !== 'undefined') {
+        const attackerHandler = attacker.ability ? AbilityHandlers[attacker.ability] : null;
+        const defenderHandler = defender.ability ? AbilityHandlers[defender.ability] : null;
+        // 攻击方纯朴：忽略防御方的防御提升，使用基础防御值
+        if (attackerHandler && attackerHandler.ignoreDefenderBoosts) {
+            const baseDefStat = isSpecial ? defender.spd : defender.def;
+            if (defStat > baseDefStat) {
+                console.log(`[UNAWARE] ${attacker.cnName} 的纯朴无视了 ${defender.cnName} 的防御提升`);
+                defStat = baseDefStat;
+            }
+        }
+        // 防御方纯朴：忽略攻击方的攻击提升，使用基础攻击值
+        if (defenderHandler && defenderHandler.ignoreAttackerBoosts) {
+            const baseAtkStat = isSpecial ? attacker.spa : attacker.atk;
+            if (atkStat > baseAtkStat) {
+                console.log(`[UNAWARE] ${defender.cnName} 的纯朴无视了 ${attacker.cnName} 的攻击提升`);
+                atkStat = baseAtkStat;
+            }
+        }
+    }
     // === 策略模式：特殊攻防计算 (Foul Play, Body Press, Psyshock 等) ===
     if (handler && handler.modifyAtk) {
         atkStat = handler.modifyAtk(attacker, defender, isSpecial);
@@ -6587,7 +6851,19 @@ function performMegaEvolution(pokemon) {
     const oldAbility = pokemon.ability;
     // 更新基础数据
     pokemon.name = megaData.name;
-    pokemon.cnName = megaData.name;
+    // [BUG FIX] 强制刷新中文名，防止变回英文
+    if (typeof window !== 'undefined' && window.Locale) {
+        // 先尝试查全名 "Lucario-Mega" => "超级路卡利欧"
+        let cn = window.Locale.get(megaData.name);
+        // 如果查不到翻译(还是英文)，尝试智能拼装: "超级" + 基础名
+        if (cn === megaData.name) {
+            const baseCn = window.Locale.get(pokemon.name.split('-')[0]);
+            cn = `超级${baseCn}`;
+        }
+        pokemon.cnName = cn;
+    } else {
+        pokemon.cnName = megaData.name;
+    }
     pokemon.types = megaData.types || pokemon.types;
     pokemon.baseStats = megaData.baseStats;
     // 获取 Mega 形态的特性
@@ -8357,9 +8633,11 @@ if (typeof module !== 'undefined' && module.exports) {
 /**
  * 获取技能优先级
  * @param {object} move 技能数据
+ * @param {object} user 使用者（可选，用于特性修正）
+ * @param {object} target 目标（可选，用于恶作剧之心免疫判定）
  * @returns {number} 优先级 (-7 ~ +5)
  */
-function getMovePriority(move) {
+function getMovePriority(move, user = null, target = null) {
     // 【古武系统】如果招式对象已有 priority 属性（被 style 修改过），直接使用
     if (typeof move.priority === 'number') {
         return move.priority;
@@ -8367,39 +8645,67 @@ function getMovePriority(move) {
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
     // 从数据中读取优先级
+    let basePriority = 0;
     if (typeof fullMoveData.priority === 'number') {
-        return fullMoveData.priority;
+        basePriority = fullMoveData.priority;
     }
-    // 硬编码常见优先级技能
-    const priorityMap = {
-        // +5
-        'Helping Hand': 5,
-        // +4
-        'Protect': 4, 'Detect': 4, 'Endure': 4, 'Magic Coat': 4, 'Snatch': 4,
-        'Baneful Bunker': 4, 'Spiky Shield': 4, "King's Shield": 4, 'Obstruct': 4,
-        'Silk Trap': 4, 'Burning Bulwark': 4,
-        // +3
-        'Fake Out': 3, 'Quick Guard': 3, 'Wide Guard': 3, 'Crafty Shield': 3,
-        // +2
-        'Extreme Speed': 2, 'Feint': 2, 'First Impression': 2, 'Accelerock': 2,
-        // +1
-        'Aqua Jet': 1, 'Baby-Doll Eyes': 1, 'Bullet Punch': 1, 'Ice Shard': 1,
-        'Mach Punch': 1, 'Quick Attack': 1, 'Shadow Sneak': 1, 'Sucker Punch': 1,
-        'Vacuum Wave': 1, 'Water Shuriken': 1, 'Grassy Glide': 1, 'Jet Punch': 1,
-        // -1
-        'Vital Throw': -1,
-        // -3
-        'Focus Punch': -3,
-        // -4
-        'Avalanche': -4, 'Revenge': -4,
-        // -5
-        'Counter': -5, 'Mirror Coat': -5,
-        // -6
-        'Circle Throw': -6, 'Dragon Tail': -6, 'Roar': -6, 'Whirlwind': -6, 'Teleport': -6,
-        // -7
-        'Trick Room': -7
-    };
-    return priorityMap[move.name] || 0;
+    // 硬编码常见优先级技能（如果数据库没有）
+    if (basePriority === 0) {
+        const priorityMap = {
+            // +5
+            'Helping Hand': 5,
+            // +4
+            'Protect': 4, 'Detect': 4, 'Endure': 4, 'Magic Coat': 4, 'Snatch': 4,
+            'Baneful Bunker': 4, 'Spiky Shield': 4, "King's Shield": 4, 'Obstruct': 4,
+            'Silk Trap': 4, 'Burning Bulwark': 4,
+            // +3
+            'Fake Out': 3, 'Quick Guard': 3, 'Wide Guard': 3, 'Crafty Shield': 3,
+            // +2
+            'Extreme Speed': 2, 'Feint': 2, 'First Impression': 2, 'Accelerock': 2,
+            // +1
+            'Aqua Jet': 1, 'Baby-Doll Eyes': 1, 'Bullet Punch': 1, 'Ice Shard': 1,
+            'Mach Punch': 1, 'Quick Attack': 1, 'Shadow Sneak': 1, 'Sucker Punch': 1,
+            'Vacuum Wave': 1, 'Water Shuriken': 1, 'Grassy Glide': 1, 'Jet Punch': 1,
+            // -1
+            'Vital Throw': -1,
+            // -3
+            'Focus Punch': -3,
+            // -4
+            'Avalanche': -4, 'Revenge': -4,
+            // -5
+            'Counter': -5, 'Mirror Coat': -5,
+            // -6
+            'Circle Throw': -6, 'Dragon Tail': -6, 'Roar': -6, 'Whirlwind': -6, 'Teleport': -6,
+            // -7
+            'Trick Room': -7
+        };
+        basePriority = priorityMap[move.name] || 0;
+    }
+    // === 【恶作剧之心 Prankster】特性处理 ===
+    // 变化技优先度+1，但对恶系目标无效
+    if (user && user.ability === 'Prankster') {
+        const category = fullMoveData.category || (move.cat === 'spec' ? 'Special' : (move.cat === 'phys' ? 'Physical' : 'Status'));
+        if (category === 'Status' || move.cat === 'status') {
+            // 检查目标是否为恶系（恶系免疫恶作剧之心的变化技）
+            if (target && target.types && target.types.includes('Dark')) {
+                console.log(`[PRANKSTER] ${target.cnName} 是恶属性，免疫恶作剧之心的变化技！`);
+                // 返回一个特殊标记，让调用方知道技能无效
+                move.pranksterBlocked = true;
+            } else {
+                basePriority += 1;
+                console.log(`[PRANKSTER] ${user.cnName} 的恶作剧之心使 ${move.name} 优先度+1`);
+            }
+        }
+    }
+    // === 【疾风之翼 Gale Wings】特性处理 ===
+    // 满血时飞行系招式优先度+1
+    if (user && user.ability === 'Gale Wings' && move.type === 'Flying') {
+        if (user.currHp === user.maxHp) {
+            basePriority += 1;
+            console.log(`[GALE WINGS] ${user.cnName} 的疾风之翼使飞行系招式优先度+1`);
+        }
+    }
+    return basePriority;
 }
 /**
  * 比较两个行动的先后顺序
@@ -8517,18 +8823,41 @@ function processStatusEffects(pokemon) {
 }
 /**
  * 处理回合结束时的状态伤害
+ * 【软编码】支持毒疗、魔法防守等特性
  * @param {Pokemon} pokemon 
- * @returns {object} { damage, message }
+ * @returns {object} { damage, message, healed }
  */
 function processStatusDamage(pokemon) {
     if (!pokemon.status) {
-        return { damage: 0, message: null };
+        return { damage: 0, message: null, healed: false };
     }
     const status = pokemon.status;
+    const abilityId = (pokemon.ability || '').toLowerCase().replace(/[^a-z]/g, '');
     let damage = 0;
     let message = null;
+    // === 【毒疗 Poison Heal】特性处理 ===
+    // 中毒/剧毒时回复 1/8 HP 而非受伤
+    if (abilityId === 'poisonheal' && (status === 'psn' || status === 'tox')) {
+        const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 8));
+        if (typeof pokemon.heal === 'function') {
+            pokemon.heal(healAmount);
+        } else {
+            pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+        }
+        return { 
+            damage: 0, 
+            message: `<span style="color:#4cd137">💚 ${pokemon.cnName} 的毒疗特性发动，回复了 ${healAmount} 点体力!</span>`,
+            healed: true
+        };
+    }
+    // === 【魔法防守 Magic Guard】特性处理 ===
+    // 免疫所有非直接攻击伤害（包括状态伤害）
+    if (abilityId === 'magicguard') {
+        return { damage: 0, message: null, healed: false };
+    }
     switch (status) {
         case 'brn':
+            // 【根性 Guts / 毅力】不减少灼伤伤害，但提升攻击
             damage = Math.max(1, Math.floor(pokemon.maxHp / 16));
             pokemon.takeDamage(damage);
             message = `${pokemon.cnName} 因灼伤受到了 ${damage} 点伤害!`;
@@ -8545,7 +8874,7 @@ function processStatusDamage(pokemon) {
             message = `${pokemon.cnName} 因剧毒受到了 ${damage} 点伤害!`;
             break;
     }
-    return { damage, message };
+    return { damage, message, healed: false };
 }
 // ========== 技能附加状态效果 ==========
 /**
@@ -9467,6 +9796,225 @@ function tickVolatileStatus(pokemon, opponent = null) {
     }
     return logs;
 }
+// ========== 道具回合末效果 (End-Turn Item Effects) ==========
+/**
+ * 【软编码】处理回合结束时的道具效果
+ * 支持剧毒宝珠、火焰宝珠等自赋状态道具
+ * @param {Pokemon} pokemon 
+ * @returns {Array} 日志消息数组
+ */
+function processEndTurnItemEffects(pokemon) {
+    const logs = [];
+    if (!pokemon || !pokemon.item) return logs;
+    if (typeof pokemon.isAlive === 'function' && !pokemon.isAlive()) return logs;
+    // 【软编码】从 items-data.js 获取道具数据
+    const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const itemData = (typeof window.getItem === 'function') ? window.getItem(pokemon.item) : null;
+    if (!itemData) return logs;
+    // === 自赋状态道具 (Toxic Orb, Flame Orb) ===
+    if (itemData.selfStatus && !pokemon.status) {
+        const statusToApply = itemData.selfStatus;
+        // 检查免疫（钢/毒系免疫中毒，火系免疫灼伤）
+        let immune = false;
+        if ((statusToApply === 'psn' || statusToApply === 'tox') && pokemon.types) {
+            if (pokemon.types.includes('Steel') || pokemon.types.includes('Poison')) {
+                immune = true;
+            }
+        }
+        if (statusToApply === 'brn' && pokemon.types && pokemon.types.includes('Fire')) {
+            immune = true;
+        }
+        // 检查特性免疫
+        const abilityId = (pokemon.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (abilityId === 'immunity' && (statusToApply === 'psn' || statusToApply === 'tox')) {
+            immune = true;
+        }
+        if (abilityId === 'waterveil' && statusToApply === 'brn') {
+            immune = true;
+        }
+        if (!immune) {
+            pokemon.status = statusToApply;
+            pokemon.statusTurns = 0;
+            const statusName = statusToApply === 'tox' ? '剧毒' : (statusToApply === 'brn' ? '灼伤' : '中毒');
+            const itemCnName = itemData.cnName || pokemon.item;
+            logs.push(`<span style="color:#9b59b6">💎 ${pokemon.cnName} 受到 ${itemCnName} 的影响，陷入了${statusName}状态!</span>`);
+        }
+    }
+    // === 黑色淤泥 (Black Sludge) ===
+    if (itemId === 'blacksludge') {
+        if (pokemon.types && pokemon.types.includes('Poison')) {
+            // 毒系回复 1/16 HP
+            const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 16));
+            if (typeof pokemon.heal === 'function') {
+                pokemon.heal(healAmount);
+            } else {
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+            }
+            logs.push(`<span style="color:#4cd137">${pokemon.cnName} 通过黑色淤泥回复了 ${healAmount} 点体力!</span>`);
+        } else {
+            // 非毒系受到 1/8 HP 伤害
+            const damage = Math.max(1, Math.floor(pokemon.maxHp / 8));
+            pokemon.takeDamage(damage);
+            logs.push(`<span style="color:#e74c3c">${pokemon.cnName} 被黑色淤泥伤害了 ${damage} 点!</span>`);
+        }
+    }
+    // === 剩饭 (Leftovers) ===
+    if (itemId === 'leftovers') {
+        if (pokemon.currHp < pokemon.maxHp) {
+            const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 16));
+            if (typeof pokemon.heal === 'function') {
+                pokemon.heal(healAmount);
+            } else {
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+            }
+            logs.push(`<span style="color:#4cd137">${pokemon.cnName} 通过剩饭回复了 ${healAmount} 点体力!</span>`);
+        }
+    }
+    return logs;
+}
+// ========== 拍落效果 (Knock Off) ==========
+/**
+ * 【软编码】检查道具是否可以被拍落
+ * 使用 items-data.js 中的函数进行判定
+ * @param {string} itemId 道具ID
+ * @returns {boolean} 是否可以被拍落
+ */
+function canKnockOffItem(itemId) {
+    if (!itemId) return false;
+    const id = itemId.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // 【软编码】使用 items-data.js 的函数
+    if (typeof window.isMegaStone === 'function' && window.isMegaStone(id)) return false;
+    if (typeof window.isZCrystal === 'function' && window.isZCrystal(id)) return false;
+    if (typeof window.isSwappable === 'function' && !window.isSwappable(id)) return false;
+    return true;
+}
+/**
+ * 【软编码】处理拍落效果 - 移除对手道具
+ * 使用 items-data.js 的 isSwappable/isMegaStone/isZCrystal 判定
+ * @param {Object} attacker 攻击方
+ * @param {Object} defender 防御方
+ * @param {Object} move 技能数据
+ * @returns {Object} { success: boolean, logs: Array, bonusDamage: number }
+ */
+function applyKnockOff(attacker, defender, move) {
+    const logs = [];
+    let bonusDamage = 1.0;
+    if (move.name !== 'Knock Off') return { success: false, logs, bonusDamage };
+    // 检查对手是否有道具
+    if (defender.item && defender.item !== '') {
+        // 【软编码】使用 canKnockOffItem 函数判定
+        const isUnremovable = !canKnockOffItem(defender.item);
+        if (!isUnremovable) {
+            const knockedItem = defender.item;
+            defender.item = null;
+            defender.knockedOffItem = knockedItem; // 记录被拍落的道具
+            logs.push(`${attacker.cnName} 拍落了 ${defender.cnName} 的 ${knockedItem}！`);
+            bonusDamage = 1.5; // 拍落有道具的对手伤害 x1.5
+        }
+    }
+    return { success: logs.length > 0, logs, bonusDamage };
+}
+// ========== 束缚招式 (Trapping Moves) ==========
+/**
+ * 【软编码】处理束缚招式效果 - 困住对手并造成持续伤害
+ * 使用 moves-data.js 中的 volatileStatus: 'partiallytrapped' 标记判定
+ * @param {Object} attacker 攻击方
+ * @param {Object} defender 防御方
+ * @param {Object} move 技能数据
+ * @returns {Object} { success: boolean, logs: Array }
+ */
+function applyTrappingMove(attacker, defender, move) {
+    const logs = [];
+    // 【软编码】从 moves-data.js 读取技能数据
+    const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    // 检查是否为束缚招式（通过 volatileStatus 字段判定）
+    const isTrappingMove = fullMoveData.volatileStatus === 'partiallytrapped';
+    if (!isTrappingMove) return { success: false, logs };
+    // 幽灵系免疫束缚
+    if (defender.types && defender.types.includes('Ghost')) {
+        return { success: false, logs };
+    }
+    // 已经被束缚则不重复施加
+    if (defender.volatile && defender.volatile.partiallyTrapped) {
+        return { success: false, logs };
+    }
+    // 初始化 volatile
+    if (!defender.volatile) defender.volatile = {};
+    // 施加束缚状态
+    const turns = Math.random() < 0.5 ? 4 : 5; // 4-5 回合
+    defender.volatile.partiallyTrapped = turns;
+    defender.volatile.trappedBy = attacker;
+    defender.volatile.trapDamage = 1/8; // 标准束缚伤害
+    // 【软编码】获取技能中文名（从翻译系统或使用原名）
+    const moveCnName = (typeof window.Locale !== 'undefined' && window.Locale.get) 
+        ? window.Locale.get(move.name) 
+        : move.name;
+    defender.volatile.trapMove = moveCnName;
+    logs.push(`${defender.cnName} 被 ${moveCnName} 困住了！`);
+    return { success: true, logs };
+}
+/**
+ * 【软编码】处理黑色目光/挡路等硬控招式
+ * 通过检查 moves-data.js 中的 flags 或 onHit 字段判定
+ * @param {Object} attacker 攻击方
+ * @param {Object} defender 防御方
+ * @param {Object} move 技能数据
+ * @returns {Object} { success: boolean, logs: Array }
+ */
+function applyMeanLook(attacker, defender, move) {
+    const logs = [];
+    // 【软编码】从 moves-data.js 读取技能数据
+    const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    // 检查是否为抓人招式（通过多种方式判定）
+    // 1. 检查 flags 中是否有 trap 标记
+    // 2. 检查是否为已知的抓人招式（作为后备）
+    const knownTrapMoves = ['meanlook', 'block', 'spiderweb', 'anchorshot', 'spiritshackle', 'jawlock'];
+    const isTrapMove = (fullMoveData.flags && fullMoveData.flags.trap) || knownTrapMoves.includes(moveId);
+    if (!isTrapMove) return { success: false, logs };
+    // 幽灵系免疫
+    if (defender.types && defender.types.includes('Ghost')) {
+        logs.push(`${defender.cnName} 是幽灵属性，不受影响！`);
+        return { success: false, logs };
+    }
+    // 初始化 volatile
+    if (!defender.volatile) defender.volatile = {};
+    // 施加无法逃走状态
+    defender.volatile.cantEscape = true;
+    defender.volatile.trappedBy = attacker;
+    // 【软编码】获取技能中文名
+    const moveCnName = (typeof window.Locale !== 'undefined' && window.Locale.get) 
+        ? window.Locale.get(move.name) 
+        : move.name;
+    logs.push(`${defender.cnName} 被 ${moveCnName} 困住，无法逃走了！`);
+    // Jaw Lock 特殊处理：双方都被困住
+    if (moveId === 'jawlock') {
+        if (!attacker.volatile) attacker.volatile = {};
+        attacker.volatile.cantEscape = true;
+        logs.push(`${attacker.cnName} 也因紧咬不放而无法逃走！`);
+    }
+    return { success: true, logs };
+}
+/**
+ * 处理束缚状态的回合结束伤害
+ * @param {Object} pokemon 宝可梦
+ * @returns {Object} { damage: number, logs: Array }
+ */
+function processTrappingDamage(pokemon) {
+    const logs = [];
+    let damage = 0;
+    if (!pokemon.volatile || !pokemon.volatile.partiallyTrapped) {
+        return { damage, logs };
+    }
+    // 计算束缚伤害
+    const trapDamage = pokemon.volatile.trapDamage || 1/8;
+    damage = Math.floor(pokemon.maxHp * trapDamage);
+    if (damage < 1) damage = 1;
+    const trapMove = pokemon.volatile.trapMove || '束缚';
+    logs.push(`${pokemon.cnName} 受到了 ${trapMove} 的伤害！`);
+    return { damage, logs };
+}
 // ========== 导出 ==========
 window.MoveEffects = {
     // 优先级
@@ -9502,7 +10050,16 @@ window.MoveEffects = {
     checkConfusion,
     checkAttract,
     checkSubstitute,
-    tickVolatileStatus
+    tickVolatileStatus,
+    // 道具回合末效果
+    processEndTurnItemEffects,
+    // 拍落效果
+    applyKnockOff,
+    canKnockOffItem,
+    // 束缚招式
+    applyTrappingMove,
+    applyMeanLook,
+    processTrappingDamage
 };
 console.log('[PKM] MoveEffects 模块已加载');
 ]]></file>
@@ -13241,45 +13798,177 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 function getDefaultBattleData() {
     return {
-        "player": {
-            "name": "User(No-Data)", // 暗示没有读到用户数据
-            "party": [
-                // 仅有一招 Splash 的 100级 鲤鱼王 (凑齐3只)
-                { "name": "Magikarp", "lv": 20, "moves": ["Splash"] },
-                { "name": "Magikarp", "lv": 20, "moves": ["Splash"] },
-                { "name": "Feebas", "lv": 20, "moves": ["Splash"] }
-            ]
-        },
-        "enemy": {
-            "type": "Runtime Error", // HUD右上角名字
-            "name": "Exception",     // 中间显示栏名字(如果没头像)
-            "lines": {
-                // 开场白改为系统提示文案
-                "start": "[警告] 战斗数据格式异常或未载入。目前使用缺省测试数据。",
-                "win": "Task Completed.",
-                "lose": "Run Failure.",
-                "escape": "Aborting Process..."
-            }
-        },
-        "party": [
-            { 
-                "name": "Magikarp", 
-                "lv": 20, 
-                "moves": ["Splash"] // 水溅跃是对面唯一的技能
-            },
-            { 
-                "name": "Magikarp", 
-                "lv": 20, 
-                "moves": ["Splash"] 
-            },
-            { 
-                "name": "Feebas", // 这只也是只会水溅跃的丑丑鱼，增加点视觉变化
-                "lv": 20, 
-                "moves": ["Splash"] 
-            }
-        ],
-        "script": null
-    };
+  "difficulty": "expert",
+  "script": null,
+  "player": {
+    "name": "player",
+    "unlocks": {
+      "enable_bond": true,
+      "enable_styles": true,
+      "enable_insight": true,
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_dynamax": true,
+      "enable_tera": true
+    },
+    "party": [
+      {
+        "name": "Lucario",
+        "lv": 100,
+        "gender": "M",
+        "item": "Lucarionite",
+        "isAce": true, 
+        "mechanic": "mega",
+        "ability": "Justified",
+        "moves": ["Close Combat", "Meteor Mash", "Bullet Punch", "Aura Sphere"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Pikachu-Partner",
+        "lv": 100,
+        "gender": "M",
+        "item": "Pikashunium Z",
+        "isAce": true,
+        "mechanic": "zmove",
+        "ability": "Static",
+        "//comment": "Thunderbolt 将被这里的 Z 纯晶自动升级为 10,000,000 Volt Thunderbolt",
+        "moves": ["Thunderbolt", "Quick Attack", "Iron Tail", "Electroweb"], 
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Charizard",
+        "lv": 100,
+        "gender": "M",
+        "item": "Life Orb",
+        "isAce": true,
+        "mechanic": "dynamax",
+        "mega_target": "charizardgmax",
+        "ability": "Solar Power",
+        "moves": ["Blast Burn", "Hurricane", "Solar Beam", "Ancient Power"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Dragonite",
+        "lv": 100,
+        "gender": "F",
+        "item": "Leftovers",
+        "isAce": true,
+        "mechanic": "tera",
+        "teraType": "Normal",
+        "ability": "Multiscale",
+        "moves": ["Extreme Speed", "Dragon Dance", "Earthquake", "Thunder Punch"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Zoroark-Hisui",
+        "lv": 100,
+        "gender": "M",
+        "item": "Focus Sash",
+        "isAce": true,
+        "mechanic": null,
+        "ability": "Illusion",
+        "moves": ["Bitter Malice", "Nasty Plot", "Hyper Voice", "Grass Knot"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Greninja",
+        "lv": 100,
+        "gender": "M",
+        "item": "Choice Specs",
+        "isAce": true,
+        "mechanic": null,
+        "ability": "Battle Bond",
+        "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "U-turn"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      }
+    ]
+  },
+  "enemy": {
+    "id": "Red",
+    "name": "Trainer Legend Red",
+    "type": "trainer",
+     "lines": {
+      "start": "...",
+      "win": "...!",
+      "lose": "...",
+      "escape": "..."
+    },
+    "unlocks": {
+        "enable_bond": true,
+        "enable_styles": true,
+        "enable_insight": true,
+        "enable_mega": true,
+        "enable_z_move": true,
+        "enable_dynamax": true,
+        "enable_tera": true
+    }
+  },
+  "party": [
+    {
+      "name": "Koraidon",
+      "lv": 100,
+      "item": "Clear Amulet",
+      "mechanic": "tera",
+      "teraType": "Fire",
+      "ability": "Orichalcum Pulse",
+      "moves": ["Collision Course", "Flare Blitz", "Dragon Claw", "Swords Dance"],
+      "stats_meta": { "ev_level": 252 }
+    },
+    {
+      "name": "Groudon-Primal",
+      "lv": 100,
+      "item": "Red Orb",
+      "mechanic": null,
+      "ability": "Desolate Land",
+      "moves": ["Precipice Blades", "Fire Punch", "Solar Beam", "Stone Edge"],
+      "stats_meta": { "ev_level": 252 }
+    },
+    {
+      "name": "Necrozma-Ultra",
+      "lv": 100,
+      "item": "Ultranecrozium Z",
+      "mechanic": "zmove",
+      "ability": "Neuroforce",
+      "moves": ["Photon Geyser", "Dragon Pulse", "Heat Wave", "Calm Mind"],
+      "stats_meta": { "ev_level": 252 }
+    },
+    {
+      "name": "Snorlax",
+      "lv": 100,
+      "item": "Figy Berry",
+      "mechanic": "dynamax",
+      "mega_target": "snorlaxgmax",
+      "ability": "Gluttony",
+      "moves": ["Body Slam", "Darkest Lariat", "Curse", "Recycle"],
+      "stats_meta": { "ev_level": 252 },
+      "avs": { "trust": 150, "passion": 100, "insight": 100, "devotion": 200 }
+    },
+    {
+      "name": "Zacian-Crowned",
+      "lv": 100,
+      "item": "Rusted Sword",
+      "ability": "Intrepid Sword",
+      "moves": ["Behemoth Blade", "Play Rough", "Sacred Sword", "Swords Dance"],
+      "stats_meta": { "ev_level": 252 }
+    },
+    {
+      "name": "Mewtwo",
+      "lv": 100,
+      "item": "Mewtwonite Y",
+      "mechanic": "mega",
+      "ability": "Insomnia",
+      "moves": ["Psystrike", "Ice Beam", "Focus Blast", "Recover"],
+      "isAce": true, 
+      "avs": { "passion": 200, "insight": 200, "trust": 200, "devotion": 200 }
+    }
+  ]
+};
 }
 // ============================================
 // JSON 数据加载
@@ -13583,6 +14272,107 @@ window.preloadTrainerAvatar = preloadTrainerAvatar;
 window.preloadPokemonIconSheet = preloadPokemonIconSheet;
 window.playCachedCry = playCachedCry;
 window.PreloadCache = PreloadCache;
+]]></file>
+        <file name="translations.js"><![CDATA[/**
+ * ===========================================
+ * TRANSLATIONS.JS - 汉化数据库
+ * 数据来源: PSChina Tampermonkey Script (Ceca3)
+ * ===========================================
+ */
+var translations={
+    "Sort:":"排序方式",
+    "you have no pokemon lol":"你的队伍里还没有宝可梦",
+    "Import from text":"从文本导入",
+    "Select a format":"选择一个分级",
+    "Backup/Restore all teams":"备份所有队伍",
+    "Backup all teams from this folder":"备份该文件夹里的所有队伍",
+    "Base":"种族值",
+    "Import":"导入",
+    "Types":"属性",
+    "(automatic type)":"自动对应的属性",
+    "Hidden Power:":"觉醒力量属性：",
+    "You can also set natures by typing \"+\" and \"-\" next to a stat.":"你可以在基础点数框内输入+和-来设定性格",
+    "Protip:":"提示：",
+    "Nature:":"性格：",
+    "Sort":"排序方法",
+    "Hide":"隐藏",
+    "Dark mode":"夜间模式",
+    "Minimum Elo:":"最低Elo积分：",
+    "None":"无限制",
+    "Search":"搜索",
+    "(muted)":"（已静音）",
+    "Mute sounds":"全部静音",
+    "Effect volume:":"宝可梦叫声音量：",
+    "Music volume:":"背景音乐音量：",
+    "Notification volume:":"通知提醒音量",
+    "(Offline)":"（离线）",
+    "Rated battle":"计分战斗",
+    "Battle Options":"战斗选项",
+    "In this battle":"在这场战斗中",
+    "Ignore Spectators":"忽略来自观战者的消息",
+    "Ignore Opponent":"忽略来自对手的消息",
+    "All battles":"所有战斗中",
+    "Ignore nicknames":"忽略宝可梦昵称",
+    "Open new battles on the right side":"在右侧开启新战斗窗口",
+    "Close":"关闭",
+    "Hardcore mode (hide info not shown in-game) (beta)":"硬核模式(隐藏实机无法看到的信息)(测试)",
+    "Item:":"道具：",
+    "Ability:":"特性：",
+    "(before items/abilities/modifiers)":"（不计算道具/特性/加成）",
+    "(fainted)":"",
+    "Waiting for players...":"等待选手行动...",
+    "Spectators ignored.":"观战者消息已经被忽略",
+    "Spectators no longer ignored.":"观战者的消息已经不再忽略",
+    "Opponent ignored.":"对手的消息已经被忽略",
+    "Opponent no longer ignored.":"对手的消息已经不再忽略",
+    "Hardcore mode ON: Information not available in-game is now hidden.":"硬核模式开启，实机无法看到的信息已经被隐藏",
+    "Hardcore mode OFF: Information not available in-game is now shown.":"硬核模式关闭，实机无法看到的信息将会显示",
+    "Nicknames ignored.":"昵称已经被忽略",
+    "Nicknames no longer ignored.":"昵称不再被忽略",
+    "(fainted)":"（濒死）",
+    "Turn":"回合",
+    "PSN":"中毒",
+    "SLP":"睡眠",
+    "PAR":"麻痹",
+    "BRN":"灼伤",
+    "TOX":"中剧毒",
+    "Attack":"攻击",
+    "Defense":"防御",
+    "Speed":"速度",
+    "Speed:":"速度：",
+    "Hyperfast":"极快",
+    "Fast":"快",
+    "Slow":"慢",
+    "Really Slow":"极慢",
+    "Music:":"音乐：",
+    "Play (music off)":"播放（关闭音乐）",
+    "Reset":"重置",
+    "Next turn":"下一回合",
+    "Go to turn...":"跳至...回合",
+    "Resume":"恢复",
+    "Battle timer is ON: inactive players will automatically lose when time's up.":"战斗机计时器已经开启：玩家若不行动则在时间耗尽后会输掉比赛",
+    "EVs":"基础点数",
+    "IVs":"个体值",
+    "IV spreads":"个体值分配",
+    "Remaining:":"剩余点数：",
+    "Prompt on refresh":"刷新页面时弹出提醒窗口",
+    "(Others will be able to see your name change. To change name privately, use \"Log out\")":"其他人可以看到你更改了用户名，想要私下地更改用户名，点击‘登出’按钮",
+    "Power":"威力",
+    "Accuracy":"命中",
+    "Tournaments:":"房间比赛信息",
+    "Notifications":"接收消息",
+    "No Notifications":"不接收消息",
+    "Block PMs":"屏蔽私聊信息",
+    "Block Challenges":"屏蔽挑战",
+    "Choose an avatar or":"选择一个头像或者",
+    "Text formatting":"文本格式",
+    "You have been logged out and disconnected.":"你已经登出并且断开了连接",
+    "If you wanted to change your name while staying connected, use the 'Change Name' button or the '/nick' command.":"如果你想要在保持连接的情况下更改用户名，点击‘更改用户名’按钮或者使用/nick 命令",
+    "Suppressed":"被消除",
+    "Possible abilities:":"可能的特性：",
+    "The name you chose is registered.":"你选择的用户名已经被注册了",
+    "If this is your account:":"如果这是你的账号：",
+[... truncated: only first 100 lines included ...]
 ]]></file>
     </directory>
     <directory name="ui">
@@ -14732,7 +15522,25 @@ function performFormChange(pokemon, targetFormId, formType = 'mega') {
     const oldAbility = pokemon.ability;
     // 更新基础数据
     pokemon.name = formData.name;
-    pokemon.cnName = formData.name;
+    // [BUG FIX] 重新翻译新形态的名字
+    if (typeof window !== 'undefined' && window.Locale) {
+        const transName = window.Locale.get(formData.name);
+        // 智能后备：如果翻译库里没有这个形态的专有名词
+        if (transName === formData.name && formType === 'minior') {
+            // 小陨星内核，强行翻译
+            pokemon.cnName = `小陨星-${transName.split('-')[1] || '核心'}`;
+        } 
+        else if (transName === formData.name && formData.name.includes("-Hisui")) {
+            // 洗翠形态智能拼装
+            const baseName = window.Locale.get(formData.name.split('-')[0]);
+            pokemon.cnName = `${baseName}-洗翠`;
+        }
+        else {
+            pokemon.cnName = transName;
+        }
+    } else {
+        pokemon.cnName = formData.name;
+    }
     pokemon.types = formData.types || pokemon.types;
     pokemon.baseStats = formData.baseStats;
     // 获取新形态的特性
@@ -14892,7 +15700,14 @@ if (typeof module !== 'undefined' && module.exports) {
     };
 }
 ]]></file>
-    <file name="index.css"><![CDATA[.trainer-avatar-wrap img {
+    <file name="index.css"><![CDATA[/* ============================================
+   Web Font Imports - 视觉升级
+   ============================================ */
+/* M PLUS Rounded 1c - 日系圆体，完美契合宝可梦UI风格 */
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&display=swap');
+/* Noto Sans SC - 思源黑体，中文显示更优 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+.trainer-avatar-wrap img {
     text-indent: -9999px;
     color: transparent;
 }
@@ -14913,7 +15728,9 @@ if (typeof module !== 'undefined' && module.exports) {
     --hp-high: #4fd1c5;
     --hp-mid: #fbc63e;
     --hp-low: #ff6b6b;
-    --font-main: 'Rubik', sans-serif;
+    /* 字体升级：优先圆体，回退到系统字体 */
+    --font-main: 'M PLUS Rounded 1c', 'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+    --font-number: 'Rubik', 'M PLUS Rounded 1c', monospace;
     --radius-l: 18px;
     --radius-m: 12px;
     --color-fight: #ff5e78;
@@ -14954,6 +15771,9 @@ body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    /* 字体抗锯齿优化 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background: transparent;
     width: 100vw;
     height: 100vh;
@@ -16060,6 +16880,7 @@ body {
     margin-bottom: 4px;
     pointer-events: none;
     text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
+    font-family: var(--font-main);
 }
 .action-btn .move-type {
     font-size: 0.8em;
@@ -16067,6 +16888,7 @@ body {
     pointer-events: none;
     text-transform: uppercase;
     font-weight: bold;
+    font-family: var(--font-main);
 }
 .action-btn.util {
     background: var(--accent-blue);
@@ -16085,6 +16907,7 @@ body {
     box-shadow: none;
     border-radius: 8px;
     font-size: 0.7em;
+    font-family: var(--font-main);
 }
 .overlay-modal {
     position: absolute;
@@ -16201,6 +17024,7 @@ body {
     margin-bottom: 4px;
     display: flex;
     align-items: center;
+    font-family: var(--font-main);
 }
 .container-enemy .party-track.enemy-side {
     margin-bottom: -4px;
@@ -16363,6 +17187,7 @@ body {
     overflow: hidden;
     transition: all 0.3s ease;
     padding: 0;
+    font-family: var(--font-main);
 }
 .msg-header,
 .msg-content-area {
@@ -16394,6 +17219,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    font-family: var(--font-main);
 }
 .sys-label::before {
     content: '';
@@ -16410,8 +17236,13 @@ body {
     flex: 1;
     padding: 12px 10px;
     overflow-y: auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #334155;
     scrollbar-width: none;
-    -ms-overflow-style: none;
+    padding-right: 20px;
+    margin-right: -10px;
+    font-family: var(--font-main);
     mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 100%);
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 100%);
     margin: 0 10px;
@@ -16428,6 +17259,7 @@ body {
     font-weight: 600;
     opacity: 0.7;
     padding-left: 2px;
+    font-family: var(--font-main);
 }
 .log-entry:last-child {
     font-size: 1.25rem;
@@ -16531,6 +17363,7 @@ body {
     overflow: hidden; 
     pointer-events: auto;
     animation: simpleOpacity 0.3s ease-out;
+    font-family: Rubik;
 }
 @keyframes simpleOpacity { from { opacity: 0; } to { opacity: 1; } }
 .main-menu.hidden, .moves-menu.hidden {
@@ -16547,6 +17380,7 @@ body {
      margin: 0;
      padding: 10px 25px; 
      box-sizing: border-box;
+     font-family: Rubik;
 }
 /* =========================================
    B. 技能菜单 (Moves Menu) - 高度瘦身 & 样式重构
@@ -16563,6 +17397,7 @@ body {
     height: 100%;
     position: relative;
     overflow: visible;
+    font-family: var(--font-main);
 }
 /* 技能按钮 - 重写 */
 .action-btn {
@@ -16590,6 +17425,7 @@ body {
     width: 100%;
     height: 100%; 
     box-sizing: border-box;
+    font-family: var(--font-main);
 }
 /* 按钮内部的内容容器 - 用来修正 Skew */
 /* 
@@ -16603,6 +17439,7 @@ body {
     transform: skewX(15deg);
     position: relative;
     z-index: 2;
+    font-family: var(--font-main);
 }
 /* [改动] 左侧装饰条 - 变为真正的斜切色块填充 */
 .action-btn::before {
@@ -16641,6 +17478,7 @@ body {
     z-index: 100;
     transition: transform 0.2s, background 0.2s;
     transform: skewX(15deg); /* 补偿父级倾斜 */
+    font-family: var(--font-main);
 }
 .back-btn-pill:hover {
     transform: skewX(15deg) scale(1.15) rotate(-10deg);
@@ -16674,6 +17512,7 @@ body {
     transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
     transform: skewX(15deg);
     overflow: hidden;
+    font-family: var(--font-main);
 }
 .mega-btn-pill:hover {
     transform: skewX(15deg) scale(1.1);
@@ -16706,26 +17545,30 @@ body {
 /* 左侧留白给文字，避开色块 */
 .action-btn .move-name {
     margin-left: 22px; /* 让开色条 */
-    font-size: 1rem;   /* 字号改小!! */
+    font-size: 1.15rem;   /* 中文字号增大 */
     font-weight: 700;
-    color: #334155;
-    line-height: 1.1;
+    color: #374151; /* 更柔和的深灰，中文阅读更友好 */
+    letter-spacing: -0.02em;
+    line-height: 1.2;
     text-align: left;
+    font-family: var(--font-main);
     white-space: nowrap; /* 不允许换行撑开高度 */
 }
 /* [改动] 技能右侧的小标签 - 恢复为小胶囊 */
 .action-btn .badge-type {
-    font-size: 0.65rem; /* 很小 */
+    font-size: 0.85rem; /* 属性标签字号再加大 */
     font-weight: 800;
     text-transform: uppercase;
-    background: #e2e8f0;
-    color: #64748b;
-    padding: 2px 6px;
-    border-radius: 4px;
-    /* 强制单行 */
-    white-space: nowrap;
-    opacity: 1; /* 可见 */
-    box-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: rgba(100, 116, 139, 0.15);
+    color: #475569;
+    letter-spacing: 0.5px;
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-family: var(--font-main);
+    z-index: 3;
 }
 /* 悬停效果: 整体稍微变亮并上浮 */
 .action-btn:hover:enabled {
@@ -16799,20 +17642,13 @@ body {
 .hud-player .main-info {
     justify-content: flex-end;
 }
-.hud-modern .p-name {
-    font-size: 2rem;
+.hud-modern .card-name {
+    font-size: 1.3rem;
     font-weight: 800;
     color: #2d3436;
-    letter-spacing: -1px;
-    text-transform: capitalize;
-    text-shadow:
-        2px 2px 0px #fff,
-        -1px -1px 0 #fff,
-        1px -1px 0 #fff,
-        -1px 1px 0 #fff,
-        1px 1px 0 #fff;
-    position: relative;
-    z-index: 2;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+    font-family: var(--font-main);
 }
 .hud-modern .p-lv {
     font-size: 1.1rem;
@@ -17029,12 +17865,36 @@ body {
 .p-name {
     font-size: 1.6rem;
     font-weight: 800;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.02em;
+    /* 增强文字立体感 */
+    text-shadow: 2px 2px 0 rgba(255,255,255,0.9), 0px 0px 1px rgba(0,0,0,0.1);
+    /* 防止过长名称换行 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 220px;
 }
-.container-enemy .p-name { color: #1e293b; text-shadow: none; }
-.container-player .p-name { color: #1e293b; text-shadow: none; }
+.container-enemy .p-name { 
+    color: #1e293b; 
+}
+.container-player .p-name { 
+    color: #1e293b; 
+}
+/* 确保等级显示不被压缩 */
+.sw-top-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    overflow: hidden;
+}
+.sw-row-right-group,
+.p-lv {
+    flex-shrink: 0;
+}
 .p-lv {
     font-size: 1rem;
+    font-family: var(--font-number);
     color: #94a3b8;
     font-weight: 700;
 }
@@ -17293,14 +18153,18 @@ body {
     display: flex;
     align-items: center;
     gap: 15px;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid #e0e0e0;
     padding-bottom: 15px;
+    font-family: var(--font-main);
 }
 .switch-header-modern h2 {
     font-size: 2.2rem;
     color: #2d3436;
     margin: 0;
-    letter-spacing: -1px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: var(--font-main);
 }
 .switch-header-subtitle {
     font-weight: 500;
@@ -17308,6 +18172,7 @@ body {
     font-size: 1rem;
     margin-top: 8px;
     letter-spacing: 1px;
+    font-family: var(--font-main);
 }
 .party-grid-modern {
     display: flex;
@@ -17430,9 +18295,8 @@ body {
     font-size: 0.8rem;
     font-weight: 700;
     color: #636e72;
-    text-align: right;
-    margin-bottom: 3px;
-    font-family: inherit;
+    letter-spacing: 0.5px;
+    font-family: var(--font-number);
 }
 .modern-hp-track {
     height: 8px;
@@ -17475,7 +18339,15 @@ body {
    [改] SWSH 剑盾风格白色面板重构
    ========================================================= */
 body {
-    font-family: 'Rubik', sans-serif;
+    font-family: var(--font-main);
+}
+/* 主菜单按钮保持原英文字体 */
+.radical-btn,
+.radical-btn .en,
+.radical-btn .jp,
+.r-label,
+.r-label-min {
+    font-family: 'Rubik', sans-serif !important;
 }
 .hud {
     position: absolute;
@@ -18094,6 +18966,14 @@ body {
     background: linear-gradient(90deg, #333, #666);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-family: var(--font-main);
+}
+/* Z招式属性标签统一在右下角 */
+.action-btn.z-move-btn .badge-type {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    z-index: 3;
 }
 .action-btn.z-move-btn::before {
     display: none !important;
@@ -18170,6 +19050,14 @@ body {
     background: linear-gradient(90deg, #e11d48, #be123c);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-family: var(--font-main);
+}
+/* 极巨招式属性标签统一在右下角 */
+.action-btn.max-move-btn .badge-type {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    z-index: 3;
 }
 .action-btn.max-move-btn::before {
     display: none !important;
@@ -18617,6 +19505,7 @@ body {
     <script src="./ui/ui-trainer-hud.js"></script>
     <script src="./ui/ui-menus.js"></script>
     <!-- 系统模块 (必须在 index.js 之前加载) -->
+    <script src="./systems/translations.js"></script>
     <script src="./systems/data-loader.js"></script>
     <script src="./systems/catch-system.js"></script>
     <script src="./systems/bgm-system.js"></script>
@@ -19332,15 +20221,11 @@ function updateAllVisuals(forceSpriteAnim = false) {
                 let displayType = m.type || 'Normal';
                 if (showZStyle) {
                     // Z 招式样式
-                    const zMoveId = zTarget.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const zMoveData = (typeof MOVES !== 'undefined' && MOVES[zMoveId]) ? MOVES[zMoveId] : {};
-                    displayName = zMoveData.cn || zTarget.name;
+                    displayName = (window.Locale) ? window.Locale.get(zTarget.name) : zTarget.name;
                     displayType = zTarget.type;
                 } else if (showMaxStyle) {
                     // Max 招式样式
-                    const maxMoveId = maxTarget.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const maxMoveData = (typeof MOVES !== 'undefined' && MOVES[maxMoveId]) ? MOVES[maxMoveId] : {};
-                    displayName = maxMoveData.cn || maxTarget.name;
+                    displayName = (window.Locale) ? window.Locale.get(maxTarget.name) : maxTarget.name;
                     displayType = maxTarget.type;
                 }
                 // =========================================================
@@ -19372,17 +20257,19 @@ function updateAllVisuals(forceSpriteAnim = false) {
                         btn.classList.add('z-move-used');
                     }
                     const labelText = showZStyle ? 'Z' : 'MAX';
+                    const typeNameCN = (window.Locale) ? window.Locale.get(displayType) : displayType;
                     btn.innerHTML = `
                         <div class="z-bg-overlay"></div>
                         <div class="z-badge-icon">${labelText}</div>
                         <span class="move-name">${displayName}${insightHint}</span>
-                        <span class="badge-type type-${displayType}">${displayType}</span>
+                        <span class="badge-type type-${displayType}">${typeNameCN}</span>
                     `;
                 } else {
                     // 普通技能
+                    const typeNameCN = (window.Locale) ? window.Locale.get(displayType) : displayType;
                     btn.innerHTML = `
                         <span class="move-name">${displayName}${insightHint}</span>
-                        <span class="badge-type type-${displayType}">${displayType}</span>
+                        <span class="badge-type type-${displayType}">${typeNameCN}</span>
                     `;
                 }
                 // 交互事件
@@ -19601,7 +20488,16 @@ async function handleAttack(moveIndex, options = {}) {
         if (gmaxFormId && gmaxFormId.includes('gmax') && !p.isGenericDynamax) {
             // 保存原始名称，用于回退
             p.originalName = p.name;
-            p.name = gmaxFormId.charAt(0).toUpperCase() + gmaxFormId.slice(1);
+            // [BUG FIX] 格式转换：charizardgmax -> Charizard-Gmax
+            const baseName = gmaxFormId.replace(/gmax$/i, '');
+            const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1) + '-Gmax';
+            p.name = formattedName;
+            // 重新翻译 G-Max 形态名称
+            if (window.Locale) {
+                p.cnName = window.Locale.get(formattedName);
+            } else {
+                p.cnName = formattedName;
+            }
             // G-Max 精灵图格式: laprasgmax -> lapras-gmax (带横杠)
             const gmaxSpriteId = gmaxFormId.replace(/gmax$/i, '-gmax');
             const gmaxSpriteUrl = `https://play.pokemonshowdown.com/sprites/ani-back/${gmaxSpriteId}.gif`;
@@ -19723,8 +20619,16 @@ async function handleAttack(moveIndex, options = {}) {
             // 【关键】通用极巨化 (isGenericDynamax) 不切换图片，只用 CSS 放大
             const gmaxFormId = e.megaTargetId;
             if (gmaxFormId && gmaxFormId.includes('gmax') && !e.isGenericDynamax) {
-                // 有 G-Max 形态，切换精灵图
-                e.name = gmaxFormId.charAt(0).toUpperCase() + gmaxFormId.slice(1);
+                // [BUG FIX] 格式转换：charizardgmax -> Charizard-Gmax
+                const baseName = gmaxFormId.replace(/gmax$/i, '');
+                const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1) + '-Gmax';
+                e.name = formattedName;
+                // 重新翻译 G-Max 形态名称
+                if (window.Locale) {
+                    e.cnName = window.Locale.get(formattedName);
+                } else {
+                    e.cnName = formattedName;
+                }
                 const gmaxSpriteId = gmaxFormId.replace(/gmax$/i, '-gmax');
                 const gmaxSpriteUrl = `https://play.pokemonshowdown.com/sprites/ani/${gmaxSpriteId}.gif`;
                 smartLoadSprite('enemy-sprite', gmaxSpriteUrl, false);
@@ -19925,7 +20829,16 @@ async function handleAttack(moveIndex, options = {}) {
             switchTarget.isAlive() && 
             switchTarget.currHp > 0 &&
             switchTarget !== e;
-        if (targetIsValid) {
+        // 【抓人机制】检查敌方是否被困住
+        let enemyCanSwitch = true;
+        if (typeof window.canEnemySwitch === 'function') {
+            const switchCheck = window.canEnemySwitch();
+            if (!switchCheck.canSwitch) {
+                enemyCanSwitch = false;
+                console.log(`[AI] Enemy cannot switch: ${switchCheck.reason}`);
+            }
+        }
+        if (targetIsValid && enemyCanSwitch) {
             enemyWillSwitch = true;
             switchTargetIndex = enemyAction.index;
             if (enemyAction.reasoning) {
@@ -20412,6 +21325,12 @@ async function executeEndPhase(p, e) {
             const volatileLogs = MoveEffects.tickVolatileStatus(p);
             volatileLogs.forEach(txt => log(txt));
         }
+        // === 【新增】道具回合末效果 (剧毒宝珠、火焰宝珠、剩饭等) ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.processEndTurnItemEffects) {
+            const itemLogs = MoveEffects.processEndTurnItemEffects(p);
+            itemLogs.forEach(txt => log(txt));
+            if (itemLogs.length > 0) updateAllVisuals();
+        }
     }
     if (e && e.isAlive()) {
         e.turnsOnField = (e.turnsOnField || 0) + 1;
@@ -20423,6 +21342,12 @@ async function executeEndPhase(p, e) {
         if (typeof MoveEffects !== 'undefined' && MoveEffects.tickVolatileStatus) {
             const volatileLogs = MoveEffects.tickVolatileStatus(e);
             volatileLogs.forEach(txt => log(txt));
+        }
+        // === 【新增】道具回合末效果 (剧毒宝珠、火焰宝珠、剩饭等) ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.processEndTurnItemEffects) {
+            const itemLogs = MoveEffects.processEndTurnItemEffects(e);
+            itemLogs.forEach(txt => log(txt));
+            if (itemLogs.length > 0) updateAllVisuals();
         }
     }
     // 【古武系统】风格冷却已移至 handleAttack 开始时递减，此处不再处理
@@ -20536,6 +21461,16 @@ function checkPlayerDefeatOrForceSwitch() {
 // 渲染切换列表
 function renderSwitchMenu(allowCancel = true) {
     if (battle.locked && battle.phase !== 'force_switch' && battle.phase !== 'pivot_switch') return;
+    // 【抓人机制】检查是否被困住（强制换人和 Pivot 换人除外）
+    if (allowCancel && battle.phase !== 'force_switch' && battle.phase !== 'pivot_switch') {
+        if (typeof window.canPlayerSwitch === 'function') {
+            const switchCheck = window.canPlayerSwitch();
+            if (!switchCheck.canSwitch) {
+                log(`<span style="color:#ef4444">${switchCheck.reason}</span>`);
+                return;
+            }
+        }
+    }
     const layer = document.getElementById('switch-menu-layer');
     layer.className = 'overlay-modal modern-layer';
     layer.classList.remove('hidden');
@@ -21789,4 +22724,47 @@ function showMegaFormSelectionDialog(pokemon, callback) {
     };
 }
 ]]></file>
+    <file name="README.md"><![CDATA[
+# 致谢名单 (Credits & Acknowledgments)
+本项目 **[您的项目名称，如 PKM Battle Engine Web]** 是一个基于 Web 技术的宝可梦对战模拟引擎。本项目的实现离不开开源社区的无私贡献、优秀的资源整理者以及原始版权所有者的创作。
+以下是本项目引用的资源列表及致谢。
+## 🛠️ 核心数据与引擎机制 / Core Data & Mechanics
+本项目的大部分战斗数据、伤害计算公式及基础逻辑高度参考并移植自 **Pokémon Showdown** 项目。
+*   **Pokémon Showdown**: [https://pokemonshowdown.com/](https://pokemonshowdown.com/)
+:   **Github**: [smogon/pokemon-showdown](https://github.com/smogon/pokemon-showdown)
+    *   引用了 `data/` 目录下的宝可梦种族值 (Pokedex)、招式数据 (Moves)、特性数据 (Abilities) 及道具信息 (Items)。
+    *   参考了其伤害计算逻辑 (Damage Calc) 与状态机制处理。
+## 🇨🇳 本地化与翻译 / Localization
+本项目使用的中文技能、特性及描述文本，由 **PSChina (Pokemon Showdown China)** 社区及其贡献者整理制作。
+*   **Showdown Translation (Tampermonkey Script)**
+    *   **脚本作者 (Author)**: Ceca3
+    *   **项目来源**: PSChina Server Translation (剑盾测试先行版)
+    *   **贡献**: 核心的“中-英”映射字典（汉化数据库）直接取材于该项目的经过社区长期验证的翻译数据。
+    *   特别感谢 PSChina 社区对宝可梦对战中文化做出的卓越贡献。
+## 🎨 美术资源 / Visual Assets
+本项目没有托管庞大的图片数据库，而是使用动态加载技术引用了以下优秀的公共资源库，以及部分 UI 设计灵感引用。
+**精灵图与图标 (Sprites & Icons)**
+*   **Pokémon Showdown Sprite Library**: [play.pokemonshowdown.com](https://play.pokemonshowdown.com/sprites/)
+    *   提供了 Gen 1-5 的动态像素图 (Animated Sprites) 及 Gen 6+ 的静态模型图。
+*   **PkParaiso**: [pkparaiso.com](https://www.pkparaiso.com/)
+    *   提供了部分高世代的高质量 3D 模型动态 GIF，用于战斗演出。
+*   **PokéSprite**: [github.com/msikma/pokesprite](https://github.com/msikma/pokesprite)
+    *   提供了极其完善的宝可梦菜单图标 (PC Box Icons) 和道具图标数据。
+**UI 设计 (interface Design)**
+*   **风格致敬**:
+    *   本项目 UI 风格混合了 **《宝可梦：剑/盾 (Pokémon Sword & Shield)》** 的扁平化竞技场风格与 **《女神异闻录5 (Persona 5)》** 的动态剪切风格。
+    *   古武系统 (Styles) UI 致敬了 **《宝可梦传说：阿尔宙斯 (Pokémon Legends: Arceus)》**。
+## 🎵 音效与音乐 / Audio & BGM
+*   **宝可梦叫声 (Cries)**:
+    *   音频文件动态请求自 `play.pokemonshowdown.com/audio/cries/`。
+*   **背景音乐 (BGM) & 音效 (SFX)**:
+    *   版权归属于 **Nintendo (任天堂)**, **Game Freak**, **The Pokémon Company** 及原作曲家（一之濑刚, 增田顺一等）。本项目仅做学习与演示用途使用。
+## ⚖️ 免责声明 / Disclaimer
+**Pokémon®**, **Pokémon Character Names**, **Nintendo®**, **Game Freak**, and **The Pokémon Company** are trademarks of **Nintendo**.
+本项目 (Project Name) 是一个非营利性的、开源的粉丝自制项目 (Fan-made Project)。
+*   本软件完全免费，不用于任何商业目的。
+*   所有与《宝可梦》相关的原文设定、图像、音频文件的版权均归版权方所有。
+*   如有侵权，请联系开发者删除相关内容。
+---
+*This file was generated to respect and credit the hard work of the community.*]]></file>
 </pkm_project>

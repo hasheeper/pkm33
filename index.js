@@ -1143,7 +1143,17 @@ async function handleAttack(moveIndex, options = {}) {
             switchTarget.currHp > 0 &&
             switchTarget !== e;
         
-        if (targetIsValid) {
+        // 【抓人机制】检查敌方是否被困住
+        let enemyCanSwitch = true;
+        if (typeof window.canEnemySwitch === 'function') {
+            const switchCheck = window.canEnemySwitch();
+            if (!switchCheck.canSwitch) {
+                enemyCanSwitch = false;
+                console.log(`[AI] Enemy cannot switch: ${switchCheck.reason}`);
+            }
+        }
+        
+        if (targetIsValid && enemyCanSwitch) {
             enemyWillSwitch = true;
             switchTargetIndex = enemyAction.index;
             if (enemyAction.reasoning) {
@@ -1690,6 +1700,12 @@ async function executeEndPhase(p, e) {
             const volatileLogs = MoveEffects.tickVolatileStatus(p);
             volatileLogs.forEach(txt => log(txt));
         }
+        // === 【新增】道具回合末效果 (剧毒宝珠、火焰宝珠、剩饭等) ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.processEndTurnItemEffects) {
+            const itemLogs = MoveEffects.processEndTurnItemEffects(p);
+            itemLogs.forEach(txt => log(txt));
+            if (itemLogs.length > 0) updateAllVisuals();
+        }
     }
     if (e && e.isAlive()) {
         e.turnsOnField = (e.turnsOnField || 0) + 1;
@@ -1701,6 +1717,12 @@ async function executeEndPhase(p, e) {
         if (typeof MoveEffects !== 'undefined' && MoveEffects.tickVolatileStatus) {
             const volatileLogs = MoveEffects.tickVolatileStatus(e);
             volatileLogs.forEach(txt => log(txt));
+        }
+        // === 【新增】道具回合末效果 (剧毒宝珠、火焰宝珠、剩饭等) ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.processEndTurnItemEffects) {
+            const itemLogs = MoveEffects.processEndTurnItemEffects(e);
+            itemLogs.forEach(txt => log(txt));
+            if (itemLogs.length > 0) updateAllVisuals();
         }
     }
     
@@ -1840,6 +1862,17 @@ function checkPlayerDefeatOrForceSwitch() {
 // 渲染切换列表
 function renderSwitchMenu(allowCancel = true) {
     if (battle.locked && battle.phase !== 'force_switch' && battle.phase !== 'pivot_switch') return;
+
+    // 【抓人机制】检查是否被困住（强制换人和 Pivot 换人除外）
+    if (allowCancel && battle.phase !== 'force_switch' && battle.phase !== 'pivot_switch') {
+        if (typeof window.canPlayerSwitch === 'function') {
+            const switchCheck = window.canPlayerSwitch();
+            if (!switchCheck.canSwitch) {
+                log(`<span style="color:#ef4444">${switchCheck.reason}</span>`);
+                return;
+            }
+        }
+    }
 
     const layer = document.getElementById('switch-menu-layer');
 

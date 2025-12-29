@@ -262,6 +262,24 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
         pivotTriggered = fxResult.pivot || false;
         fxLogs.forEach(txt => log(`<span style="font-size:0.95em;color:#e67e22">${txt}</span>`));
+        
+        // === 【拍落 Knock Off】处理 ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.applyKnockOff) {
+            const knockOffResult = MoveEffects.applyKnockOff(attacker, defender, move);
+            knockOffResult.logs.forEach(txt => log(`<span style="color:#8b5cf6">${txt}</span>`));
+        }
+        
+        // === 【束缚招式】处理 (Fire Spin, Magma Storm 等) ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.applyTrappingMove) {
+            const trapResult = MoveEffects.applyTrappingMove(attacker, defender, move);
+            trapResult.logs.forEach(txt => log(`<span style="color:#dc2626">${txt}</span>`));
+        }
+        
+        // === 【黑色目光/缝影】处理 ===
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.applyMeanLook) {
+            const meanLookResult = MoveEffects.applyMeanLook(attacker, defender, move);
+            meanLookResult.logs.forEach(txt => log(`<span style="color:#7c3aed">${txt}</span>`));
+        }
     } else {
         const fxResult = applyMoveSecondaryEffects(attacker, defender, move, result.damage, battle, spriteIdRef !== 'player-sprite');
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);

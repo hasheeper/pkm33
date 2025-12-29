@@ -1185,6 +1185,32 @@ function calcDamage(attacker, defender, move) {
     let atkStat = isSpecial ? attacker.getStat('spa') : attacker.getStat('atk');
     let defStat = isSpecial ? defender.getStat('spd') : defender.getStat('def');
     
+    // === 【纯朴 Unaware】特性处理 ===
+    // 攻击方有纯朴：忽略防御方的防御/特防提升
+    // 防御方有纯朴：忽略攻击方的攻击/特攻提升
+    if (typeof AbilityHandlers !== 'undefined') {
+        const attackerHandler = attacker.ability ? AbilityHandlers[attacker.ability] : null;
+        const defenderHandler = defender.ability ? AbilityHandlers[defender.ability] : null;
+        
+        // 攻击方纯朴：忽略防御方的防御提升，使用基础防御值
+        if (attackerHandler && attackerHandler.ignoreDefenderBoosts) {
+            const baseDefStat = isSpecial ? defender.spd : defender.def;
+            if (defStat > baseDefStat) {
+                console.log(`[UNAWARE] ${attacker.cnName} 的纯朴无视了 ${defender.cnName} 的防御提升`);
+                defStat = baseDefStat;
+            }
+        }
+        
+        // 防御方纯朴：忽略攻击方的攻击提升，使用基础攻击值
+        if (defenderHandler && defenderHandler.ignoreAttackerBoosts) {
+            const baseAtkStat = isSpecial ? attacker.spa : attacker.atk;
+            if (atkStat > baseAtkStat) {
+                console.log(`[UNAWARE] ${defender.cnName} 的纯朴无视了 ${attacker.cnName} 的攻击提升`);
+                atkStat = baseAtkStat;
+            }
+        }
+    }
+    
     // === 策略模式：特殊攻防计算 (Foul Play, Body Press, Psyshock 等) ===
     if (handler && handler.modifyAtk) {
         atkStat = handler.modifyAtk(attacker, defender, isSpecial);
