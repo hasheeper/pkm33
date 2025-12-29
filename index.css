@@ -2120,10 +2120,7 @@ body {
     bottom: 8px;
     right: 12px;
     font-family: var(--font-main);
-}
-ace: nowrap;
-    opacity: 1; /* 可见 */
-    box-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+    z-index: 3;
 }
 
 /* 悬停效果: 整体稍微变亮并上浮 */
@@ -2213,15 +2210,6 @@ ace: nowrap;
     letter-spacing: -0.5px;
     margin-bottom: 4px;
     font-family: var(--font-main);
-}capitalize;
-    text-shadow:
-        2px 2px 0px #fff,
-        -1px -1px 0 #fff,
-        1px -1px 0 #fff,
-        -1px 1px 0 #fff,
-        1px 1px 0 #fff;
-    position: relative;
-    z-index: 2;
 }
 
 .hud-modern .p-lv {
