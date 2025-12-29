@@ -110,15 +110,27 @@ function smartLoadSprite(id, url, forceAnim = false) {
         const preloader = new Image();
         preloader.onload = () => {
             console.log(`[SPRITE] SUCCESS: ${preloader.src}`);
-            // 【优化】形态切换时不移除 loaded 类，避免闪烁
-            // 只移除动画相关的类
-            img.classList.remove('fainted-hidden', 'fainting', 'entering');
-            // 直接切换 src，保持显示状态
-            img.src = preloader.src;
-            // 确保 loaded 类存在
-            if (!img.classList.contains('loaded')) {
+            
+            // 【关键】如果 URL 变化了（真正的精灵图切换），触发淡入效果
+            const isUrlChanged = img.src !== preloader.src;
+            
+            if (isUrlChanged) {
+                // URL 变化：移除 loaded 类触发淡入
+                img.style.transition = 'none';
+                img.classList.remove('loaded', 'fainted-hidden', 'fainting', 'entering');
+                img.src = preloader.src;
+                void img.offsetWidth; // 强制重排
+                img.style.transition = '';
                 img.classList.add('loaded');
+            } else {
+                // URL 未变：只移除动画类，保持显示状态
+                img.classList.remove('fainted-hidden', 'fainting', 'entering');
+                img.src = preloader.src;
+                if (!img.classList.contains('loaded')) {
+                    img.classList.add('loaded');
+                }
             }
+            
             playEntryAnimation();
         };
         preloader.onerror = () => {
