@@ -76,6 +76,7 @@ const sfxCache = {};
 (function preloadSFX() {
     console.log('[SFX] Starting preload...');
     let loadedCount = 0;
+    const totalCount = Object.keys(SFX_CONFIG).length;
     
     for (const [key, path] of Object.entries(SFX_CONFIG)) {
         const audio = new Audio();
@@ -85,16 +86,20 @@ const sfxCache = {};
         
         audio.addEventListener('canplaythrough', () => {
             loadedCount++;
-            if (loadedCount === Object.keys(SFX_CONFIG).length) {
+            if (loadedCount === totalCount) {
                 console.log(`[SFX] All ${loadedCount} files preloaded.`);
             }
         }, { once: true });
         
         audio.addEventListener('error', () => {
             console.warn(`[SFX] Failed to load: ${key} (${path})`);
+            loadedCount++; // 计入失败的也算完成
         }, { once: true });
         
         sfxCache[key] = audio;
+        
+        // 【强制预加载】调用 load() 确保浏览器开始加载
+        audio.load();
     }
     
     console.log(`[SFX] Queued ${Object.keys(sfxCache).length} files for preload.`);
