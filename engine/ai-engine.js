@@ -1689,6 +1689,121 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         }
         
         // =========================================================
+        // 【属性变化技能】完整的类型变化技能拦截系统
+        // 防止 AI 对已经达成的状态重复使用无效技能
+        // =========================================================
+        
+        // 1. Transform (变身) - 复制对手的一切
+        if (moveName === 'Transform') {
+            // 如果目标已经变身过，失败
+            if (defender.isTransformed || (defender.volatile && defender.volatile.transformed)) {
+                console.log(`[AI BAN] Transform: 目标已经变身过`);
+                return -99999;
+            }
+            // 如果目标有替身，失败
+            if (defender.volatile && defender.volatile.substitute) {
+                console.log(`[AI BAN] Transform: 目标有替身`);
+                return -99999;
+            }
+            // 百变怪互相对视时避免死循环
+            const attackerSpecies = (attacker.species || attacker.name || '').toLowerCase();
+            const defenderSpecies = (defender.species || defender.name || '').toLowerCase();
+            if (attackerSpecies.includes('ditto') && defenderSpecies.includes('ditto')) {
+                console.log(`[AI BAN] Transform: 百变怪互相变身无意义`);
+                return -99999;
+            }
+            return 100; // 变身是强力技能
+        }
+        
+        // 2. Conversion (纹理) - 变成自己第一招的属性
+        if (moveName === 'Conversion') {
+            const firstMove = attacker.moves[0];
+            if (firstMove && firstMove.type) {
+                const targetType = firstMove.type;
+                // 如果已经是该属性（单属性且相同），禁止使用
+                if (attacker.types && attacker.types.length === 1 && attacker.types[0] === targetType) {
+                    console.log(`[AI BAN] Conversion: 已经是 ${targetType} 属性`);
+                    return -99999;
+                }
+            }
+            return 30;
+        }
+        
+        // 3. Reflect Type (镜面属性) - 复制对手的属性
+        if (moveName === 'Reflect Type') {
+            const myTypes = (attacker.types || ['Normal']).slice().sort().join(',');
+            const targetTypes = (defender.types || ['Normal']).slice().sort().join(',');
+            // 如果属性组合完全一致，失败
+            if (myTypes === targetTypes) {
+                console.log(`[AI BAN] Reflect Type: 属性已相同 (${myTypes})`);
+                return -99999;
+            }
+            return 25;
+        }
+        
+        // 4. Burn Up (燃尽) - 失去火属性的强力火系攻击
+        if (moveName === 'Burn Up') {
+            const types = attacker.types || [];
+            if (!types.includes('Fire')) {
+                console.log(`[AI BAN] Burn Up: 不再是火系，无法使用`);
+                return -99999;
+            }
+            // 这是攻击技能，由伤害计算处理，这里只做属性检查
+        }
+        
+        // 5. Double Shock (电光双击) - 失去电属性的强力电系攻击
+        if (moveName === 'Double Shock') {
+            const types = attacker.types || [];
+            if (!types.includes('Electric')) {
+                console.log(`[AI BAN] Double Shock: 不再是电系，无法使用`);
+                return -99999;
+            }
+            // 这是攻击技能，由伤害计算处理
+        }
+        
+        // 6. Soak (浸水) - 把对手变成纯水系
+        if (moveName === 'Soak') {
+            const types = defender.types || [];
+            if (types.length === 1 && types[0] === 'Water') {
+                console.log(`[AI BAN] Soak: 对手已经是纯水系`);
+                return -99999;
+            }
+            // 对水系宝可梦使用意义不大（虽然不会失败，但战术价值低）
+            if (types.includes('Water') && types.length === 1) {
+                return 5;
+            }
+            return 40; // 改变对手属性有战术价值
+        }
+        
+        // 7. Magic Powder (魔法粉) - 把对手变成纯超能力系
+        if (moveName === 'Magic Powder') {
+            const types = defender.types || [];
+            if (types.length === 1 && types[0] === 'Psychic') {
+                console.log(`[AI BAN] Magic Powder: 对手已经是纯超能力系`);
+                return -99999;
+            }
+            return 35;
+        }
+        
+        // 8. Trick-or-Treat (万圣夜) - 给对手追加幽灵属性
+        if (moveName === 'Trick-or-Treat') {
+            if ((defender.types || []).includes('Ghost')) {
+                console.log(`[AI BAN] Trick-or-Treat: 对手已经有幽灵属性`);
+                return -99999;
+            }
+            return 30;
+        }
+        
+        // 9. Forest's Curse (森林诅咒) - 给对手追加草属性
+        if (moveName === "Forest's Curse") {
+            if ((defender.types || []).includes('Grass')) {
+                console.log(`[AI BAN] Forest's Curse: 对手已经有草属性`);
+                return -99999;
+            }
+            return 30;
+        }
+        
+        // =========================================================
         // 【Soft-Coded】延迟生效技能 (slotCondition 或特定 volatileStatus)
         // 残血时使用无意义
         // =========================================================

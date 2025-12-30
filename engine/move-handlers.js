@@ -1112,6 +1112,11 @@ const MoveHandlers = {
                 logs.push(`但是失败了!`);
                 return;
             }
+            // 已经是纯水系则失败
+            if (defender.types && defender.types.length === 1 && defender.types[0] === 'Water') {
+                logs.push(`但是失败了!`);
+                return;
+            }
 
             defender.types = ['Water'];
             logs.push(`${attacker.cnName} 向对手喷射了特殊的水!`);
@@ -1120,6 +1125,115 @@ const MoveHandlers = {
             return { typeChange: true };
         },
         description: '将目标变为水属性'
+    },
+    
+    // 【魔法粉】：把对手变成纯超能力系
+    'Magic Powder': {
+        onHit: (attacker, defender, damage, logs) => {
+            if (defender.ability === 'Multitype' || defender.ability === 'RKS System') {
+                logs.push(`但是失败了!`);
+                return;
+            }
+            // 已经是纯超能力系则失败
+            if (defender.types && defender.types.length === 1 && defender.types[0] === 'Psychic') {
+                logs.push(`但是失败了!`);
+                return;
+            }
+            // 草系免疫粉末类招式
+            if (defender.types && defender.types.includes('Grass')) {
+                logs.push(`但是失败了! (草系免疫粉末)`);
+                return;
+            }
+            if (defender.ability === 'Overcoat') {
+                logs.push(`${defender.cnName} 的防尘特性使其免疫了粉末!`);
+                return;
+            }
+
+            defender.types = ['Psychic'];
+            logs.push(`${attacker.cnName} 撒下了魔法粉!`);
+            logs.push(`<span style="color:#a855f7">✦ ${defender.cnName} 变成了 超能力 属性!</span>`);
+            
+            return { typeChange: true };
+        },
+        description: '将目标变为超能力属性'
+    },
+    
+    // 【万圣夜】：给对手追加幽灵属性
+    'Trick-or-Treat': {
+        onHit: (attacker, defender, damage, logs) => {
+            // 已经有幽灵属性则失败
+            if (defender.types && defender.types.includes('Ghost')) {
+                logs.push(`但是失败了!`);
+                return;
+            }
+
+            defender.types = [...(defender.types || ['Normal']), 'Ghost'];
+            logs.push(`${attacker.cnName} 邀请对手参加万圣夜派对!`);
+            logs.push(`<span style="color:#9b59b6">✦ ${defender.cnName} 追加了 幽灵 属性!</span>`);
+            
+            return { typeChange: true };
+        },
+        description: '给目标追加幽灵属性'
+    },
+    
+    // 【森林诅咒】：给对手追加草属性
+    "Forest's Curse": {
+        onHit: (attacker, defender, damage, logs) => {
+            // 已经有草属性则失败
+            if (defender.types && defender.types.includes('Grass')) {
+                logs.push(`但是失败了!`);
+                return;
+            }
+
+            defender.types = [...(defender.types || ['Normal']), 'Grass'];
+            logs.push(`${attacker.cnName} 施加了森林的诅咒!`);
+            logs.push(`<span style="color:#27ae60">✦ ${defender.cnName} 追加了 草 属性!</span>`);
+            
+            return { typeChange: true };
+        },
+        description: '给目标追加草属性'
+    },
+    
+    // 【燃尽】：强力火系攻击，使用后失去火属性
+    'Burn Up': {
+        onHit: (attacker, defender, damage, logs) => {
+            // 不是火系则失败（伤害仍然造成，但不会失去属性）
+            if (!attacker.types || !attacker.types.includes('Fire')) {
+                logs.push(`但是 ${attacker.cnName} 不是火属性，无法燃尽!`);
+                return { failed: true };
+            }
+
+            // 移除火属性
+            attacker.types = attacker.types.filter(t => t !== 'Fire');
+            if (attacker.types.length === 0) {
+                attacker.types = ['Normal']; // 变成无属性（游戏中显示为???，这里简化为Normal）
+            }
+            logs.push(`<span style="color:#e74c3c">🔥 ${attacker.cnName} 燃烧殆尽，失去了火属性!</span>`);
+            
+            return { typeChange: true, lostType: 'Fire' };
+        },
+        description: '强力火系攻击，使用后失去火属性'
+    },
+    
+    // 【电光双击】：强力电系攻击，使用后失去电属性
+    'Double Shock': {
+        onHit: (attacker, defender, damage, logs) => {
+            // 不是电系则失败
+            if (!attacker.types || !attacker.types.includes('Electric')) {
+                logs.push(`但是 ${attacker.cnName} 不是电属性，无法释放电光双击!`);
+                return { failed: true };
+            }
+
+            // 移除电属性
+            attacker.types = attacker.types.filter(t => t !== 'Electric');
+            if (attacker.types.length === 0) {
+                attacker.types = ['Normal'];
+            }
+            logs.push(`<span style="color:#f1c40f">⚡ ${attacker.cnName} 释放了全部电力，失去了电属性!</span>`);
+            
+            return { typeChange: true, lostType: 'Electric' };
+        },
+        description: '强力电系攻击，使用后失去电属性'
     },
 
     // ============================================
