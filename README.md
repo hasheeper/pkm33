@@ -1,7 +1,7 @@
 
 # 致谢名单 (Credits & Acknowledgments)
 
-本项目 **[您的项目名称，如 PKM Battle Engine Web]** 是一个基于 Web 技术的宝可梦对战模拟引擎。本项目的实现离不开开源社区的无私贡献、优秀的资源整理者以及原始版权所有者的创作。
+本项目 是一个基于 Web 技术的宝可梦对战模拟引擎。本项目的实现离不开开源社区的无私贡献、优秀的资源整理者以及原始版权所有者的创作。
 
 以下是本项目引用的资源列表及致谢。
 
@@ -52,7 +52,7 @@
 
 **Pokémon®**, **Pokémon Character Names**, **Nintendo®**, **Game Freak**, and **The Pokémon Company** are trademarks of **Nintendo**.
 
-本项目 (Project Name) 是一个非营利性的、开源的粉丝自制项目 (Fan-made Project)。
+本项目 是一个非营利性的、开源的粉丝自制项目 (Fan-made Project)。
 *   本软件完全免费，不用于任何商业目的。
 *   所有与《宝可梦》相关的原文设定、图像、音频文件的版权均归版权方所有。
 *   如有侵权，请联系开发者删除相关内容。
