@@ -77,35 +77,112 @@ const AbilityHandlers = {
 
     // 【漂浮】免疫地面
     'Levitate': {
-        onImmunity: (atkType) => atkType === 'Ground'
+        onImmunity: (atkType) => atkType === 'Ground',
+        groundImmune: true
     },
-    // 【引火】免疫火系
+    // 【引火】免疫火系+威力提升50%
     'Flash Fire': {
-        onImmunity: (atkType) => atkType === 'Fire'
+        onImmunity: (atkType) => atkType === 'Fire',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Fire') {
+                pokemon.flashFireBoost = true;
+                logs.push(`🔥 ${pokemon.cnName} 的引火特性发动！`);
+                return { absorbed: true };
+            }
+            return { absorbed: false };
+        },
+        onBasePower: (attacker, defender, move, power) => {
+            if (move.type === 'Fire' && attacker.flashFireBoost) return Math.floor(power * 1.5);
+            return power;
+        }
     },
-    // 【储水】免疫水系
+    // 【蓄水】免疫水系+回复1/4HP
     'Water Absorb': {
-        onImmunity: (atkType) => atkType === 'Water'
+        onImmunity: (atkType) => atkType === 'Water',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Water') {
+                const heal = Math.floor(pokemon.maxHp / 4);
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
+                logs.push(`💧 ${pokemon.cnName} 的蓄水回复了 ${heal} HP！`);
+                return { absorbed: true, heal };
+            }
+            return { absorbed: false };
+        }
     },
-    // 【避雷针】免疫电系
+    // 【避雷针】免疫电系+特攻+1
     'Lightning Rod': {
-        onImmunity: (atkType) => atkType === 'Electric'
+        onImmunity: (atkType) => atkType === 'Electric',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Electric') {
+                if (pokemon.applyBoost) pokemon.applyBoost('spa', 1);
+                logs.push(`⚡ ${pokemon.cnName} 的避雷针发动！特攻提升！`);
+                return { absorbed: true };
+            }
+            return { absorbed: false };
+        }
     },
-    // 【蓄电】免疫电系
+    // 【蓄电】免疫电系+回复1/4HP
     'Volt Absorb': {
-        onImmunity: (atkType) => atkType === 'Electric'
+        onImmunity: (atkType) => atkType === 'Electric',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Electric') {
+                const heal = Math.floor(pokemon.maxHp / 4);
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
+                logs.push(`⚡ ${pokemon.cnName} 的蓄电回复了 ${heal} HP！`);
+                return { absorbed: true, heal };
+            }
+            return { absorbed: false };
+        }
     },
-    // 【电气引擎】免疫电系
+    // 【电气引擎】免疫电系+速度+1
     'Motor Drive': {
-        onImmunity: (atkType) => atkType === 'Electric'
+        onImmunity: (atkType) => atkType === 'Electric',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Electric') {
+                if (pokemon.applyBoost) pokemon.applyBoost('spe', 1);
+                logs.push(`⚡ ${pokemon.cnName} 的电气引擎发动！速度提升！`);
+                return { absorbed: true };
+            }
+            return { absorbed: false };
+        }
     },
-    // 【食草】免疫草系
+    // 【食草】免疫草系+攻击+1
     'Sap Sipper': {
-        onImmunity: (atkType) => atkType === 'Grass'
+        onImmunity: (atkType) => atkType === 'Grass',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Grass') {
+                if (pokemon.applyBoost) pokemon.applyBoost('atk', 1);
+                logs.push(`🌿 ${pokemon.cnName} 的食草发动！攻击提升！`);
+                return { absorbed: true };
+            }
+            return { absorbed: false };
+        }
     },
-    // 【干燥皮肤】免疫水系
+    // 【引水】免疫水系+特攻+1
+    'Storm Drain': {
+        onImmunity: (atkType) => atkType === 'Water',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Water') {
+                if (pokemon.applyBoost) pokemon.applyBoost('spa', 1);
+                logs.push(`💧 ${pokemon.cnName} 的引水发动！特攻提升！`);
+                return { absorbed: true };
+            }
+            return { absorbed: false };
+        }
+    },
+    // 【干燥皮肤】免疫水系回复，火系x1.25
     'Dry Skin': {
-        onImmunity: (atkType) => atkType === 'Water'
+        onImmunity: (atkType) => atkType === 'Water',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Water') {
+                const heal = Math.floor(pokemon.maxHp / 4);
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
+                logs.push(`💧 ${pokemon.cnName} 的干燥皮肤回复了 ${heal} HP！`);
+                return { absorbed: true, heal };
+            }
+            return { absorbed: false };
+        },
+        onDefenderModifyDamage: (a, d, move, dmg) => move.type === 'Fire' ? Math.floor(dmg * 1.25) : dmg
     },
   
     // 【神奇鳞片】异常状态时防御 x1.5 (此处简化为物防)
@@ -125,9 +202,16 @@ const AbilityHandlers = {
         }
     },
   
-    // 【神奇守护】鬼蝉：只能被克制技能打中（在 calcDamage 里特判）
+    // 【神奇守护】鬼蝉：只能被效果绝佳的招式打中
     'Wonder Guard': {
-        // 这个逻辑太深，稍后在引擎里写一个 flag 检查
+        onTryHit: (attacker, defender, move, effectiveness) => {
+            // 只有效果绝佳（>1）的招式才能命中
+            if (effectiveness <= 1) {
+                return { blocked: true, message: `${defender.cnName} 的神奇守护让攻击无效了！` };
+            }
+            return { blocked: false };
+        },
+        wonderGuard: true // 标记：需要在伤害计算时检查
     },
 
     // 【厚脂肪】减半火/冰伤害
@@ -175,6 +259,64 @@ const AbilityHandlers = {
                 return Math.floor(damage * 0.5);
             }
             return damage;
+        }
+    },
+
+    // ============================================
+    // 接触类招式反馈特性 (Contact Move Reactions)
+    // 注意：这些特性只在接触类招式命中时触发
+    // ============================================
+
+    // 【粗糙皮肤】接触时反伤1/8
+    'Rough Skin': {
+        onContactDamage: (attacker, defender) => {
+            return { damage: Math.floor(attacker.maxHp / 8), message: `${attacker.cnName} 被粗糙皮肤伤害了！` };
+        }
+    },
+    // 【铁刺】接触时反伤1/8
+    'Iron Barbs': {
+        onContactDamage: (attacker, defender) => {
+            return { damage: Math.floor(attacker.maxHp / 8), message: `${attacker.cnName} 被铁刺伤害了！` };
+        }
+    },
+    // 【静电】接触时30%麻痹
+    'Static': {
+        onContactStatus: (attacker, defender) => {
+            if (Math.random() < 0.3) return { status: 'par', message: `${attacker.cnName} 被静电麻痹了！` };
+            return null;
+        }
+    },
+    // 【火焰身躯】接触时30%灼伤
+    'Flame Body': {
+        onContactStatus: (attacker, defender) => {
+            if (Math.random() < 0.3) return { status: 'brn', message: `${attacker.cnName} 被火焰身躯灼伤了！` };
+            return null;
+        }
+    },
+    // 【毒刺】接触时30%中毒
+    'Poison Point': {
+        onContactStatus: (attacker, defender) => {
+            if (Math.random() < 0.3) return { status: 'psn', message: `${attacker.cnName} 被毒刺毒到了！` };
+            return null;
+        }
+    },
+    // 【可爱迷人】接触时30%着迷
+    'Cute Charm': {
+        onContactVolatile: (attacker, defender) => {
+            if (Math.random() < 0.3 && attacker.gender !== defender.gender) {
+                return { volatile: 'attract', message: `${attacker.cnName} 被迷住了！` };
+            }
+            return null;
+        }
+    },
+    // 【碎裂铠甲】被物理攻击时防御-1速度+2
+    'Weak Armor': {
+        onPhysicalHit: (attacker, defender, logs) => {
+            if (defender.applyBoost) {
+                defender.applyBoost('def', -1);
+                defender.applyBoost('spe', 2);
+            }
+            logs.push(`${defender.cnName} 的碎裂铠甲发动！防御下降，速度大幅提升！`);
         }
     },
 
@@ -323,6 +465,64 @@ const AbilityHandlers = {
                     if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
                 }
             }
+        }
+    },
+
+    // 【慢启动】出场5回合内，攻击减半，速度减半 (雷吉奇卡斯专属)
+    'Slow Start': {
+        // 进场时初始化计数器
+        onStart: (self, enemy, logs) => {
+            self.slowStartTurns = 0;
+            self.isSlowStarting = true;
+            logs.push(`<b style="color:#636e72">${self.cnName} 的慢启动！依然没能拿出真本事！</b>`);
+        },
+        // 实时修改面板数值
+        onModifyStat: (stats, poke) => {
+            if (poke.isSlowStarting) {
+                stats.atk = Math.floor(stats.atk * 0.5);
+                stats.spe = Math.floor(stats.spe * 0.5);
+            }
+        },
+        // 回合结束：计数器递增 + 解除封印判断
+        onEndTurn: (pokemon, logs) => {
+            if (pokemon.isSlowStarting) {
+                pokemon.slowStartTurns = (pokemon.slowStartTurns || 0) + 1;
+                if (pokemon.slowStartTurns >= 5) {
+                    pokemon.isSlowStarting = false;
+                    pokemon.slowStartTurns = 0;
+                    logs.push(`<b style="color:#e91e63; font-size:1.1em">🔥 ${pokemon.cnName} 终于拿出了真本事！</b>`);
+                    if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+                } else {
+                    logs.push(`<span style="color:#aaa">${pokemon.cnName} 还没有拿出真本事... (${pokemon.slowStartTurns}/5)</span>`);
+                }
+            }
+        }
+    },
+
+    // 【懒惰】每隔一回合才能行动 (请假王专属)
+    'Truant': {
+        onStart: (self, enemy, logs) => {
+            // 进场时重置状态，第一回合可以行动
+            self.truantNextTurn = false;
+        },
+        // 行动前检查：如果是休息回合则跳过
+        onBeforeMove: (self, move, logs) => {
+            if (self.truantNextTurn) {
+                logs.push(`<b style="color:#95a5a6">${self.cnName} 正在偷懒！</b>`);
+                self.truantNextTurn = false; // 下回合可以行动
+                return false; // 禁止行动
+            } else {
+                self.truantNextTurn = true; // 下回合休息
+                return true; // 允许行动
+            }
+        }
+    },
+
+    // 【慢出】永远最后行动 (优先度 -6)
+    'Stall': {
+        onModifyPriority: (priority, pokemon, move) => {
+            // 返回一个极低的优先度修正，确保最后行动
+            return -6;
         }
     },
   
@@ -544,15 +744,36 @@ const AbilityHandlers = {
     // I. 第二梯队补充 - 吸收系
     // ============================================
 
-    // 【食土】被地面打回血
+    // 【食土】被地面打回血1/4HP（大王铜象）
     'Earth Eater': {
         onImmunity: (atkType) => atkType === 'Ground',
-        onTryHitHeal: (target, move) => {
+        onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Ground') {
-                return Math.floor(target.maxHp / 4);
+                const heal = Math.floor(pokemon.maxHp / 4);
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
+                logs.push(`🌍 ${pokemon.cnName} 的食土回复了 ${heal} HP！`);
+                return { absorbed: true, heal };
             }
-            return 0;
+            return { absorbed: false };
         }
+    },
+
+    // 【焦香身躯】被火系打防御+2（麻花犬）
+    'Well-Baked Body': {
+        onImmunity: (atkType) => atkType === 'Fire',
+        onAbsorbHit: (pokemon, move, logs) => {
+            if (move.type === 'Fire') {
+                if (pokemon.applyBoost) pokemon.applyBoost('def', 2);
+                logs.push(`🔥 ${pokemon.cnName} 的焦香身躯发动！防御大幅提升！`);
+                return { absorbed: true };
+            }
+            return { absorbed: false };
+        }
+    },
+
+    // 【湿气】禁止自爆/大爆炸
+    'Damp': {
+        preventExplosion: true
     },
 
     // ============================================
@@ -678,6 +899,56 @@ const AbilityHandlers = {
     },
     'Vital Spirit': {
         onImmunityStatus: (status) => status === 'slp'
+    },
+
+    // 【粉彩护幕】免疫中毒（伽勒尔小火马/烈焰马）
+    'Pastel Veil': {
+        onImmunityStatus: (status) => status === 'psn' || status === 'tox',
+        onStart: (pokemon, logs) => {
+            // 入场时治愈己方中毒状态
+            if (pokemon.status === 'psn' || pokemon.status === 'tox') {
+                pokemon.status = null;
+                logs.push(`${pokemon.cnName} 的粉彩护幕治愈了中毒状态!`);
+            }
+        }
+    },
+
+    // 【洁净之盐】免疫所有异常状态（盐石巨灵）
+    'Purifying Salt': {
+        onImmunityStatus: () => true, // 免疫所有异常状态
+        onDefenderModifyDamage: (attacker, defender, move, damage) => {
+            // 幽灵系招式伤害减半
+            if (move.type === 'Ghost') {
+                return Math.floor(damage * 0.5);
+            }
+            return damage;
+        }
+    },
+
+    // 【绝对睡眠】视为睡眠状态（树枕尾熊）
+    'Comatose': {
+        onImmunityStatus: () => true, // 无法被覆盖其他状态
+        alwaysAsleep: true // 视为睡眠状态
+    },
+
+    // 【界限盾壳】HP > 50% 时免疫异常状态（小陨星）
+    'Shields Down': {
+        onImmunityStatus: (status, pokemon) => {
+            return pokemon && pokemon.currHp > pokemon.maxHp / 2;
+        }
+    },
+
+    // 【叶子防守】大晴天时免疫异常状态
+    'Leaf Guard': {
+        onImmunityStatus: (status, pokemon, battle) => {
+            const weather = battle?.weather || (typeof window.battle !== 'undefined' ? window.battle.weather : null);
+            return weather === 'sun' || weather === 'harshsun';
+        }
+    },
+
+    // 【腐蚀】可以让钢/毒系中毒（夜盗火蜥、焰后蜥）
+    'Corrosion': {
+        canPoisonAny: true // 标记：可以让任何属性中毒
     },
 
     // 【鳞粉】免疫粉尘类招式

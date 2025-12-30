@@ -54,6 +54,12 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         return result;
     }
     
+    // 0. 处理恶作剧之心免疫 (恶系免疫变化技)
+    if (result.pranksterImmune) {
+        log(`<b style='color:#8b5cf6'>${result.message || defender.cnName + ' 是恶属性，免疫了恶作剧之心的效果！'}</b>`);
+        return result;
+    }
+    
     // 0. 处理 Protect 守住拦截
     if (result.blocked) {
         log(`<b style='color:#3498db'>${defender.cnName} 守住了自己，免受了攻击!</b>`);

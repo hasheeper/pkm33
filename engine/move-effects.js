@@ -97,6 +97,24 @@ function getMovePriority(move, user = null, target = null) {
         }
     }
     
+    // === 【慢出 Stall】特性处理 ===
+    // 永远最后行动（优先度设为 -6）
+    if (user && user.ability === 'Stall') {
+        basePriority = -6;
+        console.log(`[STALL] ${user.cnName} 的慢出特性使其永远最后行动`);
+    }
+    
+    // === 通用 onModifyPriority 钩子 ===
+    if (user && user.ability && typeof AbilityHandlers !== 'undefined') {
+        const abilityHandler = AbilityHandlers[user.ability];
+        if (abilityHandler && abilityHandler.onModifyPriority) {
+            const modifiedPriority = abilityHandler.onModifyPriority(basePriority, user, move);
+            if (typeof modifiedPriority === 'number') {
+                basePriority = modifiedPriority;
+            }
+        }
+    }
+    
     return basePriority;
 }
 
@@ -141,17 +159,88 @@ const STATUS_CONDITIONS = {
 
 /**
  * 尝试给目标施加状态异常
+ * 【软编码】支持属性免疫、特性免疫、腐蚀特性、薄雾场地等
  * @param {Pokemon} target 目标
  * @param {string} status 状态ID (par/brn/psn/tox/slp/frz)
+ * @param {Pokemon} source 来源（可选，用于腐蚀特性判定）
+ * @param {object} battle 战斗对象（可选，用于场地判定）
  * @returns {object} { success, message }
  */
-function tryInflictStatus(target, status) {
+function tryInflictStatus(target, status, source = null, battle = null) {
     // 已有主要状态则无法施加
     if (target.status) {
         return { success: false, message: `${target.cnName} 已经处于异常状态!` };
     }
     
-    // 属性免疫检查
+    const targetAbility = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const sourceAbility = source ? (source.ability || '').toLowerCase().replace(/[^a-z]/g, '') : '';
+    
+    // === 【特性免疫检查】优先于属性免疫 ===
+    
+    // 【免疫 Immunity】完全免疫中毒
+    if (targetAbility === 'immunity' && (status === 'psn' || status === 'tox')) {
+        return { success: false, message: `${target.cnName} 的免疫特性阻止了中毒!` };
+    }
+    
+    // 【粉彩护幕 Pastel Veil】免疫中毒
+    if (targetAbility === 'pastelveil' && (status === 'psn' || status === 'tox')) {
+        return { success: false, message: `${target.cnName} 的粉彩护幕阻止了中毒!` };
+    }
+    
+    // 【洁净之盐 Purifying Salt】免疫所有异常状态
+    if (targetAbility === 'purifyingsalt') {
+        return { success: false, message: `${target.cnName} 的洁净之盐阻止了异常状态!` };
+    }
+    
+    // 【绝对睡眠 Comatose】视为睡眠状态，无法被覆盖
+    if (targetAbility === 'comatose') {
+        return { success: false, message: `${target.cnName} 处于绝对睡眠状态，无法被影响!` };
+    }
+    
+    // 【界限盾壳 Shields Down】HP > 50% 时免疫异常状态
+    if (targetAbility === 'shieldsdown' && target.currHp > target.maxHp / 2) {
+        return { success: false, message: `${target.cnName} 的界限盾壳阻止了异常状态!` };
+    }
+    
+    // 【水幕 Water Veil】免疫灼伤
+    if (targetAbility === 'waterveil' && status === 'brn') {
+        return { success: false, message: `${target.cnName} 的水幕阻止了灼伤!` };
+    }
+    
+    // 【熔岩铠甲 Magma Armor】免疫冰冻
+    if (targetAbility === 'magmaarmor' && status === 'frz') {
+        return { success: false, message: `${target.cnName} 的熔岩铠甲阻止了冰冻!` };
+    }
+    
+    // 【柔软 Limber】免疫麻痹
+    if (targetAbility === 'limber' && status === 'par') {
+        return { success: false, message: `${target.cnName} 的柔软阻止了麻痹!` };
+    }
+    
+    // 【不眠 Insomnia / 干劲 Vital Spirit】免疫睡眠
+    if ((targetAbility === 'insomnia' || targetAbility === 'vitalspirit') && status === 'slp') {
+        return { success: false, message: `${target.cnName} 无法入睡!` };
+    }
+    
+    // 【叶子防守 Leaf Guard】大晴天时免疫异常状态
+    if (targetAbility === 'leafguard') {
+        const currentWeather = battle?.weather || (typeof window.battle !== 'undefined' ? window.battle.weather : null);
+        if (currentWeather === 'sun' || currentWeather === 'harshsun') {
+            return { success: false, message: `${target.cnName} 的叶子防守在阳光下阻止了异常状态!` };
+        }
+    }
+    
+    // === 【薄雾场地 Misty Terrain】免疫异常状态 ===
+    const currentTerrain = battle?.terrain || (typeof window.battle !== 'undefined' ? window.battle.terrain : null);
+    if (currentTerrain === 'misty') {
+        // 检查是否在地面上（飞行系/漂浮不受场地影响）
+        const isGrounded = !target.types?.includes('Flying') && targetAbility !== 'levitate';
+        if (isGrounded) {
+            return { success: false, message: `薄雾场地保护了 ${target.cnName}，无法陷入异常状态!` };
+        }
+    }
+    
+    // === 【属性免疫检查】===
     const immunities = {
         par: ['Electric'], // 电系免疫麻痹
         brn: ['Fire'],     // 火系免疫灼伤
@@ -160,9 +249,17 @@ function tryInflictStatus(target, status) {
         frz: ['Ice']       // 冰系免疫冰冻
     };
     
-    if (immunities[status]) {
+    // 【腐蚀 Corrosion】可以让钢/毒系中毒
+    const hasCorrosion = sourceAbility === 'corrosion';
+    
+    if (immunities[status] && target.types) {
         for (const type of target.types) {
             if (immunities[status].includes(type)) {
+                // 腐蚀特性可以无视毒/钢系对中毒的免疫
+                if (hasCorrosion && (status === 'psn' || status === 'tox') && (type === 'Poison' || type === 'Steel')) {
+                    console.log(`[CORROSION] ${source?.cnName} 的腐蚀特性无视了 ${target.cnName} 的${type}属性免疫!`);
+                    continue; // 跳过这个免疫检查
+                }
                 return { success: false, message: `${target.cnName} 的${type}属性免疫了该状态!` };
             }
         }
@@ -173,10 +270,14 @@ function tryInflictStatus(target, status) {
     target.statusTurns = 0;
     
     const statusInfo = STATUS_CONDITIONS[status];
-    return { 
-        success: true, 
-        message: `${target.cnName} ${statusInfo.name}了!` 
-    };
+    let message = `${target.cnName} ${statusInfo.name}了!`;
+    
+    // 腐蚀特性的特殊提示
+    if (hasCorrosion && (status === 'psn' || status === 'tox')) {
+        message = `${source?.cnName} 的腐蚀特性让 ${target.cnName} 中毒了!`;
+    }
+    
+    return { success: true, message };
 }
 
 /**
@@ -309,6 +410,19 @@ function processMoveStatusEffects(user, target, move) {
     const logs = [];
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    
+    // === 【草系免疫粉末类招式】===
+    const powderMoves = ['spore', 'sleeppowder', 'poisonpowder', 'stunspore', 'ragepowder', 'cottonspore', 'powder'];
+    if (powderMoves.includes(moveId) && target.types && target.types.includes('Grass')) {
+        logs.push(`${target.cnName} 的草属性免疫了粉末类招式!`);
+        return logs;
+    }
+    
+    // === 【草系免疫寄生种子】===
+    if (moveId === 'leechseed' && target.types && target.types.includes('Grass')) {
+        logs.push(`${target.cnName} 的草属性免疫了寄生种子!`);
+        return logs;
+    }
     
     // 检查 secondary 中的状态效果
     if (fullMoveData.secondary && fullMoveData.secondary.status) {

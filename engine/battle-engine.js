@@ -1054,16 +1054,50 @@ function calcDamage(attacker, defender, move) {
         return { damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true };
     }
     
+    // === 【破格系特性】判定：是否无视防御方特性 ===
+    const attackerAbilityId = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const moldBreakerAbilities = ['moldbreaker', 'teravolt', 'turboblaze'];
+    const moldBreakerMoves = ['sunsteelstrike', 'moongeistbeam', 'photongeyser', 'menacingmoonrazemaelstrom', 'searingsunrazesmash'];
+    const ignoresAbilities = moldBreakerAbilities.includes(attackerAbilityId) || 
+                             moldBreakerMoves.includes(moveId);
+    
     // === 特性免疫判定 Hook (漂浮、避雷针、引火等) ===
-    if (typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
+    // 【破格】如果攻击方有破格系特性/招式，则跳过防御方特性免疫检查
+    if (!ignoresAbilities && typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
         const ahDef = AbilityHandlers[defender.ability];
         if (ahDef.onImmunity && ahDef.onImmunity(move.type)) {
             return { damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true, abilityImmune: defender.ability };
         }
     }
+    if (ignoresAbilities && defender.ability) {
+        console.log(`[MOLD BREAKER] ${attacker.cnName} 的特性/招式无视了 ${defender.cnName} 的 ${defender.ability}！`);
+    }
     
     // 变化技不造成伤害，但需要命中判定
     if (basePower === 0 || category === 'Status') {
+        // === 【恶作剧之心】恶系免疫检查 ===
+        // 恶系宝可梦免疫恶作剧之心使用者的变化技（仅限针对对手的技能）
+        const isPrankster = attackerAbilityId === 'prankster';
+        const defenderTypes = defender.types || [];
+        const defenderIsDark = defenderTypes.includes('Dark');
+        // 检查技能是否针对对手（排除自我强化技能如顺风、剑舞等）
+        const moveTarget = fullMoveData.target || 'normal';
+        const targetsOpponent = ['normal', 'randomNormal', 'allAdjacentFoes', 'foeSide', 'any', 'adjacentFoe'].includes(moveTarget);
+        
+        if (isPrankster && defenderIsDark && targetsOpponent) {
+            console.log(`[PRANKSTER IMMUNITY] ${defender.cnName} 是恶系，免疫了 ${attacker.cnName} 的恶作剧之心变化技！`);
+            return { 
+                damage: 0, 
+                effectiveness: 0, 
+                isCrit: false, 
+                miss: false, 
+                hitCount: 0, 
+                blocked: true, 
+                pranksterImmune: true,
+                message: `${defender.cnName} 是恶属性，免疫了恶作剧之心的效果！`
+            };
+        }
+        
         // 变化技命中判定
         let statusAcc = (accuracy === true || accuracy === undefined) ? 100 : accuracy;
         const accStage = attacker.boosts.accuracy;
@@ -1084,16 +1118,39 @@ function calcDamage(attacker, defender, move) {
     // === 命中判定 ===
     let moveAcc = (accuracy === true || accuracy === undefined) ? 100 : accuracy;
     
-    // 命中/闪避修正公式：以 3 为基准
-    const accStage = attacker.boosts.accuracy;
-    const evaStage = defender.boosts.evasion;
-    const finalStage = Math.min(6, Math.max(-6, accStage - evaStage));
+    // === 【必中特性/招式】判定 ===
+    // 无防守 (No Guard)：双方招式必中
+    const attackerHasNoGuard = attackerAbilityId === 'noguard';
+    const defenderHasNoGuard = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '') === 'noguard';
+    const alwaysHit = accuracy === true || attackerHasNoGuard || defenderHasNoGuard;
     
-    let accMult = 1.0;
-    if (finalStage >= 0) accMult = (3 + finalStage) / 3;
-    else accMult = 3 / (3 + Math.abs(finalStage));
+    // 必中招式列表（圣剑、燕返等）
+    const neverMissMoves = ['aerialace', 'aurasphere', 'clearsmog', 'disarmingvoice', 'feintattack', 
+        'magicalleaf', 'magnetbomb', 'shadowpunch', 'shockwave', 'smartstrike', 'swift', 'vitalthrow'];
+    const isNeverMiss = neverMissMoves.includes(moveId);
     
-    let hitRate = moveAcc * accMult;
+    // 命中/闪避修正公式：使用正确的阶段乘数表
+    // 阶段 -6 到 +6 对应乘数 3/9, 3/8, 3/7, 3/6, 3/5, 3/4, 3/3, 4/3, 5/3, 6/3, 7/3, 8/3, 9/3
+    const accStage = attacker.boosts.accuracy || 0;
+    const evaStage = defender.boosts.evasion || 0;
+    
+    // 【修正】分别计算命中和闪避的乘数，而非简单相减
+    const getAccuracyMultiplier = (stage) => {
+        const clampedStage = Math.min(6, Math.max(-6, stage));
+        if (clampedStage >= 0) return (3 + clampedStage) / 3;
+        return 3 / (3 - clampedStage);
+    };
+    
+    const accMult = getAccuracyMultiplier(accStage);
+    const evaMult = getAccuracyMultiplier(-evaStage); // 闪避是反向的
+    
+    // 【修正】正确的命中率计算：基础命中 * 命中乘数 / 闪避乘数
+    let hitRate = moveAcc * accMult / evaMult;
+    
+    // 【必中判定】无防守特性或必中招式
+    if (alwaysHit || isNeverMiss) {
+        hitRate = 100;
+    }
     
     // =====================================================
     // === 必中判定：Z 招式和极巨招式豁免 ===
@@ -1171,9 +1228,16 @@ function calcDamage(attacker, defender, move) {
     if (multihit) {
         if (Array.isArray(multihit)) {
             // 随机次数 [min, max]，如 [2, 5]
-            // 概率分布：2次=1/3, 3次=1/3, 4次=1/6, 5次=1/6 (简化为均匀分布)
             const [min, max] = multihit;
-            hitCount = Math.floor(Math.random() * (max - min + 1)) + min;
+            
+            // 【连续攻击 Skill Link】特性：强制命中最大次数
+            if (attackerAbilityId === 'skilllink') {
+                hitCount = max;
+                console.log(`[SKILL LINK] ${attacker.cnName} 的连续攻击特性发动！强制命中 ${max} 次！`);
+            } else {
+                // 概率分布：2次=1/3, 3次=1/3, 4次=1/6, 5次=1/6 (简化为均匀分布)
+                hitCount = Math.floor(Math.random() * (max - min + 1)) + min;
+            }
         } else {
             // 固定次数，如 multihit: 2 (双重劈) 或 3 (水流连打)
             hitCount = multihit;
@@ -1378,7 +1442,8 @@ function calcDamage(attacker, defender, move) {
     if (effectiveness === 0) singleHitDamage = 0;
     
     // === 防御方特性伤害修正 Hook (厚脂肪、多重鳞片、滤镜等) ===
-    if (typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
+    // 【破格】如果攻击方有破格系特性，则跳过防御方特性减伤
+    if (!ignoresAbilities && typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
         const ahDef = AbilityHandlers[defender.ability];
         if (ahDef.onDefenderModifyDamage) {
             singleHitDamage = ahDef.onDefenderModifyDamage(singleHitDamage, attacker, defender, move, effectiveness);
@@ -1575,21 +1640,32 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
             }
             
             // === 状态异常：写入真实数据 + 日志 ===
+            // 【修复】必须通过 tryInflictStatus 检查免疫
             if (fullMoveData.secondary.status) {
                 const s = fullMoveData.secondary.status;
-                // 检查目标是否已有主要状态（主要状态互斥）
                 if (!target.status) {
-                    target.status = s;
-                    if (s === 'slp') {
-                        target.sleepTurns = Math.floor(Math.random() * 3) + 2; // 睡2-4回合
-                    }
-                    const statusMap = {
-                        brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
-                        tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
-                    };
-                    const statusText = statusMap[s];
-                    if (statusText) {
-                        logs.push(`${target.cnName} ${statusText}`);
+                    if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                        const result = MoveEffects.tryInflictStatus(target, s, user, battle);
+                        if (result.success) {
+                            if (s === 'slp') {
+                                target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                            }
+                            logs.push(result.message);
+                        }
+                        // 免疫时不显示消息（副作用触发失败是正常的）
+                    } else {
+                        target.status = s;
+                        if (s === 'slp') {
+                            target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                        }
+                        const statusMap = {
+                            brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
+                            tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
+                        };
+                        const statusText = statusMap[s];
+                        if (statusText) {
+                            logs.push(`${target.cnName} ${statusText}`);
+                        }
                     }
                 }
             }
@@ -1604,20 +1680,36 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
     }
     
     // 1.4 Status 招式直接施加状态（如电磁波、鬼火、催眠粉）
+    // 【修复】必须通过 tryInflictStatus 检查免疫，而非直接设置
     if (fullMoveData.status) {
         const s = fullMoveData.status;
         if (!target.status) {
-            target.status = s;
-            if (s === 'slp') {
-                target.sleepTurns = Math.floor(Math.random() * 3) + 2;
-            }
-            const statusMap = {
-                brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
-                tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
-            };
-            const statusText = statusMap[s];
-            if (statusText) {
-                logs.push(`${target.cnName} ${statusText}`);
+            // 使用 MoveEffects.tryInflictStatus 进行完整的免疫检查
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                const result = MoveEffects.tryInflictStatus(target, s, user, battle);
+                if (result.success) {
+                    if (s === 'slp') {
+                        target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                    }
+                    logs.push(result.message);
+                } else {
+                    // 免疫了，显示免疫消息
+                    logs.push(result.message);
+                }
+            } else {
+                // 回退逻辑：直接设置（不推荐）
+                target.status = s;
+                if (s === 'slp') {
+                    target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                }
+                const statusMap = {
+                    brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
+                    tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
+                };
+                const statusText = statusMap[s];
+                if (statusText) {
+                    logs.push(`${target.cnName} ${statusText}`);
+                }
             }
         }
     }
@@ -1736,6 +1828,85 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
             user.currHp = 0;
             logs.push(`${user.cnName} 倒下了!`);
             console.log(`[SELFDESTRUCT] ${user.cnName} used ${move.name} with selfdestruct: ${fullMoveData.selfdestruct}`);
+        }
+    }
+    
+    // ========== 6. 接触类招式反馈效果 (Contact Move Effects) ==========
+    // 【重要】必须使用 flags.contact 判断，而非 move.cat === 'phys'
+    // 【多段攻击】每一段都要独立触发反伤/状态特性
+    const isContact = fullMoveData.flags && fullMoveData.flags.contact;
+    
+    // 计算实际命中次数，需要考虑 Skill Link 特性
+    const userAbilityId = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    let hitCount = 1;
+    if (fullMoveData.multihit) {
+        if (Array.isArray(fullMoveData.multihit)) {
+            const [min, max] = fullMoveData.multihit;
+            // 【连续攻击 Skill Link】特性：强制命中最大次数
+            if (userAbilityId === 'skilllink') {
+                hitCount = max;
+            } else {
+                hitCount = Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+        } else {
+            hitCount = fullMoveData.multihit;
+        }
+    }
+    
+    if (isContact && damageDealt > 0 && target.isAlive() && typeof AbilityHandlers !== 'undefined') {
+        const defenderAbility = target.ability;
+        const ah = defenderAbility ? AbilityHandlers[defenderAbility] : null;
+        
+        // 【多段攻击循环】每一段独立触发副作用
+        for (let hit = 0; hit < hitCount; hit++) {
+            if (!user.isAlive() || !target.isAlive()) break;
+            
+            // 6.1 接触反伤特性（粗糙皮肤、铁刺）- 每段触发
+            if (ah && ah.onContactDamage && user.isAlive()) {
+                const result = ah.onContactDamage(user, target);
+                if (result && result.damage > 0) {
+                    user.takeDamage(result.damage);
+                    if (hit === 0) logs.push(result.message); // 只记录一次日志
+                }
+            }
+            
+            // 6.2 接触状态特性（静电、火焰身躯、毒刺）- 每段独立判定
+            if (ah && ah.onContactStatus && user.isAlive() && !user.status) {
+                const result = ah.onContactStatus(user, target);
+                if (result && result.status) {
+                    const statusResult = (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) 
+                        ? MoveEffects.tryInflictStatus(user, result.status)
+                        : { success: true };
+                    if (statusResult.success) {
+                        user.status = result.status;
+                        logs.push(result.message);
+                    }
+                }
+            }
+            
+            // 6.3 凸凸头盔道具反伤 - 每段触发
+            if (target.item === 'Rocky Helmet' && user.isAlive()) {
+                const helmetDmg = Math.floor(user.maxHp / 6);
+                user.takeDamage(helmetDmg);
+                if (hit === 0) logs.push(`${user.cnName} 被凸凸头盔伤害了！`);
+            }
+        }
+        
+        // 如果攻击者被反伤打死
+        if (!user.isAlive()) {
+            logs.push(`${user.cnName} 被反伤击倒了！`);
+        }
+    }
+    
+    // ========== 7. 碎裂铠甲等被攻击触发特性 ==========
+    if (damageDealt > 0 && target.isAlive() && typeof AbilityHandlers !== 'undefined') {
+        const ah = target.ability ? AbilityHandlers[target.ability] : null;
+        // 【修复】从 fullMoveData 获取 category，而非使用未定义的变量
+        const moveCategory = fullMoveData.category || (move.cat === 'phys' ? 'Physical' : (move.cat === 'spec' ? 'Special' : 'Status'));
+        const isPhysical = move.cat === 'phys' || moveCategory === 'Physical';
+        
+        if (ah && ah.onPhysicalHit && isPhysical) {
+            ah.onPhysicalHit(user, target, logs);
         }
     }
     
@@ -1893,6 +2064,35 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         const heal = Math.max(1, Math.floor(poke.maxHp / 16));
         poke.heal(heal);
         logs.push(`${poke.cnName} 从地面吸收了养分! (+${heal})`);
+    }
+
+    // ----------------------------------------
+    // 9. 天气伤害 (Weather Damage)
+    // ----------------------------------------
+    const currentWeather = (typeof battle !== 'undefined') ? battle.weather : null;
+    const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const hasMagicGuard = pokeAbility === 'magicguard';
+    const hasOvercoat = pokeAbility === 'overcoat';
+    
+    if (currentWeather && !hasMagicGuard && !hasOvercoat) {
+        if (currentWeather === 'sandstorm') {
+            const immuneToSand = poke.types && (poke.types.includes('Rock') || poke.types.includes('Ground') || poke.types.includes('Steel'));
+            const sandAbilityImmune = ['sandveil', 'sandforce', 'sandrush'].includes(pokeAbility);
+            if (!immuneToSand && !sandAbilityImmune) {
+                const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
+                poke.takeDamage(dmg);
+                logs.push(`${poke.cnName} 受到沙暴的伤害! (-${dmg})`);
+            }
+        }
+        if (currentWeather === 'hail') {
+            const immuneToHail = poke.types && poke.types.includes('Ice');
+            const hailAbilityImmune = ['icebody', 'snowcloak', 'slushrush'].includes(pokeAbility);
+            if (!immuneToHail && !hailAbilityImmune) {
+                const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
+                poke.takeDamage(dmg);
+                logs.push(`${poke.cnName} 受到冰雹的伤害! (-${dmg})`);
+            }
+        }
     }
 
     // =====================================================

@@ -1726,6 +1726,32 @@ async function executeEndPhase(p, e) {
         }
     }
     
+    // =========================================================
+    // 特性回合末效果 (Speed Boost, Slow Start 等)
+    // =========================================================
+    if (typeof AbilityHandlers !== 'undefined') {
+        // 玩家特性回合末效果
+        if (p && p.isAlive() && p.ability) {
+            const pAbilityHandler = AbilityHandlers[p.ability];
+            if (pAbilityHandler && pAbilityHandler.onEndTurn) {
+                const abilityLogs = [];
+                pAbilityHandler.onEndTurn(p, abilityLogs);
+                abilityLogs.forEach(txt => log(txt));
+                if (abilityLogs.length > 0) updateAllVisuals();
+            }
+        }
+        // 敌方特性回合末效果
+        if (e && e.isAlive() && e.ability) {
+            const eAbilityHandler = AbilityHandlers[e.ability];
+            if (eAbilityHandler && eAbilityHandler.onEndTurn) {
+                const abilityLogs = [];
+                eAbilityHandler.onEndTurn(e, abilityLogs);
+                abilityLogs.forEach(txt => log(txt));
+                if (abilityLogs.length > 0) updateAllVisuals();
+            }
+        }
+    }
+    
     // 【古武系统】风格冷却已移至 handleAttack 开始时递减，此处不再处理
     
     // =========================================================

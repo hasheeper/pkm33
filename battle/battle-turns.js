@@ -67,6 +67,20 @@ async function executePlayerTurn(p, e, move) {
         }
     }
 
+    // === 特性 onBeforeMove 钩子 (懒惰、变幻自如等) ===
+    if (typeof AbilityHandlers !== 'undefined' && p.ability) {
+        const abilityHandler = AbilityHandlers[p.ability];
+        if (abilityHandler && abilityHandler.onBeforeMove) {
+            const beforeMoveLogs = [];
+            const canMove = abilityHandler.onBeforeMove(p, move, beforeMoveLogs);
+            beforeMoveLogs.forEach(txt => log(txt));
+            if (canMove === false) {
+                await wait(500);
+                return { pivot: false };
+            }
+        }
+    }
+
     log(`[${p.cnName}] 使用了 <b>${move.cn}</b>!`);
     await wait(600);
 
@@ -165,6 +179,19 @@ async function executeEnemyTurn(e, p, move) {
         }
         if (!check.can) {
             return { pivot: false };
+        }
+    }
+
+    // === 特性 onBeforeMove 钩子 (懒惰、变幻自如等) ===
+    if (typeof AbilityHandlers !== 'undefined' && e.ability) {
+        const abilityHandler = AbilityHandlers[e.ability];
+        if (abilityHandler && abilityHandler.onBeforeMove) {
+            const beforeMoveLogs = [];
+            const canMove = abilityHandler.onBeforeMove(e, move, beforeMoveLogs);
+            beforeMoveLogs.forEach(txt => log(txt));
+            if (canMove === false) {
+                return { pivot: false };
+            }
         }
     }
 

@@ -31,174 +31,66 @@ function getDefaultBattleData() {
   "difficulty": "expert",
   "script": null,
   "player": {
-    "name": "player",
-    "unlocks": {
-      "enable_bond": true,
-      "enable_styles": true,
-      "enable_insight": true,
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_dynamax": true,
-      "enable_tera": true
-    },
+    "name": "TEST_Regigigas",
+    "unlocks": { "enable_mega": false, "enable_z_move": false, "enable_dynamax": true, "enable_tera": true },
     "party": [
       {
-        "name": "Lucario",
+        "name": "Regigigas",
         "lv": 100,
-        "gender": "M",
-        "item": "Lucarionite",
-        "isAce": true, 
-        "mechanic": "mega",
-        "ability": "Justified",
-        "moves": ["Close Combat", "Meteor Mash", "Bullet Punch", "Aura Sphere"],
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "name": "Pikachu-Partner",
-        "lv": 100,
-        "gender": "M",
-        "item": "Pikashunium Z",
-        "isAce": true,
-        "mechanic": "zmove",
-        "ability": "Static",
-        "//comment": "Thunderbolt 将被这里的 Z 纯晶自动升级为 10,000,000 Volt Thunderbolt",
-        "moves": ["Thunderbolt", "Quick Attack", "Iron Tail", "Electroweb"], 
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "name": "Charizard",
-        "lv": 100,
-        "gender": "M",
+        "gender": "N",
         "item": "Life Orb",
-        "isAce": true,
-        "mechanic": "dynamax",
-        "mega_target": "charizardgmax",
-        "ability": "Solar Power",
-        "moves": ["Blast Burn", "Hurricane", "Solar Beam", "Ancient Power"],
+        "ability": "Slow Start",
+        "//comment": "代码没实现特性=当前为全盛状态。物攻160，速度100。携带生命玉暴力输出。",
+        "moves": ["Crush Grip", "Earthquake", "Thunder Punch", "Drain Punch"],
         "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "name": "Dragonite",
-        "lv": 100,
-        "gender": "F",
-        "item": "Leftovers",
-        "isAce": true,
-        "mechanic": "tera",
-        "teraType": "Normal",
-        "ability": "Multiscale",
-        "moves": ["Extreme Speed", "Dragon Dance", "Earthquake", "Thunder Punch"],
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "name": "Zoroark-Hisui",
-        "lv": 100,
-        "gender": "M",
-        "item": "Focus Sash",
-        "isAce": true,
-        "mechanic": null,
-        "ability": "Illusion",
-        "moves": ["Bitter Malice", "Nasty Plot", "Hyper Voice", "Grass Knot"],
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "name": "Greninja",
-        "lv": 100,
-        "gender": "M",
-        "item": "Choice Specs",
-        "isAce": true,
-        "mechanic": null,
-        "ability": "Battle Bond",
-        "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "U-turn"],
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+        "avs": { "kindness": 0, "passion": 200, "insight": 200 }
       }
     ]
   },
   "enemy": {
-    "id": "Red",
-    "name": "Trainer Legend Red",
+    "id": "Meta_Slaves",
+    "name": "Tournament Champ",
     "type": "trainer",
-     "lines": {
-      "start": "...",
-      "win": "...!",
-      "lose": "...",
-      "escape": "..."
+    "lines": {
+      "start": "Regigigas? That Pokemon is useless garbage! Easy win!",
+      "win": "See? Too slow.",
+      "lose": "Wait... why were you faster than my Urshifu?!",
+      "escape": "Running away?"
     },
-    "unlocks": {
-        "enable_bond": true,
-        "enable_styles": true,
-        "enable_insight": true,
-        "enable_mega": true,
-        "enable_z_move": true,
-        "enable_dynamax": true,
-        "enable_tera": true
-    }
-  },
-  "party": [
-    {
-      "name": "Koraidon",
-      "lv": 100,
-      "item": "Clear Amulet",
-      "mechanic": "tera",
-      "teraType": "Fire",
-      "ability": "Orichalcum Pulse",
-      "moves": ["Collision Course", "Flare Blitz", "Dragon Claw", "Swords Dance"],
-      "stats_meta": { "ev_level": 252 }
-    },
-    {
-      "name": "Groudon-Primal",
-      "lv": 100,
-      "item": "Red Orb",
-      "mechanic": null,
-      "ability": "Desolate Land",
-      "moves": ["Precipice Blades", "Fire Punch", "Solar Beam", "Stone Edge"],
-      "stats_meta": { "ev_level": 252 }
-    },
-    {
-      "name": "Necrozma-Ultra",
-      "lv": 100,
-      "item": "Ultranecrozium Z",
-      "mechanic": "zmove",
-      "ability": "Neuroforce",
-      "moves": ["Photon Geyser", "Dragon Pulse", "Heat Wave", "Calm Mind"],
-      "stats_meta": { "ev_level": 252 }
-    },
-    {
-      "name": "Snorlax",
-      "lv": 100,
-      "item": "Figy Berry",
-      "mechanic": "dynamax",
-      "mega_target": "snorlaxgmax",
-      "ability": "Gluttony",
-      "moves": ["Body Slam", "Darkest Lariat", "Curse", "Recycle"],
-      "stats_meta": { "ev_level": 252 },
-      "avs": { "trust": 150, "passion": 100, "insight": 100, "devotion": 200 }
-    },
-    {
-      "name": "Zacian-Crowned",
-      "lv": 100,
-      "item": "Rusted Sword",
-      "ability": "Intrepid Sword",
-      "moves": ["Behemoth Blade", "Play Rough", "Sacred Sword", "Swords Dance"],
-      "stats_meta": { "ev_level": 252 }
-    },
-    {
-      "name": "Mewtwo",
-      "lv": 100,
-      "item": "Mewtwonite Y",
-      "mechanic": "mega",
-      "ability": "Insomnia",
-      "moves": ["Psystrike", "Ice Beam", "Focus Blast", "Recover"],
-      "isAce": true, 
-      "avs": { "passion": 200, "insight": 200, "trust": 200, "devotion": 200 }
-    }
-  ]
-};
+    "unlocks": { "enable_dynamax": false, "enable_tera": true },
+    "party": [
+      {
+        "name": "Urshifu-Rapid-Strike",
+        "lv": 80,
+        "gender": "M",
+        "item": "Choice Scarf",
+        "//comment": "恶熊速度种族97。马桶王速度种族100。如果没有没慢启动，马桶王竟然比恶熊快！这是决定性的。",
+        "moves": ["Surging Strikes", "Close Combat", "Aqua Jet", "U-turn"],
+        "stats_meta": { "ev_level": 252 }
+      },
+      {
+        "name": "Gholdengo",
+        "lv": 70,
+        "gender": "N",
+        "Item": "Leftovers",
+        "ability": "Good as Gold",
+        "//comment": "赛富豪速度84。会被一发地震直接带走。",
+        "moves": ["Make It Rain", "Shadow Ball", "Nasty Plot", "Recover"],
+        "stats_meta": { "ev_level": 252 }
+      },
+      {
+        "name": "Ting-Lu",
+        "lv": 75,
+        "gender": "N",
+        "item": "Leftovers",
+        "ability": "Vessel of Ruin",
+        "//comment": "古鼎鹿，超级肉盾。但在 160 物攻的吸收拳下也是血包。",
+        "moves": ["Earthquake", "Ruination", "Stealth Rock", "Whirlwind"],
+        "stats_meta": { "ev_level": 252 }
+      }
+    ]
+  }
+}
 
 }
 
