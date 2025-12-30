@@ -951,6 +951,15 @@ function calcDamage(attacker, defender, move) {
     // 获取完整技能数据
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    
+    // === 【特性钩子】onModifyMove - 修改招式属性/威力 (Liquid Voice 等) ===
+    if (typeof AbilityHandlers !== 'undefined' && attacker.ability) {
+        const abilityHandler = AbilityHandlers[attacker.ability];
+        if (abilityHandler && abilityHandler.onModifyMove) {
+            abilityHandler.onModifyMove(move, attacker);
+        }
+    }
+    
     const accuracy = move.accuracy ?? fullMoveData.accuracy;
     let category = fullMoveData.category || (move.cat === 'spec' ? 'Special' : (move.cat === 'phys' ? 'Physical' : 'Status'));
     let basePower = move.power ?? fullMoveData.basePower ?? 0;
@@ -1284,7 +1293,9 @@ function calcDamage(attacker, defender, move) {
     }
     
     // === 灼伤减半物攻 (Burn halves physical attack) ===
-    if (!isSpecial && attacker.status === 'brn') {
+    // 【重要】Guts/毅力 特性免疫灼伤的物攻减半效果
+    const ignoresBurnDrop = attacker.ability === 'Guts';
+    if (!isSpecial && attacker.status === 'brn' && !ignoresBurnDrop) {
         atkStat = Math.floor(atkStat * 0.5);
     }
     
@@ -1371,6 +1382,13 @@ function calcDamage(attacker, defender, move) {
         stab = 2;
     }
     
+    // === 生命宝珠 (Life Orb) 伤害加成 ===
+    let lifeOrbBoost = 1;
+    const attackerItem = (attacker.item || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (attackerItem === 'lifeorb') {
+        lifeOrbBoost = 1.3;
+    }
+    
     // ============================================
     // ★ 星晶太晶爆发 (Tera Blast - Stellar) 特判
     // ============================================
@@ -1432,7 +1450,7 @@ function calcDamage(attacker, defender, move) {
     // Damage = ((2*Level/5 + 2) * Power * A/D / 50 + 2) * Modifiers
     let singleHitDamage = Math.floor(
         ((2 * attacker.level / 5 + 2) * basePower * (atkStat / finalDef) / 50 + 2)
-        * stab * effectiveness * critMod * random
+        * stab * effectiveness * critMod * random * lifeOrbBoost
     );
     
     // 最低伤害 1 (除非免疫)
@@ -1750,6 +1768,14 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
                 user.takeDamage(recoilDmg);
                 logs.push(`${user.cnName} 受到了 ${recoilDmg} 点反作用力伤害!`);
             }
+        }
+        
+        // === 生命宝珠 (Life Orb) 反伤 ===
+        const userItem = (user.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (userItem === 'lifeorb' && damageDealt > 0) {
+            const lifeOrbRecoil = Math.max(1, Math.floor(user.maxHp * 0.1));
+            user.takeDamage(lifeOrbRecoil);
+            logs.push(`${user.cnName} 受到了生命宝珠的反噬!`);
         }
     }
     
@@ -2373,7 +2399,17 @@ function autoDetectFormChangeEligibility(pokemon, explicitFormFlag = null) {
         pokemon.evolutionType = 'ultra';
         console.log(`[FORM] Auto-detected Ultra: ${pokemon.megaTargetId}`);
     } else if (avail.mega.length > 0) {
-        const validMegaForms = avail.mega.filter(f => typeof POKEDEX !== 'undefined' && POKEDEX[f]);
+        // 【修复】只有携带对应 Mega 石的宝可梦才能自动检测 Mega
+        // 非官方 Mega（如 Delphox-Mega）需要用户明确指定 mechanic: "mega"
+        const pokemonItem = (pokemon.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        const validMegaForms = avail.mega.filter(f => {
+            if (typeof POKEDEX === 'undefined' || !POKEDEX[f]) return false;
+            const megaData = POKEDEX[f];
+            // 检查是否携带对应的 Mega 石
+            const requiredItem = (megaData.requiredItem || '').toLowerCase().replace(/[^a-z]/g, '');
+            return requiredItem && pokemonItem === requiredItem;
+        });
+        
         if (validMegaForms.length > 0) {
             if (hasDualMega && validMegaForms.length >= 2) {
                 pokemon.hasDualMega = true;
@@ -2382,7 +2418,11 @@ function autoDetectFormChangeEligibility(pokemon, explicitFormFlag = null) {
             pokemon.megaTargetId = validMegaForms.find(f => f.endsWith('x')) || validMegaForms[0];
             pokemon.canMegaEvolve = true;
             pokemon.evolutionType = 'mega';
-            console.log(`[FORM] Auto-detected Mega: ${pokemon.megaTargetId}`);
+            console.log(`[FORM] Auto-detected Mega (with item): ${pokemon.megaTargetId}`);
+        } else {
+            // 没有携带 Mega 石，禁用自动 Mega
+            pokemon.canMegaEvolve = false;
+            console.log(`[FORM] ${pokemon.name} has Mega form but no Mega Stone - Mega DISABLED`);
         }
     } else if (avail.gmax.length > 0) {
         // 只有专属 GMax 的才自动激活，通用极巨化需要手动指定 mechanic
@@ -2463,8 +2503,17 @@ function performMegaEvolution(pokemon) {
     pokemon.baseStats = megaData.baseStats;
     
     // 获取 Mega 形态的特性
+    // 【修复】如果用户在 JSON 中自定义了特性（非默认特性），则保留用户特性
+    // 这允许 RPG 魔改特性在 Mega 进化后依然生效
     const megaPokedexData = typeof POKEDEX !== 'undefined' ? POKEDEX[pokemon.megaTargetId] : null;
-    if (megaPokedexData && megaPokedexData.abilities) {
+    const basePokedexData = typeof POKEDEX !== 'undefined' ? POKEDEX[pokemon.megaTargetId.replace(/mega[xy]?$/, '')] : null;
+    const isCustomAbility = basePokedexData && basePokedexData.abilities && 
+        !Object.values(basePokedexData.abilities).includes(oldAbility);
+    
+    if (isCustomAbility) {
+        // 用户自定义了特性（如 Magic Guard），保留不覆盖
+        console.log(`[MEGA] Preserving custom ability: ${oldAbility}`);
+    } else if (megaPokedexData && megaPokedexData.abilities) {
         pokemon.ability = megaPokedexData.abilities['0'] || megaPokedexData.abilities['H'] || pokemon.ability;
     }
     

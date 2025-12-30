@@ -80,10 +80,16 @@ function handlePlayerPivot() {
 /**
  * 处理敌方 Pivot 换人（AI 自动选择）
  */
-async function handleEnemyPivot() {
+async function handleEnemyPivot(passBoosts = false) {
     const battle = window.battle;
     const currentE = battle.getEnemy();
     const p = battle.getPlayer();
+    
+    // 【Baton Pass】保存当前能力变化，用于传递给换入的宝可梦
+    const savedBoosts = passBoosts && currentE.boosts ? { ...currentE.boosts } : null;
+    if (savedBoosts) {
+        console.log(`[BATON PASS] ${currentE.cnName} 准备传递能力变化:`, savedBoosts);
+    }
     
     // AI 选择最佳换入目标
     let bestIndex = -1;
@@ -136,13 +142,24 @@ async function handleEnemyPivot() {
             window.applyDynamaxState(currentE, false);
         }
         
-        // 重置能力等级
+        // 重置换出宝可梦的能力等级（无论是否接棒，换出者都要重置）
         if (typeof currentE.resetBoosts === 'function') {
             currentE.resetBoosts();
         }
         
         battle.enemyActive = bestIndex;
         const newE = battle.getEnemy();
+        
+        // 【Baton Pass】将保存的能力变化传递给换入的宝可梦
+        if (savedBoosts && newE.boosts) {
+            Object.keys(savedBoosts).forEach(stat => {
+                newE.boosts[stat] = (newE.boosts[stat] || 0) + savedBoosts[stat];
+                // 限制在 -6 到 +6 之间
+                newE.boosts[stat] = Math.max(-6, Math.min(6, newE.boosts[stat]));
+            });
+            console.log(`[BATON PASS] ${newE.cnName} 继承了能力变化:`, newE.boosts);
+            log(`<span style="color:#9b59b6">${newE.cnName} 继承了能力变化!</span>`);
+        }
         log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
         
         // 【标记换人】用于重复精灵图修复
@@ -196,8 +213,21 @@ async function handleEnemyFainted(e) {
     
     log(`敌方的 ${e.cnName} 倒下了!`);
     
-    // Battle Bond (牵绊变身) 触发检查
+    // === 【onKill 钩子】击杀后特性触发 (Moxie, Beast Boost 等) ===
     const p = battle.getPlayer();
+    if (p && p.isAlive() && p.ability) {
+        const abilityId = p.ability;
+        if (typeof AbilityHandlers !== 'undefined' && AbilityHandlers[abilityId] && AbilityHandlers[abilityId].onKill) {
+            const killLogs = [];
+            AbilityHandlers[abilityId].onKill(p, killLogs);
+            killLogs.forEach(msg => log(msg));
+            if (typeof updateAllVisuals === 'function') {
+                updateAllVisuals('player');
+            }
+        }
+    }
+    
+    // Battle Bond (牵绊变身) 触发检查
     if (p && p.isAlive() && typeof window.checkBattleBondTransform === 'function') {
         const bondResult = window.checkBattleBondTransform(p);
         if (bondResult && bondResult.success) {
@@ -360,6 +390,21 @@ async function handlePlayerFainted(p) {
     }
     
     log(`<b style="color:red">糟糕! ${p.cnName} 失去了战斗能力!</b>`);
+    
+    // === 【onKill 钩子】敌方击杀后特性触发 (Moxie, Beast Boost 等) ===
+    const e = battle.getEnemy();
+    if (e && e.isAlive() && e.ability) {
+        const abilityId = e.ability;
+        if (typeof AbilityHandlers !== 'undefined' && AbilityHandlers[abilityId] && AbilityHandlers[abilityId].onKill) {
+            const killLogs = [];
+            AbilityHandlers[abilityId].onKill(e, killLogs);
+            killLogs.forEach(msg => log(msg));
+            if (typeof updateAllVisuals === 'function') {
+                updateAllVisuals('enemy');
+            }
+        }
+    }
+    
     await wait(500);
     
     if (typeof window.checkPlayerDefeatOrForceSwitch === 'function') {

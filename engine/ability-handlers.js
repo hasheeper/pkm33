@@ -455,6 +455,100 @@ const AbilityHandlers = {
         }
     },
 
+    // ============================================
+    // 悖谬种特性 (Paradox Pokémon Abilities)
+    // ============================================
+    
+    // 【夸克充能】Quark Drive - 未来悖谬种
+    // 电气场地或携带驱劲能量时，提升最高能力 30%（速度为 50%）
+    'Quark Drive': {
+        onStart: (self, enemy, logs, battle) => {
+            // 检查是否有电气场地
+            const hasElectricTerrain = battle && battle.field && battle.field.terrain === 'electricterrain';
+            // 检查是否携带驱劲能量
+            const hasBoosterEnergy = self.item === 'Booster Energy';
+            
+            if (hasElectricTerrain || hasBoosterEnergy) {
+                // 找最高能力
+                const stats = { atk: self.atk, def: self.def, spa: self.spa, spd: self.spd, spe: self.spe };
+                let bestStat = 'atk';
+                let bestValue = 0;
+                for (const [stat, val] of Object.entries(stats)) {
+                    if (val > bestValue) {
+                        bestValue = val;
+                        bestStat = stat;
+                    }
+                }
+                
+                // 标记激活状态
+                self.quarkDriveActive = true;
+                self.quarkDriveStat = bestStat;
+                
+                // 消耗驱劲能量（如果是通过道具激活）
+                if (hasBoosterEnergy && !hasElectricTerrain) {
+                    self.item = null;
+                    logs.push(`${self.cnName} 消耗了驱劲能量！`);
+                }
+                
+                const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+                logs.push(`<b style="color:#f1c40f">⚡ ${self.cnName} 的夸克充能启动了！${statNames[bestStat]}提升！</b>`);
+                if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+            }
+        },
+        onModifyStat: (stats, poke) => {
+            if (poke.quarkDriveActive && poke.quarkDriveStat) {
+                const stat = poke.quarkDriveStat;
+                const multiplier = (stat === 'spe') ? 1.5 : 1.3;
+                stats[stat] = Math.floor(stats[stat] * multiplier);
+            }
+        }
+    },
+    
+    // 【古代活性】Protosynthesis - 古代悖谬种
+    // 大晴天或携带驱劲能量时，提升最高能力 30%（速度为 50%）
+    'Protosynthesis': {
+        onStart: (self, enemy, logs, battle) => {
+            // 检查是否有大晴天
+            const hasSun = battle && (battle.weather === 'sunnyday' || battle.weather === 'desolateland');
+            // 检查是否携带驱劲能量
+            const hasBoosterEnergy = self.item === 'Booster Energy';
+            
+            if (hasSun || hasBoosterEnergy) {
+                // 找最高能力
+                const stats = { atk: self.atk, def: self.def, spa: self.spa, spd: self.spd, spe: self.spe };
+                let bestStat = 'atk';
+                let bestValue = 0;
+                for (const [stat, val] of Object.entries(stats)) {
+                    if (val > bestValue) {
+                        bestValue = val;
+                        bestStat = stat;
+                    }
+                }
+                
+                // 标记激活状态
+                self.protosynthesisActive = true;
+                self.protosynthesisstat = bestStat;
+                
+                // 消耗驱劲能量（如果是通过道具激活）
+                if (hasBoosterEnergy && !hasSun) {
+                    self.item = null;
+                    logs.push(`${self.cnName} 消耗了驱劲能量！`);
+                }
+                
+                const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+                logs.push(`<b style="color:#e67e22">☀️ ${self.cnName} 的古代活性启动了！${statNames[bestStat]}提升！</b>`);
+                if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+            }
+        },
+        onModifyStat: (stats, poke) => {
+            if (poke.protosynthesisActive && poke.protosynthesisstat) {
+                const stat = poke.protosynthesisstat;
+                const multiplier = (stat === 'spe') ? 1.5 : 1.3;
+                stats[stat] = Math.floor(stats[stat] * multiplier);
+            }
+        }
+    },
+
     // 【加速】回合结束速度+1
     'Speed Boost': {
         onEndTurn: (pokemon, logs) => {
@@ -681,6 +775,47 @@ const AbilityHandlers = {
         }
     },
 
+    // ============================================
+    // 声音系特性 (Sound-based Abilities)
+    // ============================================
+    
+    // 【湿润之声】声音招式变为水属性
+    'Liquid Voice': {
+        onModifyMove: (move, attacker) => {
+            const soundMoves = ['Boomburst', 'Bug Buzz', 'Chatter', 'Clanging Scales', 
+                'Clangorous Soul', 'Disarming Voice', 'Echoed Voice', 'Eerie Spell', 
+                'Growl', 'Hyper Voice', 'Metal Sound', 'Noble Roar', 'Overdrive', 
+                'Parting Shot', 'Relic Song', 'Round', 'Screech', 'Sing', 'Snarl', 
+                'Snore', 'Sparkling Aria', 'Supersonic', 'Uproar', 'Torch Song'];
+            if (soundMoves.includes(move.name)) {
+                move.type = 'Water';
+            }
+        }
+    },
+    
+    // 【湿润之声 Pro】声音招式变为水属性 + 威力x1.3 (RPG 魔改版)
+    // 【修复】使用 _liquidVoiceApplied 标记防止威力累积
+    'Liquid Voice Pro': {
+        onModifyMove: (move, attacker) => {
+            const soundMoves = ['Boomburst', 'Bug Buzz', 'Chatter', 'Clanging Scales', 
+                'Clangorous Soul', 'Disarming Voice', 'Echoed Voice', 'Eerie Spell', 
+                'Growl', 'Hyper Voice', 'Metal Sound', 'Noble Roar', 'Overdrive', 
+                'Parting Shot', 'Relic Song', 'Round', 'Screech', 'Sing', 'Snarl', 
+                'Snore', 'Sparkling Aria', 'Supersonic', 'Uproar', 'Torch Song'];
+            if (soundMoves.includes(move.name)) {
+                move.type = 'Water';
+                // 【关键修复】只在首次应用时修改威力，防止累积
+                if (!move._liquidVoiceApplied) {
+                    const originalPower = move._originalBasePower || move.basePower || move.power || 0;
+                    move._originalBasePower = originalPower; // 保存原始威力
+                    move.basePower = Math.floor(originalPower * 1.3);
+                    move.power = move.basePower;
+                    move._liquidVoiceApplied = true;
+                }
+            }
+        }
+    },
+
     // 【软弱】半血以下攻击/特攻减半
     'Defeatist': {
         onModifyStat: (stats, poke) => {
@@ -811,17 +946,8 @@ const AbilityHandlers = {
         }
     },
 
-    // 【根性】异常状态时攻击力x1.5
-    'Guts': {
-        onModifyStat: (pokemon, stat, value) => {
-            if (stat === 'atk' && pokemon.status) {
-                return Math.floor(value * 1.5);
-            }
-            return value;
-        }
-    },
-
-    // 【毅力】异常状态时速度x1.5
+    // 【毅力】异常状态时速度x1.5 (Quick Feet)
+    // 注意：Guts 已在第 772 行定义，此处不再重复
     'Quick Feet': {
         onModifyStat: (pokemon, stat, value) => {
             if (stat === 'spe' && pokemon.status) {

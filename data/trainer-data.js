@@ -223,12 +223,12 @@ const ROSA_DATA = {
     // 【Tier 4 - 合众的奇迹·全员主角】
     4: {
         // ==============================================================
-        // [Tier Specific Unlocks]
+        // [Tier Specific Unlocks: Unova's Peak]
         // ==============================================================
         "unlocks": {
-            "enable_bond": true,         // ✅ 核心：开启羁绊共鸣 (Green Button)
+            "enable_bond": true,         // ✅ 灵魂共鸣已开启
             "enable_styles": false,
-            "enable_insight": false,
+            "enable_insight": true,      // ✅ 洞察力开启：修正大蛇瞪眼、暴风雪、活力信使鸟的命中
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
@@ -240,104 +240,127 @@ const ROSA_DATA = {
         // ==============================================================
         "party": [
             {
-                // [御三家·草 | 绝对C位]
-                "name": "Serperior", 
+                // [御三家·草 | 只有我能逆流而上]
+                "name": "Serperior", // 君主蛇
                 "lv": 99,
                 "gender": "F",
-                "nature": "Timid",
-                "ability": "Contrary", // 唱反调：绿叶风暴 = 诡计+攻击
-                "item": "Leftovers",   // 剩饭：活得越久越恐怖
+                "nature": "Timid", // 胆小 (+速)
+                "ability": "Contrary", 
+                "item": "Leftovers", 
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "stats_meta": { 
+                    "ev_level": 252, // 统一觉醒 EV
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V
+                },
+                
                 "moves": ["Leaf Storm", "Dragon Pulse", "Glare", "Substitute"],
                 
                 "isAce": true, 
-                // 总和 > 300，且以 Devotion 为主(回合末治愈+残血回血)，几乎不死的存在
-                "friendship": { "trust": 100, "passion": 100, "insight": 100, "devotion": 255 }
+                // Devotion 极高：配合 Substitute + Leftovers 形成恐怖的回血循环
+                "friendship": { "trust": 150, "passion": 150, "insight": 150, "devotion": 255 }
             },
             {
-                // [御三家·火 | 舍身暴徒]
-                "name": "Emboar",
+                // [御三家·火 | 舍身战车]
+                "name": "Emboar", // 炎武王
                 "lv": 96,
                 "gender": "M",
-                "nature": "Brave", // 勇敢 (高攻低速)
-                "ability": "Reckless", // 舍身 (反伤技能威力提升)
-                "item": "Choice Band", // 专爱头带 (核弹)
+                "nature": "Brave", // 勇敢 (+攻 -速)：放弃速度拼耐久和超高爆发
+                "ability": "Reckless", // 舍身：反作用力招式威力提升
+                "item": "Choice Band", // 专爱头带：攻击力 x1.5
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 0 }, "ev_level": 252 },
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V撑满HP吃反伤
+                },
+                
+                // Head Smash (150岩) + Flare Blitz (120火) + Wild Charge (90电) + Superpower (120斗)
+                // 打击面无死角，只要打中人，要么对面死，要么反伤把自己弹死
                 "moves": ["Flare Blitz", "Superpower", "Wild Charge", "Head Smash"],
                 
                 "isAce": true,
-                // 高 Passion 代表极高的暴击率
-                "friendship": { "trust": 80, "passion": 255, "insight": 80, "devotion": 80 }
+                "friendship": { "trust": 100, "passion": 255, "insight": 100, "devotion": 120 }
             },
             {
-                // [御三家·水 | 补位主角]
-                // 补全合众御三家拼图
-                "name": "Samurott", 
-                "lv": 95,
+                // [御三家·水 | 锐利剑客]
+                "name": "Samurott", // 大剑鬼
+                "lv": 96,
                 "gender": "M",
-                "nature": "Adamant",
-                "ability": "Shell Armor", // 硬壳盔甲 (防CT，稳如老狗)
-                "item": "Expert Belt",   // 达人带
+                "nature": "Adamant", // 固执
+                "ability": "Shell Armor", // 硬壳盔甲：不会被CT爆死，稳
+                "item": "Life Orb", // 命玉：增强先制技能斩杀线
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                // 剑舞先制流
-                "moves": ["Liquidation", "Aqua Jet", "Swords Dance", "Megahorn"],
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V双刀面板充实
+                },
+                
+                // 修正：将 Liquidation 换回经典 Megahorn 覆盖草系，加入 Sacred Sword (如果有) 或 Knock Off
+                // 这里用 Knock Off 对抗道具流
+                "moves": ["Liquidation", "Aqua Jet", "Knock Off", "Megahorn"],
                 
                 "isAce": true,
-                "friendship": { "trust": 150, "passion": 100, "insight": 100, "devotion": 100 }
+                "friendship": { "trust": 200, "passion": 150, "insight": 150, "devotion": 100 }
             },
             {
-                // [元素猴·火 | 破盾]
-                // 被提拔上来的战力，满级进化
+                // [暴力法师]
                 "name": "Simisear", // 爆香猿
-                "lv": 80, 
+                "lv": 93, 
                 "gender": "M",
                 "nature": "Timid",
-                "ability": "Gluttony", 
-                "item": "Salac Berry", // 半血吃果+速度 -> 变身高速收割
+                "ability": "Blaze", // 猛火：残血爆发
+                "item": "Focus Sash", // 气腰：为了稳定强化以此 Nasty Plot
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                // 经典的诡计强化
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } 
+                },
+                
                 "moves": ["Fire Blast", "Grass Knot", "Nasty Plot", "Focus Blast"],
                 
-                "isAce": true,
-                "friendship": { "trust": 100, "passion": 100, "insight": 100, "devotion": 100 }
+                "isAce": false,
+                "friendship": { "trust": 100, "passion": 200 }
             },
             {
-                // [元素猴·水 | 游击]
+                // [广域高速控场]
                 "name": "Simipour", // 冷水猿
-                "lv": 80, 
+                "lv": 93, 
                 "gender": "M",
                 "nature": "Timid",
                 "ability": "Torrent", 
-                "item": "Life Orb", 
+                "item": "Expert Belt", // 达人带，因为技能属性丰富
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
+                },
+                
                 "moves": ["Hydro Pump", "Ice Beam", "Scald", "Taunt"],
                 
-                "isAce": true,
-                "friendship": { "trust": 100, "passion": 100, "insight": 100, "devotion": 100 }
+                "isAce": false,
+                "friendship": { "trust": 100, "passion": 100, "insight": 150 }
             },
             {
-                // [吉祥物 | 绝活哥]
-                // 虽然她是演艺人员，但 Lv.85 的信使鸟就是恐怖的存在
-                "name": "Delibird",
-                "lv": 85,
+                // [合众好莱坞影星 | 必中强攻]
+                "name": "Delibird", // 信使鸟
+                "lv": 92, // 拉平等级
                 "gender": "F",
-                "nature": "Jolly",
-                "ability": "Hustle", // 活力：物理威力 x1.5 (以此弥补种族值差距)，虽然掉命中，但配合 AVs 的 Insight 可修正
-                "item": "Focus Sash", // 气腰 (100% 触发同命的保证)
+                "nature": "Jolly", // 极速
+                "ability": "Hustle", // 【活力】：物理威力 x1.5，命中 x0.8
+                "item": "Focus Sash", // 绑带同命流
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                // 必须全部拉满31，本身种族值低，但这只有点HP/Def可能有奇迹生还
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
+                },
                 
-                // 战术：先制冰砾收残血 / 礼物整活 / 必死时同命带走核弹
-                "moves": ["Ice Shard", "Destiny Bond", "Drill Peck", "Present"],
+                // 战术核心：Destiny Bond(同命) + Ice Shard(先制)。
+                // Sky Attack(神鸟猛击) 如果带强力香草最好，这里用 Brave Bird 替代稳定输出
+                "moves": ["Ice Shard", "Destiny Bond", "Brave Bird", "Drill Run"],
                 
-                "isAce": true,
-                // Insight 必须高，不然“活力”特性总是打不中人
-                "friendship": { "trust": 80, "passion": 80, "insight": 200, "devotion": 80 }
+                "isAce": false,
+                // Insight 255 是关键：修正 Hustle 特性掉的 20% 命中，实现此怪 "招招烈火" 的强度
+                "friendship": { "trust": 80, "passion": 200, "insight": 255, "devotion": 50 }
             }
         ]
     }

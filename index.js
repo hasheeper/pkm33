@@ -1500,6 +1500,13 @@ async function handleAttack(moveIndex, options = {}) {
         console.log('[handleAttack] Player moves first');
         const playerResult = await executePlayerTurn(p, e, playerMove);
         
+        // 【修复】Post-Move Check: 玩家使用自杀招式后立即处理倒下
+        if (!p.isAlive()) {
+            console.log('[handleAttack] Player fainted after self-KO move in player-first branch');
+            await handlePlayerFainted(p);
+            return;
+        }
+        
         // 【修复】U-turn/Volt Switch 时序：先处理 Pivot 换人，再处理敌方倒下
         // 正作逻辑：即使击杀对手，使用者也必须先换人
         if (playerResult?.pivot && hasAliveSwitch(battle.playerParty, battle.playerActive)) {
@@ -1527,9 +1534,24 @@ async function handleAttack(moveIndex, options = {}) {
         }
         
         // ========== 敌方后动（攻击新换入的宝可梦） ==========
+        // 【修复】Pre-Move Check: 检查敌方自己是否还活着（临别礼物/大爆炸等自杀招式）
+        if (!e.isAlive()) {
+            console.log('[handleAttack] Enemy already fainted (self-KO move like Memento), skipping enemy turn');
+            log(`<span style="color:#999">但是 ${e.cnName} 已经倒下了...</span>`);
+            await handleEnemyFainted(e);
+            return;
+        }
+        
         console.log('[handleAttack] Enemy turn starting, move:', enemyMove?.name || enemyMove?.cn);
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
         console.log('[handleAttack] Enemy turn complete');
+        
+        // 【修复】Post-Move Check: 敌方使用自杀招式后立即处理倒下
+        if (!e.isAlive()) {
+            console.log('[handleAttack] Enemy fainted after self-KO move (Memento/Explosion)');
+            await handleEnemyFainted(e);
+            return;
+        }
         
         // 【修复】敌方 Pivot 也要先处理，再判定玩家倒下
         if (enemyResult?.pivot && hasAliveSwitch(battle.enemyParty, battle.enemyActive)) {
@@ -1539,10 +1561,12 @@ async function handleAttack(moveIndex, options = {}) {
                 log(`${oldE.cnName} 伏特替换，迅速撤退了!`);
             } else if (moveName === 'Flip Turn') {
                 log(`${oldE.cnName} 快速翻转，撤退了!`);
+            } else if (moveName === 'Baton Pass') {
+                log(`${oldE.cnName} 使用接力棒撤退了!`);
             } else {
                 log(`${oldE.cnName} 打完后急速折返回来了!`);
             }
-            await handleEnemyPivot();
+            await handleEnemyPivot(enemyResult?.passBoosts || false);
             e = battle.getEnemy();
         }
         
@@ -1554,6 +1578,13 @@ async function handleAttack(moveIndex, options = {}) {
         // ========== 敌方先动 ==========
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
         
+        // 【修复】Post-Move Check: 敌方使用自杀招式后立即处理倒下
+        if (!e.isAlive()) {
+            console.log('[handleAttack] Enemy fainted after self-KO move in enemy-first branch');
+            await handleEnemyFainted(e);
+            return;
+        }
+        
         // 【修复】敌方 Pivot 先处理，再判定玩家倒下
         if (enemyResult?.pivot && hasAliveSwitch(battle.enemyParty, battle.enemyActive)) {
             const oldE = battle.getEnemy();
@@ -1562,10 +1593,12 @@ async function handleAttack(moveIndex, options = {}) {
                 log(`${oldE.cnName} 伏特替换，迅速撤退了!`);
             } else if (moveName === 'Flip Turn') {
                 log(`${oldE.cnName} 快速翻转，撤退了!`);
+            } else if (moveName === 'Baton Pass') {
+                log(`${oldE.cnName} 使用接力棒撤退了!`);
             } else {
                 log(`${oldE.cnName} 打完后急速折返回来了!`);
             }
-            await handleEnemyPivot();
+            await handleEnemyPivot(enemyResult?.passBoosts || false);
             e = battle.getEnemy();
         }
         
@@ -1575,7 +1608,44 @@ async function handleAttack(moveIndex, options = {}) {
         }
         
         // ========== 玩家后动（攻击新换入的宝可梦） ==========
+        // 【修复】Pre-Move Check: 检查玩家自己是否还活着（临别礼物/大爆炸等自杀招式）
+        if (!p.isAlive()) {
+            console.log('[handleAttack] Player already fainted (self-KO move), skipping player turn');
+            log(`<span style="color:#999">但是 ${p.cnName} 已经倒下了...</span>`);
+            await handlePlayerFainted(p);
+            return;
+        }
+        
+        // 【修复】Pre-Move Check: 检查目标是否还活着（敌方可能用了自杀招式）
+        if (!e.isAlive()) {
+            console.log('[handleAttack] Enemy already fainted before player turn, skipping to faint handling');
+            log(`<span style="color:#999">但是没有目标了...</span>`);
+            await handleEnemyFainted(e);
+            return;
+        }
+        
+        // 【修复】敌方先动后，玩家后动前再次检查 Taunt 等 Volatile 状态
+        // 因为敌方可能在这回合使用了挑衅，阻止玩家使用变化技
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.canUseMove) {
+            const canUseResult = MoveEffects.canUseMove(p, playerMove);
+            if (!canUseResult.canUse) {
+                log(`<span style="color:#e74c3c">${canUseResult.reason}</span>`);
+                await wait(500);
+                // 跳过玩家行动，直接进入回合结算
+                await executeEndPhase(p, e);
+                battle.locked = false;
+                return;
+            }
+        }
+        
         const playerResult = await executePlayerTurn(p, e, playerMove);
+        
+        // 【修复】Post-Move Check: 玩家使用自杀招式后立即处理倒下
+        if (!p.isAlive()) {
+            console.log('[handleAttack] Player fainted after self-KO move in enemy-first branch');
+            await handlePlayerFainted(p);
+            return;
+        }
         
         // 【修复】玩家 Pivot 先处理，再判定敌方倒下
         if (playerResult?.pivot && hasAliveSwitch(battle.playerParty, battle.playerActive)) {

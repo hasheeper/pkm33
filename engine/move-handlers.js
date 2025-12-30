@@ -2099,24 +2099,8 @@ const MoveHandlers = {
         description: '5回合内速度慢的先动'
     },
 
-    'Tailwind': {
-        onUse: (user, target, logs, battle, isPlayer) => {
-            if (!battle) return;
-            
-            const side = isPlayer ? battle.playerSide : battle.enemySide;
-            if (!side) return;
-            
-            if (side.tailwind > 0) {
-                logs.push(`顺风已经在吹了！`);
-                return { failed: true };
-            }
-            
-            side.tailwind = 4; // 持续4回合
-            const sideText = isPlayer ? '我方' : '敌方';
-            logs.push(`<b style="color:#38bdf8">🌬️ ${sideText}刮起了顺风！</b>`);
-        },
-        description: '4回合内我方速度翻倍'
-    },
+    // 【已移除】Tailwind 由 MoveEffects.applySideCondition 统一处理
+    // 避免重复处理导致"成功后又显示失败"的 Bug
 
     'Reflect': {
         onUse: (user, target, logs, battle, isPlayer) => {

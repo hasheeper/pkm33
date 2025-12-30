@@ -81,6 +81,15 @@ async function executePlayerTurn(p, e, move) {
         }
     }
 
+    // === 硬直检查 (破坏光线/爆炸烈焰等) ===
+    // 【修复】在输出"使用了xxx"之前检查，避免误导性日志
+    if (p.mustRecharge) {
+        log(`<span style="color:#e74c3c">${p.cnName} 因为上回合的反作用力无法动弹!</span>`);
+        p.mustRecharge = false;
+        await wait(500);
+        return { pivot: false };
+    }
+
     log(`[${p.cnName}] 使用了 <b>${move.cn}</b>!`);
     await wait(600);
 
@@ -195,6 +204,14 @@ async function executeEnemyTurn(e, p, move) {
         }
     }
 
+    // === 硬直检查 (破坏光线/爆炸烈焰等) ===
+    // 【修复】在输出"使出xxx"之前检查，避免误导性日志
+    if (e.mustRecharge) {
+        log(`<span style="color:#e74c3c">${e.cnName} 因为上回合的反作用力无法动弹!</span>`);
+        e.mustRecharge = false;
+        return { pivot: false };
+    }
+
     const moveName = move.cn || move.name || 'Unknown';
     log(`[${e.cnName}] 使出 <b>${moveName}</b>!`);
     await wait(500);
@@ -241,7 +258,10 @@ async function executeEnemyTurn(e, p, move) {
     updateAllVisuals();
     
     console.log('[executeEnemyTurn] Completed');
-    return { pivot: result?.pivot || false };
+    return { 
+        pivot: result?.pivot || false,
+        passBoosts: result?.passBoosts || false  // 【Baton Pass】传递能力变化标记
+    };
 }
 
 // ============================================

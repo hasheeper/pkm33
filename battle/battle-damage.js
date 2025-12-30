@@ -183,7 +183,10 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
             }
         }
         
+        // 【修复】记录实际造成的伤害（不超过目标当前HP）用于日志显示
+        const actualDamage = Math.min(result.damage, defender.currHp);
         defender.takeDamage(result.damage, dmgCategory);
+        result.displayDamage = actualDamage; // 用于日志显示的实际伤害
         
         // === 播放打击音效 ===
         if (typeof window.playHitSFX === 'function') {
@@ -244,10 +247,12 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         
         const infoStr = infoParts.join(' ');
         
-        if (result.damage <= 2 && result.effectiveness > 0) {
-            log(`造成了 <span style="color:#95a5a6">${result.damage}</span> 伤害... (仿佛是在给对手挠痒痒) ${infoStr}`);
+        // 【修复】使用 displayDamage 显示实际造成的伤害，避免显示超过目标HP的数值
+        const shownDamage = result.displayDamage !== undefined ? result.displayDamage : result.damage;
+        if (shownDamage <= 2 && result.effectiveness > 0) {
+            log(`造成了 <span style="color:#95a5a6">${shownDamage}</span> 伤害... (仿佛是在给对手挠痒痒) ${infoStr}`);
         } else {
-            log(`造成了 ${result.damage} 伤害 ${infoStr}`);
+            log(`造成了 ${shownDamage} 伤害 ${infoStr}`);
         }
     } else if (result.effectiveness === 0) {
         log(`<b>对其没有效果!</b>`);

@@ -1017,6 +1017,15 @@ function getMergedMoveData(move) {
  * 保持纯净：该是0就是0，不在这里做特性魔改
  */
 function simulateDamage(attacker, defender, move) {
+    // 【关键修复】前置免疫检查：确保 AI 不会选择对目标无效的招式
+    // 这是最高优先级的检查，必须在任何伤害计算之前执行
+    const moveType = move.type || 'Normal';
+    const defenderTypes = defender.types || ['Normal'];
+    const preCheckEff = getTypeEffectivenessAI(moveType, defenderTypes, move.name || '');
+    if (preCheckEff === 0) {
+        return { damage: 0, effectiveness: 0 };
+    }
+    
     // 如果有全局 calcDamage 函数，使用它
     if (typeof calcDamage === 'function') {
         try {
