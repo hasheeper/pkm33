@@ -164,7 +164,10 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
                 return result;
             }
         }
+        // 【修复】记录实际造成的伤害（不超过目标当前HP）用于日志显示
+        const actualDamage = Math.min(result.damage, defender.currHp);
         defender.takeDamage(result.damage, dmgCategory);
+        result.displayDamage = actualDamage; // 用于日志显示的实际伤害
         // === 播放打击音效 ===
         if (typeof window.playHitSFX === 'function') {
             window.playHitSFX(result.effectiveness, result.isCrit);
@@ -214,10 +217,12 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
             }
         }
         const infoStr = infoParts.join(' ');
-        if (result.damage <= 2 && result.effectiveness > 0) {
-            log(`造成了 <span style="color:#95a5a6">${result.damage}</span> 伤害... (仿佛是在给对手挠痒痒) ${infoStr}`);
+        // 【修复】使用 displayDamage 显示实际造成的伤害，避免显示超过目标HP的数值
+        const shownDamage = result.displayDamage !== undefined ? result.displayDamage : result.damage;
+        if (shownDamage <= 2 && result.effectiveness > 0) {
+            log(`造成了 <span style="color:#95a5a6">${shownDamage}</span> 伤害... (仿佛是在给对手挠痒痒) ${infoStr}`);
         } else {
-            log(`造成了 ${result.damage} 伤害 ${infoStr}`);
+            log(`造成了 ${shownDamage} 伤害 ${infoStr}`);
         }
     } else if (result.effectiveness === 0) {
         log(`<b>对其没有效果!</b>`);
@@ -368,10 +373,15 @@ function handlePlayerPivot() {
 /**
  * 处理敌方 Pivot 换人（AI 自动选择）
  */
-async function handleEnemyPivot() {
+async function handleEnemyPivot(passBoosts = false) {
     const battle = window.battle;
     const currentE = battle.getEnemy();
     const p = battle.getPlayer();
+    // 【Baton Pass】保存当前能力变化，用于传递给换入的宝可梦
+    const savedBoosts = passBoosts && currentE.boosts ? { ...currentE.boosts } : null;
+    if (savedBoosts) {
+        console.log(`[BATON PASS] ${currentE.cnName} 准备传递能力变化:`, savedBoosts);
+    }
     // AI 选择最佳换入目标
     let bestIndex = -1;
     let bestScore = -Infinity;
@@ -414,12 +424,22 @@ async function handleEnemyPivot() {
             console.log(`[SWITCH] Enemy ${currentE.name} was Dynamaxed, restoring moves`);
             window.applyDynamaxState(currentE, false);
         }
-        // 重置能力等级
+        // 重置换出宝可梦的能力等级（无论是否接棒，换出者都要重置）
         if (typeof currentE.resetBoosts === 'function') {
             currentE.resetBoosts();
         }
         battle.enemyActive = bestIndex;
         const newE = battle.getEnemy();
+        // 【Baton Pass】将保存的能力变化传递给换入的宝可梦
+        if (savedBoosts && newE.boosts) {
+            Object.keys(savedBoosts).forEach(stat => {
+                newE.boosts[stat] = (newE.boosts[stat] || 0) + savedBoosts[stat];
+                // 限制在 -6 到 +6 之间
+                newE.boosts[stat] = Math.max(-6, Math.min(6, newE.boosts[stat]));
+            });
+            console.log(`[BATON PASS] ${newE.cnName} 继承了能力变化:`, newE.boosts);
+            log(`<span style="color:#9b59b6">${newE.cnName} 继承了能力变化!</span>`);
+        }
         log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
         // 【标记换人】用于重复精灵图修复
         if (typeof window.markEnemySwitch === 'function') {
@@ -462,8 +482,20 @@ async function handleEnemyFainted(e) {
         }
     }
     log(`敌方的 ${e.cnName} 倒下了!`);
-    // Battle Bond (牵绊变身) 触发检查
+    // === 【onKill 钩子】击杀后特性触发 (Moxie, Beast Boost 等) ===
     const p = battle.getPlayer();
+    if (p && p.isAlive() && p.ability) {
+        const abilityId = p.ability;
+        if (typeof AbilityHandlers !== 'undefined' && AbilityHandlers[abilityId] && AbilityHandlers[abilityId].onKill) {
+            const killLogs = [];
+            AbilityHandlers[abilityId].onKill(p, killLogs);
+            killLogs.forEach(msg => log(msg));
+            if (typeof updateAllVisuals === 'function') {
+                updateAllVisuals('player');
+            }
+        }
+    }
+    // Battle Bond (牵绊变身) 触发检查
     if (p && p.isAlive() && typeof window.checkBattleBondTransform === 'function') {
         const bondResult = window.checkBattleBondTransform(p);
         if (bondResult && bondResult.success) {
@@ -600,6 +632,19 @@ async function handlePlayerFainted(p) {
         }
     }
     log(`<b style="color:red">糟糕! ${p.cnName} 失去了战斗能力!</b>`);
+    // === 【onKill 钩子】敌方击杀后特性触发 (Moxie, Beast Boost 等) ===
+    const e = battle.getEnemy();
+    if (e && e.isAlive() && e.ability) {
+        const abilityId = e.ability;
+        if (typeof AbilityHandlers !== 'undefined' && AbilityHandlers[abilityId] && AbilityHandlers[abilityId].onKill) {
+            const killLogs = [];
+            AbilityHandlers[abilityId].onKill(e, killLogs);
+            killLogs.forEach(msg => log(msg));
+            if (typeof updateAllVisuals === 'function') {
+                updateAllVisuals('enemy');
+            }
+        }
+    }
     await wait(500);
     if (typeof window.checkPlayerDefeatOrForceSwitch === 'function') {
         window.checkPlayerDefeatOrForceSwitch();
@@ -758,6 +803,14 @@ async function executePlayerTurn(p, e, move) {
             }
         }
     }
+    // === 硬直检查 (破坏光线/爆炸烈焰等) ===
+    // 【修复】在输出"使用了xxx"之前检查，避免误导性日志
+    if (p.mustRecharge) {
+        log(`<span style="color:#e74c3c">${p.cnName} 因为上回合的反作用力无法动弹!</span>`);
+        p.mustRecharge = false;
+        await wait(500);
+        return { pivot: false };
+    }
     log(`[${p.cnName}] 使用了 <b>${move.cn}</b>!`);
     await wait(600);
     const result = applyDamage(p, e, move, 'enemy-sprite');
@@ -852,6 +905,13 @@ async function executeEnemyTurn(e, p, move) {
             }
         }
     }
+    // === 硬直检查 (破坏光线/爆炸烈焰等) ===
+    // 【修复】在输出"使出xxx"之前检查，避免误导性日志
+    if (e.mustRecharge) {
+        log(`<span style="color:#e74c3c">${e.cnName} 因为上回合的反作用力无法动弹!</span>`);
+        e.mustRecharge = false;
+        return { pivot: false };
+    }
     const moveName = move.cn || move.name || 'Unknown';
     log(`[${e.cnName}] 使出 <b>${moveName}</b>!`);
     await wait(500);
@@ -890,7 +950,10 @@ async function executeEnemyTurn(e, p, move) {
     }
     updateAllVisuals();
     console.log('[executeEnemyTurn] Completed');
-    return { pivot: result?.pivot || false };
+    return { 
+        pivot: result?.pivot || false,
+        passBoosts: result?.passBoosts || false  // 【Baton Pass】传递能力变化标记
+    };
 }
 // ============================================
 // 独立敌方回合
@@ -2349,6 +2412,89 @@ const AbilityHandlers = {
             }
         }
     },
+    // ============================================
+    // 悖谬种特性 (Paradox Pokémon Abilities)
+    // ============================================
+    // 【夸克充能】Quark Drive - 未来悖谬种
+    // 电气场地或携带驱劲能量时，提升最高能力 30%（速度为 50%）
+    'Quark Drive': {
+        onStart: (self, enemy, logs, battle) => {
+            // 检查是否有电气场地
+            const hasElectricTerrain = battle && battle.field && battle.field.terrain === 'electricterrain';
+            // 检查是否携带驱劲能量
+            const hasBoosterEnergy = self.item === 'Booster Energy';
+            if (hasElectricTerrain || hasBoosterEnergy) {
+                // 找最高能力
+                const stats = { atk: self.atk, def: self.def, spa: self.spa, spd: self.spd, spe: self.spe };
+                let bestStat = 'atk';
+                let bestValue = 0;
+                for (const [stat, val] of Object.entries(stats)) {
+                    if (val > bestValue) {
+                        bestValue = val;
+                        bestStat = stat;
+                    }
+                }
+                // 标记激活状态
+                self.quarkDriveActive = true;
+                self.quarkDriveStat = bestStat;
+                // 消耗驱劲能量（如果是通过道具激活）
+                if (hasBoosterEnergy && !hasElectricTerrain) {
+                    self.item = null;
+                    logs.push(`${self.cnName} 消耗了驱劲能量！`);
+                }
+                const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+                logs.push(`<b style="color:#f1c40f">⚡ ${self.cnName} 的夸克充能启动了！${statNames[bestStat]}提升！</b>`);
+                if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+            }
+        },
+        onModifyStat: (stats, poke) => {
+            if (poke.quarkDriveActive && poke.quarkDriveStat) {
+                const stat = poke.quarkDriveStat;
+                const multiplier = (stat === 'spe') ? 1.5 : 1.3;
+                stats[stat] = Math.floor(stats[stat] * multiplier);
+            }
+        }
+    },
+    // 【古代活性】Protosynthesis - 古代悖谬种
+    // 大晴天或携带驱劲能量时，提升最高能力 30%（速度为 50%）
+    'Protosynthesis': {
+        onStart: (self, enemy, logs, battle) => {
+            // 检查是否有大晴天
+            const hasSun = battle && (battle.weather === 'sunnyday' || battle.weather === 'desolateland');
+            // 检查是否携带驱劲能量
+            const hasBoosterEnergy = self.item === 'Booster Energy';
+            if (hasSun || hasBoosterEnergy) {
+                // 找最高能力
+                const stats = { atk: self.atk, def: self.def, spa: self.spa, spd: self.spd, spe: self.spe };
+                let bestStat = 'atk';
+                let bestValue = 0;
+                for (const [stat, val] of Object.entries(stats)) {
+                    if (val > bestValue) {
+                        bestValue = val;
+                        bestStat = stat;
+                    }
+                }
+                // 标记激活状态
+                self.protosynthesisActive = true;
+                self.protosynthesisstat = bestStat;
+                // 消耗驱劲能量（如果是通过道具激活）
+                if (hasBoosterEnergy && !hasSun) {
+                    self.item = null;
+                    logs.push(`${self.cnName} 消耗了驱劲能量！`);
+                }
+                const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+                logs.push(`<b style="color:#e67e22">☀️ ${self.cnName} 的古代活性启动了！${statNames[bestStat]}提升！</b>`);
+                if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+            }
+        },
+        onModifyStat: (stats, poke) => {
+            if (poke.protosynthesisActive && poke.protosynthesisstat) {
+                const stat = poke.protosynthesisstat;
+                const multiplier = (stat === 'spe') ? 1.5 : 1.3;
+                stats[stat] = Math.floor(stats[stat] * multiplier);
+            }
+        }
+    },
     // 【加速】回合结束速度+1
     'Speed Boost': {
         onEndTurn: (pokemon, logs) => {
@@ -2556,6 +2702,44 @@ const AbilityHandlers = {
             if (poke.status) stats.atk = Math.floor(stats.atk * 1.5); 
         }
     },
+    // ============================================
+    // 声音系特性 (Sound-based Abilities)
+    // ============================================
+    // 【湿润之声】声音招式变为水属性
+    'Liquid Voice': {
+        onModifyMove: (move, attacker) => {
+            const soundMoves = ['Boomburst', 'Bug Buzz', 'Chatter', 'Clanging Scales', 
+                'Clangorous Soul', 'Disarming Voice', 'Echoed Voice', 'Eerie Spell', 
+                'Growl', 'Hyper Voice', 'Metal Sound', 'Noble Roar', 'Overdrive', 
+                'Parting Shot', 'Relic Song', 'Round', 'Screech', 'Sing', 'Snarl', 
+                'Snore', 'Sparkling Aria', 'Supersonic', 'Uproar', 'Torch Song'];
+            if (soundMoves.includes(move.name)) {
+                move.type = 'Water';
+            }
+        }
+    },
+    // 【湿润之声 Pro】声音招式变为水属性 + 威力x1.3 (RPG 魔改版)
+    // 【修复】使用 _liquidVoiceApplied 标记防止威力累积
+    'Liquid Voice Pro': {
+        onModifyMove: (move, attacker) => {
+            const soundMoves = ['Boomburst', 'Bug Buzz', 'Chatter', 'Clanging Scales', 
+                'Clangorous Soul', 'Disarming Voice', 'Echoed Voice', 'Eerie Spell', 
+                'Growl', 'Hyper Voice', 'Metal Sound', 'Noble Roar', 'Overdrive', 
+                'Parting Shot', 'Relic Song', 'Round', 'Screech', 'Sing', 'Snarl', 
+                'Snore', 'Sparkling Aria', 'Supersonic', 'Uproar', 'Torch Song'];
+            if (soundMoves.includes(move.name)) {
+                move.type = 'Water';
+                // 【关键修复】只在首次应用时修改威力，防止累积
+                if (!move._liquidVoiceApplied) {
+                    const originalPower = move._originalBasePower || move.basePower || move.power || 0;
+                    move._originalBasePower = originalPower; // 保存原始威力
+                    move.basePower = Math.floor(originalPower * 1.3);
+                    move.power = move.basePower;
+                    move._liquidVoiceApplied = true;
+                }
+            }
+        }
+    },
     // 【软弱】半血以下攻击/特攻减半
     'Defeatist': {
         onModifyStat: (stats, poke) => {
@@ -2671,16 +2855,8 @@ const AbilityHandlers = {
             return { blocked: false };
         }
     },
-    // 【根性】异常状态时攻击力x1.5
-    'Guts': {
-        onModifyStat: (pokemon, stat, value) => {
-            if (stat === 'atk' && pokemon.status) {
-                return Math.floor(value * 1.5);
-            }
-            return value;
-        }
-    },
-    // 【毅力】异常状态时速度x1.5
+    // 【毅力】异常状态时速度x1.5 (Quick Feet)
+    // 注意：Guts 已在第 772 行定义，此处不再重复
     'Quick Feet': {
         onModifyStat: (pokemon, stat, value) => {
             if (stat === 'spe' && pokemon.status) {
@@ -3852,6 +4028,14 @@ function getMergedMoveData(move) {
  * 保持纯净：该是0就是0，不在这里做特性魔改
  */
 function simulateDamage(attacker, defender, move) {
+    // 【关键修复】前置免疫检查：确保 AI 不会选择对目标无效的招式
+    // 这是最高优先级的检查，必须在任何伤害计算之前执行
+    const moveType = move.type || 'Normal';
+    const defenderTypes = defender.types || ['Normal'];
+    const preCheckEff = getTypeEffectivenessAI(moveType, defenderTypes, move.name || '');
+    if (preCheckEff === 0) {
+        return { damage: 0, effectiveness: 0 };
+    }
     // 如果有全局 calcDamage 函数，使用它
     if (typeof calcDamage === 'function') {
         try {
@@ -4429,6 +4613,111 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
                 }
                 return 50;
             }
+        }
+        // =========================================================
+        // 【属性变化技能】完整的类型变化技能拦截系统
+        // 防止 AI 对已经达成的状态重复使用无效技能
+        // =========================================================
+        // 1. Transform (变身) - 复制对手的一切
+        if (moveName === 'Transform') {
+            // 如果目标已经变身过，失败
+            if (defender.isTransformed || (defender.volatile && defender.volatile.transformed)) {
+                console.log(`[AI BAN] Transform: 目标已经变身过`);
+                return -99999;
+            }
+            // 如果目标有替身，失败
+            if (defender.volatile && defender.volatile.substitute) {
+                console.log(`[AI BAN] Transform: 目标有替身`);
+                return -99999;
+            }
+            // 百变怪互相对视时避免死循环
+            const attackerSpecies = (attacker.species || attacker.name || '').toLowerCase();
+            const defenderSpecies = (defender.species || defender.name || '').toLowerCase();
+            if (attackerSpecies.includes('ditto') && defenderSpecies.includes('ditto')) {
+                console.log(`[AI BAN] Transform: 百变怪互相变身无意义`);
+                return -99999;
+            }
+            return 100; // 变身是强力技能
+        }
+        // 2. Conversion (纹理) - 变成自己第一招的属性
+        if (moveName === 'Conversion') {
+            const firstMove = attacker.moves[0];
+            if (firstMove && firstMove.type) {
+                const targetType = firstMove.type;
+                // 如果已经是该属性（单属性且相同），禁止使用
+                if (attacker.types && attacker.types.length === 1 && attacker.types[0] === targetType) {
+                    console.log(`[AI BAN] Conversion: 已经是 ${targetType} 属性`);
+                    return -99999;
+                }
+            }
+            return 30;
+        }
+        // 3. Reflect Type (镜面属性) - 复制对手的属性
+        if (moveName === 'Reflect Type') {
+            const myTypes = (attacker.types || ['Normal']).slice().sort().join(',');
+            const targetTypes = (defender.types || ['Normal']).slice().sort().join(',');
+            // 如果属性组合完全一致，失败
+            if (myTypes === targetTypes) {
+                console.log(`[AI BAN] Reflect Type: 属性已相同 (${myTypes})`);
+                return -99999;
+            }
+            return 25;
+        }
+        // 4. Burn Up (燃尽) - 失去火属性的强力火系攻击
+        if (moveName === 'Burn Up') {
+            const types = attacker.types || [];
+            if (!types.includes('Fire')) {
+                console.log(`[AI BAN] Burn Up: 不再是火系，无法使用`);
+                return -99999;
+            }
+            // 这是攻击技能，由伤害计算处理，这里只做属性检查
+        }
+        // 5. Double Shock (电光双击) - 失去电属性的强力电系攻击
+        if (moveName === 'Double Shock') {
+            const types = attacker.types || [];
+            if (!types.includes('Electric')) {
+                console.log(`[AI BAN] Double Shock: 不再是电系，无法使用`);
+                return -99999;
+            }
+            // 这是攻击技能，由伤害计算处理
+        }
+        // 6. Soak (浸水) - 把对手变成纯水系
+        if (moveName === 'Soak') {
+            const types = defender.types || [];
+            if (types.length === 1 && types[0] === 'Water') {
+                console.log(`[AI BAN] Soak: 对手已经是纯水系`);
+                return -99999;
+            }
+            // 对水系宝可梦使用意义不大（虽然不会失败，但战术价值低）
+            if (types.includes('Water') && types.length === 1) {
+                return 5;
+            }
+            return 40; // 改变对手属性有战术价值
+        }
+        // 7. Magic Powder (魔法粉) - 把对手变成纯超能力系
+        if (moveName === 'Magic Powder') {
+            const types = defender.types || [];
+            if (types.length === 1 && types[0] === 'Psychic') {
+                console.log(`[AI BAN] Magic Powder: 对手已经是纯超能力系`);
+                return -99999;
+            }
+            return 35;
+        }
+        // 8. Trick-or-Treat (万圣夜) - 给对手追加幽灵属性
+        if (moveName === 'Trick-or-Treat') {
+            if ((defender.types || []).includes('Ghost')) {
+                console.log(`[AI BAN] Trick-or-Treat: 对手已经有幽灵属性`);
+                return -99999;
+            }
+            return 30;
+        }
+        // 9. Forest's Curse (森林诅咒) - 给对手追加草属性
+        if (moveName === "Forest's Curse") {
+            if ((defender.types || []).includes('Grass')) {
+                console.log(`[AI BAN] Forest's Curse: 对手已经有草属性`);
+                return -99999;
+            }
+            return 30;
         }
         // =========================================================
         // 【Soft-Coded】延迟生效技能 (slotCondition 或特定 volatileStatus)
@@ -5993,6 +6282,13 @@ function calcDamage(attacker, defender, move) {
     // 获取完整技能数据
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+    // === 【特性钩子】onModifyMove - 修改招式属性/威力 (Liquid Voice 等) ===
+    if (typeof AbilityHandlers !== 'undefined' && attacker.ability) {
+        const abilityHandler = AbilityHandlers[attacker.ability];
+        if (abilityHandler && abilityHandler.onModifyMove) {
+            abilityHandler.onModifyMove(move, attacker);
+        }
+    }
     const accuracy = move.accuracy ?? fullMoveData.accuracy;
     let category = fullMoveData.category || (move.cat === 'spec' ? 'Special' : (move.cat === 'phys' ? 'Physical' : 'Status'));
     let basePower = move.power ?? fullMoveData.basePower ?? 0;
@@ -6286,7 +6582,9 @@ function calcDamage(attacker, defender, move) {
         defStat = handler.modifyDef(attacker, defender, isSpecial);
     }
     // === 灼伤减半物攻 (Burn halves physical attack) ===
-    if (!isSpecial && attacker.status === 'brn') {
+    // 【重要】Guts/毅力 特性免疫灼伤的物攻减半效果
+    const ignoresBurnDrop = attacker.ability === 'Guts';
+    if (!isSpecial && attacker.status === 'brn' && !ignoresBurnDrop) {
         atkStat = Math.floor(atkStat * 0.5);
     }
     // === 防御方属性判定修正 ===
@@ -6361,6 +6659,12 @@ function calcDamage(attacker, defender, move) {
     if (!attacker.isTerastallized && stab > 1 && attacker.ability === 'Adaptability') {
         stab = 2;
     }
+    // === 生命宝珠 (Life Orb) 伤害加成 ===
+    let lifeOrbBoost = 1;
+    const attackerItem = (attacker.item || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (attackerItem === 'lifeorb') {
+        lifeOrbBoost = 1.3;
+    }
     // ============================================
     // ★ 星晶太晶爆发 (Tera Blast - Stellar) 特判
     // ============================================
@@ -6416,7 +6720,7 @@ function calcDamage(attacker, defender, move) {
     // Damage = ((2*Level/5 + 2) * Power * A/D / 50 + 2) * Modifiers
     let singleHitDamage = Math.floor(
         ((2 * attacker.level / 5 + 2) * basePower * (atkStat / finalDef) / 50 + 2)
-        * stab * effectiveness * critMod * random
+        * stab * effectiveness * critMod * random * lifeOrbBoost
     );
     // 最低伤害 1 (除非免疫)
     if (effectiveness > 0 && singleHitDamage < 1) singleHitDamage = 1;
@@ -6705,6 +7009,13 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
                 user.takeDamage(recoilDmg);
                 logs.push(`${user.cnName} 受到了 ${recoilDmg} 点反作用力伤害!`);
             }
+        }
+        // === 生命宝珠 (Life Orb) 反伤 ===
+        const userItem = (user.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (userItem === 'lifeorb' && damageDealt > 0) {
+            const lifeOrbRecoil = Math.max(1, Math.floor(user.maxHp * 0.1));
+            user.takeDamage(lifeOrbRecoil);
+            logs.push(`${user.cnName} 受到了生命宝珠的反噬!`);
         }
     }
     // ========== 3. 吸血 (Drain) ==========
@@ -7256,7 +7567,16 @@ function autoDetectFormChangeEligibility(pokemon, explicitFormFlag = null) {
         pokemon.evolutionType = 'ultra';
         console.log(`[FORM] Auto-detected Ultra: ${pokemon.megaTargetId}`);
     } else if (avail.mega.length > 0) {
-        const validMegaForms = avail.mega.filter(f => typeof POKEDEX !== 'undefined' && POKEDEX[f]);
+        // 【修复】只有携带对应 Mega 石的宝可梦才能自动检测 Mega
+        // 非官方 Mega（如 Delphox-Mega）需要用户明确指定 mechanic: "mega"
+        const pokemonItem = (pokemon.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        const validMegaForms = avail.mega.filter(f => {
+            if (typeof POKEDEX === 'undefined' || !POKEDEX[f]) return false;
+            const megaData = POKEDEX[f];
+            // 检查是否携带对应的 Mega 石
+            const requiredItem = (megaData.requiredItem || '').toLowerCase().replace(/[^a-z]/g, '');
+            return requiredItem && pokemonItem === requiredItem;
+        });
         if (validMegaForms.length > 0) {
             if (hasDualMega && validMegaForms.length >= 2) {
                 pokemon.hasDualMega = true;
@@ -7265,7 +7585,11 @@ function autoDetectFormChangeEligibility(pokemon, explicitFormFlag = null) {
             pokemon.megaTargetId = validMegaForms.find(f => f.endsWith('x')) || validMegaForms[0];
             pokemon.canMegaEvolve = true;
             pokemon.evolutionType = 'mega';
-            console.log(`[FORM] Auto-detected Mega: ${pokemon.megaTargetId}`);
+            console.log(`[FORM] Auto-detected Mega (with item): ${pokemon.megaTargetId}`);
+        } else {
+            // 没有携带 Mega 石，禁用自动 Mega
+            pokemon.canMegaEvolve = false;
+            console.log(`[FORM] ${pokemon.name} has Mega form but no Mega Stone - Mega DISABLED`);
         }
     } else if (avail.gmax.length > 0) {
         // 只有专属 GMax 的才自动激活，通用极巨化需要手动指定 mechanic
@@ -7335,8 +7659,16 @@ function performMegaEvolution(pokemon) {
     pokemon.types = megaData.types || pokemon.types;
     pokemon.baseStats = megaData.baseStats;
     // 获取 Mega 形态的特性
+    // 【修复】如果用户在 JSON 中自定义了特性（非默认特性），则保留用户特性
+    // 这允许 RPG 魔改特性在 Mega 进化后依然生效
     const megaPokedexData = typeof POKEDEX !== 'undefined' ? POKEDEX[pokemon.megaTargetId] : null;
-    if (megaPokedexData && megaPokedexData.abilities) {
+    const basePokedexData = typeof POKEDEX !== 'undefined' ? POKEDEX[pokemon.megaTargetId.replace(/mega[xy]?$/, '')] : null;
+    const isCustomAbility = basePokedexData && basePokedexData.abilities && 
+        !Object.values(basePokedexData.abilities).includes(oldAbility);
+    if (isCustomAbility) {
+        // 用户自定义了特性（如 Magic Guard），保留不覆盖
+        console.log(`[MEGA] Preserving custom ability: ${oldAbility}`);
+    } else if (megaPokedexData && megaPokedexData.abilities) {
         pokemon.ability = megaPokedexData.abilities['0'] || megaPokedexData.abilities['H'] || pokemon.ability;
     }
     // 重新计算能力值 (HP 不变!)
@@ -11635,12 +11967,111 @@ const MoveHandlers = {
                 logs.push(`但是失败了!`);
                 return;
             }
+            // 已经是纯水系则失败
+            if (defender.types && defender.types.length === 1 && defender.types[0] === 'Water') {
+                logs.push(`但是失败了!`);
+                return;
+            }
             defender.types = ['Water'];
             logs.push(`${attacker.cnName} 向对手喷射了特殊的水!`);
             logs.push(`<span style="color:#3498db">✦ ${defender.cnName} 变成了 水 属性!</span>`);
             return { typeChange: true };
         },
         description: '将目标变为水属性'
+    },
+    // 【魔法粉】：把对手变成纯超能力系
+    'Magic Powder': {
+        onHit: (attacker, defender, damage, logs) => {
+            if (defender.ability === 'Multitype' || defender.ability === 'RKS System') {
+                logs.push(`但是失败了!`);
+                return;
+            }
+            // 已经是纯超能力系则失败
+            if (defender.types && defender.types.length === 1 && defender.types[0] === 'Psychic') {
+                logs.push(`但是失败了!`);
+                return;
+            }
+            // 草系免疫粉末类招式
+            if (defender.types && defender.types.includes('Grass')) {
+                logs.push(`但是失败了! (草系免疫粉末)`);
+                return;
+            }
+            if (defender.ability === 'Overcoat') {
+                logs.push(`${defender.cnName} 的防尘特性使其免疫了粉末!`);
+                return;
+            }
+            defender.types = ['Psychic'];
+            logs.push(`${attacker.cnName} 撒下了魔法粉!`);
+            logs.push(`<span style="color:#a855f7">✦ ${defender.cnName} 变成了 超能力 属性!</span>`);
+            return { typeChange: true };
+        },
+        description: '将目标变为超能力属性'
+    },
+    // 【万圣夜】：给对手追加幽灵属性
+    'Trick-or-Treat': {
+        onHit: (attacker, defender, damage, logs) => {
+            // 已经有幽灵属性则失败
+            if (defender.types && defender.types.includes('Ghost')) {
+                logs.push(`但是失败了!`);
+                return;
+            }
+            defender.types = [...(defender.types || ['Normal']), 'Ghost'];
+            logs.push(`${attacker.cnName} 邀请对手参加万圣夜派对!`);
+            logs.push(`<span style="color:#9b59b6">✦ ${defender.cnName} 追加了 幽灵 属性!</span>`);
+            return { typeChange: true };
+        },
+        description: '给目标追加幽灵属性'
+    },
+    // 【森林诅咒】：给对手追加草属性
+    "Forest's Curse": {
+        onHit: (attacker, defender, damage, logs) => {
+            // 已经有草属性则失败
+            if (defender.types && defender.types.includes('Grass')) {
+                logs.push(`但是失败了!`);
+                return;
+            }
+            defender.types = [...(defender.types || ['Normal']), 'Grass'];
+            logs.push(`${attacker.cnName} 施加了森林的诅咒!`);
+            logs.push(`<span style="color:#27ae60">✦ ${defender.cnName} 追加了 草 属性!</span>`);
+            return { typeChange: true };
+        },
+        description: '给目标追加草属性'
+    },
+    // 【燃尽】：强力火系攻击，使用后失去火属性
+    'Burn Up': {
+        onHit: (attacker, defender, damage, logs) => {
+            // 不是火系则失败（伤害仍然造成，但不会失去属性）
+            if (!attacker.types || !attacker.types.includes('Fire')) {
+                logs.push(`但是 ${attacker.cnName} 不是火属性，无法燃尽!`);
+                return { failed: true };
+            }
+            // 移除火属性
+            attacker.types = attacker.types.filter(t => t !== 'Fire');
+            if (attacker.types.length === 0) {
+                attacker.types = ['Normal']; // 变成无属性（游戏中显示为???，这里简化为Normal）
+            }
+            logs.push(`<span style="color:#e74c3c">🔥 ${attacker.cnName} 燃烧殆尽，失去了火属性!</span>`);
+            return { typeChange: true, lostType: 'Fire' };
+        },
+        description: '强力火系攻击，使用后失去火属性'
+    },
+    // 【电光双击】：强力电系攻击，使用后失去电属性
+    'Double Shock': {
+        onHit: (attacker, defender, damage, logs) => {
+            // 不是电系则失败
+            if (!attacker.types || !attacker.types.includes('Electric')) {
+                logs.push(`但是 ${attacker.cnName} 不是电属性，无法释放电光双击!`);
+                return { failed: true };
+            }
+            // 移除电属性
+            attacker.types = attacker.types.filter(t => t !== 'Electric');
+            if (attacker.types.length === 0) {
+                attacker.types = ['Normal'];
+            }
+            logs.push(`<span style="color:#f1c40f">⚡ ${attacker.cnName} 释放了全部电力，失去了电属性!</span>`);
+            return { typeChange: true, lostType: 'Electric' };
+        },
+        description: '强力电系攻击，使用后失去电属性'
     },
     // ============================================
     // 11. 究极技能：变身 (Transform)
@@ -12414,21 +12845,8 @@ const MoveHandlers = {
         priority: -7,
         description: '5回合内速度慢的先动'
     },
-    'Tailwind': {
-        onUse: (user, target, logs, battle, isPlayer) => {
-            if (!battle) return;
-            const side = isPlayer ? battle.playerSide : battle.enemySide;
-            if (!side) return;
-            if (side.tailwind > 0) {
-                logs.push(`顺风已经在吹了！`);
-                return { failed: true };
-            }
-            side.tailwind = 4; // 持续4回合
-            const sideText = isPlayer ? '我方' : '敌方';
-            logs.push(`<b style="color:#38bdf8">🌬️ ${sideText}刮起了顺风！</b>`);
-        },
-        description: '4回合内我方速度翻倍'
-    },
+    // 【已移除】Tailwind 由 MoveEffects.applySideCondition 统一处理
+    // 避免重复处理导致"成功后又显示失败"的 Bug
     'Reflect': {
         onUse: (user, target, logs, battle, isPlayer) => {
             if (!battle) return;
@@ -14360,65 +14778,213 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 function getDefaultBattleData() {
     return {
+  "mode": "6v6",
   "difficulty": "expert",
-  "script": null,
+  "script": {
+    "backgroundId": "bg_pwt_finals_stage",
+    "bgm": "music_rosa_champion_remix", 
+    "weather": null
+  },
+  // ===================================
+  // PLAYER SIDE: 主角的全明星阵容
+  // ===================================
   "player": {
-    "name": "TEST_Regigigas",
-    "unlocks": { "enable_mega": false, "enable_z_move": false, "enable_dynamax": true, "enable_tera": true },
+    "name": "Challenger",
+    "title": "World Coronation Champ",
+    "avatar": "player_master_style",
+    "unlocks": {
+        "enable_bond": true,         // 对等原则：对抗罗莎的Devotion
+        "enable_styles": true,       // 需要利用迅疾战术破 Delibird 的气腰同命
+        "enable_insight": true,      // 必须开启命中修正，否则打不中回避流君主蛇
+        "enable_mega": true,         // 解锁 Mega 烈咬陆鲨/路卡利欧对抗数值怪
+        "enable_tera": true,
+        "enable_dynamax": false
+    },
     "party": [
       {
-        "name": "Regigigas",
-        "lv": 100,
-        "gender": "N",
-        "item": "Life Orb",
-        "ability": "Slow Start",
-        "//comment": "代码没实现特性=当前为全盛状态。物攻160，速度100。携带生命玉暴力输出。",
-        "moves": ["Crush Grip", "Earthquake", "Thunder Punch", "Drain Punch"],
+        // [MVP 刺客 - 专门处理超高速和气腰]
+        "index": 0,
+        "name": "Meowscarada",
+        "cnName": "魔幻假面喵",
+        "lv": 95,
+        "item": "Focus Sash", // 气腰针对罗莎的高爆发
+        "ability": "Protean (Legacy)",
+        "nature": "Jolly",
+        "moves": ["Flower Trick", "Triple Axel", "U-turn", "Sucker Punch"], 
+        "//comment": "Triple Axel 多段破气腰是打 Emboar 和 Delibird 的神器。",
         "stats_meta": { "ev_level": 252 },
-        "avs": { "kindness": 0, "passion": 200, "insight": 200 }
+        "avs": { "trust": 220, "passion": 220 }
+      },
+      {
+        // [特攻核弹 - 强杀君主蛇]
+        "index": 1,
+        "name": "Delphox",
+        "cnName": "妖火红狐",
+        "lv": 95,
+        "ability": "Magic Guard", 
+        "item": "Life Orb", 
+        "nature": "Timid",
+        "moves": ["Mind Blown", "Psychic", "Mystical Fire", "Dazzling Gleam"],
+        "//comment": "专门留给 Serperior 的。火抗草，魔法火焰降特攻。",
+        "stats_meta": { "ev_level": 252 }
+      },
+      {
+        // [御三家内战 - 水盾]
+        "index": 2,
+        "name": "Primarina",
+        "cnName": "西狮海壬",
+        "lv": 94,
+        "item": "Leftovers",
+        "ability": "Liquid Voice Pro", 
+        "nature": "Modest",
+        "moves": ["Boomburst", "Moonblast", "Calm Mind", "Aqua Jet"],
+        "stats_meta": { "ev_level": 252 }
+      },
+      {
+        // [物理反制 / 终结者]
+        "index": 3,
+        "name": "Lucario",
+        "cnName": "路卡利欧",
+        "lv": 94,
+        "ability": "Justified", 
+        "item": "Lucarionite", // Mega手之一
+        "nature": "Jolly",
+        "moves": ["Close Combat", "Meteor Mash", "Bullet Punch", "Extreme Speed"], 
+        "//comment": "Mega后的适应力(Adaptability)神速，收割合众的脆皮猴子。",
+        "stats_meta": { "ev_level": 252 }
+      },
+      {
+        // [龙神降临 / 应对炎武王]
+        "index": 4,
+        "name": "Garchomp",
+        "cnName": "烈咬陆鲨",
+        "lv": 95,
+        "ability": "Rough Skin",
+        "item": "Rocky Helmet", // 专门让炎武王(Reckless)撞死
+        "nature": "Jolly",
+        "moves": ["Earthquake", "Dragon Claw", "Stealth Rock", "Roar"],
+        "//comment": "Stealth Rock (隐形岩) 对信使鸟和炎武王是毁灭性的打击。Roar 强制要把强化起来的君主蛇吼下去。",
+        "stats_meta": { "ev_level": 252 }
+      },
+      {
+        // [反太晶 / 信仰]
+        "index": 5,
+        "name": "Charizard",
+        "cnName": "喷火龙",
+        "lv": 94,
+        "ability": "Solar Power",
+        "item": "Heavy-Duty Boots", 
+        "mechanic": "tera",
+        "teraType": "Dragon",
+        "nature": "Timid",
+        "moves": ["Flamethrower", "Hurricane", "Tera Blast", "Roost"],
+        "stats_meta": { "ev_level": 252 }
       }
     ]
   },
+  // ===================================
+  // ENEMY SIDE: ROSA 鸣依
+  // ===================================
   "enemy": {
-    "id": "Meta_Slaves",
-    "name": "Tournament Champ",
-    "type": "trainer",
+    "id": "rosa_bw2_final",
+    "name": "Rosa",
+    "title": "Unova Icon",
+    "avatar": "rosa_bw2_animated", 
+    "difficulty": "expert", // AI 不会留情
     "lines": {
-      "start": "Regigigas? That Pokemon is useless garbage! Easy win!",
-      "win": "See? Too slow.",
-      "lose": "Wait... why were you faster than my Urshifu?!",
-      "escape": "Running away?"
+      "start": "合众的宝可梦才不止这点实力！来吧！大家，Full Power!",
+      "ace_damage": "这种程度的伤痕... 只会让君主蛇变得更加高傲！",
+      "ace_faint": "这... 也是一种可能性的未来吗？",
+      "win": "这就是我们的最佳链接！合众最强！",
+      "lose": "好强...！就像N先生和黑次前辈说的那样强！"
     },
-    "unlocks": { "enable_dynamax": false, "enable_tera": true },
+    "unlocks": {
+        "enable_bond": true,         
+        "enable_styles": false,
+        "enable_insight": true,      // 命中率作弊：开启
+        "enable_mega": false,
+        "enable_dynamax": false
+    },
     "party": [
       {
-        "name": "Urshifu-Rapid-Strike",
-        "lv": 80,
-        "gender": "M",
-        "item": "Choice Scarf",
-        "//comment": "恶熊速度种族97。马桶王速度种族100。如果没有没慢启动，马桶王竟然比恶熊快！这是决定性的。",
-        "moves": ["Surging Strikes", "Close Combat", "Aqua Jet", "U-turn"],
-        "stats_meta": { "ev_level": 252 }
+        // 1. [御三家·草 BOSS]Lv.99
+        // 超级回复流 + 唱反调越打越痛
+        "name": "Serperior", 
+        "lv": 99,
+        "item": "Leftovers", 
+        "ability": "Contrary", 
+        "nature": "Timid",
+        "stats_meta": { 
+          "ev_level": 252, // 模拟觉醒数值
+          "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } 
+        },
+        "moves": ["Leaf Storm", "Dragon Pulse", "Glare", "Substitute"],
+        "//ai_logic": "开局若对方威胁小，先 Substitute。否则直接 Leaf Storm 强化。半血以下 Glare 控制。",
+        "avs": { "devotion": 255 } // 疯狂回血
       },
       {
-        "name": "Gholdengo",
-        "lv": 70,
-        "gender": "N",
-        "Item": "Leftovers",
-        "ability": "Good as Gold",
-        "//comment": "赛富豪速度84。会被一发地震直接带走。",
-        "moves": ["Make It Rain", "Shadow Ball", "Nasty Plot", "Recover"],
-        "stats_meta": { "ev_level": 252 }
+        // 2. [御三家·火 敢死队]
+        // 只有气腰才能阻止它的秒杀
+        "name": "Emboar",
+        "lv": 96,
+        "item": "Choice Band", // 攻击 x1.5
+        "ability": "Reckless", // 反伤招式 x1.2
+        "nature": "Brave",
+        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
+        // Head Smash (150岩) = 150 * 1.5 * 1.2 = 270 威力非本系导弹
+        // Flare Blitz (120火) = 120 * 1.5 * 1.2 * 1.5(Stub) = 324 威力本系核弹
+        "moves": ["Flare Blitz", "Superpower", "Head Smash", "Wild Charge"],
+        "avs": { "passion": 255 } // 暴击光环
       },
       {
-        "name": "Ting-Lu",
-        "lv": 75,
-        "gender": "N",
-        "item": "Leftovers",
-        "ability": "Vessel of Ruin",
-        "//comment": "古鼎鹿，超级肉盾。但在 160 物攻的吸收拳下也是血包。",
-        "moves": ["Earthquake", "Ruination", "Stealth Rock", "Whirlwind"],
-        "stats_meta": { "ev_level": 252 }
+        // 3. [冷库杀手]
+        "name": "Simipour", 
+        "lv": 93, 
+        "ability": "Torrent", 
+        "item": "Expert Belt", 
+        "nature": "Timid",
+        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
+        "moves": ["Hydro Pump", "Ice Beam", "Scald", "Taunt"],
+        "//ai_logic": "Taunt 阻止你的队伍强化或撒钉。冰光针对你的地龙。"
+      },
+      {
+        // 4. [御三家·水 收割者]
+        "name": "Samurott",
+        "lv": 96,
+        "item": "Life Orb", 
+        "ability": "Shell Armor", // 稳如老狗，不出意外
+        "nature": "Adamant",
+        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
+        "moves": ["Liquidation", "Aqua Jet", "Knock Off", "Megahorn"],
+        "//ai_logic": "如果对面残血，必用 Aqua Jet (先制) 收人头。"
+      },
+      {
+        // 5. [点火装置]
+        "name": "Simisear", 
+        "lv": 93, 
+        "item": "Focus Sash", // 气腰保证出招
+        "ability": "Blaze", 
+        "nature": "Timid",
+        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
+        "moves": ["Fire Blast", "Grass Knot", "Nasty Plot", "Focus Blast"],
+        "avs": {  "passion": 150 }
+      },
+      {
+        // 6. [GENG 2 奇迹 / 隐藏BOSS]
+        // 圣诞老人来收割你了
+        "name": "Delibird",
+        "lv": 92,
+        "item": "Focus Sash", // 它必须有气腰才能换掉一只
+        "ability": "Hustle",  // 物理伤害 x1.5 (Insight 修正掉命中惩罚)
+        "nature": "Jolly",    // 极速
+        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
+        // 恐怖的 combo:
+        // Insight 让 hustle 不丢失命中。
+        // Destiny Bond (同命) 先手带走慢速怪。
+        // Ice Shard (先制) 抢人头。
+        // Drill Run (钻孔直冲) 在 x1.5 下打钢系极其痛。
+        "moves": ["Ice Shard", "Destiny Bond", "Brave Bird", "Drill Run"],
+        "avs": { "insight": 255 } // 命中修正的核心
       }
     ]
   }
@@ -21599,6 +22165,12 @@ async function handleAttack(moveIndex, options = {}) {
         // ========== 玩家先动 ==========
         console.log('[handleAttack] Player moves first');
         const playerResult = await executePlayerTurn(p, e, playerMove);
+        // 【修复】Post-Move Check: 玩家使用自杀招式后立即处理倒下
+        if (!p.isAlive()) {
+            console.log('[handleAttack] Player fainted after self-KO move in player-first branch');
+            await handlePlayerFainted(p);
+            return;
+        }
         // 【修复】U-turn/Volt Switch 时序：先处理 Pivot 换人，再处理敌方倒下
         // 正作逻辑：即使击杀对手，使用者也必须先换人
         if (playerResult?.pivot && hasAliveSwitch(battle.playerParty, battle.playerActive)) {
@@ -21624,9 +22196,22 @@ async function handleAttack(moveIndex, options = {}) {
             return;
         }
         // ========== 敌方后动（攻击新换入的宝可梦） ==========
+        // 【修复】Pre-Move Check: 检查敌方自己是否还活着（临别礼物/大爆炸等自杀招式）
+        if (!e.isAlive()) {
+            console.log('[handleAttack] Enemy already fainted (self-KO move like Memento), skipping enemy turn');
+            log(`<span style="color:#999">但是 ${e.cnName} 已经倒下了...</span>`);
+            await handleEnemyFainted(e);
+            return;
+        }
         console.log('[handleAttack] Enemy turn starting, move:', enemyMove?.name || enemyMove?.cn);
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
         console.log('[handleAttack] Enemy turn complete');
+        // 【修复】Post-Move Check: 敌方使用自杀招式后立即处理倒下
+        if (!e.isAlive()) {
+            console.log('[handleAttack] Enemy fainted after self-KO move (Memento/Explosion)');
+            await handleEnemyFainted(e);
+            return;
+        }
         // 【修复】敌方 Pivot 也要先处理，再判定玩家倒下
         if (enemyResult?.pivot && hasAliveSwitch(battle.enemyParty, battle.enemyActive)) {
             const oldE = battle.getEnemy();
@@ -21635,10 +22220,12 @@ async function handleAttack(moveIndex, options = {}) {
                 log(`${oldE.cnName} 伏特替换，迅速撤退了!`);
             } else if (moveName === 'Flip Turn') {
                 log(`${oldE.cnName} 快速翻转，撤退了!`);
+            } else if (moveName === 'Baton Pass') {
+                log(`${oldE.cnName} 使用接力棒撤退了!`);
             } else {
                 log(`${oldE.cnName} 打完后急速折返回来了!`);
             }
-            await handleEnemyPivot();
+            await handleEnemyPivot(enemyResult?.passBoosts || false);
             e = battle.getEnemy();
         }
         if (!p.isAlive()) {
@@ -21648,6 +22235,12 @@ async function handleAttack(moveIndex, options = {}) {
     } else {
         // ========== 敌方先动 ==========
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
+        // 【修复】Post-Move Check: 敌方使用自杀招式后立即处理倒下
+        if (!e.isAlive()) {
+            console.log('[handleAttack] Enemy fainted after self-KO move in enemy-first branch');
+            await handleEnemyFainted(e);
+            return;
+        }
         // 【修复】敌方 Pivot 先处理，再判定玩家倒下
         if (enemyResult?.pivot && hasAliveSwitch(battle.enemyParty, battle.enemyActive)) {
             const oldE = battle.getEnemy();
@@ -21656,10 +22249,12 @@ async function handleAttack(moveIndex, options = {}) {
                 log(`${oldE.cnName} 伏特替换，迅速撤退了!`);
             } else if (moveName === 'Flip Turn') {
                 log(`${oldE.cnName} 快速翻转，撤退了!`);
+            } else if (moveName === 'Baton Pass') {
+                log(`${oldE.cnName} 使用接力棒撤退了!`);
             } else {
                 log(`${oldE.cnName} 打完后急速折返回来了!`);
             }
-            await handleEnemyPivot();
+            await handleEnemyPivot(enemyResult?.passBoosts || false);
             e = battle.getEnemy();
         }
         if (!p.isAlive()) {
@@ -21667,7 +22262,40 @@ async function handleAttack(moveIndex, options = {}) {
             return;
         }
         // ========== 玩家后动（攻击新换入的宝可梦） ==========
+        // 【修复】Pre-Move Check: 检查玩家自己是否还活着（临别礼物/大爆炸等自杀招式）
+        if (!p.isAlive()) {
+            console.log('[handleAttack] Player already fainted (self-KO move), skipping player turn');
+            log(`<span style="color:#999">但是 ${p.cnName} 已经倒下了...</span>`);
+            await handlePlayerFainted(p);
+            return;
+        }
+        // 【修复】Pre-Move Check: 检查目标是否还活着（敌方可能用了自杀招式）
+        if (!e.isAlive()) {
+            console.log('[handleAttack] Enemy already fainted before player turn, skipping to faint handling');
+            log(`<span style="color:#999">但是没有目标了...</span>`);
+            await handleEnemyFainted(e);
+            return;
+        }
+        // 【修复】敌方先动后，玩家后动前再次检查 Taunt 等 Volatile 状态
+        // 因为敌方可能在这回合使用了挑衅，阻止玩家使用变化技
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.canUseMove) {
+            const canUseResult = MoveEffects.canUseMove(p, playerMove);
+            if (!canUseResult.canUse) {
+                log(`<span style="color:#e74c3c">${canUseResult.reason}</span>`);
+                await wait(500);
+                // 跳过玩家行动，直接进入回合结算
+                await executeEndPhase(p, e);
+                battle.locked = false;
+                return;
+            }
+        }
         const playerResult = await executePlayerTurn(p, e, playerMove);
+        // 【修复】Post-Move Check: 玩家使用自杀招式后立即处理倒下
+        if (!p.isAlive()) {
+            console.log('[handleAttack] Player fainted after self-KO move in enemy-first branch');
+            await handlePlayerFainted(p);
+            return;
+        }
         // 【修复】玩家 Pivot 先处理，再判定敌方倒下
         if (playerResult?.pivot && hasAliveSwitch(battle.playerParty, battle.playerActive)) {
             const oldP = battle.getPlayer();
@@ -23205,7 +23833,7 @@ function showMegaFormSelectionDialog(pokemon, callback) {
 ]]></file>
     <file name="README.md"><![CDATA[
 # 致谢名单 (Credits & Acknowledgments)
-本项目 **[您的项目名称，如 PKM Battle Engine Web]** 是一个基于 Web 技术的宝可梦对战模拟引擎。本项目的实现离不开开源社区的无私贡献、优秀的资源整理者以及原始版权所有者的创作。
+本项目 是一个基于 Web 技术的宝可梦对战模拟引擎。本项目的实现离不开开源社区的无私贡献、优秀的资源整理者以及原始版权所有者的创作。
 以下是本项目引用的资源列表及致谢。
 ## 🛠️ 核心数据与引擎机制 / Core Data & Mechanics
 本项目的大部分战斗数据、伤害计算公式及基础逻辑高度参考并移植自 **Pokémon Showdown** 项目。
@@ -23240,7 +23868,7 @@ function showMegaFormSelectionDialog(pokemon, callback) {
     *   版权归属于 **Nintendo (任天堂)**, **Game Freak**, **The Pokémon Company** 及原作曲家（一之濑刚, 增田顺一等）。本项目仅做学习与演示用途使用。
 ## ⚖️ 免责声明 / Disclaimer
 **Pokémon®**, **Pokémon Character Names**, **Nintendo®**, **Game Freak**, and **The Pokémon Company** are trademarks of **Nintendo**.
-本项目 (Project Name) 是一个非营利性的、开源的粉丝自制项目 (Fan-made Project)。
+本项目 是一个非营利性的、开源的粉丝自制项目 (Fan-made Project)。
 *   本软件完全免费，不用于任何商业目的。
 *   所有与《宝可梦》相关的原文设定、图像、音频文件的版权均归版权方所有。
 *   如有侵权，请联系开发者删除相关内容。

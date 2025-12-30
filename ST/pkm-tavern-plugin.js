@@ -5219,7 +5219,7 @@ if (typeof window !== 'undefined') {
       
       if (found) {
         extracted.push(found);
-        console.log(`${PLUGIN_NAME} [DEBUG] ✓ 从 ${trainerName} 数据库提取: ${found.name}`);
+        console.log(`${PLUGIN_NAME} [DEBUG] ✓ 从 ${trainerName} 数据库提取: ${found.name}, mechanic: ${found.mechanic || 'null'}`);
       } else {
         // 数据库中找不到，标记为需要生成
         console.warn(`${PLUGIN_NAME} [DEBUG] ✗ 在 ${trainerName} 的队伍中找不到: ${pokemonName}，将根据 tier 生成`);
@@ -6613,6 +6613,7 @@ if (typeof window !== 'undefined') {
               console.log(`${PLUGIN_NAME} [${role}] 为 ${trainerData.name} 生成宝可梦: ${p.name} (Tier ${pokemonTier}, ${isWild ? '野生' : '自定义NPC'})`);
               return generateWildPokemon(p, pokemonTier, !isWild);
             }
+            console.log(`${PLUGIN_NAME} [${role}] 使用数据库数据: ${p.name}, mechanic: ${p.mechanic || 'null'}, _needGenerate: ${p._needGenerate}`);
             return p;
           });
         }
@@ -6683,6 +6684,13 @@ if (typeof window !== 'undefined') {
       console.log(`${PLUGIN_NAME} [${role}] 训练家 unlocks:`, trainerUnlocks);
       console.log(`${PLUGIN_NAME} [${role}] 自动检测 unlocks:`, autoDetectedUnlocks);
       console.log(`${PLUGIN_NAME} [${role}] 最终合并 unlocks:`, mergedUnlocks);
+      
+      // 调试：检查 finalParty 中的 mechanic 字段
+      finalParty.forEach(p => {
+        if (p.mechanic) {
+          console.log(`${PLUGIN_NAME} [${role}] finalParty 中 ${p.name} 的 mechanic: ${p.mechanic}`);
+        }
+      });
       
       return {
         name: trainerName,

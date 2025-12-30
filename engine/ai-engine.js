@@ -161,6 +161,23 @@ function getHardAiMove(attacker, defender, aiParty = null) {
     const rankedMoves = rankMovesByScore(attacker, defender, aiParty);
     if (rankedMoves.length === 0) return attacker.moves[0];
     
+    // 【修复】极巨化时，如果最高分招式是免疫的攻击招式（-9999），优先选择 Max Guard
+    // Max Guard 是变化技转换的极巨招式，至少能保护自己
+    if (attacker.isDynamaxed && rankedMoves[0].score <= -9000) {
+        // 找到 Max Guard（变化技转换的极巨招式）
+        const maxGuard = rankedMoves.find(r => r.move.name === 'Max Guard');
+        if (maxGuard) {
+            console.log(`[AI FIX] 极巨化状态下所有攻击招式对目标免疫，选择 Max Guard`);
+            return maxGuard.move;
+        }
+        // 如果没有 Max Guard，选择评分最高的非攻击招式
+        const nonAttack = rankedMoves.find(r => r.score > -9000);
+        if (nonAttack) {
+            console.log(`[AI FIX] 极巨化状态下攻击招式免疫，选择: ${nonAttack.move.name}`);
+            return nonAttack.move;
+        }
+    }
+    
     return rankedMoves[0].move;
 }
 
@@ -2017,7 +2034,8 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         }
         
         // 守住类 - 考虑连续使用惩罚
-        const protectMoves = MC.AI_PROTECT_MOVES || ['Protect', 'Detect', 'King\'s Shield', 'Spiky Shield', 'Baneful Bunker', 'Obstruct', 'Silk Trap'];
+        // 【修复】添加 Max Guard（极巨化时变化技转换的守住招式）
+        const protectMoves = MC.AI_PROTECT_MOVES || ['Protect', 'Detect', 'King\'s Shield', 'Spiky Shield', 'Baneful Bunker', 'Obstruct', 'Silk Trap', 'Max Guard'];
         if (protectMoves.includes(moveName)) {
             // 检查连续使用惩罚
             const protectCounter = attacker.protectCounter || 0;
