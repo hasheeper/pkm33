@@ -28,226 +28,119 @@
  */
 function getDefaultBattleData() {
     return {
-  "mode": "6v6",
+  "mode": "1v1",
   "difficulty": "expert",
   
   "script": {
-    "backgroundId": "bg_pwt_finals_stage",
-    "bgm": "music_rosa_champion_remix", 
-    "weather": null
+    "backgroundId": "bg_gym_fighting",
+    "bgm": "battle_gym_leader", 
+    "battleMsg": "对手看穿了'球'类技能的轨迹！"
   },
 
   // ===================================
-  // PLAYER SIDE: 主角的全明星阵容
+  // PLAYER SIDE: 幽灵系特攻手
   // ===================================
   "player": {
-    "name": "Challenger",
-    "title": "World Coronation Champ",
-    "avatar": "player_master_style",
+    "name": "Ghost Hunter",
+    "title": "Elite Trainer",
+    "avatar": "visual_hex_maniac",
     
     "unlocks": {
-        "enable_bond": true,         // 对等原则：对抗罗莎的Devotion
-        "enable_styles": true,       // 需要利用迅疾战术破 Delibird 的气腰同命
-        "enable_insight": true,      // 必须开启命中修正，否则打不中回避流君主蛇
-        "enable_mega": true,         // 解锁 Mega 烈咬陆鲨/路卡利欧对抗数值怪
+        "enable_bond": false,
+        "enable_styles": true,       
+        "enable_insight": false,
+        "enable_mega": true,         // 允许 Mega 进化改变战局
         "enable_tera": true,
         "enable_dynamax": false
     },
 
     "party": [
       {
-        // [MVP 刺客 - 专门处理超高速和气腰]
         "index": 0,
-        "name": "Meowscarada",
-        "cnName": "魔幻假面喵",
-        "lv": 95,
-        "item": "Focus Sash", // 气腰针对罗莎的高爆发
-        "ability": "Protean (Legacy)",
-        "nature": "Jolly",
-        "moves": ["Flower Trick", "Triple Axel", "U-turn", "Sucker Punch"], 
-        "//comment": "Triple Axel 多段破气腰是打 Emboar 和 Delibird 的神器。",
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 220, "passion": 220 }
-      },
-      {
-        // [特攻核弹 - 强杀君主蛇]
-        "index": 1,
-        "name": "Delphox",
-        "cnName": "妖火红狐",
-        "lv": 95,
-        "ability": "Magic Guard", 
-        "item": "Life Orb", 
+        "name": "Gengar",
+        "cnName": "耿鬼",
+        "lv": 50,
+        "item": "Gengarite",  // 携带了 Mega 石
+        "ability": "Cursed Body", 
         "nature": "Timid",
-        "moves": ["Mind Blown", "Psychic", "Mystical Fire", "Dazzling Gleam"],
-        "//comment": "专门留给 Serperior 的。火抗草，魔法火焰降特攻。",
-        "stats_meta": { "ev_level": 252 }
-      },
-      {
-        // [御三家内战 - 水盾]
-        "index": 2,
-        "name": "Primarina",
-        "cnName": "西狮海壬",
-        "lv": 94,
-        "item": "Leftovers",
-        "ability": "Liquid Voice Pro", 
-        "nature": "Modest",
-        "moves": ["Boomburst", "Moonblast", "Calm Mind", "Aqua Jet"],
-        "stats_meta": { "ev_level": 252 }
-      },
-      {
-        // [物理反制 / 终结者]
-        "index": 3,
-        "name": "Lucario",
-        "cnName": "路卡利欧",
-        "lv": 94,
-        "ability": "Justified", 
-        "item": "Lucarionite", // Mega手之一
-        "nature": "Jolly",
-        "moves": ["Close Combat", "Meteor Mash", "Bullet Punch", "Extreme Speed"], 
-        "//comment": "Mega后的适应力(Adaptability)神速，收割合众的脆皮猴子。",
-        "stats_meta": { "ev_level": 252 }
-      },
-      {
-        // [龙神降临 / 应对炎武王]
-        "index": 4,
-        "name": "Garchomp",
-        "cnName": "烈咬陆鲨",
-        "lv": 95,
-        "ability": "Rough Skin",
-        "item": "Rocky Helmet", // 专门让炎武王(Reckless)撞死
-        "nature": "Jolly",
-        "moves": ["Earthquake", "Dragon Claw", "Stealth Rock", "Roar"],
-        "//comment": "Stealth Rock (隐形岩) 对信使鸟和炎武王是毁灭性的打击。Roar 强制要把强化起来的君主蛇吼下去。",
-        "stats_meta": { "ev_level": 252 }
-      },
-      {
-        // [反太晶 / 信仰]
-        "index": 5,
-        "name": "Charizard",
-        "cnName": "喷火龙",
-        "lv": 94,
-        "ability": "Solar Power",
-        "item": "Heavy-Duty Boots", 
-        "mechanic": "tera",
-        "teraType": "Dragon",
-        "nature": "Timid",
-        "moves": ["Flamethrower", "Hurricane", "Tera Blast", "Roost"],
-        "stats_meta": { "ev_level": 252 }
+        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
+        
+        // 【陷阱配置】
+        // 这是一个非常经典的萌新杀手配招。
+        // 看起来打击面还可以，但在特定特性面前会完全哑火。
+        "moves": [
+            "Shadow Ball",   // 暗影球 (鬼) - 有效但被防弹免疫
+            "Sludge Bomb",   // 污泥炸弹 (毒) - 本系克制，但因为也是Bomb类及其被防弹免疫
+            "Focus Blast",   // 真气弹 (斗) - 很多耿鬼带这个补盲，但Blast也是球类，免疫！
+            "Dazzling Gleam" // 魔法闪耀 (妖) - 非球类技能 (唯一解！或者 Mega 后赌踩影换其他机制？不，仅仅是由于 Mega 提升了特攻暴力突破)
+        ]
       }
     ]
   },
 
   // ===================================
-  // ENEMY SIDE: ROSA 鸣依
+  // ENEMY SIDE: “防弹”要塞图
   // ===================================
   "enemy": {
-    "id": "rosa_bw2_final",
-    "name": "Rosa",
-    "title": "Unova Icon",
-    "avatar": "rosa_bw2_animated", 
-    "difficulty": "expert", // AI 不会留情
+    "id": "veteran_wikstrom",
+    "name": "Wikstrom",
+    "title": "Anti-Ball Expert",
+    "avatar": "elite_four_wikstrom", 
+    "difficulty": "expert",
 
     "lines": {
-      "start": "合众的宝可梦才不止这点实力！来吧！大家，Full Power!",
-      "ace_damage": "这种程度的伤痕... 只会让君主蛇变得更加高傲！",
-      "ace_faint": "这... 也是一种可能性的未来吗？",
-      "win": "这就是我们的最佳链接！合众最强！",
-      "lose": "好强...！就像N先生和黑次前辈说的那样强！"
+      "start": "不论是炮弹还是暗影之球，我的铠甲都坚不可摧！",
+      "win": "看来你的火力还无法穿透名为‘特性’的绝对防御。",
+      "lose": "什么？竟然绕过了正面的防御判定？！",
+      "ability_trigger": "哼... 这种球技对防弹铠甲是无效的！"
     },
 
+    // 敌人不需要花里胡哨的解锁，只需要硬数值和特性
     "unlocks": {
-        "enable_bond": true,         
-        "enable_styles": false,
-        "enable_insight": true,      // 命中率作弊：开启
+        "enable_bond": false,         
+        "enable_styles": true,
+        "enable_insight": true, // 增加他的回避底数，更难打
         "enable_mega": false,
         "enable_dynamax": false
     },
 
     "party": [
       {
-        // 1. [御三家·草 BOSS]Lv.99
-        // 超级回复流 + 唱反调越打越痛
-        "name": "Serperior", 
-        "lv": 99,
-        "item": "Leftovers", 
-        "ability": "Contrary", 
-        "nature": "Timid",
-        "stats_meta": { 
-          "ev_level": 252, // 模拟觉醒数值
-          "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } 
-        },
-        "moves": ["Leaf Storm", "Dragon Pulse", "Glare", "Substitute"],
-        "//ai_logic": "开局若对方威胁小，先 Substitute。否则直接 Leaf Storm 强化。半血以下 Glare 控制。",
-        "avs": { "devotion": 255 } // 疯狂回血
-      },
-      {
-        // 2. [御三家·火 敢死队]
-        // 只有气腰才能阻止它的秒杀
-        "name": "Emboar",
-        "lv": 96,
-        "item": "Choice Band", // 攻击 x1.5
-        "ability": "Reckless", // 反伤招式 x1.2
-        "nature": "Brave",
-        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
-        // Head Smash (150岩) = 150 * 1.5 * 1.2 = 270 威力非本系导弹
-        // Flare Blitz (120火) = 120 * 1.5 * 1.2 * 1.5(Stub) = 324 威力本系核弹
-        "moves": ["Flare Blitz", "Superpower", "Head Smash", "Wild Charge"],
-        "avs": { "passion": 255 } // 暴击光环
-      },
-      {
-        // 3. [冷库杀手]
-        "name": "Simipour", 
-        "lv": 93, 
-        "ability": "Torrent", 
-        "item": "Expert Belt", 
-        "nature": "Timid",
-        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
-        "moves": ["Hydro Pump", "Ice Beam", "Scald", "Taunt"],
-        "//ai_logic": "Taunt 阻止你的队伍强化或撒钉。冰光针对你的地龙。"
-      },
-      {
-        // 4. [御三家·水 收割者]
-        "name": "Samurott",
-        "lv": 96,
-        "item": "Life Orb", 
-        "ability": "Shell Armor", // 稳如老狗，不出意外
-        "nature": "Adamant",
-        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
-        "moves": ["Liquidation", "Aqua Jet", "Knock Off", "Megahorn"],
-        "//ai_logic": "如果对面残血，必用 Aqua Jet (先制) 收人头。"
-      },
-      {
-        // 5. [点火装置]
-        "name": "Simisear", 
-        "lv": 93, 
-        "item": "Focus Sash", // 气腰保证出招
-        "ability": "Blaze", 
-        "nature": "Timid",
-        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
-        "moves": ["Fire Blast", "Grass Knot", "Nasty Plot", "Focus Blast"],
-        "avs": {  "passion": 150 }
-      },
-      {
-        // 6. [GENG 2 奇迹 / 隐藏BOSS]
-        // 圣诞老人来收割你了
-        "name": "Delibird",
-        "lv": 92,
-        "item": "Focus Sash", // 它必须有气腰才能换掉一只
-        "ability": "Hustle",  // 物理伤害 x1.5 (Insight 修正掉命中惩罚)
-        "nature": "Jolly",    // 极速
-        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
+        // [绝对防御墙 - 防弹布里卡隆]
+        "index": 0,
+        "name": "Chesnaught",
+        "cnName": "布里卡隆",
+        // Lv.55 稍微压制你 Lv.50，让你不能依赖等级碾压
+        "lv": 55, 
+        "item": "Leftovers",     // 剩饭回血
+        "ability": "Bulletproof", // 【核心机制】免疫球/弹类技能
+        "nature": "Impish",      //  加物防，特防修正一般，引诱你用特攻打
         
-        // 恐怖的 combo:
-        // Insight 让 hustle 不丢失命中。
-        // Destiny Bond (同命) 先手带走慢速怪。
-        // Ice Shard (先制) 抢人头。
-        // Drill Run (钻孔直冲) 在 x1.5 下打钢系极其痛。
-        "moves": ["Ice Shard", "Destiny Bond", "Brave Bird", "Drill Run"],
-        "avs": { "insight": 255 } // 命中修正的核心
+        // 努力值为全耐久向，让你用 Dazzling Gleam 这种非本系也要打几下
+        "stats_meta": { 
+            "evs": { "hp": 252, "atk": 4, "def": 128, "spa": 0, "spd": 124, "spe": 0 }
+        },
+
+        // AVs 系统：高度信赖(加硬度) + Devotion (回血)
+        // 让你即使换了技能也像是在打BOSS
+        "avs": { 
+            "trust": 200,    // 极高概率锁血 1HP
+            "devotion": 150  // 偶尔解除异常并回血
+        }, 
+
+        "moves": [
+            "Leech Seed",    // 寄生种子 - 让你掉血回他血，增加在此场战斗的时长
+            "Spiky Shield",  // 尖刺防守 - 摸我就扣血
+            "Body Press",    // 扑击 - 用超高的物防计算伤害
+            "Synthesis"      // 光合作用 - 绝望的回复
+        ],
+        
+        "//ai_logic": "这是一道考题。如果玩家一直用 Shadow Ball / Sludge Bomb，就在他们PP耗尽前磨死他们。"
       }
     ]
   }
 }
+
 
 
 

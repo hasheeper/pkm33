@@ -1070,12 +1070,22 @@ function calcDamage(attacker, defender, move) {
     const ignoresAbilities = moldBreakerAbilities.includes(attackerAbilityId) || 
                              moldBreakerMoves.includes(moveId);
     
-    // === 特性免疫判定 Hook (漂浮、避雷针、引火等) ===
+    // === 特性免疫判定 Hook (漂浮、避雷针、引火、防弹、隔音等) ===
     // 【破格】如果攻击方有破格系特性/招式，则跳过防御方特性免疫检查
     if (!ignoresAbilities && typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
         const ahDef = AbilityHandlers[defender.ability];
-        if (ahDef.onImmunity && ahDef.onImmunity(move.type)) {
+        // 【修复】传递 move 对象，让 Bulletproof/Soundproof/Overcoat 等特性能检查招式名称
+        if (ahDef.onImmunity && ahDef.onImmunity(move.type, move)) {
+            console.log(`[ABILITY IMMUNE] ${defender.cnName} 的 ${defender.ability} 免疫了 ${move.name}！`);
             return { damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true, abilityImmune: defender.ability };
+        }
+        // 【新增】onTryHit 钩子：先制免疫(Dazzling/Queenly Majesty/Armor Tail)、黄金之躯(Good as Gold)
+        if (ahDef.onTryHit) {
+            const tryHitResult = ahDef.onTryHit(attacker, defender, move);
+            if (tryHitResult && tryHitResult.blocked) {
+                console.log(`[ABILITY BLOCK] ${tryHitResult.message || defender.ability + ' 阻止了攻击'}`);
+                return { damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true, abilityImmune: defender.ability };
+            }
         }
     }
     if (ignoresAbilities && defender.ability) {

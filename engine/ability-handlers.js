@@ -1211,6 +1211,127 @@ const AbilityHandlers = {
     },
     'Turboblaze': {
         ignoreAbility: true
+    },
+
+    // ============================================
+    // P. 重要补充 - 先制免疫 & 黄金之躯
+    // ============================================
+
+    // 【鲜艳之躯】免疫先制攻击
+    'Dazzling': {
+        onTryHit: (attacker, defender, move) => {
+            if (move.priority && move.priority > 0) {
+                return { blocked: true, message: `${defender.cnName} 的特性让先制攻击无效了！` };
+            }
+            return { blocked: false };
+        }
+    },
+
+    // 【女王的威严】免疫先制攻击
+    'Queenly Majesty': {
+        onTryHit: (attacker, defender, move) => {
+            if (move.priority && move.priority > 0) {
+                return { blocked: true, message: `${defender.cnName} 的威严让对手无法使出先制招式！` };
+            }
+            return { blocked: false };
+        }
+    },
+
+    // 【尾甲】免疫先制攻击
+    'Armor Tail': {
+        onTryHit: (attacker, defender, move) => {
+            if (move.priority && move.priority > 0) {
+                return { blocked: true, message: `${defender.cnName} 的铠甲之尾挡下了先制攻击！` };
+            }
+            return { blocked: false };
+        }
+    },
+
+    // 【黄金之躯】免疫变化招式 (赛富豪专属)
+    'Good as Gold': {
+        onTryHit: (attacker, defender, move) => {
+            if (move.cat === 'status' || move.category === 'Status') {
+                return { blocked: true, message: `${defender.cnName} 的黄金之躯免疫了变化招式！` };
+            }
+            return { blocked: false };
+        }
+    },
+
+    // 【乘风】免疫风类招式+攻击+1
+    'Wind Rider': {
+        onImmunity: (atkType, move) => {
+            const windMoves = [
+                'Aeroblast', 'Air Cutter', 'Air Slash', 'Bleakwind Storm', 'Blizzard', 
+                'Fairy Wind', 'Gust', 'Heat Wave', 'Hurricane', 'Icy Wind', 
+                'Petal Blizzard', 'Springtide Storm', 'Tailwind', 
+                'Twister', 'Whirlwind', 'Wildbolt Storm'
+            ];
+            if (move && windMoves.includes(move.name)) return true;
+            return false;
+        }
+    },
+
+    // ============================================
+    // Q. 补充 - 特定能力保护 & 换人保护
+    // ============================================
+
+    // 【怪力钳】防止攻击降低
+    'Hyper Cutter': {
+        onTryBoost: (boost, pokemon, source, stat) => {
+            if (stat === 'atk' && boost < 0 && source !== pokemon) return 0;
+            return boost;
+        }
+    },
+
+    // 【健壮胸肌】防止防御降低
+    'Big Pecks': {
+        onTryBoost: (boost, pokemon, source, stat) => {
+            if (stat === 'def' && boost < 0 && source !== pokemon) return 0;
+            return boost;
+        }
+    },
+
+    // 【锐利目光】防止命中率降低 + 忽略对方闪避
+    'Keen Eye': {
+        onTryBoost: (boost, pokemon, source, stat) => {
+            if (stat === 'accuracy' && boost < 0 && source !== pokemon) return 0;
+            return boost;
+        },
+        ignoreEvasion: true
+    },
+
+    // 【镜甲】反射能力下降（简化：仅免疫）
+    'Mirror Armor': {
+        onTryBoost: (boost, pokemon, source, stat) => {
+            if (boost < 0 && source !== pokemon) return 0;
+            return boost;
+        }
+    },
+
+    // 【吸盘】防止被吼叫/龙尾强制换下
+    'Suction Cups': {
+        preventPhazing: true
+    },
+
+    // 【黏着】防止道具被偷/被拍落
+    'Sticky Hold': {
+        preventItemTheft: true
+    },
+
+    // 【精神力】防止畏缩
+    'Inner Focus': {
+        preventFlinch: true
+    },
+
+    // 【我行我素】防止混乱
+    'Own Tempo': {
+        onImmunityStatus: (status) => status === 'confusion'
+    },
+
+    // 【迟钝】防止被挑衅和挑拨
+    'Oblivious': {
+        preventTaunt: true,
+        preventAttract: true
     }
 };
 
