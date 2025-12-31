@@ -516,15 +516,9 @@ async function handleAttack(moveIndex, options = {}) {
     if (battle.locked) return;
     battle.locked = true;
     
-    // 【古武系统】回合开始时递减冷却（简化逻辑：使用后下一回合不能用，下下回合可以用）
-    if (battle.playerStyleCooldown > 0) {
-        battle.playerStyleCooldown--;
-        console.log(`[STYLES] 玩家风格冷却递减: ${battle.playerStyleCooldown + 1} -> ${battle.playerStyleCooldown}`);
-        updateStyleButtonCooldown();
-    }
-    if (battle.enemyStyleCooldown > 0) {
-        battle.enemyStyleCooldown--;
-        console.log(`[STYLES] 敌方风格冷却递减: ${battle.enemyStyleCooldown + 1} -> ${battle.enemyStyleCooldown}`);
+    // 【统一回合开始处理】调用 battle-turns.js 中的 onTurnStart
+    if (typeof window.onTurnStart === 'function') {
+        window.onTurnStart();
     }
     
     // 保存 Mega 预备状态（在 showMainMenu 重置之前）
@@ -725,9 +719,18 @@ async function handleAttack(moveIndex, options = {}) {
             const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1) + '-Gmax';
             p.name = formattedName;
             
-            // 重新翻译 G-Max 形态名称
+            // 【强制修正】G-Max 形态中文名：优先翻译，回退时强制加"超极巨"前缀
             if (window.Locale) {
-                p.cnName = window.Locale.get(formattedName);
+                const translatedName = window.Locale.get(formattedName);
+                // 检查是否成功翻译（翻译后不等于原名，且不等于基础形态名）
+                const baseTranslated = window.Locale.get(baseName.charAt(0).toUpperCase() + baseName.slice(1));
+                if (translatedName !== formattedName && translatedName !== baseTranslated) {
+                    // 成功翻译到 G-Max 形态（如 "超极巨喷火龙"）
+                    p.cnName = translatedName;
+                } else {
+                    // 翻译失败，强制添加"超极巨"前缀
+                    p.cnName = '超极巨' + baseTranslated;
+                }
             } else {
                 p.cnName = formattedName;
             }
@@ -751,6 +754,8 @@ async function handleAttack(moveIndex, options = {}) {
         p.dynamaxTurns = 3; // 3 回合后变回
         p.preDynamaxMaxHp = oldMaxHp;
         p.preDynamaxCurrHp = oldCurrHp;
+        // 玩家极巨化是在自己回合激活的，不需要 justActivated 标记
+        // 因为激活后会立即行动，然后回合结束时正常 tick
         
         // 【关键】招式转换为极巨招式
         applyDynamaxState(p, true);
@@ -892,9 +897,18 @@ async function handleAttack(moveIndex, options = {}) {
                 const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1) + '-Gmax';
                 e.name = formattedName;
                 
-                // 重新翻译 G-Max 形态名称
+                // 【强制修正】G-Max 形态中文名：优先翻译，回退时强制加"超极巨"前缀
                 if (window.Locale) {
-                    e.cnName = window.Locale.get(formattedName);
+                    const translatedName = window.Locale.get(formattedName);
+                    // 检查是否成功翻译（翻译后不等于原名，且不等于基础形态名）
+                    const baseTranslated = window.Locale.get(baseName.charAt(0).toUpperCase() + baseName.slice(1));
+                    if (translatedName !== formattedName && translatedName !== baseTranslated) {
+                        // 成功翻译到 G-Max 形态（如 "超极巨喷火龙"）
+                        e.cnName = translatedName;
+                    } else {
+                        // 翻译失败，强制添加"超极巨"前缀
+                        e.cnName = '超极巨' + baseTranslated;
+                    }
                 } else {
                     e.cnName = formattedName;
                 }
@@ -1504,6 +1518,12 @@ async function handleAttack(moveIndex, options = {}) {
         if (!p.isAlive()) {
             console.log('[handleAttack] Player fainted after self-KO move in player-first branch');
             await handlePlayerFainted(p);
+            // 【修复】玩家自杀招式后倒下，仍需执行回合末结算（敌方极巨化 tick 等）
+            const newP = battle.getPlayer();
+            const currentE = battle.getEnemy();
+            if (newP && newP.isAlive() && currentE && currentE.isAlive()) {
+                await executeEndPhase(newP, currentE);
+            }
             return;
         }
         
@@ -1530,6 +1550,11 @@ async function handleAttack(moveIndex, options = {}) {
         // 敌方倒下判定（在 pivot 换人之后）
         if (!e.isAlive()) {
             await handleEnemyFainted(e);
+            // 【修复】敌方倒下换人后，仍需执行回合末结算（G-Max DOT 等）
+            const newE = battle.getEnemy();
+            if (newE && newE.isAlive()) {
+                await executeEndPhase(p, newE);
+            }
             return;
         }
         
@@ -1572,6 +1597,12 @@ async function handleAttack(moveIndex, options = {}) {
         
         if (!p.isAlive()) {
             await handlePlayerFainted(p);
+            // 【修复】玩家先动分支中，敌方攻击后玩家倒下，仍需执行回合末结算（敌方极巨化 tick 等）
+            const newP = battle.getPlayer();
+            const currentE = battle.getEnemy();
+            if (newP && newP.isAlive() && currentE && currentE.isAlive()) {
+                await executeEndPhase(newP, currentE);
+            }
             return;
         }
     } else {
@@ -1604,6 +1635,12 @@ async function handleAttack(moveIndex, options = {}) {
         
         if (!p.isAlive()) {
             await handlePlayerFainted(p);
+            // 【修复】玩家倒下换人后，仍需执行回合末结算（敌方极巨化 tick 等）
+            const newP = battle.getPlayer();
+            const currentE = battle.getEnemy();
+            if (newP && newP.isAlive() && currentE && currentE.isAlive()) {
+                await executeEndPhase(newP, currentE);
+            }
             return;
         }
         
@@ -1613,6 +1650,12 @@ async function handleAttack(moveIndex, options = {}) {
             console.log('[handleAttack] Player already fainted (self-KO move), skipping player turn');
             log(`<span style="color:#999">但是 ${p.cnName} 已经倒下了...</span>`);
             await handlePlayerFainted(p);
+            // 【修复】玩家倒下换人后，仍需执行回合末结算
+            const newP2 = battle.getPlayer();
+            const currentE2 = battle.getEnemy();
+            if (newP2 && newP2.isAlive() && currentE2 && currentE2.isAlive()) {
+                await executeEndPhase(newP2, currentE2);
+            }
             return;
         }
         
@@ -1644,6 +1687,12 @@ async function handleAttack(moveIndex, options = {}) {
         if (!p.isAlive()) {
             console.log('[handleAttack] Player fainted after self-KO move in enemy-first branch');
             await handlePlayerFainted(p);
+            // 【修复】玩家自杀招式后倒下，仍需执行回合末结算（敌方极巨化 tick 等）
+            const newP = battle.getPlayer();
+            const currentE = battle.getEnemy();
+            if (newP && newP.isAlive() && currentE && currentE.isAlive()) {
+                await executeEndPhase(newP, currentE);
+            }
             return;
         }
         
@@ -1666,6 +1715,11 @@ async function handleAttack(moveIndex, options = {}) {
         
         if (!e.isAlive()) {
             await handleEnemyFainted(e);
+            // 【修复】敌方倒下换人后，仍需执行回合末结算（G-Max DOT 等）
+            const newE = battle.getEnemy();
+            if (newE && newE.isAlive()) {
+                await executeEndPhase(p, newE);
+            }
             return;
         }
     }
@@ -1750,6 +1804,98 @@ async function executeEndPhase(p, e) {
         }
     }
     
+    // =========================================================
+    // G-Max 持续伤害效果 (Wildfire/Vine Lash/Cannonade/Volcalith)
+    // =========================================================
+    const applyGMaxDOT = async (pokemon, side, isPlayer) => {
+        if (!pokemon || !pokemon.isAlive() || !side) return;
+        const types = pokemon.types || [];
+        const dotDamage = Math.max(1, Math.floor(pokemon.maxHp / 6));
+        
+        // G-Max Wildfire (火) - 非火属性受伤
+        if (side.gmaxWildfire && side.gmaxWildfire.turns > 0) {
+            if (!types.includes('Fire')) {
+                pokemon.currHp = Math.max(0, pokemon.currHp - dotDamage);
+                log(`<span style="color:#ef4444">🔥 ${pokemon.cnName} 被地狱灭焰灼烧！(-${dotDamage})</span>`);
+                updateAllVisuals();
+                await wait(300);
+            }
+            side.gmaxWildfire.turns--;
+            if (side.gmaxWildfire.turns <= 0) {
+                log(`<span style="color:#94a3b8">🔥 地狱灭焰消散了。</span>`);
+                delete side.gmaxWildfire;
+            }
+        }
+        
+        // G-Max Vine Lash (草) - 非草属性受伤
+        if (side.gmaxVineLash && side.gmaxVineLash.turns > 0) {
+            if (!types.includes('Grass')) {
+                pokemon.currHp = Math.max(0, pokemon.currHp - dotDamage);
+                log(`<span style="color:#22c55e">🌿 ${pokemon.cnName} 被藤蔓缠绕！(-${dotDamage})</span>`);
+                updateAllVisuals();
+                await wait(300);
+            }
+            side.gmaxVineLash.turns--;
+            if (side.gmaxVineLash.turns <= 0) {
+                log(`<span style="color:#94a3b8">🌿 灰飞鞭灭消散了。</span>`);
+                delete side.gmaxVineLash;
+            }
+        }
+        
+        // G-Max Cannonade (水) - 非水属性受伤
+        if (side.gmaxCannonade && side.gmaxCannonade.turns > 0) {
+            if (!types.includes('Water')) {
+                pokemon.currHp = Math.max(0, pokemon.currHp - dotDamage);
+                log(`<span style="color:#3b82f6">💧 ${pokemon.cnName} 被激流冲击！(-${dotDamage})</span>`);
+                updateAllVisuals();
+                await wait(300);
+            }
+            side.gmaxCannonade.turns--;
+            if (side.gmaxCannonade.turns <= 0) {
+                log(`<span style="color:#94a3b8">💧 水炮轰灭消散了。</span>`);
+                delete side.gmaxCannonade;
+            }
+        }
+        
+        // G-Max Volcalith (岩) - 非岩属性受伤
+        if (side.gmaxVolcalith && side.gmaxVolcalith.turns > 0) {
+            if (!types.includes('Rock')) {
+                pokemon.currHp = Math.max(0, pokemon.currHp - dotDamage);
+                log(`<span style="color:#f97316">�ite ${pokemon.cnName} 被炽热岩石灼伤！(-${dotDamage})</span>`);
+                updateAllVisuals();
+                await wait(300);
+            }
+            side.gmaxVolcalith.turns--;
+            if (side.gmaxVolcalith.turns <= 0) {
+                log(`<span style="color:#94a3b8">🪨 炎石喷发消散了。</span>`);
+                delete side.gmaxVolcalith;
+            }
+        }
+        
+        // 检查是否因 DOT 倒下
+        if (!pokemon.isAlive()) {
+            if (isPlayer) {
+                await handlePlayerFainted(pokemon);
+            } else {
+                await handleEnemyFainted(pokemon);
+            }
+            return true; // 表示有宝可梦倒下
+        }
+        return false;
+    };
+    
+    // 玩家场地的 G-Max DOT (敌方施加的效果作用于玩家)
+    if (p && p.isAlive() && battle.playerSide) {
+        const fainted = await applyGMaxDOT(p, battle.playerSide, true);
+        if (fainted) return;
+    }
+    
+    // 敌方场地的 G-Max DOT (玩家施加的效果作用于敌方)
+    if (e && e.isAlive() && battle.enemySide) {
+        const fainted = await applyGMaxDOT(e, battle.enemySide, false);
+        if (fainted) return;
+    }
+    
     // 增加双方上场回合数（用于 Fake Out 等首回合限制技能）
     // 辅助函数：检查是否为守住类技能（数据驱动）
     const isProtectMove = (moveName) => {
@@ -1825,82 +1971,31 @@ async function executeEndPhase(p, e) {
     // 【古武系统】风格冷却已移至 handleAttack 开始时递减，此处不再处理
     
     // =========================================================
-    // 极巨化回合倒计时 (Dynamax Turn Tick)
+    // 极巨化回合倒计时 (Dynamax Turn Tick) - 统一调用 dynamax.js
     // =========================================================
+    // 玩家极巨化
     if (p && p.isAlive() && p.isDynamaxed && p.dynamaxTurns > 0) {
-        p.dynamaxTurns--;
-        if (p.dynamaxTurns === 0) {
-            // 极巨化结束
-            log(`<b style="color:#94a3b8">⚡ 极巨化能量耗尽了...</b>`);
-            log(`${p.cnName} 变回了原来的样子。`);
-            
-            // 【关键】招式恢复为普通招式
-            applyDynamaxState(p, false);
-            
-            // 恢复原始名称
-            if (p.originalName) {
-                p.name = p.originalName;
-                delete p.originalName;
-            }
-            
-            // 播放收缩动画
+        const result = await processDynamaxEndTurn(p, true, log);
+        result.logs.forEach(msg => log(msg));
+        if (result.ended) {
             await endDynamaxAnimation(p, true);
-            
-            // 切换回原始精灵图
-            const originalSpriteUrl = p.getSprite(true); // true = 背面
+            const originalSpriteUrl = p.getSprite(true);
             smartLoadSprite('player-sprite', originalSpriteUrl, true);
-            
-            // HP 回退（按比例）
-            const hpRatio = p.currHp / p.maxHp;
-            p.maxHp = p.preDynamaxMaxHp || Math.floor(p.maxHp / 1.5);
-            p.currHp = Math.max(1, Math.floor(p.maxHp * hpRatio));
-            
-            // 清除极巨化状态
-            p.isDynamaxed = false;
-            delete p.preDynamaxMaxHp;
-            delete p.preDynamaxCurrHp;
-            
             updateAllVisuals();
             await wait(500);
-        } else {
-            log(`<span style="color:#ff6b8a">[极巨化剩余回合: ${p.dynamaxTurns}]</span>`);
         }
     }
     
-    // 敌方极巨化倒计时
+    // 敌方极巨化
     if (e && e.isAlive() && e.isDynamaxed && e.dynamaxTurns > 0) {
-        e.dynamaxTurns--;
-        if (e.dynamaxTurns === 0) {
-            log(`<b style="color:#94a3b8">⚡ 敌方的极巨化能量耗尽了...</b>`);
-            log(`敌方的 ${e.cnName} 变回了原来的样子。`);
-            
-            // 【关键】招式恢复为普通招式
-            applyDynamaxState(e, false);
-            
-            // 恢复原始名称和精灵图
-            if (e.originalName) {
-                e.name = e.originalName;
-                delete e.originalName;
-            }
-            
+        const result = await processDynamaxEndTurn(e, false, log);
+        result.logs.forEach(msg => log(msg));
+        if (result.ended) {
             await endDynamaxAnimation(e, false);
-            
-            // 切换回原始精灵图
             const originalSpriteUrl = e.getSprite(false);
             smartLoadSprite('enemy-sprite', originalSpriteUrl, false);
-            
-            const hpRatio = e.currHp / e.maxHp;
-            e.maxHp = e.preDynamaxMaxHp || Math.floor(e.maxHp / 1.5);
-            e.currHp = Math.max(1, Math.floor(e.maxHp * hpRatio));
-            
-            e.isDynamaxed = false;
-            delete e.preDynamaxMaxHp;
-            delete e.preDynamaxCurrHp;
-            
             updateAllVisuals();
             await wait(500);
-        } else {
-            log(`<span style="color:#ff6b8a">[敌方极巨化剩余回合: ${e.dynamaxTurns}]</span>`);
         }
     }
     
@@ -1925,6 +2020,9 @@ async function executeEndPhase(p, e) {
     }
 }
 
+// 导出 executeEndPhase 供 battle-switch.js 调用
+window.executeEndPhase = executeEndPhase;
+
 // ============================================
 // 【已迁移】伤害系统 -> battle/battle-damage.js
 // ============================================
@@ -1947,12 +2045,17 @@ function checkPlayerDefeatOrForceSwitch() {
         }
 
         setTimeout(() => battleEndSequence('loss'), 2000);
-        return;
+        return Promise.resolve('loss');
     }
     
-    // 强制换人
+    // 强制换人 - 返回 Promise 等待玩家选择
     battle.phase = 'force_switch';
     renderSwitchMenu(false);
+    
+    // 【关键修复】返回 Promise，等待玩家完成换人
+    return new Promise((resolve) => {
+        battle.forceSwitchResolve = resolve;
+    });
 }
 
 // 渲染切换列表
@@ -2106,6 +2209,12 @@ function renderSwitchMenu(allowCancel = true) {
                 pokespriteId = pokespriteId.replace(/primal$/i, '-primal');
             }
             
+            // Necrozma 特殊形态格式修正 (pokesprite 使用简化格式)
+            // necrozma-dusk-mane -> necrozma-dusk
+            // necrozma-dawn-wings -> necrozma-dawn
+            pokespriteId = pokespriteId.replace(/-dusk-mane$/, '-dusk');
+            pokespriteId = pokespriteId.replace(/-dawn-wings$/, '-dawn');
+            
             imgSrc = `https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/${pokespriteId}.png`;
         } else {
             // 普通形态使用 Showdown sprites（不带横杠）
@@ -2232,8 +2341,8 @@ async function performSwitch(newIndex) {
         if (newPoke.currHp <= 0) {
             log(`糟糕! ${newPoke.cnName} 被场地伤害击倒了!`);
             updateAllVisuals();
-            // 不设置 playerActive，保持原来的索引，让 checkPlayerDefeatOrForceSwitch 正确判断
-            checkPlayerDefeatOrForceSwitch();
+            // 【关键修复】等待强制换人完成
+            await checkPlayerDefeatOrForceSwitch();
             return;
         }
     }
@@ -2282,7 +2391,30 @@ async function performSwitch(newIndex) {
     } else {
         // 强制换人完成后，刷新界面并解锁
         updateAllVisuals();
+        
+        // 【双杀场景修复】如果敌方也刚换人（双杀场景），触发敌方入场特性
+        if (battle.enemyJustSwitchedInDoubleKO) {
+            const newP = battle.getPlayer();
+            const currentE = battle.getEnemy();
+            if (newP && newP.isAlive() && currentE && currentE.isAlive()) {
+                // 触发敌方入场特性（如威吓等）
+                if (typeof triggerEntryAbilities === 'function') {
+                    triggerEntryAbilities(currentE, newP);
+                }
+            }
+            // 清除标记
+            battle.enemyJustSwitchedInDoubleKO = false;
+        }
+        
         battle.locked = false;
+        
+        // 【关键修复】resolve 强制换人 Promise，通知 handlePlayerFainted 换人已完成
+        if (battle.forceSwitchResolve) {
+            console.log('[performSwitch] Resolving forceSwitchResolve');
+            const resolve = battle.forceSwitchResolve;
+            battle.forceSwitchResolve = null;
+            resolve('switched');
+        }
     }
 }
 
@@ -3033,9 +3165,12 @@ window.triggerBattleEvolution = async function() {
         }
         await wait(600);
         
-        // 清理动画类
+        // 清理动画类（保留 player-scale 类）
         if (spriteRef) {
-            spriteRef.className = 'p-sprite loaded';
+            spriteRef.classList.remove('bio-evo-silhouette', 'bio-evo-burst', 'bio-evo-finish');
+            if (!spriteRef.classList.contains('loaded')) {
+                spriteRef.classList.add('loaded');
+            }
         }
         
         log(`……${oldName} 全身包围了耀眼的光芒！`);

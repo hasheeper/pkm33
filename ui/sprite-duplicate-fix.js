@@ -39,7 +39,8 @@
         // 【同步替换】立即创建新元素并替换
         const newImg = document.createElement('img');
         newImg.id = spriteId;
-        newImg.className = 'p-sprite';  // 基础类
+        // 【修复】保留原始类（包括 player-scale）
+        newImg.className = oldImg.className.replace(/loaded|entering|fainted-hidden|fainting/g, '').trim() || 'p-sprite';
         newImg.alt = oldImg.alt || '';
         
         // 设置加载回调

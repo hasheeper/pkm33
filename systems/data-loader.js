@@ -28,118 +28,241 @@
  */
 function getDefaultBattleData() {
     return {
-  "mode": "1v1",
   "difficulty": "expert",
-  
-  "script": {
-    "backgroundId": "bg_gym_fighting",
-    "bgm": "battle_gym_leader", 
-    "battleMsg": "对手看穿了'球'类技能的轨迹！"
+  "script": null,
+
+  "//PLAYER_SECTION": " (Player section kept as is from your prompt) ",
+  "player": {
+    "name": "Red",
+    "unlocks": {
+      "enable_bond": true,
+      "enable_styles": true,
+      "enable_insight": true,
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_dynamax": true,
+      "enable_tera": true
+    },
+    "party": [
+      {
+        "name": "Pikachu-Partner",
+        "lv": 100,
+        "gender": "M",
+        "item": "Pikashunium Z",
+        "mechanic": "zmove",
+        "ability": "Static",
+        "isAce": true,
+        "moves": ["Thunderbolt", "Quick Attack", "Iron Tail", "Electroweb"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "name": "Mewtwo",
+        "lv": 100,
+        "gender": "N",
+        "item": "Mewtwonite Y",
+        "mechanic": "mega",
+        "mega_target": "mewtwomegay",
+        "ability": "Unnerve",
+        "moves": ["Psystrike", "Ice Beam", "Focus Blast", "Recover"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 200, "passion": 200 }
+      },
+      {
+        "name": "Greninja",
+        "lv": 100,
+        "gender": "M",
+        "item": "Choice Specs",
+        "mechanic": null,
+        "ability": "Battle Bond",
+        "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "U-turn"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 220, "insight": 200 }
+      },
+      {
+        "name": "Koraidon",
+        "lv": 100,
+        "gender": "N",
+        "item": "Clear Amulet",
+        "mechanic": "tera",
+        "teraType": "Fire",
+        "ability": "Orichalcum Pulse",
+        "moves": ["Collision Course", "Flare Blitz", "Dragon Claw", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "passion": 255 }
+      },
+      {
+        "name": "Necrozma-Dusk-Mane",
+        "lv": 100,
+        "gender": "N",
+        "item": "Ultranecrozium Z",
+        "mechanic": "mega",
+        "mega_target": "necrozmaultra",
+        "ability": "Prism Armor",
+        "moves": ["Photon Geyser", "Sunsteel Strike", "Earthquake", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "devotion": 200, "trust": 200 }
+      },
+      {
+        "name": "Charizard",
+        "lv": 100,
+        "gender": "M",
+        "nature": "Timid",
+        "item": "Heavy-Duty Boots",
+        "mechanic": "dynamax",
+        "mega_target": "charizardgmax",
+        "ability": "Solar Power",
+        "moves": ["Blast Burn", "Hurricane", "Solar Beam", "Roost"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "passion": 255, "insight": 100 }
+      }
+    ]
   },
 
-  // ===================================
-  // PLAYER SIDE: 幽灵系特攻手
-  // ===================================
-  "player": {
-    "name": "Ghost Hunter",
-    "title": "Elite Trainer",
-    "avatar": "visual_hex_maniac",
-    
+  "//ENEMY_SECTION": "================ 敌方(Gloria)配置 [OPTIMIZED] ==================",
+  "enemy": {
+    "id": "gloria",
+    "name": "Champion Gloria",
+    "title": "Galar Champion",
+    "lines": {
+      "start": "Let's seem them... the bonds we've forged in Galar!",
+      "win": "That was a proper good battle! Let's make some curry to celebrate!",
+      "lose": "What a shocker... You really are strong!",
+      "escape": "Off to camp, are we?",
+      "gmax_trigger": "Time to go big or go home! Dynamax!"
+    },
     "unlocks": {
         "enable_bond": false,
-        "enable_styles": true,       
+        "enable_styles": false,
         "enable_insight": false,
-        "enable_mega": true,         // 允许 Mega 进化改变战局
-        "enable_tera": true,
-        "enable_dynamax": false
-    },
-
-    "party": [
-      {
-        "index": 0,
-        "name": "Gengar",
-        "cnName": "耿鬼",
-        "lv": 50,
-        "item": "Gengarite",  // 携带了 Mega 石
-        "ability": "Cursed Body", 
-        "nature": "Timid",
-        "stats_meta": { "ev_level": 252, "ivs_fixed": 31 },
-        
-        // 【陷阱配置】
-        // 这是一个非常经典的萌新杀手配招。
-        // 看起来打击面还可以，但在特定特性面前会完全哑火。
-        "moves": [
-            "Shadow Ball",   // 暗影球 (鬼) - 有效但被防弹免疫
-            "Sludge Bomb",   // 污泥炸弹 (毒) - 本系克制，但因为也是Bomb类及其被防弹免疫
-            "Focus Blast",   // 真气弹 (斗) - 很多耿鬼带这个补盲，但Blast也是球类，免疫！
-            "Dazzling Gleam" // 魔法闪耀 (妖) - 非球类技能 (唯一解！或者 Mega 后赌踩影换其他机制？不，仅仅是由于 Mega 提升了特攻暴力突破)
-        ]
-      }
-    ]
-  },
-
-  // ===================================
-  // ENEMY SIDE: “防弹”要塞图
-  // ===================================
-  "enemy": {
-    "id": "veteran_wikstrom",
-    "name": "Wikstrom",
-    "title": "Anti-Ball Expert",
-    "avatar": "elite_four_wikstrom", 
-    "difficulty": "expert",
-
-    "lines": {
-      "start": "不论是炮弹还是暗影之球，我的铠甲都坚不可摧！",
-      "win": "看来你的火力还无法穿透名为‘特性’的绝对防御。",
-      "lose": "什么？竟然绕过了正面的防御判定？！",
-      "ability_trigger": "哼... 这种球技对防弹铠甲是无效的！"
-    },
-
-    // 敌人不需要花里胡哨的解锁，只需要硬数值和特性
-    "unlocks": {
-        "enable_bond": false,         
-        "enable_styles": true,
-        "enable_insight": true, // 增加他的回避底数，更难打
         "enable_mega": false,
-        "enable_dynamax": false
+        "enable_z_move": false,
+        "//note": "Gloria is restricted to Dynamax only to match her region gimmick",
+        "enable_dynamax": true,
+        "enable_tera": false
+    }
+  },
+  "party": [
+    {
+      "name": "Zacian-Crowned",
+      "lv": 100,
+      "gender": "N",
+      "nature": "Adamant",
+      "ability": "Intrepid Sword",
+      "item": "Rusted Sword",
+      "isAce": true, 
+      "mechanic": null,
+      "stats_meta": {
+        "is_perfect": true,
+        "ev_level": 252
+      },
+      "moves": [
+        "Behemoth Blade", 
+        "Play Rough", 
+        "Close Combat", 
+        "Swords Dance"
+      ],
+      "avs": { "trust": 255, "passion": 255, "insight": 200, "devotion": 150 }
     },
-
-    "party": [
-      {
-        // [绝对防御墙 - 防弹布里卡隆]
-        "index": 0,
-        "name": "Chesnaught",
-        "cnName": "布里卡隆",
-        // Lv.55 稍微压制你 Lv.50，让你不能依赖等级碾压
-        "lv": 55, 
-        "item": "Leftovers",     // 剩饭回血
-        "ability": "Bulletproof", // 【核心机制】免疫球/弹类技能
-        "nature": "Impish",      //  加物防，特防修正一般，引诱你用特攻打
-        
-        // 努力值为全耐久向，让你用 Dazzling Gleam 这种非本系也要打几下
-        "stats_meta": { 
-            "evs": { "hp": 252, "atk": 4, "def": 128, "spa": 0, "spd": 124, "spe": 0 }
-        },
-
-        // AVs 系统：高度信赖(加硬度) + Devotion (回血)
-        // 让你即使换了技能也像是在打BOSS
-        "avs": { 
-            "trust": 200,    // 极高概率锁血 1HP
-            "devotion": 150  // 偶尔解除异常并回血
-        }, 
-
-        "moves": [
-            "Leech Seed",    // 寄生种子 - 让你掉血回他血，增加在此场战斗的时长
-            "Spiky Shield",  // 尖刺防守 - 摸我就扣血
-            "Body Press",    // 扑击 - 用超高的物防计算伤害
-            "Synthesis"      // 光合作用 - 绝望的回复
-        ],
-        
-        "//ai_logic": "这是一道考题。如果玩家一直用 Shadow Ball / Sludge Bomb，就在他们PP耗尽前磨死他们。"
-      }
-    ]
-  }
+    {
+      "name": "Cinderace",
+      "lv": 100,
+      "gender": "M",
+      "nature": "Jolly",
+      "ability": "Libero",
+      "item": "Life Orb",
+      "mechanic": "dynamax",
+      "//mega_target": "Force G-Max form to access G-Max Fireball (ignores abilities)",
+      "mega_target": "cinderacegmax",
+      "stats_meta": { "ev_level": 252 },
+      "moves": [
+        "Pyro Ball", 
+        "Bounce", 
+        "Court Change", 
+        "Sucker Punch"
+      ],
+      "avs": { "trust": 150, "passion": 230 }
+    },
+    {
+      "name": "Urshifu-Rapid-Strike",
+      "lv": 100,
+      "gender": "M",
+      "nature": "Jolly",
+      "ability": "Unseen Fist",
+      "item": "Focus Sash",
+      "//note": "Changed to Sash to guarantee at least one hit or trade",
+      "mechanic": "dynamax",
+      "mega_target": "urshifugmax",
+      "stats_meta": { "ev_level": 252 },
+      "moves": [
+        "Surging Strikes", 
+        "Close Combat", 
+        "Ice Punch", 
+        "Aqua Jet"
+      ],
+      "avs": { "passion": 180, "trust": 80 }
+    },
+    {
+      "name": "Rillaboom",
+      "lv": 100,
+      "gender": "M",
+      "nature": "Adamant",
+      "ability": "Grassy Surge",
+      "item": "Grassy Seed",
+      "mechanic": "dynamax",
+      "mega_target": "rillaboomgmax",
+      "stats_meta": { "ev_level": 252 },
+      "moves": [
+        "Grassy Glide", 
+        "Drum Beating", 
+        "High Horsepower", 
+        "U-turn"
+      ],
+      "avs": { "devotion": 150 }
+    },
+    {
+      "name": "Corviknight",
+      "lv": 100,
+      "gender": "M",
+      "nature": "Impish",
+      "ability": "Mirror Armor",
+      "item": "Leftovers",
+      "mechanic": "dynamax",
+      "mega_target": "corviknightgmax",
+      "stats_meta": { "ev_level": 252 },
+      "moves": [
+        "Brave Bird", 
+        "Body Press", 
+        "Roost", 
+        "Iron Defense"
+      ],
+      "avs": { "trust": 220, "devotion": 200 }
+    },
+    {
+      "name": "Skwovet",
+      "lv": 100,
+      "gender": "F",
+      "nature": "Relaxed",
+      "ability": "Cheek Pouch",
+      "item": "Sitrus Berry",
+      "mechanic": "dynamax",
+      "//note": "The ultimate defensive wall meme bracket",
+      "stats_meta": { "ev_level": 255 },
+      "moves": [
+        "Super Fang", 
+        "Stuff Cheeks", 
+        "Body Slam", 
+        "Stockpile"
+      ],
+      "avs": { "insight": 255, "devotion": 255, "trust": 255, "passion": 255 }
+    }
+  ]
 }
+
+
+
+
+
 
 
 

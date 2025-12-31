@@ -283,9 +283,12 @@ async function handleEnemyFainted(e) {
         
         // 检查换入的敌方是否需要极巨化
         const enemyUnlocks = battle.enemyUnlocks || {};
+        // 【数据驱动】检查是否有 G-Max 因子
+        const hasGMaxFactor = typeof window.getGMaxFactor === 'function' && window.getGMaxFactor(newE);
         const isNewEnemyDynamax = (newE.mechanic === 'dynamax') || 
                                    (newE.canDynamax && newE.mechanic !== 'mega' && newE.mechanic !== 'tera') ||
-                                   (newE.megaTargetId && newE.megaTargetId.includes('gmax'));
+                                   (newE.megaTargetId && newE.megaTargetId.includes('gmax')) ||
+                                   hasGMaxFactor; // 自动检测 G-Max 因子
         
         if (enemyUnlocks.enable_dynamax && isNewEnemyDynamax && !newE.isDynamaxed && !battle.enemyMaxUsed) {
             battle.enemyMaxUsed = true;
@@ -306,9 +309,31 @@ async function handleEnemyFainted(e) {
                 spriteEl.classList.add('dynamax-burst');
                 await wait(400);
                 
+                // 检查是否有 G-Max 形态（megaTargetId 包含 gmax）
+                // 【关键】通用极巨化 (isGenericDynamax) 不切换图片，只用 CSS 放大
                 const gmaxFormId = newE.megaTargetId;
                 if (gmaxFormId && gmaxFormId.includes('gmax') && !newE.isGenericDynamax) {
-                    newE.name = gmaxFormId.charAt(0).toUpperCase() + gmaxFormId.slice(1);
+                    // [BUG FIX] 格式转换：charizardgmax -> Charizard-Gmax
+                    const baseName = gmaxFormId.replace(/gmax$/i, '');
+                    const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1) + '-Gmax';
+                    newE.name = formattedName;
+                    
+                    // 【强制修正】G-Max 形态中文名：优先翻译，回退时强制加"超极巨"前缀
+                    if (window.Locale) {
+                        const translatedName = window.Locale.get(formattedName);
+                        // 检查是否成功翻译（翻译后不等于原名，且不等于基础形态名）
+                        const baseTranslated = window.Locale.get(baseName.charAt(0).toUpperCase() + baseName.slice(1));
+                        if (translatedName !== formattedName && translatedName !== baseTranslated) {
+                            // 成功翻译到 G-Max 形态（如 "超极巨喷火龙"）
+                            newE.cnName = translatedName;
+                        } else {
+                            // 翻译失败，强制添加"超极巨"前缀
+                            newE.cnName = '超极巨' + baseTranslated;
+                        }
+                    } else {
+                        newE.cnName = formattedName;
+                    }
+                    
                     const gmaxSpriteId = gmaxFormId.replace(/gmax$/i, '-gmax');
                     const gmaxSpriteUrl = `https://play.pokemonshowdown.com/sprites/ani/${gmaxSpriteId}.gif`;
                     if (typeof window.smartLoadSprite === 'function') {
@@ -324,19 +349,25 @@ async function handleEnemyFainted(e) {
                 spriteEl.classList.add('state-dynamax');
             }
             
-            const hpMultiplier = 1.5;
-            newE.maxHp = Math.floor(oldMaxHp * hpMultiplier);
-            newE.currHp = Math.floor(oldCurrHp * hpMultiplier);
-            newE.isDynamaxed = true;
-            newE.dynamaxTurns = 3;
-            newE.preDynamaxMaxHp = oldMaxHp;
-            newE.preDynamaxCurrHp = oldCurrHp;
-            
-            if (typeof window.applyDynamaxState === 'function') {
-                window.applyDynamaxState(newE, true);
+            // 【统一】使用 dynamax.js 的 activateDynamax 函数
+            if (typeof window.activateDynamax === 'function') {
+                const result = window.activateDynamax(newE, { justSwitchedIn: true });
+                log(`<span style="color:#ff6b8a">[敌方极巨化剩余回合: ${newE.dynamaxTurns}]</span>`);
+            } else {
+                // 回退逻辑（如果 dynamax.js 未加载）
+                const hpMultiplier = 1.5;
+                newE.maxHp = Math.floor(oldMaxHp * hpMultiplier);
+                newE.currHp = Math.floor(oldCurrHp * hpMultiplier);
+                newE.isDynamaxed = true;
+                newE.dynamaxTurns = 3;
+                newE.preDynamaxMaxHp = oldMaxHp;
+                newE.preDynamaxCurrHp = oldCurrHp;
+                newE.dynamaxJustActivated = true;
+                if (typeof window.applyDynamaxState === 'function') {
+                    window.applyDynamaxState(newE, true);
+                }
+                log(`<span style="color:#ff6b8a">[敌方极巨化剩余回合: ${newE.dynamaxTurns}]</span>`);
             }
-            
-            log(`<span style="color:#ff6b8a">[敌方极巨化剩余回合: ${newE.dynamaxTurns}]</span>`);
             
             await wait(400);
         }
@@ -350,6 +381,11 @@ async function handleEnemyFainted(e) {
             hazardLogs.forEach(msg => log(msg));
             if (hazardLogs.length > 0) updateAllVisuals();
         }
+        
+        // 【注意】敌方倒下换人后，不在这里执行 executeEndPhase
+        // 因为 handleAttack 中会在 return 之前或之后统一处理回合末结算
+        // 如果在这里调用 executeEndPhase，会导致 G-Max DOT 在换人时立即触发
+        // 而不是等到整个回合结束后触发
         
         battle.locked = false;
     } else {
@@ -391,9 +427,57 @@ async function handlePlayerFainted(p) {
     
     log(`<b style="color:red">糟糕! ${p.cnName} 失去了战斗能力!</b>`);
     
-    // === 【onKill 钩子】敌方击杀后特性触发 (Moxie, Beast Boost 等) ===
+    // === 【修复】检查敌方是否也同时倒下（双杀场景：闪焰冲锋/大爆炸等）===
     const e = battle.getEnemy();
-    if (e && e.isAlive() && e.ability) {
+    if (e && !e.isAlive()) {
+        log(`敌方的 ${e.cnName} 倒下了!`);
+        
+        // 检查战斗是否结束
+        const battleEnd = battle.checkBattleEnd();
+        if (battleEnd === 'win') {
+            log("🏆 <b style='color:#27ae60'>敌方全部战败！你赢了！</b>");
+            const t = battle.trainer;
+            if (t && t.id !== 'wild' && t.lines?.lose) {
+                log(`<i>${t.name}: "${t.lines.lose}"</i>`);
+            }
+            setTimeout(() => {
+                if (typeof window.battleEndSequence === 'function') {
+                    window.battleEndSequence('win');
+                }
+            }, 2000);
+            return;
+        }
+        
+        // 敌方换人
+        await wait(500);
+        if (battle.nextAliveEnemy()) {
+            const newE = battle.getEnemy();
+            log(`敌方派出 <b>${newE.cnName}</b> (Lv.${newE.level})!`);
+            
+            if (typeof window.markEnemySwitch === 'function') {
+                window.markEnemySwitch();
+            }
+            
+            // 加载新敌方精灵图
+            const newSpriteUrl = newE.getSprite(false);
+            if (typeof window.smartLoadSprite === 'function') {
+                window.smartLoadSprite('enemy-sprite', newSpriteUrl, true);
+            }
+            
+            // 播放叫声
+            if (typeof window.playPokemonCry === 'function') {
+                window.playPokemonCry(newE.name);
+            }
+            
+            if (typeof updateAllVisuals === 'function') {
+                updateAllVisuals();
+            }
+            
+            // 【双杀标记】标记敌方刚换人，等玩家换人完成后触发入场特性
+            battle.enemyJustSwitchedInDoubleKO = true;
+        }
+    } else if (e && e.isAlive() && e.ability) {
+        // === 【onKill 钩子】敌方击杀后特性触发 (Moxie, Beast Boost 等) ===
         const abilityId = e.ability;
         if (typeof AbilityHandlers !== 'undefined' && AbilityHandlers[abilityId] && AbilityHandlers[abilityId].onKill) {
             const killLogs = [];
@@ -407,8 +491,10 @@ async function handlePlayerFainted(p) {
     
     await wait(500);
     
+    // 【关键修复】等待强制换人完成，而不是立即返回
     if (typeof window.checkPlayerDefeatOrForceSwitch === 'function') {
-        window.checkPlayerDefeatOrForceSwitch();
+        const result = await window.checkPlayerDefeatOrForceSwitch();
+        console.log('[handlePlayerFainted] Force switch completed with result:', result);
     }
 }
 

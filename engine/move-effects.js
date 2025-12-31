@@ -865,6 +865,15 @@ function applyEntryHazards(pokemon, isPlayer, battle) {
     const logs = [];
     if (!pokemon || !battle) return logs;
     
+    // 【厚底靴 (Heavy-Duty Boots)】免疫所有入场危害
+    const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (itemId === 'heavydutyboots') {
+        console.log(`[Heavy-Duty Boots] ${pokemon.name} 的厚底靴保护了它免受入场危害！`);
+        // 可选：不输出日志，静默免疫
+        // logs.push(`${pokemon.cnName} 的厚底靴保护了它免受陷阱伤害！`);
+        return logs;
+    }
+    
     // 获取对应的场地状态
     const side = isPlayer ? battle.playerSide : battle.enemySide;
     if (!side) return logs;

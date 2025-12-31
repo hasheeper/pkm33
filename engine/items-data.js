@@ -232,6 +232,19 @@ const ITEMS = {
         description: '回合结束时使自己陷入剧毒状态',
     },
     
+    // --- 厚底靴 (Heavy-Duty Boots) ---
+    heavydutyboots: {
+        id: 'heavydutyboots',
+        name: 'Heavy-Duty Boots',
+        cnName: '厚底靴',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 80 },
+        effect: 'heavyDutyBoots',
+        ignoreHazards: true, // 免疫入场危害（岩钉、毒菱、黏黏网等）
+        description: '免疫所有入场危害（隐形岩、撒菱、毒菱、黏黏网）',
+    },
+    
     // --- 红牌 (Red Card) ---
     redcard: {
         id: 'redcard',
@@ -1063,6 +1076,110 @@ const ITEMS = {
         naturalGift: { basePower: 80, type: 'Fairy' },
         description: '受到效果拔群的妖精属性招式时伤害减半',
     },
+
+    // --- 危机强化树果 (Pinch Berries) ---
+    liechiberry: {
+        id: 'liechiberry',
+        name: 'Liechi Berry',
+        cnName: '枝荔果',
+        category: 'berry',
+        consumable: true,
+        isBerry: true,
+        effect: 'pinchBoost',
+        statBoost: { atk: 1 },
+        triggerHP: 0.25,
+        naturalGift: { basePower: 100, type: 'Grass' },
+        description: 'HP降到1/4以下时攻击+1级',
+    },
+    ganlonberry: {
+        id: 'ganlonberry',
+        name: 'Ganlon Berry',
+        cnName: '龙睛果',
+        category: 'berry',
+        consumable: true,
+        isBerry: true,
+        effect: 'pinchBoost',
+        statBoost: { def: 1 },
+        triggerHP: 0.25,
+        naturalGift: { basePower: 100, type: 'Ice' },
+        description: 'HP降到1/4以下时防御+1级',
+    },
+    salacberry: {
+        id: 'salacberry',
+        name: 'Salac Berry',
+        cnName: '沙鳞果',
+        category: 'berry',
+        consumable: true,
+        isBerry: true,
+        effect: 'pinchBoost',
+        statBoost: { spe: 1 },
+        triggerHP: 0.25,
+        naturalGift: { basePower: 100, type: 'Fighting' },
+        description: 'HP降到1/4以下时速度+1级',
+    },
+    petayaberry: {
+        id: 'petayaberry',
+        name: 'Petaya Berry',
+        cnName: '龙火果',
+        category: 'berry',
+        consumable: true,
+        isBerry: true,
+        effect: 'pinchBoost',
+        statBoost: { spa: 1 },
+        triggerHP: 0.25,
+        naturalGift: { basePower: 100, type: 'Poison' },
+        description: 'HP降到1/4以下时特攻+1级',
+    },
+    apicotberry: {
+        id: 'apicotberry',
+        name: 'Apicot Berry',
+        cnName: '杏仔果',
+        category: 'berry',
+        consumable: true,
+        isBerry: true,
+        effect: 'pinchBoost',
+        statBoost: { spd: 1 },
+        triggerHP: 0.25,
+        naturalGift: { basePower: 100, type: 'Ground' },
+        description: 'HP降到1/4以下时特防+1级',
+    },
+    starfberry: {
+        id: 'starfberry',
+        name: 'Starf Berry',
+        cnName: '星桃果',
+        category: 'berry',
+        consumable: true,
+        isBerry: true,
+        effect: 'pinchBoostRandom',
+        boostAmount: 2, // 随机一项+2
+        triggerHP: 0.25,
+        naturalGift: { basePower: 100, type: 'Psychic' },
+        description: 'HP降到1/4以下时随机一项能力+2级',
+    },
+    lansatberry: {
+        id: 'lansatberry',
+        name: 'Lansat Berry',
+        cnName: '兰萨果',
+        category: 'berry',
+        consumable: true,
+        isBerry: true,
+        effect: 'pinchCrit',
+        triggerHP: 0.25,
+        naturalGift: { basePower: 100, type: 'Flying' },
+        description: 'HP降到1/4以下时进入聚气状态（容易击中要害）',
+    },
+    custapberry: {
+        id: 'custapberry',
+        name: 'Custap Berry',
+        cnName: '释陀果',
+        category: 'berry',
+        consumable: true,
+        isBerry: true,
+        effect: 'pinchPriority',
+        triggerHP: 0.25,
+        naturalGift: { basePower: 100, type: 'Ghost' },
+        description: 'HP降到1/4以下时下一次行动获得先制',
+    },
     
     // ========== 神兽专属道具 ==========
     
@@ -1342,6 +1459,133 @@ const ItemEffects = {
         }
         
         return ball.catchRate || 1;
+    },
+
+    /**
+     * 检查抗性树果减伤
+     * @param {Object} pokemon - 防御方
+     * @param {string} moveType - 招式属性
+     * @param {number} effectiveness - 属性克制倍率
+     * @returns {Object} { triggered: boolean, damageMultiplier: number, message: string }
+     */
+    checkResistBerry(pokemon, moveType, effectiveness) {
+        if (!pokemon.item || effectiveness < 2) return { triggered: false, damageMultiplier: 1 };
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        
+        if (!itemData || itemData.effect !== 'resistBerry') return { triggered: false, damageMultiplier: 1 };
+        if (itemData.resistType !== moveType) return { triggered: false, damageMultiplier: 1 };
+        
+        // 触发抗性果
+        const berryName = itemData.cnName || itemData.name;
+        pokemon.item = null;
+        
+        return {
+            triggered: true,
+            damageMultiplier: 0.5,
+            message: `${pokemon.cnName} 吃掉了${berryName}，减弱了伤害！`
+        };
+    },
+
+    /**
+     * 检查 HP 阈值触发的树果 (回复/强化)
+     * @param {Object} pokemon - 宝可梦
+     * @param {Array} logs - 日志数组
+     * @returns {boolean} 是否触发了树果
+     */
+    checkHPBerry(pokemon, logs = []) {
+        if (!pokemon.item) return false;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        if (!itemData || !itemData.isBerry) return false;
+        
+        const hpPercent = pokemon.currHp / pokemon.maxHp;
+        const isGluttony = pokemon.ability && pokemon.ability.toLowerCase().replace(/[^a-z]/g, '') === 'gluttony';
+        
+        // 贪吃鬼特性：触发线提升到 50%
+        let triggerThreshold = itemData.triggerHP || 0.25;
+        if (isGluttony && triggerThreshold === 0.25) {
+            triggerThreshold = 0.5;
+        }
+        
+        if (hpPercent > triggerThreshold) return false;
+        
+        const berryName = itemData.cnName || itemData.name;
+        
+        // 回复类树果
+        if (itemData.effect === 'healOnLowHP') {
+            let heal = 0;
+            if (itemData.healPercent) {
+                heal = Math.floor(pokemon.maxHp * itemData.healPercent);
+            } else if (itemData.healAmount) {
+                heal = itemData.healAmount;
+            }
+            
+            if (heal > 0) {
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
+                pokemon.item = null;
+                logs.push(`<span style="color:#27ae60">🍇 ${pokemon.cnName} 吃掉了${berryName}，回复了 ${heal} 点体力！</span>`);
+                return true;
+            }
+        }
+        
+        // 强化类树果
+        if (itemData.effect === 'pinchBoost' && itemData.statBoost) {
+            pokemon.item = null;
+            if (typeof pokemon.applyBoost === 'function') {
+                for (const [stat, amount] of Object.entries(itemData.statBoost)) {
+                    pokemon.applyBoost(stat, amount);
+                }
+            } else {
+                if (!pokemon.boosts) pokemon.boosts = {};
+                for (const [stat, amount] of Object.entries(itemData.statBoost)) {
+                    pokemon.boosts[stat] = Math.min(6, (pokemon.boosts[stat] || 0) + amount);
+                }
+            }
+            const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+            const boostStr = Object.entries(itemData.statBoost).map(([s, a]) => `${statNames[s] || s}+${a}`).join('/');
+            logs.push(`<span style="color:#f39c12">🍒 ${pokemon.cnName} 吃掉了${berryName}，${boostStr}！</span>`);
+            return true;
+        }
+        
+        // 随机强化树果 (星桃果)
+        if (itemData.effect === 'pinchBoostRandom') {
+            pokemon.item = null;
+            const stats = ['atk', 'def', 'spa', 'spd', 'spe'];
+            const randomStat = stats[Math.floor(Math.random() * stats.length)];
+            const amount = itemData.boostAmount || 2;
+            if (typeof pokemon.applyBoost === 'function') {
+                pokemon.applyBoost(randomStat, amount);
+            } else {
+                if (!pokemon.boosts) pokemon.boosts = {};
+                pokemon.boosts[randomStat] = Math.min(6, (pokemon.boosts[randomStat] || 0) + amount);
+            }
+            const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+            logs.push(`<span style="color:#f39c12">⭐ ${pokemon.cnName} 吃掉了${berryName}，${statNames[randomStat]}+${amount}！</span>`);
+            return true;
+        }
+        
+        // 聚气树果 (兰萨果)
+        if (itemData.effect === 'pinchCrit') {
+            pokemon.item = null;
+            if (!pokemon.volatile) pokemon.volatile = {};
+            pokemon.volatile.focusenergy = true;
+            logs.push(`<span style="color:#e74c3c">🔥 ${pokemon.cnName} 吃掉了${berryName}，进入了聚气状态！</span>`);
+            return true;
+        }
+        
+        // 先制树果 (释陀果)
+        if (itemData.effect === 'pinchPriority') {
+            pokemon.item = null;
+            if (!pokemon.volatile) pokemon.volatile = {};
+            pokemon.volatile.custap = true;
+            logs.push(`<span style="color:#9b59b6">⚡ ${pokemon.cnName} 吃掉了${berryName}，下一次行动将获得先制！</span>`);
+            return true;
+        }
+        
+        return false;
     },
 };
 

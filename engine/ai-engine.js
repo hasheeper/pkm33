@@ -1282,10 +1282,17 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         return -99999;
     }
     
-    // 如果是极巨招式且 AI 已经用过，永久封印
-    if (isMaxMove && typeof battle !== 'undefined' && battle.enemyMaxUsed) {
-        console.log(`[AI BAN] Max Move "${moveName}" 已使用过，禁止再次使用`);
-        return -99999;
+    // 【修复】极巨招式的禁用逻辑：
+    // - 如果当前宝可梦处于极巨化状态，可以使用极巨招式
+    // - 如果当前宝可梦不在极巨化状态，且 AI 已经用过极巨化，禁止使用极巨招式
+    // （因为极巨化结束后招式会恢复为普通招式，不应该出现极巨招式）
+    if (isMaxMove && typeof battle !== 'undefined') {
+        // 如果当前宝可梦不在极巨化状态，极巨招式不应该出现在招式列表中
+        if (!attacker.isDynamaxed) {
+            console.log(`[AI BAN] Max Move "${moveName}" 当前未极巨化，禁止使用`);
+            return -99999;
+        }
+        // 极巨化状态下可以正常使用极巨招式，不禁止
     }
     
     // =========================================================
@@ -1625,6 +1632,174 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         
         // 6. 正常情况下替身是中等优先级
         return 50;
+    }
+
+    // =========================================================
+    // 【高风险招式评估】腹鼓/甩肉/魂舞烈音爆等扣血强化技
+    // =========================================================
+    
+    // 【腹鼓】消耗50%HP，攻击直接+6
+    if (moveName === 'Belly Drum') {
+        const cost = Math.floor(attacker.maxHp / 2);
+        // 血量不足50%，必定失败
+        if (attacker.currHp <= cost) {
+            console.log(`[AI BAN] Belly Drum：血量不足 50%，会失败`);
+            return -99999;
+        }
+        // 攻击已满级
+        if (attacker.boosts && attacker.boosts.atk >= 6) {
+            console.log(`[AI BAN] Belly Drum：攻击已满级`);
+            return -99999;
+        }
+        // 对手残血时，直接进攻更好
+        const defHpPercent = defender.currHp / defender.maxHp;
+        if (defHpPercent < 0.30) {
+            console.log(`[AI TACTIC] 对手残血，直接进攻而非腹鼓`);
+            return -500;
+        }
+        // 检查是否会被秒杀（腹鼓后剩余50%血）
+        let maxIncoming = 0;
+        for (const pMove of (defender.moves || [])) {
+            const mergedMove = getMergedMoveData(pMove);
+            const dmgResult = simulateDamage(defender, attacker, mergedMove);
+            if (dmgResult.damage > maxIncoming) maxIncoming = dmgResult.damage;
+        }
+        const hpAfterDrum = attacker.currHp - cost;
+        if (maxIncoming >= hpAfterDrum) {
+            console.log(`[AI BAN] Belly Drum：腹鼓后会被秒杀 (${maxIncoming} >= ${hpAfterDrum})`);
+            return -9999;
+        }
+        // 血量健康且安全时，腹鼓是极高价值
+        if (hpPercent >= 0.80) {
+            console.log(`[AI TACTIC] ${attacker.cnName} 安全使用腹鼓！`);
+            return 8000; // 极高优先级
+        } else if (hpPercent >= 0.55) {
+            return 5000;
+        }
+        return 100; // 风险较高时降低优先级
+    }
+
+    // 【甩肉】消耗50%HP，攻/特攻/速度+2
+    if (moveName === 'Fillet Away') {
+        const cost = Math.floor(attacker.maxHp / 2);
+        if (attacker.currHp <= cost) {
+            console.log(`[AI BAN] Fillet Away：血量不足 50%，会失败`);
+            return -99999;
+        }
+        // 检查是否所有能力都已满级
+        const boosts = attacker.boosts || {};
+        if ((boosts.atk || 0) >= 6 && (boosts.spa || 0) >= 6 && (boosts.spe || 0) >= 6) {
+            console.log(`[AI BAN] Fillet Away：能力已满级`);
+            return -99999;
+        }
+        // 对手残血时直接进攻
+        const defHpPercent = defender.currHp / defender.maxHp;
+        if (defHpPercent < 0.30) {
+            return -500;
+        }
+        // 检查是否会被秒杀
+        let maxIncoming = 0;
+        for (const pMove of (defender.moves || [])) {
+            const mergedMove = getMergedMoveData(pMove);
+            const dmgResult = simulateDamage(defender, attacker, mergedMove);
+            if (dmgResult.damage > maxIncoming) maxIncoming = dmgResult.damage;
+        }
+        const hpAfter = attacker.currHp - cost;
+        if (maxIncoming >= hpAfter) {
+            console.log(`[AI BAN] Fillet Away：使用后会被秒杀`);
+            return -9999;
+        }
+        if (hpPercent >= 0.80) {
+            return 6000;
+        } else if (hpPercent >= 0.55) {
+            return 4000;
+        }
+        return 100;
+    }
+
+    // 【魂舞烈音爆】消耗33%HP，全属性+1
+    if (moveName === 'Clangorous Soul') {
+        const cost = Math.floor(attacker.maxHp / 3);
+        if (attacker.currHp <= cost) {
+            console.log(`[AI BAN] Clangorous Soul：血量不足 33%，会失败`);
+            return -99999;
+        }
+        // 检查是否所有能力都已满级
+        const boosts = attacker.boosts || {};
+        const allMaxed = ['atk', 'def', 'spa', 'spd', 'spe'].every(s => (boosts[s] || 0) >= 6);
+        if (allMaxed) {
+            console.log(`[AI BAN] Clangorous Soul：能力已满级`);
+            return -99999;
+        }
+        const defHpPercent = defender.currHp / defender.maxHp;
+        if (defHpPercent < 0.30) {
+            return -500;
+        }
+        // 检查是否会被秒杀
+        let maxIncoming = 0;
+        for (const pMove of (defender.moves || [])) {
+            const mergedMove = getMergedMoveData(pMove);
+            const dmgResult = simulateDamage(defender, attacker, mergedMove);
+            if (dmgResult.damage > maxIncoming) maxIncoming = dmgResult.damage;
+        }
+        const hpAfter = attacker.currHp - cost;
+        if (maxIncoming >= hpAfter) {
+            console.log(`[AI BAN] Clangorous Soul：使用后会被秒杀`);
+            return -9999;
+        }
+        if (hpPercent >= 0.70) {
+            return 5000;
+        } else if (hpPercent >= 0.40) {
+            return 3000;
+        }
+        return 100;
+    }
+
+    // 【搏命】造成等于自身当前HP的伤害，自己濒死
+    if (moveName === 'Final Gambit') {
+        // 只有在能击杀对手时才使用
+        if (attacker.currHp >= defender.currHp) {
+            // 自己残血时更愿意搏命
+            if (hpPercent < 0.30) {
+                console.log(`[AI TACTIC] ${attacker.cnName} 残血搏命！`);
+                return 7000;
+            }
+            // 能击杀且自己血量不高
+            if (hpPercent < 0.50) {
+                return 4000;
+            }
+        }
+        // 不能击杀或自己血量健康，不值得
+        return -500;
+    }
+
+    // 【同命】如果这回合被击倒，击倒自己的对手也会倒下
+    if (moveName === 'Destiny Bond') {
+        // 连续使用会失败
+        if (attacker.lastMoveUsed === 'Destiny Bond') {
+            return -99999;
+        }
+        // 残血时同命价值极高
+        if (hpPercent < 0.25) {
+            console.log(`[AI TACTIC] ${attacker.cnName} 残血使用同命！`);
+            return 6000;
+        }
+        if (hpPercent < 0.40) {
+            return 3000;
+        }
+        // 血量健康时不值得
+        return -100;
+    }
+
+    // 【治愈之愿/新月祈祷】自己濒死治愈队友
+    if (moveName === 'Healing Wish' || moveName === 'Lunar Dance') {
+        // 只有在残血且队伍有其他受伤成员时才使用
+        if (hpPercent < 0.25) {
+            // 简化：残血时给予中等分数
+            return 2000;
+        }
+        // 血量健康时不值得牺牲
+        return -9999;
     }
     
     // === 变化技评分 ===

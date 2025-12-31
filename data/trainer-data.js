@@ -4,111 +4,135 @@
  */
 const GLORIA_DATA = {
     // 【Tier 4 - 极巨化全开·冠军模式】
-    // 结构：包含 unlocks 配置 + party 队伍数组
     4: {
-        // ==============================================================
-        // [Tier Specific Unlocks] 该难度下的规则权限
-        // 低级Tier (如 1 或 2) 可以全设为 false 或开启特定削弱版机制
-        // ==============================================================
         "unlocks": {
-            "enable_bond": false,        // 1. 无 羁绊
-            "enable_styles": false,      // 2. 无 刚猛/迅疾
-            "enable_insight": false,     // 3. 无 心眼 (无 Limit Break)
-            "enable_mega": false,        // 4. 无 Mega
-            "enable_z_move": false,      // 5. 无 Z招式
-            "enable_dynamax": true,      // 6. ✅ 本层级开启极巨化权限
-            "enable_tera": false         // 7. 无 太晶化
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true, // Galar 核心机制
+            "enable_tera": false
         },
-
-        // ==============================================================
-        // [Party Data] 宝可梦队伍
-        // ==============================================================
         "party": [
             {
                 "name": "Zacian-Crowned", 
                 "lv": 99, 
-                "gender": "N",
+                "gender": "N", 
+                // 苍响本身无法极巨化，所以不设置 mechanic
                 "nature": "Adamant", 
                 "ability": "Intrepid Sword", 
                 "item": "Rusted Sword", 
+                "isAce": true, 
                 "stats_meta": {
+                    "is_perfect": true, // 假设引擎支持或保留 ivs 写法
                     "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
                     "ev_level": 252
                 },
-                "moves": ["Behemoth Blade", "Play Rough", "Close Combat", "Swords Dance"],
-                "isAce": true, 
-                "friendship": { "trust": 255, "passion": 180, "insight": 120, "devotion": 100 }
+                "moves": [
+                    "Behemoth Blade", // 巨兽斩：针对极巨化双倍伤害
+                    "Play Rough",     // 嬉闹：以本系输出覆盖龙/格斗
+                    "Close Combat",   // 近身战：钢铁/普通打击面
+                    "Swords Dance"    // 剑舞：一旦让它强化一次，就是推队节奏
+                ],
+                // 王牌满配情感值：不仅有输出(Passion)还有无敌的回避(Insight)与耐性(Trust)
+                "friendship": { "trust": 255, "passion": 255, "insight": 200, "devotion": 150 }
             },
             {
                 "name": "Cinderace", 
-                "lv": 95, 
+                "lv": 97, 
                 "gender": "M",
                 "nature": "Jolly", 
-                "ability": "Libero",
+                "ability": "Libero", // 自由者：变换属性，极其灵活
                 "item": "Life Orb", 
-                "mechanic": "dynamax",
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                "moves": ["Pyro Ball", "Bounce", "High Jump Kick", "Sucker Punch"] 
+                // 核心极巨位
+                "mechanic": "dynamax", 
+                "mega_target": "cinderacegmax", // 确保通过 autoDetect 拿到 G-Max 形态
+                "stats_meta": { "ev_level": 252 },
+                "moves": [
+                    "Pyro Ball",    // 极巨后变成 G-Max Fireball (160威力+破格)
+                    "Bounce",       // 极巨后变成 Max Airstream (全队提速，核心推队技)
+                    "High Jump Kick", // 变成 Max Knuckle (全队加攻)
+                    "Court Change"    // 换场：虽然是变化技，但在普通状态下可反去玩家的墙/钉
+                ],
+                "avs": { "trust": 150, "passion": 230 }
             },
             {
                 "name": "Rillaboom", 
-                "lv": 91,
+                "lv": 95, 
                 "gender": "M",
                 "nature": "Adamant",
                 "ability": "Grassy Surge", 
-                "item": "Grassy Seed", 
+                "item": "Grassy Seed", // 上场防物防+1
                 "mechanic": "dynamax",
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                "moves": ["Grassy Glide", "Drum Beating", "Horsepower", "U-turn"]
+                "mega_target": "rillaboomgmax", // 即使不是ACE，如果作为最后一只上场也能G-Max
+                "stats_meta": { "ev_level": 252 },
+                "moves": [
+                    "Grassy Glide", // 青草滑梯：场地下先制
+                    "Drum Beating", // 控速
+                    "High Horsepower", // 补盲打火/电
+                    "U-turn"         // 灵活轮转
+                ]
             },
             {
                 "name": "Urshifu-Rapid-Strike", 
-                "lv": 90,
+                "lv": 94, 
                 "gender": "M",
-                "nature": "Jolly",
+                "nature": "Jolly", // 加速度
                 "ability": "Unseen Fist", 
-                "item": "Choice Band", 
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                "moves": ["Surging Strikes", "Close Combat", "Aqua Jet", "U-turn"]
+                "item": "Focus Sash", // 气腰防止被玩家的 Flying 招式确一，保证输出
+                "mechanic": "dynamax",
+                "mega_target": "urshifurapidstrikegmax",
+                "stats_meta": { "ev_level": 252 },
+                "moves": [
+                    "Surging Strikes", // 必暴击
+                    "Close Combat", 
+                    "Ice Punch",      // 冰拳：针对处理不了的飞行/草/龙系
+                    "Aqua Jet"        // 先制收割
+                ]
             },
             {
                 "name": "Corviknight", 
-                "lv": 88,
+                "lv": 94, 
                 "gender": "M",
-                "nature": "Impish",
+                "nature": "Impish", // 加物防，减特攻
                 "ability": "Mirror Armor", 
                 "item": "Leftovers", 
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                "moves": ["Brave Bird", "Body Press", "Roost", "Iron Defense"]
+                "mechanic": "dynamax",
+                "mega_target": "corviknightgmax",
+                "stats_meta": { "ev_level": 252 },
+                "moves": [
+                    "Brave Bird",
+                    "Body Press",   // 扑击：配合铁壁伤害极高
+                    "Iron Defense", // 铁壁：强化防御
+                    "Roost"         // 羽栖：续航
+                ],
+                // 高信赖 = 哪怕血量危险也有概率为了不让训练家担心而锁血
+                "avs": { "trust": 220, "devotion": 200 }
             },
             {
                 "name": "Skwovet", 
+                "//title": "The Immortal God",
                 "lv": 100, 
                 "gender": "F",
-                "nature": "Relaxed",
-                "ability": "Cheek Pouch", 
-                "item": "Sitrus Berry", 
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                "moves": ["Stuff Cheeks", "Body Slam", "Super Fang", "Stockpile"] 
+                "nature": "Relaxed", // 加防，减速
+                "ability": "Cheek Pouch", // 颊囊：吃果子额外回血 1/3 HP
+                "item": "Sitrus Berry",   // 文柚果：HP<50% 回复 1/4 -> 配合特性一口奶满
+                "mechanic": "dynamax",     // 甚至可以让这只松鼠极巨化增加血量上限
+                "stats_meta": { "ev_level": 252 },
+                "moves": [
+                    "Super Fang",    // 愤怒门牙：无视防御扣除一半血量
+                    "Stuff Cheeks",  // 狂吞：防御+2 并吃掉果子 (主动触发回复)
+                    "Body Slam",     // 泰山压顶：麻痹对手
+                    "Stockpile"      // 蓄力：增加双防，变得极硬
+                ],
+                // 全满 AVs 参数，极其难以击杀 (高闪避、高锁血概率)
+                "avs": { "trust": 255, "insight": 255, "devotion": 255, "passion": 255 } 
             }
         ]
     }
 };
+
 /* 
  * 角色: 小照 (Akari)
  * 身份: 银河队调查员 / 时空穿越者 / 镇抚者

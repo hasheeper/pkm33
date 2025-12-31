@@ -63,8 +63,22 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     // 0. 处理 Protect 守住拦截
     if (result.blocked) {
         log(`<b style='color:#3498db'>${defender.cnName} 守住了自己，免受了攻击!</b>`);
+        
+        // 守住类招式的接触反制效果
+        if (result.protectEffect) {
+            log(`<b style='color:#e74c3c'>${result.protectEffect.msg}</b>`);
+            updateAllVisuals();
+        }
+        
+        // 清除守住状态（已使用）
         if (defender.volatile) {
             defender.volatile.protect = false;
+            defender.volatile.banefulBunker = false;
+            defender.volatile.spikyShield = false;
+            defender.volatile.kingsShield = false;
+            defender.volatile.obstruct = false;
+            defender.volatile.silkTrap = false;
+            defender.volatile.burningBulwark = false;
         }
         // High Jump Kick / Jump Kick 失败反伤
         if (move.name === 'High Jump Kick' || move.name === 'Jump Kick') {
@@ -211,6 +225,23 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
             log(`<b style="color:#ff6b35">💪 全属性提升! 攻击+1 防御+1 特攻+1 特防+1 速度+1!</b>`);
             defender.secondWindActivated = false;
         }
+        
+        // === HP 阈值树果检查（文柚果、混乱果等）===
+        // 【修复】先检查树果触发，但延迟输出日志，确保在伤害日志之后显示
+        let berryLogs = [];
+        let berryTriggered = false;
+        let cheekPouchHeal = 0;
+        if (defender.currHp > 0 && typeof ItemEffects !== 'undefined' && ItemEffects.checkHPBerry) {
+            berryTriggered = ItemEffects.checkHPBerry(defender, berryLogs);
+            if (berryTriggered) {
+                // 颊囊特性：吃树果时额外回复 33% HP
+                const abilityId = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                if (abilityId === 'cheekpouch') {
+                    cheekPouchHeal = Math.floor(defender.maxHp * 0.33);
+                    defender.currHp = Math.min(defender.maxHp, defender.currHp + cheekPouchHeal);
+                }
+            }
+        }
 
         // 播放受击动画
         const targetEl = document.getElementById(spriteIdRef);
@@ -237,6 +268,11 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         
         if (result.effectiveness >= 2) infoParts.push('<b style="color:#e74c3c">(效果拔群!)</b>');
         else if (result.effectiveness <= 0.5 && result.effectiveness > 0) infoParts.push('(效果不好...)');
+
+        // 抗性树果触发消息
+        if (result.resistBerryTriggered && result.resistBerryMessage) {
+            log(`<span style="color:#27ae60">🍇 ${result.resistBerryMessage}</span>`);
+        }
         
         if (result.isCrit) {
             infoParts.push('<b class="hl-crit">击中要害!</b>');
@@ -249,10 +285,37 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         
         // 【修复】使用 displayDamage 显示实际造成的伤害，避免显示超过目标HP的数值
         const shownDamage = result.displayDamage !== undefined ? result.displayDamage : result.damage;
-        if (shownDamage <= 2 && result.effectiveness > 0) {
+        // 【修复】如果是致命一击（击杀目标），不显示嘲讽文本
+        const isKillingBlow = defender.currHp <= 0;
+        if (shownDamage <= 2 && result.effectiveness > 0 && !isKillingBlow) {
             log(`造成了 <span style="color:#95a5a6">${shownDamage}</span> 伤害... (仿佛是在给对手挠痒痒) ${infoStr}`);
         } else {
             log(`造成了 ${shownDamage} 伤害 ${infoStr}`);
+        }
+        
+        // 【修复】在伤害日志之后输出树果触发日志
+        if (berryTriggered && berryLogs.length > 0) {
+            berryLogs.forEach(txt => log(txt));
+            if (cheekPouchHeal > 0) {
+                log(`<span style="color:#27ae60">🐿️ ${defender.cnName} 的颊囊发动了！额外回复了 ${cheekPouchHeal} 点体力！</span>`);
+            }
+            updateAllVisuals();
+        }
+        
+        // 【弱点保险 (Weakness Policy)】被效果拔群攻击后，攻击和特攻各+2
+        const defenderItem = (defender.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (result.effectiveness >= 2 && defenderItem === 'weaknesspolicy' && defender.currHp > 0) {
+            log(`<b style="color:#e67e22">📄 ${defender.cnName} 的弱点保险生效了！</b>`);
+            if (!defender.boosts) defender.boosts = {};
+            defender.boosts.atk = Math.min(6, (defender.boosts.atk || 0) + 2);
+            defender.boosts.spa = Math.min(6, (defender.boosts.spa || 0) + 2);
+            log(`<span style="color:#ef4444">💪 ${defender.cnName} 的攻击大幅提升！</span>`);
+            log(`<span style="color:#a855f7">✨ ${defender.cnName} 的特攻大幅提升！</span>`);
+            defender.item = null; // 消耗品
+            if (typeof window !== 'undefined' && typeof window.playSFX === 'function') {
+                window.playSFX('STAT_UP');
+            }
+            updateAllVisuals();
         }
     } else if (result.effectiveness === 0) {
         log(`<b>对其没有效果!</b>`);
@@ -292,6 +355,7 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
             meanLookResult.logs.forEach(txt => log(`<span style="color:#7c3aed">${txt}</span>`));
         }
     } else {
+        // 防御方被击倒
         const fxResult = applyMoveSecondaryEffects(attacker, defender, move, result.damage, battle, spriteIdRef !== 'player-sprite');
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
         pivotTriggered = fxResult.pivot || false;
@@ -301,6 +365,15 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
             txt.includes('吸取')
         );
         attackerOnlyLogs.forEach(txt => log(`<span style="font-size:0.95em;color:#e67e22">${txt}</span>`));
+        
+        // === 【同命 Destiny Bond】判定 ===
+        // 如果被击倒的宝可梦处于同命状态，攻击者也会被击倒
+        if (defender.volatile && defender.volatile.destinyBond && attacker.isAlive()) {
+            log(`<b style="color:#9b59b6">💀 ${defender.cnName} 拉着 ${attacker.cnName} 同归于尽了！</b>`);
+            attacker.takeDamage(attacker.currHp);
+            updateAllVisuals();
+            result.destinyBondTriggered = true;
+        }
     }
     
     // V. 更新攻击方血条

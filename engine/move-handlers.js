@@ -264,6 +264,61 @@ const MoveHandlers = {
         description: '目标 HP 越高威力越高'
     },
     
+    // 【鳃咬】先手威力翻倍 (Gen 8 化石龙核心招式)
+    'Fishious Rend': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 如果使用者比目标先行动，威力翻倍 (85 -> 170)
+            const mySpeed = attacker.getStat ? attacker.getStat('spe') : attacker.spe;
+            const enemySpeed = defender.getStat ? defender.getStat('spe') : defender.spe;
+            // 简化判定：速度快的视为先行动
+            if (mySpeed >= enemySpeed) {
+                console.log(`[Fishious Rend] 先手威力翻倍！170`);
+                return 170;
+            }
+            return 85;
+        },
+        description: '如果比对手先出手，威力翻倍 (170)'
+    },
+    
+    // 【电喙】先手威力翻倍 (Gen 8 化石龙核心招式)
+    'Bolt Beak': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            const mySpeed = attacker.getStat ? attacker.getStat('spe') : attacker.spe;
+            const enemySpeed = defender.getStat ? defender.getStat('spe') : defender.spe;
+            if (mySpeed >= enemySpeed) {
+                console.log(`[Bolt Beak] 先手威力翻倍！170`);
+                return 170;
+            }
+            return 85;
+        },
+        description: '如果比对手先出手，威力翻倍 (170)'
+    },
+    
+    // 【光子喷涌】使用物攻和特攻中较高的一方计算伤害
+    'Photon Geyser': {
+        modifyAtk: (attacker, defender, isSpecial) => {
+            const atkStat = attacker.getStat ? attacker.getStat('atk') : attacker.atk;
+            const spaStat = attacker.getStat ? attacker.getStat('spa') : attacker.spa;
+            // 使用较高的攻击能力
+            const usedStat = Math.max(atkStat, spaStat);
+            console.log(`[Photon Geyser] 物攻=${atkStat}, 特攻=${spaStat}, 使用=${usedStat}`);
+            return usedStat;
+        },
+        description: '使用物攻和特攻中较高的一方计算伤害，无视目标特性'
+    },
+    
+    // 【焚天灭世炽光爆】同样使用物攻和特攻中较高的一方
+    'Light That Burns the Sky': {
+        modifyAtk: (attacker, defender, isSpecial) => {
+            const atkStat = attacker.getStat ? attacker.getStat('atk') : attacker.atk;
+            const spaStat = attacker.getStat ? attacker.getStat('spa') : attacker.spa;
+            const usedStat = Math.max(atkStat, spaStat);
+            console.log(`[Light That Burns the Sky] 物攻=${atkStat}, 特攻=${spaStat}, 使用=${usedStat}`);
+            return usedStat;
+        },
+        description: '使用物攻和特攻中较高的一方计算伤害，无视目标特性'
+    },
+    
     // ============================================
     // 3. 特殊攻防计算 (Modified Stat Moves)
     // ============================================
@@ -569,6 +624,25 @@ const MoveHandlers = {
             return {};
         },
         description: '本回合至少保留1HP，与守住共享计数器'
+    },
+    
+    'Max Guard': {
+        onUse: (attacker, defender, logs) => {
+            // 与守住共享计数器
+            const counter = attacker.protectCounter || 0;
+            if (counter > 0) {
+                const successChance = Math.pow(1/3, counter);
+                if (Math.random() > successChance) {
+                    logs.push(`但是失败了! (连续使用成功率降低)`);
+                    return { failed: true };
+                }
+            }
+            attacker.protectCounter = counter + 1;
+            logs.push(`${attacker.cnName} 守住了自己!`);
+            if (attacker.volatile) attacker.volatile.protect = true;
+            return {};
+        },
+        description: '极巨化时的守住，与普通守住共享计数器'
     },
     
     'Destiny Bond': {
@@ -1466,6 +1540,54 @@ const MoveHandlers = {
         description: '造成伤害并清除对手的能力变化'
     },
     
+    // 【换场 (Court Change)】交换双方场地效果 - 闪焰王牌专属
+    'Court Change': {
+        onHit: (attacker, defender, damage, logs, battle, isPlayer) => {
+            if (!battle) return {};
+            
+            // 确保场地对象存在
+            if (!battle.playerSide) battle.playerSide = {};
+            if (!battle.enemySide) battle.enemySide = {};
+            
+            const pSide = battle.playerSide;
+            const eSide = battle.enemySide;
+            
+            // 需要交换的场地效果
+            const fieldsToSwap = [
+                // 入场危害
+                'spikes', 'toxicSpikes', 'stealthRock', 'stickyWeb',
+                // 墙/屏障
+                'auroraVeil', 'reflect', 'lightScreen',
+                // 顺风/逆风
+                'tailwind',
+                // G-Max DOT 效果
+                'gmaxWildfire', 'gmaxCannonade', 'gmaxVineLash', 'gmaxVolcalith'
+            ];
+            
+            let swapped = false;
+            fieldsToSwap.forEach(key => {
+                const temp = pSide[key];
+                if (pSide[key] || eSide[key]) swapped = true;
+                pSide[key] = eSide[key];
+                eSide[key] = temp;
+            });
+            
+            if (swapped) {
+                logs.push(`🔁 <b>${attacker.cnName}</b> 互换了双方的场地状态！(换场)`);
+            } else {
+                logs.push(`${attacker.cnName} 使用了换场，但场上没有可交换的效果...`);
+            }
+            
+            // 视觉更新
+            if (typeof window !== 'undefined' && typeof window.updateAllVisuals === 'function') {
+                window.updateAllVisuals();
+            }
+            
+            return { courtChange: true };
+        },
+        description: '互换双方场地的效果（钉子、墙、顺风、G-Max DOT）'
+    },
+    
     // ============================================
     // 能力变化操控技能 (Stat Manipulation Moves)
     // ============================================
@@ -2313,7 +2435,1039 @@ const MoveHandlers = {
             return {};
         },
         description: '太晶化时改变属性。若是星晶属性，威力强大但会降低双攻。'
+    },
+
+    // ============================================
+    // 生命置换系统 (HP Cost Mechanics)
+    // ============================================
+
+    // 【腹鼓】消耗50%HP，攻击直接+6
+    'Belly Drum': {
+        onUse: (user, target, logs) => {
+            const cost = Math.floor(user.maxHp / 2);
+            // 失败判定：血量不足 50%
+            if (user.currHp <= cost) {
+                logs.push(`<b style="color:#e74c3c">但是失败了！(体力不足)</b>`);
+                return { failed: true };
+            }
+            // 失败判定：攻击等级已满 (+6)
+            if (!user.boosts) user.boosts = {};
+            if (user.boosts.atk >= 6) {
+                logs.push(`<b style="color:#e74c3c">但是失败了！(攻击已经到了极限)</b>`);
+                return { failed: true };
+            }
+            // 执行效果：扣血
+            user.takeDamage(cost);
+            // 强制将攻击等级设为 +6
+            user.boosts.atk = 6;
+            logs.push(`<b style="color:#e74c3c">🥁 ${user.cnName} 削减了体力，敲响腹鼓，将攻击提升到了极点！(Atk MAX)</b>`);
+            if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+
+            // 【修复】强制触发一次 HP 阈值类道具检查 (文柚果/混乱果等)
+            if (user.item) {
+                const itemId = user.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const hpPercent = user.currHp / user.maxHp;
+                
+                // 文柚果: HP <= 50% 时回复 25%
+                if (itemId === 'sitrusberry' && hpPercent <= 0.5) {
+                    const heal = Math.floor(user.maxHp * 0.25);
+                    user.currHp = Math.min(user.maxHp, user.currHp + heal);
+                    user.item = null;
+                    logs.push(`<span style="color:#27ae60">🍊 ${user.cnName} 吃掉了文柚果，回复了 ${heal} 点体力！</span>`);
+                    if (typeof window.playSFX === 'function') window.playSFX('HEAL');
+                }
+                // 混乱果系列 (勿花果/异奇果/芒芒果/芭亚果/乐芭果): HP <= 25% 时回复 33%
+                // 贪吃鬼特性: 触发线提升到 50%
+                const confuseBerries = ['figyberry', 'wikiberry', 'magoberry', 'aguavberry', 'iapapaberry'];
+                const isGluttony = user.ability && user.ability.toLowerCase().replace(/[^a-z]/g, '') === 'gluttony';
+                const confuseTrigger = isGluttony ? 0.5 : 0.25;
+                
+                if (confuseBerries.includes(itemId) && hpPercent <= confuseTrigger) {
+                    const heal = Math.floor(user.maxHp / 3);
+                    user.currHp = Math.min(user.maxHp, user.currHp + heal);
+                    const berryName = user.item;
+                    user.item = null;
+                    logs.push(`<span style="color:#27ae60">🍇 ${user.cnName} 吃掉了${berryName}，回复了 ${heal} 点体力！</span>`);
+                    if (typeof window.playSFX === 'function') window.playSFX('HEAL');
+                    // TODO: 性格不合时混乱判定
+                }
+            }
+
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return { bellyDrum: true, success: true };
+        },
+        description: '消耗最大HP的一半，将攻击力提升至最大(+6)'
+    },
+
+    // 【甩肉/轻身】消耗50%HP，攻/特攻/速度+2
+    'Fillet Away': {
+        onUse: (user, target, logs) => {
+            const cost = Math.floor(user.maxHp / 2);
+            if (user.currHp <= cost) {
+                logs.push(`<b style="color:#e74c3c">但是失败了！(体力不足以甩掉肉身)</b>`);
+                return { failed: true };
+            }
+            // 检查是否所有能力都已满级
+            if (!user.boosts) user.boosts = {};
+            if (user.boosts.atk >= 6 && user.boosts.spa >= 6 && user.boosts.spe >= 6) {
+                logs.push(`<b style="color:#e74c3c">但是失败了！(能力已经到了极限)</b>`);
+                return { failed: true };
+            }
+            user.takeDamage(cost);
+            logs.push(`<b style="color:#e91e63">🔪 ${user.cnName} 削减了自己的体力，身体变得轻盈了！</b>`);
+            if (typeof user.applyBoost === 'function') {
+                user.applyBoost('atk', 2);
+                user.applyBoost('spa', 2);
+                user.applyBoost('spe', 2);
+            }
+            if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return { success: true };
+        },
+        description: '消耗50%体力，大幅提升攻击/特攻/速度(+2)'
+    },
+
+    // 【魂舞烈音爆】消耗33%HP，全属性+1
+    'Clangorous Soul': {
+        onUse: (user, target, logs) => {
+            const cost = Math.floor(user.maxHp / 3);
+            if (user.currHp <= cost) {
+                logs.push(`<b style="color:#e74c3c">但是失败了！(体力不足以发出吼叫)</b>`);
+                return { failed: true };
+            }
+            // 检查是否所有能力都已满级
+            if (!user.boosts) user.boosts = {};
+            const allMaxed = ['atk', 'def', 'spa', 'spd', 'spe'].every(s => (user.boosts[s] || 0) >= 6);
+            if (allMaxed) {
+                logs.push(`<b style="color:#e74c3c">但是失败了！(能力已经到了极限)</b>`);
+                return { failed: true };
+            }
+            user.takeDamage(cost);
+            logs.push(`<b style="color:#f1c40f">🐉 ${user.cnName} 跳起了战舞，浑身充满力量！</b>`);
+            ['atk', 'def', 'spa', 'spd', 'spe'].forEach(stat => {
+                if (typeof user.applyBoost === 'function') user.applyBoost(stat, 1);
+            });
+            if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return { success: true };
+        },
+        description: '消耗1/3体力，全属性提升(+1)'
+    },
+
+    // 【惊爆大头】威力150火系特殊，使用后自损50%最大HP
+    'Mind Blown': {
+        onHit: (attacker, defender, damage, logs) => {
+            const recoil = Math.ceil(attacker.maxHp / 2);
+            attacker.takeDamage(recoil);
+            logs.push(`<span style="color:#e11d48">💥 ${attacker.cnName} 的头炸裂了！受到了 ${recoil} 点反作用伤害！</span>`);
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return {};
+        },
+        description: '威力150火系特殊，使用后自损50%最大HP'
+    },
+
+    // 【铁蹄光线】威力140钢系特殊，使用后自损50%最大HP
+    'Steel Beam': {
+        onHit: (attacker, defender, damage, logs) => {
+            const recoil = Math.ceil(attacker.maxHp / 2);
+            attacker.takeDamage(recoil);
+            logs.push(`<span style="color:#95a5a6">⚡ ${attacker.cnName} 浑身射出了光芒！受到了 ${recoil} 点反作用伤害！</span>`);
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return {};
+        },
+        description: '威力140钢系特殊，使用后自损50%最大HP'
+    },
+
+    // ============================================
+    // 诅咒 (Curse) - 幽灵/非幽灵双模式
+    // ============================================
+    'Curse': {
+        onUse: (user, target, logs) => {
+            const isGhost = user.types && user.types.includes('Ghost');
+            
+            if (isGhost) {
+                // 幽灵系：扣50%血，让对手每回合掉1/4
+                const cost = Math.floor(user.maxHp / 2);
+                if (user.currHp <= cost) {
+                    logs.push(`<b style="color:#7c3aed">但是没法再削减体力了...</b>`);
+                    return { failed: true };
+                }
+                user.takeDamage(cost);
+                logs.push(`<b style="color:#7c3aed">👻 ${user.cnName} 削减体力诅咒了 ${target.cnName}！</b>`);
+                // 给对手施加诅咒状态
+                if (!target.volatile) target.volatile = {};
+                target.volatile.curse = true;
+                if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+                return { success: true, ghostCurse: true };
+            } else {
+                // 非幽灵系：速度-1，攻防+1 (白诅咒)
+                if (!user.boosts) user.boosts = {};
+                // 检查攻防是否都已满级
+                if ((user.boosts.atk || 0) >= 6 && (user.boosts.def || 0) >= 6) {
+                    logs.push(`<b style="color:#e74c3c">但是失败了！(能力已经到了极限)</b>`);
+                    return { failed: true };
+                }
+                if (typeof user.applyBoost === 'function') {
+                    user.applyBoost('spe', -1);
+                    user.applyBoost('atk', 1);
+                    user.applyBoost('def', 1);
+                }
+                logs.push(`${user.cnName} 的速度降低，但肌肉膨胀了！(攻防提升)`);
+                return { success: true, whiteCurse: true };
+            }
+        },
+        description: '幽灵系削血诅咒对手；非幽灵系降低速度换攻防'
+    },
+
+    // ============================================
+    // 挥指 (Metronome) - 随机招式
+    // ============================================
+    'Metronome': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 安全招式池（避免摇出复杂递归或自爆）
+            const safePool = [
+                'Flamethrower', 'Ice Beam', 'Thunderbolt', 'Psychic', 'Earthquake',
+                'Surf', 'Shadow Ball', 'Dazzling Gleam', 'Hyper Beam', 'Air Slash',
+                'Dark Pulse', 'Flash Cannon', 'Energy Ball', 'Sludge Bomb', 'Stone Edge',
+                'Close Combat', 'Brave Bird', 'Draco Meteor', 'Moonblast', 'Play Rough'
+            ];
+            const rndMoveName = safePool[Math.floor(Math.random() * safePool.length)];
+            
+            logs.push(`${user.cnName} 摆动了手指...`);
+            logs.push(`<b style="color:#d4ac0d">✨ 使出了 ${rndMoveName}！</b>`);
+            
+            // 返回随机招式名，让引擎执行
+            return { metronome: true, randomMove: rndMoveName };
+        },
+        description: '随机使出1种招式'
+    },
+
+    // ============================================
+    // 终极冲击类 (Final Gambit / Explosion)
+    // ============================================
+
+    // 【搏命】造成等于自身当前HP的伤害，自己濒死
+    'Final Gambit': {
+        damageCallback: (attacker, defender) => {
+            return attacker.currHp; // 造成等于自身当前HP的伤害
+        },
+        onHit: (attacker, defender, damage, logs) => {
+            // 自己濒死
+            attacker.currHp = 0;
+            logs.push(`<span style="color:#e74c3c">💀 ${attacker.cnName} 拼尽全力后倒下了！</span>`);
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return {};
+        },
+        description: '造成等于自身当前HP的伤害，自己濒死'
+    },
+
+    // 【治愈之愿】自己濒死，完全治愈下一只出场的宝可梦
+    'Healing Wish': {
+        onUse: (user, target, logs) => {
+            user.currHp = 0;
+            // 标记治愈之愿效果
+            if (!user.side) user.side = {};
+            user.side.healingWish = true;
+            logs.push(`<b style="color:#ff69b4">💖 ${user.cnName} 化作了治愈之光！</b>`);
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return { success: true, selfKO: true };
+        },
+        description: '自己濒死，完全治愈下一只出场的宝可梦'
+    },
+
+    // 【新月祈祷】自己濒死，完全治愈下一只出场的宝可梦（含PP）
+    'Lunar Dance': {
+        onUse: (user, target, logs) => {
+            user.currHp = 0;
+            if (!user.side) user.side = {};
+            user.side.lunarDance = true;
+            logs.push(`<b style="color:#9b59b6">🌙 ${user.cnName} 化作了月光！</b>`);
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return { success: true, selfKO: true };
+        },
+        description: '自己濒死，完全治愈下一只出场的宝可梦（含PP）'
+    },
+
+    // 【同命】如果这回合被击倒，击倒自己的对手也会倒下
+    'Destiny Bond': {
+        onUse: (user, target, logs) => {
+            // 连续使用检测
+            if (user.lastMoveUsed === 'Destiny Bond') {
+                logs.push(`<b style="color:#e74c3c">但是失败了！</b>`);
+                return { failed: true };
+            }
+            if (!user.volatile) user.volatile = {};
+            user.volatile.destinyBond = true;
+            logs.push(`<b style="color:#7c3aed">💀 ${user.cnName} 想要和对手同归于尽！</b>`);
+            return { success: true };
+        },
+        description: '如果这回合被击倒，击倒自己的对手也会倒下'
+    },
+
+    // 【挣扎】PP耗尽时的最后手段
+    'Struggle': {
+        onHit: (attacker, defender, damage, logs) => {
+            // 反伤 1/4 最大HP
+            const recoil = Math.max(1, Math.floor(attacker.maxHp / 4));
+            attacker.takeDamage(recoil);
+            logs.push(`<span style="color:#e74c3c">${attacker.cnName} 受到了反作用伤害！(-${recoil})</span>`);
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return {};
+        },
+        description: 'PP耗尽时的最后手段，会受到反伤'
+    },
+
+    // ============================================
+    // 治愈类招式 (Healing Moves)
+    // ============================================
+
+    // 【治愈铃声】治愈队伍所有异常状态
+    'Heal Bell': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            logs.push(`<b style="color:#27ae60">🔔 治愈铃声响起！队伍的异常状态被治愈了！</b>`);
+            user.status = null;
+            return { success: true };
+        },
+        description: '治愈队伍所有宝可梦的异常状态'
+    },
+
+    // 【芳香治疗】同治愈铃声
+    'Aromatherapy': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            logs.push(`<b style="color:#27ae60">🌸 芳香弥漫！队伍的异常状态被治愈了！</b>`);
+            user.status = null;
+            return { success: true };
+        },
+        description: '治愈队伍所有宝可梦的异常状态'
+    },
+
+    // ============================================
+    // 场地清除招式 (Hazard Removal)
+    // 注意：场地钉子设置由 move-effects.js 的 applySideCondition 处理
+    // 这里只处理清除逻辑
+    // ============================================
+
+    // 【高速旋转】清除己方场地钉子 + 速度+1
+    'Rapid Spin': {
+        onHit: (attacker, defender, damage, logs, battle, isPlayer) => {
+            if (!battle) return {};
+            const userSide = isPlayer ? battle.playerSide : battle.enemySide;
+            if (!userSide) return {};
+            
+            // 使用 move-effects.js 的 clearEntryHazards 函数
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.clearEntryHazards) {
+                const clearLogs = MoveEffects.clearEntryHazards(userSide);
+                clearLogs.forEach(l => logs.push(l));
+            }
+            
+            // 速度+1 (第8世代新增效果)
+            if (!attacker.boosts) attacker.boosts = {};
+            attacker.boosts.spe = Math.min(6, (attacker.boosts.spe || 0) + 1);
+            logs.push(`${attacker.cnName} 的速度提升了！`);
+            
+            return {};
+        },
+        description: '清除己方场地钉子，速度+1'
+    },
+
+    // 【清除浓雾】清除双方场地效果
+    'Defog': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            if (!battle) return { failed: true };
+            const userSide = isPlayer ? battle.playerSide : battle.enemySide;
+            const targetSide = isPlayer ? battle.enemySide : battle.playerSide;
+            
+            let cleared = false;
+            
+            // 使用 move-effects.js 的 clearEntryHazards 函数
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.clearEntryHazards) {
+                const userClearLogs = MoveEffects.clearEntryHazards(userSide);
+                const targetClearLogs = MoveEffects.clearEntryHazards(targetSide);
+                if (userClearLogs.length > 0 || targetClearLogs.length > 0) cleared = true;
+            }
+            
+            // 清除对方壁
+            if (targetSide) {
+                if (targetSide.reflect > 0) { targetSide.reflect = 0; cleared = true; }
+                if (targetSide.lightScreen > 0) { targetSide.lightScreen = 0; cleared = true; }
+                if (targetSide.auroraVeil > 0) { targetSide.auroraVeil = 0; cleared = true; }
+            }
+            
+            if (cleared) {
+                logs.push(`<b style="color:#87ceeb">💨 浓雾散去，场地效果被清除了！</b>`);
+            } else {
+                logs.push(`浓雾散去...但是没有什么效果。`);
+            }
+            
+            // 降低对手闪避
+            if (!target.boosts) target.boosts = {};
+            target.boosts.evasion = Math.max(-6, (target.boosts.evasion || 0) - 1);
+            
+            return { success: true };
+        },
+        description: '清除双方场地效果，降低对手闪避'
+    },
+
+    // ============================================
+    // 通用 Max 极巨招式 (天气/场地效果)
+    // ============================================
+    
+    'Max Flare': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (battle && battle.weather !== 'sunnyday') {
+                battle.weather = 'sunnyday';
+                battle.weatherTurns = 5;
+                logs.push(`<span style="color:#f59e0b">☀️ 阳光变得强烈了！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并召唤晴天'
+    },
+    
+    'Max Geyser': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (battle && battle.weather !== 'raindance') {
+                battle.weather = 'raindance';
+                battle.weatherTurns = 5;
+                logs.push(`<span style="color:#3b82f6">🌧️ 天空下起了大雨！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并召唤雨天'
+    },
+    
+    'Max Hailstorm': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (battle && battle.weather !== 'hail') {
+                battle.weather = 'hail';
+                battle.weatherTurns = 5;
+                logs.push(`<span style="color:#a5f3fc">❄️ 冰雹开始下了！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并召唤冰雹'
+    },
+    
+    'Max Rockfall': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (battle && battle.weather !== 'sandstorm') {
+                battle.weather = 'sandstorm';
+                battle.weatherTurns = 5;
+                logs.push(`<span style="color:#d97706">🏜️ 沙暴刮起来了！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并召唤沙暴'
+    },
+    
+    'Max Overgrowth': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (battle) {
+                battle.terrain = 'grassyterrain';
+                battle.terrainTurns = 5;
+                logs.push(`<span style="color:#22c55e">🌿 脚下长出了青草！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并展开青草场地'
+    },
+    
+    'Max Lightning': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (battle) {
+                battle.terrain = 'electricterrain';
+                battle.terrainTurns = 5;
+                logs.push(`<span style="color:#facc15">⚡ 电流在脚下奔涌！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并展开电气场地'
+    },
+    
+    'Max Starfall': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (battle) {
+                battle.terrain = 'mistyterrain';
+                battle.terrainTurns = 5;
+                logs.push(`<span style="color:#f472b6">✨ 薄雾笼罩了战场！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并展开薄雾场地'
+    },
+    
+    'Max Mindstorm': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (battle) {
+                battle.terrain = 'psychicterrain';
+                battle.terrainTurns = 5;
+                logs.push(`<span style="color:#a78bfa">🔮 奇妙的感觉笼罩了战场！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并展开精神场地'
+    },
+    
+    'Max Airstream': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.boosts) user.boosts = {};
+            user.boosts.spe = Math.min(6, (user.boosts.spe || 0) + 1);
+            logs.push(`<span style="color:#60a5fa">💨 ${user.cnName} 的速度提升了！</span>`);
+            return {};
+        },
+        description: '造成伤害并提升己方速度'
+    },
+    
+    'Max Knuckle': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.boosts) user.boosts = {};
+            user.boosts.atk = Math.min(6, (user.boosts.atk || 0) + 1);
+            logs.push(`<span style="color:#ef4444">💪 ${user.cnName} 的攻击提升了！</span>`);
+            return {};
+        },
+        description: '造成伤害并提升己方攻击'
+    },
+    
+    'Max Ooze': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.boosts) user.boosts = {};
+            user.boosts.spa = Math.min(6, (user.boosts.spa || 0) + 1);
+            logs.push(`<span style="color:#a855f7">🧪 ${user.cnName} 的特攻提升了！</span>`);
+            return {};
+        },
+        description: '造成伤害并提升己方特攻'
+    },
+    
+    'Max Steelspike': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.boosts) user.boosts = {};
+            user.boosts.def = Math.min(6, (user.boosts.def || 0) + 1);
+            logs.push(`<span style="color:#94a3b8">🛡️ ${user.cnName} 的防御提升了！</span>`);
+            return {};
+        },
+        description: '造成伤害并提升己方防御'
+    },
+    
+    'Max Quake': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.boosts) user.boosts = {};
+            user.boosts.spd = Math.min(6, (user.boosts.spd || 0) + 1);
+            logs.push(`<span style="color:#d97706">🌍 ${user.cnName} 的特防提升了！</span>`);
+            return {};
+        },
+        description: '造成伤害并提升己方特防'
+    },
+    
+    'Max Wyrmwind': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.boosts) target.boosts = {};
+            target.boosts.atk = Math.max(-6, (target.boosts.atk || 0) - 1);
+            logs.push(`<span style="color:#7c3aed">🐉 ${target.cnName} 的攻击下降了！</span>`);
+            return {};
+        },
+        description: '造成伤害并降低目标攻击'
+    },
+    
+    'Max Phantasm': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.boosts) target.boosts = {};
+            target.boosts.def = Math.max(-6, (target.boosts.def || 0) - 1);
+            logs.push(`<span style="color:#6366f1">👻 ${target.cnName} 的防御下降了！</span>`);
+            return {};
+        },
+        description: '造成伤害并降低目标防御'
+    },
+    
+    'Max Darkness': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.boosts) target.boosts = {};
+            target.boosts.spd = Math.max(-6, (target.boosts.spd || 0) - 1);
+            logs.push(`<span style="color:#1f2937">🌑 ${target.cnName} 的特防下降了！</span>`);
+            return {};
+        },
+        description: '造成伤害并降低目标特防'
+    },
+    
+    'Max Flutterby': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.boosts) target.boosts = {};
+            target.boosts.spa = Math.max(-6, (target.boosts.spa || 0) - 1);
+            logs.push(`<span style="color:#84cc16">🦋 ${target.cnName} 的特攻下降了！</span>`);
+            return {};
+        },
+        description: '造成伤害并降低目标特攻'
+    },
+    
+    'Max Strike': {
+        isMax: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.boosts) target.boosts = {};
+            target.boosts.spe = Math.max(-6, (target.boosts.spe || 0) - 1);
+            logs.push(`<span style="color:#6b7280">⚡ ${target.cnName} 的速度下降了！</span>`);
+            return {};
+        },
+        description: '造成伤害并降低目标速度'
+    },
+
+    // ============================================
+    // G-Max 超极巨招式处理器 (不触发天气/场地)
+    // ============================================
+    
+    // === 1. 持续伤害类 (DOT Field) - 4回合非对应属性扣 1/6 HP ===
+    'G-Max Wildfire': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            const targetSide = (user === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            if (!targetSide.gmaxWildfire) {
+                targetSide.gmaxWildfire = { turns: 4 };
+                logs.push(`<span style="color:#ef4444">🔥 烈焰包围了战场！非火属性宝可梦将持续受到伤害！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害，4回合内非火属性宝可梦每回合受到1/6最大HP伤害'
+    },
+    
+    'G-Max Vine Lash': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            const targetSide = (user === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            if (!targetSide.gmaxVineLash) {
+                targetSide.gmaxVineLash = { turns: 4 };
+                logs.push(`<span style="color:#22c55e">🌿 致命藤蔓缠绕了战场！非草属性宝可梦将持续受到伤害！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害，4回合内非草属性宝可梦每回合受到1/6最大HP伤害'
+    },
+    
+    'G-Max Cannonade': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            const targetSide = (user === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            if (!targetSide.gmaxCannonade) {
+                targetSide.gmaxCannonade = { turns: 4 };
+                logs.push(`<span style="color:#3b82f6">💧 激流在战场上翻涌！非水属性宝可梦将持续受到伤害！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害，4回合内非水属性宝可梦每回合受到1/6最大HP伤害'
+    },
+    
+    'G-Max Volcalith': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            const targetSide = (user === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            if (!targetSide.gmaxVolcalith) {
+                targetSide.gmaxVolcalith = { turns: 4 };
+                logs.push(`<span style="color:#f97316">�ite 炽热岩石散落战场！非岩属性宝可梦将持续受到伤害！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害，4回合内非岩属性宝可梦每回合受到1/6最大HP伤害'
+    },
+    
+    // === 2. 场地/墙类 ===
+    'G-Max Resonance': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            const userSide = (user === battle.getPlayer()) ? battle.playerSide : battle.enemySide;
+            const itemExt = (user.item === 'Light Clay') ? 3 : 0;
+            if (!userSide.auroraVeil || userSide.auroraVeil <= 0) {
+                userSide.auroraVeil = 5 + itemExt;
+                logs.push(`<b style="color:#a5f3fc">❄️ 极光旋律开启了极光幕！物理和特殊伤害都将减半！</b>`);
+            }
+            return {};
+        },
+        description: '造成伤害并开启极光幕(无视天气)'
+    },
+    
+    'G-Max Steelsurge': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            const targetSide = (user === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            if (!targetSide.gmaxSteelsurge) {
+                targetSide.gmaxSteelsurge = true;
+                logs.push(`<span style="color:#94a3b8">⚙️ 尖锐的钢刺散布在对手场地！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并在对方场地设置钢之撒菱'
+    },
+    
+    'G-Max Stonesurge': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            const targetSide = (user === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            if (!targetSide.stealthRock) {
+                targetSide.stealthRock = true;
+                logs.push(`<span style="color:#a8a29e">🪨 尖锐的岩石漂浮在对手场地周围！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并设置隐形岩'
+    },
+    
+    // === 3. 状态异常类 ===
+    'G-Max Befuddle': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (target.status) return {};
+            const rand = Math.random();
+            let status = 'psn';
+            if (rand < 0.33) status = 'slp';
+            else if (rand < 0.66) status = 'par';
+            
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                const res = MoveEffects.tryInflictStatus(target, status);
+                if (res && res.success) logs.push(res.message);
+            }
+            return {};
+        },
+        description: '造成伤害并随机使目标陷入睡眠/麻痹/中毒'
+    },
+    
+    'G-Max Volt Crash': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                const res = MoveEffects.tryInflictStatus(target, 'par');
+                if (res && res.success) logs.push(res.message);
+            }
+            return {};
+        },
+        description: '造成伤害并使目标麻痹'
+    },
+    
+    'G-Max Stun Shock': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (target.status) return {};
+            const status = Math.random() < 0.5 ? 'par' : 'psn';
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                const res = MoveEffects.tryInflictStatus(target, status);
+                if (res && res.success) logs.push(res.message);
+            }
+            return {};
+        },
+        description: '造成伤害并随机使目标麻痹或中毒'
+    },
+    
+    'G-Max Malodor': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                const res = MoveEffects.tryInflictStatus(target, 'psn');
+                if (res && res.success) logs.push(res.message);
+            }
+            return {};
+        },
+        description: '造成伤害并使目标中毒'
+    },
+    
+    'G-Max Snooze': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.volatile) target.volatile = {};
+            if (!target.volatile.yawn) {
+                target.volatile.yawn = 2;
+                logs.push(`<span style="color:#a78bfa">😴 ${target.cnName} 开始打哈欠了...</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并使目标进入哈欠状态(下回合睡着)'
+    },
+    
+    // === 4. 资源回复类 ===
+    'G-Max Replenish': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.item && user._consumedBerry && Math.random() < 0.5) {
+                user.item = user._consumedBerry;
+                logs.push(`<span style="color:#22c55e">🍎 ${user.cnName} 捡回了${user._consumedBerry}！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害，50%概率恢复已消耗的树果'
+    },
+    
+    'G-Max Finale': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            const heal = Math.floor(user.maxHp / 6);
+            user.currHp = Math.min(user.maxHp, user.currHp + heal);
+            logs.push(`<span style="color:#f472b6">🎂 ${user.cnName} 回复了 ${heal} HP！</span>`);
+            return {};
+        },
+        description: '造成伤害并回复己方1/6最大HP'
+    },
+    
+    // === 5. 能力变化类 ===
+    'G-Max Chi Strike': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.volatile) user.volatile = {};
+            user.volatile.focusenergy = true;
+            logs.push(`<span style="color:#ef4444">💪 ${user.cnName} 气势高涨！暴击率大幅提升！</span>`);
+            return {};
+        },
+        description: '造成伤害并大幅提升暴击率'
+    },
+    
+    'G-Max Terror': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.volatile) target.volatile = {};
+            target.volatile.trapped = true;
+            logs.push(`<span style="color:#7c3aed">👻 ${target.cnName} 被恐惧笼罩，无法逃走！</span>`);
+            return {};
+        },
+        description: '造成伤害并使目标无法逃走'
+    },
+    
+    'G-Max Cuddle': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.volatile) target.volatile = {};
+            target.volatile.infatuated = true;
+            logs.push(`<span style="color:#ec4899">💕 ${target.cnName} 被迷住了！</span>`);
+            return {};
+        },
+        description: '造成伤害并使目标着迷'
+    },
+    
+    // === 6. 御三家/武道熊师 破格类 ===
+    'G-Max Fireball': {
+        isGMax: true,
+        noWeather: true,
+        ignoreAbility: true,
+        description: '造成伤害，无视目标特性'
+    },
+    
+    'G-Max Hydrosnipe': {
+        isGMax: true,
+        noWeather: true,
+        ignoreAbility: true,
+        description: '造成伤害，无视目标特性'
+    },
+    
+    'G-Max Drum Solo': {
+        isGMax: true,
+        noWeather: true,
+        ignoreAbility: true,
+        description: '造成伤害，无视目标特性'
+    },
+    
+    'G-Max One Blow': {
+        isGMax: true,
+        noWeather: true,
+        bypassProtect: true,
+        description: '造成伤害，无视守住'
+    },
+    
+    'G-Max Rapid Flow': {
+        isGMax: true,
+        noWeather: true,
+        bypassProtect: true,
+        description: '造成伤害，无视守住'
+    },
+    
+    // === 7. 其他 G-Max 招式 (基础效果) ===
+    'G-Max Gold Rush': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                const res = MoveEffects.tryInflictStatus(target, 'confusion');
+                if (res && res.success) logs.push(res.message);
+            }
+            return {};
+        },
+        description: '造成伤害并使目标混乱'
+    },
+    
+    'G-Max Smite': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                const res = MoveEffects.tryInflictStatus(target, 'confusion');
+                if (res && res.success) logs.push(res.message);
+            }
+            return {};
+        },
+        description: '造成伤害并使目标混乱'
+    },
+    
+    'G-Max Foam Burst': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.boosts) target.boosts = {};
+            target.boosts.spe = Math.max(-6, (target.boosts.spe || 0) - 2);
+            logs.push(`<span style="color:#3b82f6">🫧 ${target.cnName} 的速度大幅下降！</span>`);
+            return {};
+        },
+        description: '造成伤害并大幅降低目标速度'
+    },
+    
+    'G-Max Centiferno': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.volatile) target.volatile = {};
+            target.volatile.partiallytrapped = { turns: 4, source: user };
+            logs.push(`<span style="color:#ef4444">🔥 ${target.cnName} 被烈焰缠绕了！</span>`);
+            return {};
+        },
+        description: '造成伤害并束缚目标4-5回合'
+    },
+    
+    'G-Max Sandblast': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.volatile) target.volatile = {};
+            target.volatile.partiallytrapped = { turns: 4, source: user };
+            logs.push(`<span style="color:#d97706">🏜️ ${target.cnName} 被沙暴缠绕了！</span>`);
+            return {};
+        },
+        description: '造成伤害并束缚目标4-5回合'
+    },
+    
+    'G-Max Wind Rage': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            const targetSide = (user === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            let cleared = false;
+            if (targetSide) {
+                if (targetSide.reflect > 0) { targetSide.reflect = 0; cleared = true; }
+                if (targetSide.lightScreen > 0) { targetSide.lightScreen = 0; cleared = true; }
+                if (targetSide.auroraVeil > 0) { targetSide.auroraVeil = 0; cleared = true; }
+            }
+            if (cleared) {
+                logs.push(`<span style="color:#60a5fa">💨 对手的壁被吹散了！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并清除对手的壁'
+    },
+    
+    'G-Max Gravitas': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!battle) return {};
+            battle.pseudoWeather = battle.pseudoWeather || {};
+            battle.pseudoWeather.gravity = 5;
+            logs.push(`<b style="color:#a78bfa">🌌 重力场展开了！</b>`);
+            return {};
+        },
+        description: '造成伤害并展开重力场'
+    },
+    
+    'G-Max Depletion': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (target.moves && target.moves.length > 0) {
+                const lastMove = target.lastMove;
+                if (lastMove) {
+                    const move = target.moves.find(m => m.name === lastMove || m.cn === lastMove);
+                    if (move && move.pp > 0) {
+                        move.pp = Math.max(0, move.pp - 2);
+                        logs.push(`<span style="color:#7c3aed">⚡ ${target.cnName} 的 ${move.cn || move.name} PP减少了！</span>`);
+                    }
+                }
+            }
+            return {};
+        },
+        description: '造成伤害并减少目标最后使用招式的PP'
+    },
+    
+    'G-Max Tartness': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.boosts) target.boosts = {};
+            target.boosts.evasion = Math.max(-6, (target.boosts.evasion || 0) - 1);
+            logs.push(`<span style="color:#84cc16">🍏 ${target.cnName} 的闪避率下降了！</span>`);
+            return {};
+        },
+        description: '造成伤害并降低目标闪避率'
+    },
+    
+    'G-Max Sweetness': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (user.status) {
+                user.status = null;
+                logs.push(`<span style="color:#22c55e">🍯 ${user.cnName} 的异常状态被治愈了！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并治愈己方异常状态'
+    },
+    
+    'G-Max Meltdown': {
+        isGMax: true,
+        noWeather: true,
+        onHit: (user, target, damage, logs, battle) => {
+            if (!target.volatile) target.volatile = {};
+            target.volatile.torment = true;
+            logs.push(`<span style="color:#94a3b8">🔩 ${target.cnName} 无法连续使用相同招式了！</span>`);
+            return {};
+        },
+        description: '造成伤害并使目标无法连续使用相同招式'
     }
+
+    // 注意：以下招式由 move-effects.js 统一处理，不需要在这里重复定义：
+    // - Taunt, Encore, Disable -> MoveEffects.applyVolatileStatus
+    // - Stealth Rock, Spikes, Toxic Spikes, Sticky Web -> MoveEffects.applySideCondition
+    // - Haze -> MoveEffects (已有 onHit 处理器在上方)
 };
 
 // ============================================

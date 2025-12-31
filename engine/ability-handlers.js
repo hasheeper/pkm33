@@ -1300,10 +1300,25 @@ const AbilityHandlers = {
         ignoreEvasion: true
     },
 
-    // 【镜甲】反射能力下降（简化：仅免疫）
+    // 【镜甲】反射能力下降给对方
     'Mirror Armor': {
-        onTryBoost: (boost, pokemon, source, stat) => {
-            if (boost < 0 && source !== pokemon) return 0;
+        onTryBoost: (boost, pokemon, source, stat, logs) => {
+            // 如果是自身造成的下降（如近身战），不反弹
+            if (source === pokemon || !source) return boost;
+            // 只有负面效果才反弹
+            if (boost < 0) {
+                // 反弹给对方
+                if (typeof source.applyBoost === 'function') {
+                    source.applyBoost(stat, boost);
+                } else if (source.boosts) {
+                    source.boosts[stat] = Math.max(-6, (source.boosts[stat] || 0) + boost);
+                }
+                if (logs && Array.isArray(logs)) {
+                    logs.push(`🪞 ${pokemon.cnName} 的镜甲将 ${stat} 下降反弹给了 ${source.cnName}！`);
+                }
+                console.log(`[MIRROR ARMOR] ${pokemon.cnName} 将 ${stat} 下降反弹给了 ${source.cnName}!`);
+                return 0; // 自己不受影响
+            }
             return boost;
         }
     },

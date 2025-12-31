@@ -42,6 +42,33 @@ function updateAllVisuals(forceSpriteAnim) {
 }
 
 // ============================================
+// 回合开始处理
+// ============================================
+
+/**
+ * 回合开始时的统一处理
+ * - 递减风格冷却
+ * - 其他回合开始钩子
+ */
+function onTurnStart() {
+    const battle = window.battle;
+    if (!battle) return;
+    
+    // 【古武系统】回合开始时递减冷却
+    if (battle.playerStyleCooldown > 0) {
+        battle.playerStyleCooldown--;
+        console.log(`[STYLES] 玩家风格冷却递减: ${battle.playerStyleCooldown + 1} -> ${battle.playerStyleCooldown}`);
+        if (typeof window.updateStyleButtonCooldown === 'function') {
+            window.updateStyleButtonCooldown();
+        }
+    }
+    if (battle.enemyStyleCooldown > 0) {
+        battle.enemyStyleCooldown--;
+        console.log(`[STYLES] 敌方风格冷却递减: ${battle.enemyStyleCooldown + 1} -> ${battle.enemyStyleCooldown}`);
+    }
+}
+
+// ============================================
 // 玩家回合执行
 // ============================================
 
@@ -367,6 +394,14 @@ async function enemyTurn() {
         if (typeof window.handlePlayerFainted === 'function') {
             await window.handlePlayerFainted(p);
         }
+        // 【修复】玩家倒下换人后，仍需执行回合末结算（敌方极巨化 tick 等）
+        const newP = battle.getPlayer();
+        const currentE = battle.getEnemy();
+        if (newP && newP.isAlive() && currentE && currentE.isAlive()) {
+            if (typeof window.executeEndPhase === 'function') {
+                await window.executeEndPhase(newP, currentE);
+            }
+        }
         return;
     }
 
@@ -374,13 +409,197 @@ async function enemyTurn() {
 }
 
 // ============================================
+// 回合结束状态结算
+// ============================================
+
+/**
+ * 回合结束时的状态伤害/回复结算
+ * @param {Pokemon} poke 要结算的宝可梦
+ * @param {Pokemon} opponent 对手宝可梦（用于寄生种子吸血）
+ * @param {boolean} isPlayerPoke 是否为玩家方的宝可梦（AVs 效果只对玩家方生效）
+ * @returns {Array} logs
+ */
+function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
+    let logs = [];
+    if (!poke || !poke.isAlive()) return logs;
+
+    // ----------------------------------------
+    // 1. 灼伤 (Burn): 扣 1/16 HP
+    // ----------------------------------------
+    if (poke.status === 'brn') {
+        const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
+        poke.takeDamage(dmg);
+        logs.push(`${poke.cnName} 受到灼伤的伤害! (-${dmg})`);
+    }
+
+    // ----------------------------------------
+    // 2. 中毒 (Poison): 扣 1/8 HP
+    // ----------------------------------------
+    if (poke.status === 'psn') {
+        const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+        poke.takeDamage(dmg);
+        logs.push(`${poke.cnName} 受到毒素的伤害! (-${dmg})`);
+    }
+    
+    // 剧毒 (Toxic): 累加伤害 (简化为 1/8)
+    if (poke.status === 'tox') {
+        const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+        poke.takeDamage(dmg);
+        logs.push(`${poke.cnName} 受到剧毒的伤害! (-${dmg})`);
+    }
+
+    // ----------------------------------------
+    // 3. 寄生种子 (Leech Seed): 被对方吸血 1/8
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile['leechseed'] && opponent && opponent.isAlive()) {
+        const drain = Math.max(1, Math.floor(poke.maxHp / 8));
+        poke.takeDamage(drain);
+        opponent.heal(drain);
+        logs.push(`${poke.cnName} 的体力被寄生种子吸取了! (-${drain})`);
+    }
+
+    // ----------------------------------------
+    // 4. 束缚状态 (Bind / Whirlpool / Fire Spin) -> 扣 1/8
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile['partiallytrapped']) {
+        const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+        poke.takeDamage(dmg);
+        logs.push(`${poke.cnName} 因束缚而受到伤害! (-${dmg})`);
+    }
+
+    // ----------------------------------------
+    // 5. 诅咒 (Curse - Ghost使用): 每回合扣 1/4
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile['curse']) {
+        const dmg = Math.max(1, Math.floor(poke.maxHp / 4));
+        poke.takeDamage(dmg);
+        logs.push(`${poke.cnName} 受到了诅咒! (-${dmg})`);
+    }
+
+    // ----------------------------------------
+    // 6. 哈欠 (Yawn): 倒计时，时间到睡着
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile['yawn']) {
+        poke.volatile['yawn'] -= 1;
+        if (poke.volatile['yawn'] <= 0) {
+            if (!poke.status) {
+                poke.status = 'slp';
+                poke.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                delete poke.volatile['yawn'];
+                logs.push(`${poke.cnName} 的睡意袭来了! -> 睡着了!`);
+            } else {
+                delete poke.volatile['yawn'];
+            }
+        } else {
+            logs.push(`${poke.cnName} 更加困倦了...`);
+        }
+    }
+
+    // ----------------------------------------
+    // 7. 水流环 (Aqua Ring): 每回合回复 1/16 HP
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile.aquaring) {
+        const heal = Math.max(1, Math.floor(poke.maxHp / 16));
+        poke.heal(heal);
+        logs.push(`${poke.cnName} 的水流环恢复了体力! (+${heal})`);
+    }
+
+    // ----------------------------------------
+    // 8. 扎根 (Ingrain): 每回合回复 1/16 HP
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile.ingrain) {
+        const heal = Math.max(1, Math.floor(poke.maxHp / 16));
+        poke.heal(heal);
+        logs.push(`${poke.cnName} 从地面吸收了养分! (+${heal})`);
+    }
+
+    // ----------------------------------------
+    // 9. 天气伤害 (Weather Damage)
+    // ----------------------------------------
+    const battle = window.battle;
+    const currentWeather = battle ? battle.weather : null;
+    const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const hasMagicGuard = pokeAbility === 'magicguard';
+    const hasOvercoat = pokeAbility === 'overcoat';
+    
+    if (currentWeather && !hasMagicGuard && !hasOvercoat) {
+        if (currentWeather === 'sandstorm') {
+            const immuneToSand = poke.types && (poke.types.includes('Rock') || poke.types.includes('Ground') || poke.types.includes('Steel'));
+            const sandAbilityImmune = ['sandveil', 'sandforce', 'sandrush'].includes(pokeAbility);
+            if (!immuneToSand && !sandAbilityImmune) {
+                const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
+                poke.takeDamage(dmg);
+                logs.push(`${poke.cnName} 受到沙暴的伤害! (-${dmg})`);
+            }
+        }
+        if (currentWeather === 'hail') {
+            const immuneToHail = poke.types && poke.types.includes('Ice');
+            const hailAbilityImmune = ['icebody', 'snowcloak', 'slushrush'].includes(pokeAbility);
+            if (!immuneToHail && !hailAbilityImmune) {
+                const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
+                poke.takeDamage(dmg);
+                logs.push(`${poke.cnName} 受到冰雹的伤害! (-${dmg})`);
+            }
+        }
+    }
+
+    // =====================================================
+    // === AVs: Devotion (献身) - 状态治愈 + 残血回复 ===
+    // =====================================================
+    // 只有【玩家方】的 isAce=true 宝可梦才能触发 AVs 被动
+    if (isPlayerPoke && poke.isAce && poke.avs && poke.avs.devotion > 0) {
+        const baseDevotion = poke.getEffectiveAVs ? poke.getEffectiveAVs('devotion') : poke.avs.devotion;
+        const effectiveDevotion = poke.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
+        const hpRatio = poke.currHp / poke.maxHp;
+        const isCritical = hpRatio <= 0.30;
+        
+        // 线性概率计算（基于 0-255 数值）
+        const baseChance = Math.min(0.15, (effectiveDevotion / 255) * 0.15);
+        
+        // 初始化全局触发标记
+        if (!poke.avsTriggered) poke.avsTriggered = {};
+        if (poke.devotionStatusTriggered === undefined) poke.devotionStatusTriggered = -1;
+        
+        const currentTurn = battle && battle.turn ? battle.turn : 0;
+        
+        // 【触发条件 1】有异常状态 → 清除异常 + 回复 10% HP
+        if (poke.status && poke.devotionStatusTriggered !== currentTurn && baseChance > 0) {
+            if (Math.random() < baseChance) {
+                const oldStatus = poke.status;
+                poke.status = null;
+                poke.sleepTurns = 0;
+                const healAmount = Math.floor(poke.maxHp * 0.10);
+                poke.heal(healAmount);
+                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 为了不让训练家担心，治好了自己的${oldStatus}！回复了 ${healAmount} HP！(Devotion${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
+                poke.devotionStatusTriggered = currentTurn;
+            }
+        }
+        
+        // 【触发条件 2】残血（≤30%）→ 回复 40% HP（全局只能触发一次）
+        if (isCritical && !poke.avsTriggered.devotionCritical && baseChance > 0) {
+            const criticalChance = Math.min(1.0, baseChance + 0.08);
+            if (Math.random() < criticalChance) {
+                const healAmount = Math.floor(poke.maxHp * 0.40);
+                poke.heal(healAmount);
+                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 的献身之心激发了生命力！回复了 ${healAmount} HP！[危机爆发] (Devotion${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
+                poke.avsTriggered.devotionCritical = true;
+            }
+        }
+    }
+
+    return logs;
+}
+
+// ============================================
 // 导出
 // ============================================
 
 if (typeof window !== 'undefined') {
+    window.onTurnStart = onTurnStart;
     window.executePlayerTurn = executePlayerTurn;
     window.executeEnemyTurn = executeEnemyTurn;
     window.enemyTurn = enemyTurn;
+    window.getEndTurnStatusLogs = getEndTurnStatusLogs;
 }
 
 if (typeof module !== 'undefined' && module.exports) {

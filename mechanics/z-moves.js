@@ -1,17 +1,20 @@
 /**
  * ===========================================
- * Z-MOVES.JS - Z 招式与极巨化招式推导系统
+ * Z-MOVES.JS - Z 招式推导系统
  * ===========================================
  * 
  * 职责:
  * - Z 招式推导 (通用 Z / 专属 Z)
- * - 极巨化招式推导 (Max Move / G-Max Move)
- * - 招式映射表管理
+ * - Z 招式映射表管理
+ * 
+ * 注意：极巨化相关功能已迁移至 mechanics/dynamax.js
  */
 
 // ============================================
-// 通用属性 Z 招式表 (Type -> Z-Move Name)
+// Z 招式数据表
 // ============================================
+
+// 通用属性 Z 招式表 (Type -> Z-Move Name)
 const GENERIC_Z_BY_TYPE = {
     'Normal': 'Breakneck Blitz', 'Fire': 'Inferno Overdrive', 'Water': 'Hydro Vortex',
     'Grass': 'Bloom Doom', 'Electric': 'Gigavolt Havoc', 'Ice': 'Subzero Slammer',
@@ -80,31 +83,16 @@ const SIGNATURE_Z_PRIORITY = [
 ];
 
 // ============================================
-// 通用 Max 招式表 (Type -> Max Move Name)
-// ============================================
-const GENERIC_MAX_BY_TYPE = {
-    'Normal': 'Max Strike', 'Fire': 'Max Flare', 'Water': 'Max Geyser',
-    'Grass': 'Max Overgrowth', 'Electric': 'Max Lightning', 'Ice': 'Max Hailstorm',
-    'Fighting': 'Max Knuckle', 'Poison': 'Max Ooze', 'Ground': 'Max Quake',
-    'Flying': 'Max Airstream', 'Psychic': 'Max Mindstorm', 'Bug': 'Max Flutterby',
-    'Rock': 'Max Rockfall', 'Ghost': 'Max Phantasm', 'Dragon': 'Max Wyrmwind',
-    'Dark': 'Max Darkness', 'Steel': 'Max Steelspike', 'Fairy': 'Max Starfall'
-};
-
-// ============================================
 // 动态生成的映射表
 // ============================================
 
 // 专属 Z 招式反查表 (BaseMove ID -> Z-Move Data)
 const EXCLUSIVE_Z_MAP = {};
 
-// G-Max 专属招式表 (Species -> { type, moveName })
-const GMAX_MOVE_MAP = {};
-
 // ============================================
-// 初始化：从数据库构建反查表
+// 初始化：从数据库构建 Z 招式反查表
 // ============================================
-(function buildMoveDerivationMaps() {
+(function buildZMoveMaps() {
     if (typeof MOVES === 'undefined') {
         console.warn('[Z-MOVES] MOVES database not loaded');
         return;
@@ -130,11 +118,10 @@ const GMAX_MOVE_MAP = {};
         'genesis supernova': 'psychic'
     };
     
-    // 遍历所有招式，构建映射表
+    // 遍历所有招式，构建专属 Z 招式反查表
     for (const moveId in MOVES) {
         const moveData = MOVES[moveId];
         
-        // 构建专属 Z 招式反查表
         if (moveData.isZ && typeof moveData.isZ === 'string') {
             const baseMove = EXCLUSIVE_Z_BASE_MOVES[moveId];
             if (baseMove) {
@@ -147,25 +134,13 @@ const GMAX_MOVE_MAP = {};
                 };
             }
         }
-        
-        // 构建 G-Max 专属招式表
-        if (moveData.isMax && typeof moveData.isMax === 'string') {
-            const species = moveData.isMax.toLowerCase().replace(/[^a-z0-9]/g, '');
-            GMAX_MOVE_MAP[species] = {
-                name: moveData.name,
-                id: moveId,
-                type: moveData.type,
-                basePower: moveData.basePower || 130
-            };
-        }
     }
     
     console.log('[Z-MOVES] Built EXCLUSIVE_Z_MAP:', Object.keys(EXCLUSIVE_Z_MAP).length, 'entries');
-    console.log('[Z-MOVES] Built GMAX_MOVE_MAP:', Object.keys(GMAX_MOVE_MAP).length, 'entries');
 })();
 
 // ============================================
-// 核心函数
+// Z 招式推导函数
 // ============================================
 
 /**
@@ -273,68 +248,6 @@ function getZMoveTarget(baseMoveObj, pokemon) {
     return null;
 }
 
-/**
- * 获取招式对应的极巨化招式名称
- * @param {Object} baseMoveObj - 原始招式对象
- * @param {Object} pokemon - 宝可梦对象
- * @returns {Object|null} Max 招式信息 { name, type, power } 或 null
- */
-function getMaxMoveTarget(baseMoveObj, pokemon) {
-    // 变化技变成 Max Guard
-    if (baseMoveObj.category === 'Status' || baseMoveObj.cat === 'status') {
-        return {
-            name: 'Max Guard',
-            type: 'Normal',
-            power: 0,
-            isGMax: false
-        };
-    }
-    
-    const moveType = baseMoveObj.type || 'Normal';
-    
-    // 获取精灵的基础 ID (去除 gmax/mega 等后缀)
-    const pokeName = pokemon.name || '';
-    const species = pokeName.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/(gmax|mega|gigantamax)/g, '');
-    
-    // 检查是否有 G-Max 专属招式
-    if (GMAX_MOVE_MAP[species]) {
-        const gmaxData = GMAX_MOVE_MAP[species];
-        // 检查招式类型是否匹配 G-Max 招式类型
-        if (gmaxData.type === moveType) {
-            return {
-                name: gmaxData.name,
-                type: gmaxData.type,
-                power: gmaxData.basePower || 130,
-                isGMax: true
-            };
-        }
-    }
-    
-    // 通用 Max 招式
-    const genericMaxName = GENERIC_MAX_BY_TYPE[moveType];
-    if (genericMaxName) {
-        // Max 招式威力根据原招式威力计算
-        const basePower = baseMoveObj.basePower || baseMoveObj.power || 60;
-        let maxPower = 90;
-        if (basePower >= 150) maxPower = 150;
-        else if (basePower >= 110) maxPower = 140;
-        else if (basePower >= 75) maxPower = 130;
-        else if (basePower >= 65) maxPower = 120;
-        else if (basePower >= 55) maxPower = 110;
-        else if (basePower >= 45) maxPower = 100;
-        else maxPower = 90;
-        
-        return {
-            name: genericMaxName,
-            type: moveType,
-            power: maxPower,
-            isGMax: false
-        };
-    }
-    
-    return null;
-}
-
 // ============================================
 // 导出
 // ============================================
@@ -344,12 +257,9 @@ if (typeof window !== 'undefined') {
     window.GENERIC_Z_BY_TYPE = GENERIC_Z_BY_TYPE;
     window.SIGNATURE_Z_MATRIX = SIGNATURE_Z_MATRIX;
     window.SIGNATURE_Z_PRIORITY = SIGNATURE_Z_PRIORITY;
-    window.GENERIC_MAX_BY_TYPE = GENERIC_MAX_BY_TYPE;
     window.EXCLUSIVE_Z_MAP = EXCLUSIVE_Z_MAP;
-    window.GMAX_MOVE_MAP = GMAX_MOVE_MAP;
     window.calculateBestZForPokemon = calculateBestZForPokemon;
     window.getZMoveTarget = getZMoveTarget;
-    window.getMaxMoveTarget = getMaxMoveTarget;
 }
 
 // Node.js 环境
@@ -358,11 +268,8 @@ if (typeof module !== 'undefined' && module.exports) {
         GENERIC_Z_BY_TYPE,
         SIGNATURE_Z_MATRIX,
         SIGNATURE_Z_PRIORITY,
-        GENERIC_MAX_BY_TYPE,
         EXCLUSIVE_Z_MAP,
-        GMAX_MOVE_MAP,
         calculateBestZForPokemon,
-        getZMoveTarget,
-        getMaxMoveTarget
+        getZMoveTarget
     };
 }

@@ -243,7 +243,11 @@ async function playMegaEvolutionAnimation(pokemon, isPlayer = true) {
     
     await wait(800);
     
-    sprite.className = 'p-sprite loaded';
+    // 【修复】保留 player-scale 类，避免精灵图大小变化
+    sprite.classList.remove('evo-silhouette', 'evo-burst', 'evo-finish');
+    if (!sprite.classList.contains('loaded')) {
+        sprite.classList.add('loaded');
+    }
     sprite.classList.add(isPlayer ? 'mega-player' : 'mega-enemy');
 }
 
