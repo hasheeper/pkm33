@@ -30,239 +30,208 @@ function getDefaultBattleData() {
     return {
   "difficulty": "expert",
   "script": null,
-
-  "//PLAYER_SECTION": " (Player section kept as is from your prompt) ",
+  // ==================== 我方配置 (高人气全明星) ====================
+  // 设想为一个集齐了各世代高光宝可梦的“梦之队”
   "player": {
-    "name": "Red",
+    "name": "Red", // 或者你的角色名
     "unlocks": {
-      "enable_bond": true,
-      "enable_styles": true,
-      "enable_insight": true,
+      "enable_bond": true,    // 启用牵绊系统 (给甲贺忍蛙)
+      "enable_styles": true,  // 启用刚猛/迅疾
+      "enable_insight": true, // 启用心眼 (修正命中)
       "enable_mega": true,
       "enable_z_move": true,
       "enable_dynamax": true,
       "enable_tera": true
     },
+    
     "party": [
+      // 1. [高速起手/Mega位]
       {
-        "name": "Pikachu-Partner",
+        "name": "Sceptile", 
+        "lv": 100, 
+        "gender": "M",
+        "item": "Sceptilite",
+        "mechanic": "mega", // Mega 进化
+        "nature": "Timid",  // 胆小 (+速 -攻)
+        "ability": "Lightning Rod", // Mega后避雷针
+        // 配合 Insight 保证 飞叶风暴 必中
+        "moves": ["Leaf Storm", "Dragon Pulse", "Focus Blast", "Giga Drain"],
+        "stats_meta": { "ev_level": 252 }, 
+        "avs": { "trust": 220, "passion": 255 }
+      },
+      
+      // 2. [特功爆破/羁绊位]
+      {
+        "name": "Greninja-Ash", // 牵绊变身形态
         "lv": 100,
         "gender": "M",
-        "item": "Pikashunium Z",
-        "mechanic": "zmove",
-        "ability": "Static",
-        "isAce": true,
-        "moves": ["Thunderbolt", "Quick Attack", "Iron Tail", "Electroweb"],
-        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "name": "Mewtwo",
-        "lv": 100,
-        "gender": "N",
-        "item": "Mewtwonite Y",
-        "mechanic": "mega",
-        "mega_target": "mewtwomegay",
-        "ability": "Unnerve",
-        "moves": ["Psystrike", "Ice Beam", "Focus Blast", "Recover"],
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 200, "passion": 200 }
-      },
-      {
-        "name": "Greninja",
-        "lv": 100,
-        "gender": "M",
-        "item": "Choice Specs",
-        "mechanic": null,
+        "item": "Choice Specs", // 讲究眼镜
         "ability": "Battle Bond",
+        "nature": "Timid",
+        // 黄金手里剑 + 这种高速高攻在这个环境下很强
         "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "U-turn"],
         "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 220, "insight": 200 }
+        "avs": { "trust": 255, "devotion": 200 } // 极高羁绊
       },
+      // 3. [双刀/Z招式位]
       {
-        "name": "Koraidon",
+        "name": "Lucario",
         "lv": 100,
-        "gender": "N",
-        "item": "Clear Amulet",
-        "mechanic": "tera",
-        "teraType": "Fire",
-        "ability": "Orichalcum Pulse",
-        "moves": ["Collision Course", "Flare Blitz", "Dragon Claw", "Swords Dance"],
+        "gender": "M",
+        "item": "Fightinium Z",
+        "mechanic": "zmove", // Z 招式
+        "nature": "Naive",   // 天真 (双刀)
+        "ability": "Justified",
+        "moves": ["Close Combat", "Meteor Mash", "Extreme Speed", "Swords Dance"],
         "stats_meta": { "ev_level": 252 },
-        "avs": { "passion": 255 }
+        "avs": { "insight": 255 } // 波导心眼
       },
-      {
-        "name": "Necrozma-Dusk-Mane",
-        "lv": 100,
-        "gender": "N",
-        "item": "Ultranecrozium Z",
-        "mechanic": "mega",
-        "mega_target": "necrozmaultra",
-        "ability": "Prism Armor",
-        "moves": ["Photon Geyser", "Sunsteel Strike", "Earthquake", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "devotion": 200, "trust": 200 }
-      },
+      // 4. [超人气大核/太晶]
       {
         "name": "Charizard",
         "lv": 100,
         "gender": "M",
-        "nature": "Timid",
-        "item": "Heavy-Duty Boots",
-        "mechanic": "dynamax",
-        "mega_target": "charizardgmax",
+        "item": "Life Orb",
+        "mechanic": "tera",
+        "teraType": "Dragon", // 太晶龙 X
+        "nature": "Adamant",
         "ability": "Solar Power",
-        "moves": ["Blast Burn", "Hurricane", "Solar Beam", "Roost"],
+        "moves": ["Flare Blitz", "Dragon Claw", "Thunder Punch", "Dragon Dance"],
         "stats_meta": { "ev_level": 252 },
-        "avs": { "passion": 255, "insight": 100 }
+        "avs": { "passion": 255 } 
+      },
+      // 5. [环境准神/地龙]
+      {
+        "name": "Garchomp",
+        "lv": 100,
+        "gender": "F",
+        "item": "Rocky Helmet", // 凸凸头
+        "nature": "Jolly",
+        "ability": "Rough Skin",
+        "moves": ["Earthquake", "Scale Shot", "Iron Head", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 200 }
+      },
+      // 6. [妖精/吉祥物/屠龙者]
+      {
+        "name": "Sylveon",
+        "lv": 100,
+        "gender": "F",
+        "item": "Throat Spray", // 爽喉喷雾
+        "nature": "Modest",
+        "ability": "Pixilate",
+        // Insight 修正高音暴击与命中
+        "moves": ["Hyper Voice", "Psyshock", "Shadow Ball", "Calm Mind"],
+        "stats_meta": { "ev_level": 180 }, // 混耐分布
+        "avs": { "devotion": 255 }
       }
     ]
   },
-
-  "//ENEMY_SECTION": "================ 敌方(Gloria)配置 [OPTIMIZED] ==================",
+  // ==================== 敌方 (DAWN_DATA T4) ====================
   "enemy": {
-    "id": "gloria",
-    "name": "Champion Gloria",
-    "title": "Galar Champion",
+    "id": "dawn",
+    "name": "Top Coordinator Dawn",
     "lines": {
-      "start": "Let's seem them... the bonds we've forged in Galar!",
-      "win": "That was a proper good battle! Let's make some curry to celebrate!",
-      "lose": "What a shocker... You really are strong!",
-      "escape": "Off to camp, are we?",
-      "gmax_trigger": "Time to go big or go home! Dynamax!"
+      "start": "Spotlight, please! Let's show them a performance that shines even brighter than the sun!",
+      "win": "No need to worry! My Pokémon are always the stars of the show.",
+      "lose": "Oh wow... What a tough battle! You really dimmed our lights...",
+	  "turn1": "Everyone is watching! Move with elegance and grace!",
+	  "ace_out": "Lopunny! Show them the true meaning of beauty and power! Mega Evolve!",
+      "gmax_trigger": "Make it encompass the whole stage! Use minimal evasive movements!"
     },
+    // 基于 Tier 4 数据自动映射的配置解锁
     "unlocks": {
-        "enable_bond": false,
-        "enable_styles": false,
-        "enable_insight": false,
-        "enable_mega": false,
+        "enable_bond": false, 
+        "enable_styles": false,  
+        "enable_insight": true,  // 核心：心眼开启 (命中回避↑)
+        "enable_mega": true,    // 核心：Mega长耳兔
         "enable_z_move": false,
-        "//note": "Gloria is restricted to Dynamax only to match her region gimmick",
-        "enable_dynamax": true,
+        "enable_dynamax": false,
         "enable_tera": false
     }
   },
+  // 直接引用了 DAWN_DATA Tier 4 中的完整队伍与AVs配置
   "party": [
     {
-      "name": "Zacian-Crowned",
-      "lv": 100,
-      "gender": "N",
-      "nature": "Adamant",
-      "ability": "Intrepid Sword",
-      "item": "Rusted Sword",
-      "isAce": true, 
-      "mechanic": null,
-      "stats_meta": {
-        "is_perfect": true,
-        "ev_level": 252
-      },
-      "moves": [
-        "Behemoth Blade", 
-        "Play Rough", 
-        "Close Combat", 
-        "Swords Dance"
-      ],
-      "avs": { "trust": 255, "passion": 255, "insight": 200, "devotion": 150 }
+        // 1. [Mega手] 高速与强攻的完美结合
+        "name": "Lopunny",
+        "lv": 100, 
+        "gender": "F",
+        "nature": "Jolly", 
+        "ability": "Limber", 
+        "item": "Lopunnite",
+        "mechanic": "mega", 
+        // 极高 avs: Insight 使飞膝踢必中；Passion 使报恩威力最大化
+        "stats_meta": { "is_perfect": true, "ev_level": 252 }, 
+        "moves": ["Fake Out", "Return", "High Jump Kick", "Ice Punch"],
+        "avs": { "trust": 150, "passion": 200, "insight": 255, "devotion": 120 },
+        "isAce": true
     },
     {
-      "name": "Cinderace",
-      "lv": 100,
-      "gender": "M",
-      "nature": "Jolly",
-      "ability": "Libero",
-      "item": "Life Orb",
-      "mechanic": "dynamax",
-      "//mega_target": "Force G-Max form to access G-Max Fireball (ignores abilities)",
-      "mega_target": "cinderacegmax",
-      "stats_meta": { "ev_level": 252 },
-      "moves": [
-        "Pyro Ball", 
-        "Bounce", 
-        "Court Change", 
-        "Sucker Punch"
-      ],
-      "avs": { "trust": 150, "passion": 230 }
+        // 2. [飞机] 天恩畏缩与 Insight暴击流
+        "name": "Togekiss", 
+        "lv": 100,
+        "gender": "F",
+        "nature": "Timid", 
+        "ability": "Serene Grace", 
+        "item": "Kings Rock", // 王者之证 (素质拉满)
+        "stats_meta": { "ev_level": 252 },
+        // 空气切 60% 畏缩 + 高概率暴击
+        "moves": ["Air Slash", "Dazzling Gleam", "Aura Sphere", "Nasty Plot"],
+        "avs": { "trust": 200, "insight": 220 }
     },
     {
-      "name": "Urshifu-Rapid-Strike",
-      "lv": 100,
-      "gender": "M",
-      "nature": "Jolly",
-      "ability": "Unseen Fist",
-      "item": "Focus Sash",
-      "//note": "Changed to Sash to guarantee at least one hit or trade",
-      "mechanic": "dynamax",
-      "mega_target": "urshifugmax",
-      "stats_meta": { "ev_level": 252 },
-      "moves": [
-        "Surging Strikes", 
-        "Close Combat", 
-        "Ice Punch", 
-        "Aqua Jet"
-      ],
-      "avs": { "passion": 180, "trust": 80 }
+        // 3. [坦克] 标志性防御手
+        "name": "Torterra", 
+        "lv": 100,
+        "gender": "M",
+        "nature": "Adamant",
+        "ability": "Shell Armor", // 硬壳 (免疫CT)
+        "item": "Yache Berry",    // 抗冰果
+        "stats_meta": { "ev_level": 252 },
+        "moves": ["Wood Hammer", "Earthquake", "Stone Edge", "Synthesis"],
+        "avs": { "trust": 220, "devotion": 150 }
     },
     {
-      "name": "Rillaboom",
-      "lv": 100,
-      "gender": "M",
-      "nature": "Adamant",
-      "ability": "Grassy Surge",
-      "item": "Grassy Seed",
-      "mechanic": "dynamax",
-      "mega_target": "rillaboomgmax",
-      "stats_meta": { "ev_level": 252 },
-      "moves": [
-        "Grassy Glide", 
-        "Drum Beating", 
-        "High Horsepower", 
-        "U-turn"
-      ],
-      "avs": { "devotion": 150 }
+        // 4. [特盾] 好胜反威吓
+        "name": "Empoleon",
+        "lv": 100,
+        "gender": "M",
+        "nature": "Modest", 
+        "ability": "Competitive",
+        "item": "Assault Vest",   // 突击背心，配合Insight几乎打不动的特耐
+        "stats_meta": { "ev_level": 252 },
+        "moves": ["Hydro Pump", "Flash Cannon", "Ice Beam", "Aqua Jet"],
+        "avs": { "trust": 150, "devotion": 200 }
     },
     {
-      "name": "Corviknight",
-      "lv": 100,
-      "gender": "M",
-      "nature": "Impish",
-      "ability": "Mirror Armor",
-      "item": "Leftovers",
-      "mechanic": "dynamax",
-      "mega_target": "corviknightgmax",
-      "stats_meta": { "ev_level": 252 },
-      "moves": [
-        "Brave Bird", 
-        "Body Press", 
-        "Roost", 
-        "Iron Defense"
-      ],
-      "avs": { "trust": 220, "devotion": 200 }
+        // 5. [双刀] 
+        "name": "Infernape",
+        "lv": 100,
+        "gender": "M",
+        "nature": "Naive", 
+        "ability": "Iron Fist", 
+        "item": "Life Orb", 
+        "stats_meta": { "ev_level": 252 },
+        // Insight 让大字爆必中
+        "moves": ["Fire Blast", "Close Combat", "Mach Punch", "Grass Knot"],
+        "avs": { "passion": 255 }
     },
     {
-      "name": "Skwovet",
-      "lv": 100,
-      "gender": "F",
-      "nature": "Relaxed",
-      "ability": "Cheek Pouch",
-      "item": "Sitrus Berry",
-      "mechanic": "dynamax",
-      "//note": "The ultimate defensive wall meme bracket",
-      "stats_meta": { "ev_level": 255 },
-      "moves": [
-        "Super Fang", 
-        "Stuff Cheeks", 
-        "Body Slam", 
-        "Stockpile"
-      ],
-      "avs": { "insight": 255, "devotion": 255, "trust": 255, "passion": 255 }
+        // 6. [世界冠军的证明] 恶心人的白色恶魔
+        "name": "Pachirisu",
+        "lv": 100, 
+        "gender": "F",
+        "nature": "Impish", 
+        "ability": "Volt Absorb", // 蓄电
+        "item": "Sitrus Berry", 
+        "stats_meta": { "ev_level": 252 },
+        // Nuzzle(必麻) + Super Fang(半血)
+        "moves": ["Nuzzle", "Super Fang", "Charm", "Protect"],
+        "avs": { "trust": 255, "insight": 255, "devotion": 200 }
     }
   ]
 }
-
-
-
-
-
 
 
 

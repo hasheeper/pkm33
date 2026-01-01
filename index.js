@@ -1548,7 +1548,16 @@ async function handleAttack(moveIndex, options = {}) {
         }
         
         // 敌方倒下判定（在 pivot 换人之后）
+        // 【关键修复】同时检查玩家是否也倒下（粗糙皮肤/铁刺等接触伤害导致双方同时倒下）
         if (!e.isAlive()) {
+            // 先检查玩家是否也倒下
+            if (!p.isAlive()) {
+                console.log('[handleAttack] DOUBLE KO after player attack (Rough Skin/Iron Barbs)!');
+                await handleEnemyFainted(e);
+                await handlePlayerFainted(p);
+                return;
+            }
+            
             await handleEnemyFainted(e);
             // 【修复】敌方倒下换人后，仍需执行回合末结算（G-Max DOT 等）
             const newE = battle.getEnemy();
@@ -1572,8 +1581,19 @@ async function handleAttack(moveIndex, options = {}) {
         console.log('[handleAttack] Enemy turn complete');
         
         // 【修复】Post-Move Check: 敌方使用自杀招式后立即处理倒下
+        // 【关键修复】同时检查玩家是否也倒下（反伤/粗糙皮肤等导致双方同时倒下）
         if (!e.isAlive()) {
-            console.log('[handleAttack] Enemy fainted after self-KO move (Memento/Explosion)');
+            console.log('[handleAttack] Enemy fainted after self-KO move (Memento/Explosion/Recoil)');
+            
+            // 先检查玩家是否也倒下
+            if (!p.isAlive()) {
+                console.log('[handleAttack] DOUBLE KO: Both player and enemy fainted!');
+                // 双方同时倒下：先处理敌方，再处理玩家换人
+                await handleEnemyFainted(e);
+                await handlePlayerFainted(p);
+                return;
+            }
+            
             await handleEnemyFainted(e);
             return;
         }
@@ -1610,8 +1630,18 @@ async function handleAttack(moveIndex, options = {}) {
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
         
         // 【修复】Post-Move Check: 敌方使用自杀招式后立即处理倒下
+        // 【关键修复】同时检查玩家是否也倒下（反伤/粗糙皮肤等导致双方同时倒下）
         if (!e.isAlive()) {
             console.log('[handleAttack] Enemy fainted after self-KO move in enemy-first branch');
+            
+            // 先检查玩家是否也倒下
+            if (!p.isAlive()) {
+                console.log('[handleAttack] DOUBLE KO in enemy-first branch!');
+                await handleEnemyFainted(e);
+                await handlePlayerFainted(p);
+                return;
+            }
+            
             await handleEnemyFainted(e);
             return;
         }
@@ -1713,7 +1743,16 @@ async function handleAttack(moveIndex, options = {}) {
             log(`<span style="color:#999">但是没有可以换入的宝可梦了!</span>`);
         }
         
+        // 【关键修复】同时检查玩家是否也倒下（粗糙皮肤/铁刺等接触伤害导致双方同时倒下）
         if (!e.isAlive()) {
+            // 先检查玩家是否也倒下
+            if (!p.isAlive()) {
+                console.log('[handleAttack] DOUBLE KO after player attack in enemy-first branch!');
+                await handleEnemyFainted(e);
+                await handlePlayerFainted(p);
+                return;
+            }
+            
             await handleEnemyFainted(e);
             // 【修复】敌方倒下换人后，仍需执行回合末结算（G-Max DOT 等）
             const newE = battle.getEnemy();

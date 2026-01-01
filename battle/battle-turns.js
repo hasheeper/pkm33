@@ -546,6 +546,8 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     // =====================================================
     // === AVs: Devotion (献身) - 状态治愈 + 残血回复 ===
     // =====================================================
+    // 【线性机制】概率 = (effectiveDevotion / 255) * 0.35
+    // 满值 255 时约 35% 概率，100 时约 14% 概率
     // 只有【玩家方】的 isAce=true 宝可梦才能触发 AVs 被动
     if (isPlayerPoke && poke.isAce && poke.avs && poke.avs.devotion > 0) {
         const baseDevotion = poke.getEffectiveAVs ? poke.getEffectiveAVs('devotion') : poke.avs.devotion;
@@ -553,8 +555,8 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         const hpRatio = poke.currHp / poke.maxHp;
         const isCritical = hpRatio <= 0.30;
         
-        // 线性概率计算（基于 0-255 数值）
-        const baseChance = Math.min(0.15, (effectiveDevotion / 255) * 0.15);
+        // 线性概率计算：满值 35%，最低 5%
+        const baseChance = Math.max(0.05, (effectiveDevotion / 255) * 0.35);
         
         // 初始化全局触发标记
         if (!poke.avsTriggered) poke.avsTriggered = {};
@@ -562,27 +564,29 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         
         const currentTurn = battle && battle.turn ? battle.turn : 0;
         
-        // 【触发条件 1】有异常状态 → 清除异常 + 回复 10% HP
-        if (poke.status && poke.devotionStatusTriggered !== currentTurn && baseChance > 0) {
+        // 【触发条件 1】有异常状态 → 清除异常 + 回复 15% HP
+        if (poke.status && poke.devotionStatusTriggered !== currentTurn) {
             if (Math.random() < baseChance) {
                 const oldStatus = poke.status;
                 poke.status = null;
                 poke.sleepTurns = 0;
-                const healAmount = Math.floor(poke.maxHp * 0.10);
+                const healAmount = Math.floor(poke.maxHp * 0.15);
                 poke.heal(healAmount);
-                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 为了不让训练家担心，治好了自己的${oldStatus}！回复了 ${healAmount} HP！(Devotion${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
+                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 为了不让训练家担心，治好了自己的${oldStatus}！回复了 ${healAmount} HP！(Devotion: ${baseDevotion}${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
                 poke.devotionStatusTriggered = currentTurn;
+                console.log(`[AVs] Devotion 状态治愈触发 (Chance: ${Math.round(baseChance * 100)}%, Devotion: ${baseDevotion})`);
             }
         }
         
-        // 【触发条件 2】残血（≤30%）→ 回复 40% HP（全局只能触发一次）
-        if (isCritical && !poke.avsTriggered.devotionCritical && baseChance > 0) {
-            const criticalChance = Math.min(1.0, baseChance + 0.08);
+        // 【触发条件 2】残血（≤30%）→ 回复 35% HP（全局只能触发一次）
+        if (isCritical && !poke.avsTriggered.devotionCritical) {
+            const criticalChance = Math.min(0.60, baseChance + 0.15);
             if (Math.random() < criticalChance) {
-                const healAmount = Math.floor(poke.maxHp * 0.40);
+                const healAmount = Math.floor(poke.maxHp * 0.35);
                 poke.heal(healAmount);
-                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 的献身之心激发了生命力！回复了 ${healAmount} HP！[危机爆发] (Devotion${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
+                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 的献身之心激发了生命力！回复了 ${healAmount} HP！[危机爆发] (Devotion: ${baseDevotion}${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
                 poke.avsTriggered.devotionCritical = true;
+                console.log(`[AVs] Devotion 危机爆发触发 (Chance: ${Math.round(criticalChance * 100)}%, Devotion: ${baseDevotion})`);
             }
         }
     }

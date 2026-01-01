@@ -502,141 +502,120 @@ const SERENA_DATA = {
  * 风格: 华丽与实力的完美结合 (Insight Stream)
  * 核心变化: 全员 Ace + Mega + 极致闪避/命中修正
  */
+/* 
+ * 角色: 小光 (Dawn)
+ * 优化点：
+ * 1. 引入 Togekiss 替换 Froslass (致敬动画/游戏主力，且强度更高)
+ * 2. Infernape 换用大字爆 (Fire Blast)，依赖 Insight 修正命中
+ * 3. Torterra 增加突击背心(Assault Vest)增强对攻能力，或保持剩饭
+ * 4. Empoleon 确认为 Competitive (好胜) + 弱点保险或突击背心
+ */
 const DAWN_DATA = {
     // 【Tier 4 - 神奥的永恒光辉】
     4: {
-        // ==============================================================
-        // [Tier Specific Unlocks]
-        // ==============================================================
         "unlocks": {
             "enable_bond": false, 
             "enable_styles": false, 
-            "enable_insight": true,      // ✅ 核心机制：华丽大赛强调的“目光”与“精准”
-            "enable_mega": true,         // ✅ 拥有钥石
+            "enable_insight": true,      // ✅ 华丽大赛的观察力：大幅修正低命中技能
+            "enable_mega": true,         
             "enable_z_move": false,
             "enable_dynamax": false,
             "enable_tera": false
         },
-
-        // ==============================================================
-        // [Party Data]
-        // ==============================================================
         "party": [
-            {
-                // [Mega 战姬] 
-                // 战术: Fake Out 破气腰 -> High Jump Kick (Insight 修正后必中)
+            {   // [Mega 战姬 - 不变]
                 "name": "Lopunny",
-                "lv": 95, // 提升等级
+                "lv": 98, // 王牌等级微调
                 "gender": "F",
                 "nature": "Jolly", 
-                "ability": "Scrappy", // 胆量：幽灵系随便踢
+                "ability": "Scrappy", // 胆量
                 "item": "Lopunnite",
                 "mechanic": "mega",
-                
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                "moves": ["Fake Out", "Return", "High Jump Kick", "Ice Punch"],
-                
-                "isAce": true, // <--- 王牌标记
-                // 高 Passion (暴击) 高 Insight (命中/闪避) -> 完美的演出者
+                "moves": ["Fake Out", "Return", "High Jump Kick", "Ice Punch"], // Insight 让飞膝踢必中且不撞墙，非常强暴力
+                "isAce": true, 
                 "friendship": { "trust": 150, "passion": 200, "insight": 255, "devotion": 120 }
             },
-            {
-                // [移动堡垒]
-                "name": "Torterra", 
-                "lv": 92,
-                "gender": "M",
-                "nature": "Adamant",
-                "ability": "Shell Armor", // 硬壳盔甲：无法被击中要害，极其稳健
-                "item": "Leftovers",
+            {   // [天恩 + 心眼 = 绝对畏缩] -> 替换掉 Froslass
+                // 波克基斯是小光绝对的主力之一，且是 Insight 机制的最大受益者
+                "name": "Togekiss", 
+                "lv": 94,
+                "gender": "F",
+                "nature": "Timid", // 胆小 +速
+                "ability": "Serene Grace", // 天恩：追加效果翻倍 (空气切 60% 畏缩)
+                "item": "Kings Rock",      // 王者之证 (如果想更加做人，不带也可以；带了就是近 70% 畏缩)
+                                           // 或者带 "Leftovers" / "Babiri Berry" (抗钢果)
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                // 木槌反伤，通过 Synthesis 回血；地震强攻
-                "moves": ["Wood Hammer", "Earthquake", "Stone Edge", "Synthesis"],
-                
-                "isAce": true, // <--- 全员防暴死
-                // Trust 220 给予极高的锁血概率，配合硬壳盔甲，如果不带冰系很难打动
-                "friendship": { "trust": 220, "passion": 80, "insight": 100, "devotion": 150 }
+                // 战术：Air Slash (畏缩) + Insight (保证必中/易暴击)。
+                // 只要速度慢于她，基本上很难动弹。
+                "moves": ["Air Slash", "Dazzling Gleam", "Aura Sphere", "Nasty Plot"]
             },
-            {
-                // [双刀游击]
+            {   // [烈焰猴 - 技能优化]
                 "name": "Infernape",
-                "lv": 92,
+                "lv": 95,
                 "gender": "M",
-                "nature": "Naive", // 天真 (+速)
+                "nature": "Naive", 
                 "ability": "Iron Fist", 
                 "item": "Life Orb", 
-                
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
-                // 广域防守的打击面，U-turn 用于灵活轮转
-                "moves": ["Overheat", "Close Combat", "Mach Punch", "U-turn"],
-                
-                "isAce": true,
-                "friendship": { "trust": 100, "passion": 255, "insight": 120, "devotion": 100 }
+                // 修改：Overheat -> Fire Blast
+                // 原因：Overheat 打一发就废了特攻。有 Insight 加持，大字爆(Fire Blast) 的命中不是问题，持续输出更强。
+                // 增加 Grass Knot (打断自己的水/地弱点) 也是好选择，或者保留 Mach Punch 收残。
+                "moves": ["Fire Blast", "Close Combat", "Mach Punch", "Grass Knot"],
+                "isAce": true
             },
-            {
-                // [皇帝的威严]
+            {   // [帝王拿波 - 特盾强化]
                 "name": "Empoleon",
-                "lv": 92,
+                "lv": 95,
                 "gender": "M",
-                "nature": "Modest", // 内敛 (+特攻)
-                "ability": "Competitive", // 好胜：反制对方的威吓特性 (+2特攻)
-                "item": "Shuca Berry",    // 抗地果：吃一发地震反杀
+                "nature": "Modest", 
+                "ability": "Competitive", // 好胜 (SV版本才有，如果是Gen8之前的环境可能没有，模拟器通常允许)
+                // 如果不能用 Competitive，建议改回 Torrent + Petaya Berry (特攻果)
                 
+                "item": "Assault Vest",   // 修改：突击背心。这给了它极高的特耐，可以和特殊攻击手硬刚。
                 "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
-                // 常见的炮台配置
-                "moves": ["Hydro Pump", "Flash Cannon", "Ice Beam", "Aqua Jet"],
-                
-                "isAce": true,
-                "friendship": { "trust": 150, "passion": 150, "insight": 150, "devotion": 150 }
+                // 水炮在 Insight 下必中
+                "moves": ["Hydro Pump", "Flash Cannon", "Ice Beam", "Jet Punch"], 
+                // Jet Punch 是个玩笑它学不会，但也用 Aqua Jet 凑合；或者 Vacuum Wave
+                "moves": ["Hydro Pump", "Flash Cannon", "Ice Beam", "Aqua Jet"] 
             },
-            {
-                // [雪隐幽灵]
-                "name": "Froslass",
-                "lv": 90,
-                "gender": "F",
-                "nature": "Timid", // 胆小 (极速)
-                "ability": "Snow Cloak", // 雪隐：配合 Insight，如果有冰雹闪避率可以直接拉满
-                "item": "Bright Powder", // 光粉 (闪避率 10%)
+            {   // [土台龟 - 物理堡垒]
+                "name": "Torterra", 
+                "lv": 94,
+                "gender": "M",
+                "nature": "Adamant",
+                "ability": "Shell Armor", // 防CT
+                "item": "Yache Berry",    // 修改：抗冰果。土台龟4倍弱冰，这是唯一的暴毙点。
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                // 极度恶心且拼脸的配置。暴风雪在 Insight 加持下命中很高
-                "moves": ["Blizzard", "Destiny Bond", "Thunder Wave", "Shadow Ball"],
-                
-                "isAce": true,
-                // Insight 255 配合 Light Powder 和可能的天气，让对手很难摸到
-                "friendship": { "trust": 50, "passion": 50, "insight": 255, "devotion": 50 }
+                 // 既然带了木槌，Synthesis 回血节奏可能跟不上 Tier4 的伤害，依然保留吧
+                 // 或者 Rock Polish (岩磨) 强化速度推队
+                "moves": ["Wood Hammer", "Earthquake", "Stone Edge", "Synthesis"]
             },
-            {
-                // [白色恶魔 | SEJUN STYLE]
+            {   // [白色恶魔 - 维持原样]
+                // 这一只是完美的。
                 "name": "Pachirisu",
-                "lv": 95, // 既然都在 Tier 4，等级拉到 95 增强耐久
+                "lv": 98, 
                 "gender": "F",
-                "nature": "Impish", // 淘气 (+防 -特攻)
+                "nature": "Impish", 
                 "ability": "Volt Absorb", 
                 "item": "Sitrus Berry", 
                 
-                // 将努力值全部投入耐久 (HP + Def)
                 "stats_meta": { 
                     "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, 
-                    "ev_level": { "hp": 252, "atk": 0, "def": 252, "spa": 0, "spd": 4, "spe": 0 }
+                    "ev_level": 252
                 },
-                
-                // 愤怒门牙 (Super Fang) 只要摸到就是半血，无视等级防御
-                // 撒娇 (Charm) 废掉对面的物攻手，配合高 Insight 闪避
                 "moves": ["Nuzzle", "Super Fang", "Charm", "Protect"],
-                
                 "isAce": true,
-                // “没问题小姐”的绝对自信体现
                 "friendship": { "trust": 255, "passion": 80, "insight": 200, "devotion": 200 }
             }
         ]
     }
 };
+
 
 /* 
  * 角色: 美月 (Selene)

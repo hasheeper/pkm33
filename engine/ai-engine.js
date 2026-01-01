@@ -447,10 +447,18 @@ function findKillMove(aiPoke, playerPoke) {
     let bestKillMove = null;
     let bestKillPriority = -999;
     
+    // 【修复】首回合限制技能列表
+    const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
+    
     for (const move of aiPoke.moves) {
         const mergedMove = getMergedMoveData(move);
         const category = (mergedMove.cat || mergedMove.category || '').toLowerCase();
         if (category === 'status' || mergedMove.power === 0) continue;
+        
+        // 【修复】跳过非首回合的首回合限制技能
+        if (firstTurnOnlyMoves.includes(mergedMove.name) && (aiPoke.turnsOnField || 0) > 0) {
+            continue;
+        }
         
         const dmgResult = simulateDamage(aiPoke, playerPoke, mergedMove);
         const priority = mergedMove.priority || 0;
@@ -1333,24 +1341,136 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     };
     const moveFlags = fullMoveData.flags || {};
     
-    // 首回合限制技能：检查 flags.failinstruct 或特定条件
-    // Fake Out, First Impression, Mat Block 等都有 onTry 限制首回合
-    if (moveFlags.failinstruct || fullMoveData.condition?.duration === 1) {
-        // 简化：检查是否是已知的首回合技能
-        const firstTurnMoves = ['Fake Out', 'First Impression', 'Mat Block'];
-        if (firstTurnMoves.includes(moveName) && attacker.turnsOnField > 0) {
-            return -8888; // 已过首回合，选了也会失败
+    // =========================================================
+    // ConditionChecker: 条件限制检查器
+    // 检查招式在当前环境下是否合法/理智
+    // =========================================================
+    
+    // [类型1: 首回合限定组] - Fake Out, First Impression, Mat Block
+    const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
+    if (firstTurnOnlyMoves.includes(moveName) && (attacker.turnsOnField || 0) > 0) {
+        console.log(`[AI BAN] ${moveName} 只能在首回合使用，当前 turnsOnField=${attacker.turnsOnField}`);
+        return -9999; // 非首回合，必定失败
+    }
+    
+    // [类型2: 连发惩罚组] - Protect, Detect, King's Shield 等
+    // 连续使用守住类技能成功率大幅下降
+    const protectMoves = ['Protect', 'Detect', 'Spiky Shield', "King's Shield", 'Baneful Bunker', 
+                          'Obstruct', 'Silk Trap', 'Burning Bulwark', 'Endure', 'Wide Guard', 'Quick Guard'];
+    if (protectMoves.includes(moveName)) {
+        const lastMove = attacker.lastMoveUsed || '';
+        if (protectMoves.includes(lastMove)) {
+            console.log(`[AI BAN] ${moveName} 连续使用，成功率极低，禁止选择`);
+            return -8000; // 连续使用守住类技能，极大降低权重
         }
     }
     
-    // 睡眠状态才能用的技能：检查 flags.sleeptalk 或 sleepUsable
+    // [类型3: 先制博弈组] - Sucker Punch
+    // 如果对手上回合使用变化技，突袭大概率会失败
+    if (moveName === 'Sucker Punch') {
+        const defenderLastMove = defender.lastMoveUsed || '';
+        const defenderLastMoveId = defenderLastMove.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const defenderLastMoveData = (typeof MOVES !== 'undefined' && MOVES[defenderLastMoveId]) ? MOVES[defenderLastMoveId] : {};
+        const lastMoveCategory = (defenderLastMoveData.category || '').toLowerCase();
+        
+        // 如果对手上回合用的是变化技，降低突袭优先级
+        if (lastMoveCategory === 'status') {
+            console.log(`[AI WARN] 对手上回合使用变化技 ${defenderLastMove}，突袭可能失败`);
+            return -500; // 降低优先级但不完全禁止
+        }
+    }
+    
+    // [类型4: 状态冗余组] - 状态技对已有状态/免疫属性无效
+    // 4a. 状态异常技对已有状态的目标无效
+    const statusMoves = {
+        'Thunder Wave': { immuneTypes: ['Ground', 'Electric'], status: 'par' },
+        'Toxic': { immuneTypes: ['Steel', 'Poison'], status: 'tox' },
+        'Poison Powder': { immuneTypes: ['Steel', 'Poison', 'Grass'], status: 'psn' },
+        'Poison Gas': { immuneTypes: ['Steel', 'Poison'], status: 'psn' },
+        'Will-O-Wisp': { immuneTypes: ['Fire'], status: 'brn' },
+        'Hypnosis': { immuneTypes: [], status: 'slp' },
+        'Sleep Powder': { immuneTypes: ['Grass'], status: 'slp' },
+        'Spore': { immuneTypes: ['Grass'], status: 'slp' },
+        'Stun Spore': { immuneTypes: ['Grass', 'Electric'], status: 'par' },
+        'Glare': { immuneTypes: [], status: 'par' }
+    };
+    
+    if (statusMoves[moveName]) {
+        const { immuneTypes, status } = statusMoves[moveName];
+        const defenderTypes = defender.types || [];
+        
+        // 检查属性免疫
+        const isImmune = immuneTypes.some(t => defenderTypes.includes(t));
+        if (isImmune) {
+            console.log(`[AI BAN] ${moveName} 对 ${defenderTypes.join('/')} 属性无效`);
+            return -9999;
+        }
+        
+        // 检查已有状态
+        if (defender.status) {
+            console.log(`[AI BAN] ${moveName} 对已有状态 ${defender.status} 的目标无效`);
+            return -9999;
+        }
+    }
+    
+    // 4b. 天气技对已存在的相同天气无效
+    const weatherMoves = {
+        'Rain Dance': 'RainDance',
+        'Sunny Day': 'SunnyDay', 
+        'Sandstorm': 'Sandstorm',
+        'Hail': 'Hail',
+        'Snowscape': 'Snow'
+    };
+    if (weatherMoves[moveName] && typeof battle !== 'undefined' && battle.field) {
+        const currentWeather = battle.field.weather || '';
+        if (currentWeather && currentWeather.toLowerCase().includes(weatherMoves[moveName].toLowerCase())) {
+            console.log(`[AI BAN] ${moveName} 天气已存在，禁止使用`);
+            return -9999;
+        }
+    }
+    
+    // [类型5: HP依赖组] - Explosion, Self-Destruct, Final Gambit, Destiny Bond
+    const selfKOMoves = ['Explosion', 'Self-Destruct', 'Final Gambit', 'Memento', 'Healing Wish', 'Lunar Dance'];
+    const hpPercentCheck = attacker.currHp / attacker.maxHp;
+    
+    if (selfKOMoves.includes(moveName)) {
+        // Final Gambit 伤害等于自身当前HP，低HP时毫无意义
+        if (moveName === 'Final Gambit' && attacker.currHp < defender.currHp * 0.3) {
+            console.log(`[AI BAN] Final Gambit HP过低 (${attacker.currHp})，伤害不足`);
+            return -9000;
+        }
+        
+        // 大爆炸/自爆：满血且队伍还有其他成员时不要送
+        if ((moveName === 'Explosion' || moveName === 'Self-Destruct') && hpPercentCheck > 0.7) {
+            const aliveCount = (aiParty || []).filter(p => p && p.currHp > 0).length;
+            if (aliveCount > 1) {
+                console.log(`[AI WARN] ${moveName} 满血且队伍还有 ${aliveCount} 只，降低优先级`);
+                return -2000; // 大幅降低但不完全禁止
+            }
+        }
+        
+        // 检查对手是否有湿气特性（免疫爆炸）
+        const defenderAbility = (defender.ability || '').toLowerCase();
+        if ((moveName === 'Explosion' || moveName === 'Self-Destruct') && defenderAbility === 'damp') {
+            console.log(`[AI BAN] 对手有湿气特性，${moveName} 无效`);
+            return -9999;
+        }
+    }
+    
+    // Destiny Bond 连续使用会失败
+    if (moveName === 'Destiny Bond' && attacker.lastMoveUsed === 'Destiny Bond') {
+        console.log(`[AI BAN] Destiny Bond 连续使用必定失败`);
+        return -9999;
+    }
+    
+    // 睡眠状态才能用的技能
     if (moveFlags.nosleeptalk === undefined && (moveName === 'Sleep Talk' || moveName === 'Snore')) {
         if (attacker.status !== 'slp') {
             return -5000;
         }
     }
     
-    // 需要对手睡眠的技能：检查 onTryImmunity 或 condition
+    // 需要对手睡眠的技能
     if (fullMoveData.sleepUsable || moveName === 'Dream Eater') {
         if (defender.status !== 'slp') {
             return -5000;

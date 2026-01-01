@@ -330,9 +330,12 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     }
     
     // IV. 触发副作用
+    // 【修复】使用 actualDamage（实际造成的伤害）而不是 result.damage（理论伤害）
+    // 这样反作用力计算才会基于实际伤害，避免锁血后反伤过高的BUG
+    const actualDamageForRecoil = result.displayDamage !== undefined ? result.displayDamage : result.damage;
     let pivotTriggered = false;
     if (defender.currHp > 0) {
-        const fxResult = applyMoveSecondaryEffects(attacker, defender, move, result.damage, battle, spriteIdRef !== 'player-sprite');
+        const fxResult = applyMoveSecondaryEffects(attacker, defender, move, actualDamageForRecoil, battle, spriteIdRef !== 'player-sprite');
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
         pivotTriggered = fxResult.pivot || false;
         fxLogs.forEach(txt => log(`<span style="font-size:0.95em;color:#e67e22">${txt}</span>`));
@@ -356,7 +359,7 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         }
     } else {
         // 防御方被击倒
-        const fxResult = applyMoveSecondaryEffects(attacker, defender, move, result.damage, battle, spriteIdRef !== 'player-sprite');
+        const fxResult = applyMoveSecondaryEffects(attacker, defender, move, actualDamageForRecoil, battle, spriteIdRef !== 'player-sprite');
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
         pivotTriggered = fxResult.pivot || false;
         const attackerOnlyLogs = fxLogs.filter(txt => 

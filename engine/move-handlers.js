@@ -420,14 +420,8 @@ const MoveHandlers = {
             }
             return {};
         },
-        onHit: (attacker, defender, damage, logs) => {
-            // 100% 畏缩效果
-            if (damage > 0 && defender.volatile) {
-                defender.volatile.flinch = true;
-                logs.push(`${defender.cnName} 畏缩了!`);
-            }
-            return {};
-        },
+        // 【修复】移除 onHit 钩子，畏缩效果由 battle-effects.js 的 secondary 处理统一处理
+        // 避免重复输出"畏缩了!"日志
         description: '先制技，仅在上场第一回合有效，100%畏缩'
     },
     

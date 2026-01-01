@@ -793,20 +793,17 @@ class Pokemon {
         // =====================================================
         // === AVs: Trust (信赖) - Sync Guard 锁血效果 ===
         // =====================================================
-        // 【平衡调整】降低概率，每只宝可梦每场战斗只能触发一次
-        // Trust >= 200: 35% 概率触发（原 50%）
-        // Trust >= 150: 20% 概率触发（原 30%）
-        // Trust >= 100: 10% 概率触发（原 15%）
+        // 【线性机制】概率 = (effectiveTrust / 255) * 0.50
+        // 满值 255 时约 50% 概率，100 时约 20% 概率
+        // 每只宝可梦每场战斗只能触发一次
         // 只有 isAce=true 的宝可梦才能触发 AVs 被动
         if (this.isAce && this.avs && this.avs.trust > 0 && dmg >= this.currHp && !this.avsTriggered?.trustEndure) {
-            let triggerChance = 0;
             const baseTrust = this.getEffectiveAVs('trust');
             const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
-            if (effectiveTrust >= 200) triggerChance = 0.35;      // 削弱：50% -> 35%
-            else if (effectiveTrust >= 150) triggerChance = 0.20; // 削弱：30% -> 20%
-            else if (effectiveTrust >= 100) triggerChance = 0.10; // 削弱：15% -> 10%
+            // 线性概率：满值 50%，最低 5%（只要 trust > 0）
+            const triggerChance = Math.max(0.05, (effectiveTrust / 255) * 0.50);
             
-            if (triggerChance > 0 && Math.random() < triggerChance) {
+            if (Math.random() < triggerChance) {
                 this.currHp = 1;
                 this.avsTriggered.trustEndure = true; // 每场战斗只能触发一次
                 this.trustEndureTriggered = true; // 标记用于日志

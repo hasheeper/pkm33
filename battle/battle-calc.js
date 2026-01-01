@@ -320,14 +320,15 @@ function calcDamage(attacker, defender, move) {
     }
     
     // === AVs: Insight 闪避加成 ===
+    // 【线性机制】闪避加成 = (effectiveInsight / 255) * 12
+    // 满值 255 时约 12% 闪避加成，100 时约 5% 闪避加成
     if (defender.isAce && defender.avs && defender.avs.insight > 0 && !isSureHit) {
-        let evasionBonus = 0;
         const baseInsight = defender.getEffectiveAVs('insight');
         const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
-        if (effectiveInsight >= 200) evasionBonus = 8;
-        else if (effectiveInsight >= 150) evasionBonus = 5;
-        else if (effectiveInsight >= 100) evasionBonus = 2;
+        // 线性闪避加成：满值 12%，最低 1%
+        const evasionBonus = Math.max(1, Math.floor((effectiveInsight / 255) * 12));
         hitRate = Math.max(70, hitRate - evasionBonus);
+        console.log(`[AVs] Insight 闪避加成: -${evasionBonus}% (Insight: ${baseInsight}${defender.avsEvolutionBoost ? ' x2' : ''})`);
     }
     
     // Miss 检测
@@ -485,11 +486,15 @@ function calcDamage(attacker, defender, move) {
         let critRatio = fullMoveData.critRatio || 1;
         
         // AVs: Passion 暴击加成
+        // 【线性机制】暴击等级加成 = (effectivePassion / 255) * 1.5
+        // 满值 255 时 +1.5 级，100 时约 +0.6 级
         if (attacker.isAce && attacker.avs && attacker.avs.passion > 0) {
             const basePassion = attacker.getEffectiveAVs('passion');
             const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
-            if (effectivePassion >= 200) critRatio += 1;
-            else if (effectivePassion >= 150) critRatio += 0.5;
+            // 线性暴击等级加成：满值 +1.5 级
+            const passionCritBonus = (effectivePassion / 255) * 1.5;
+            critRatio += passionCritBonus;
+            console.log(`[AVs] Passion 暴击加成: +${passionCritBonus.toFixed(2)} 级 (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
         }
         
         let critChance = 1 / 24;
