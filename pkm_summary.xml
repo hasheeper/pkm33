@@ -287,14 +287,15 @@ function calcDamage(attacker, defender, move) {
         }
     }
     // === AVs: Insight 闪避加成 ===
+    // 【线性机制】闪避加成 = (effectiveInsight / 255) * 12
+    // 满值 255 时约 12% 闪避加成，100 时约 5% 闪避加成
     if (defender.isAce && defender.avs && defender.avs.insight > 0 && !isSureHit) {
-        let evasionBonus = 0;
         const baseInsight = defender.getEffectiveAVs('insight');
         const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
-        if (effectiveInsight >= 200) evasionBonus = 8;
-        else if (effectiveInsight >= 150) evasionBonus = 5;
-        else if (effectiveInsight >= 100) evasionBonus = 2;
+        // 线性闪避加成：满值 12%，最低 1%
+        const evasionBonus = Math.max(1, Math.floor((effectiveInsight / 255) * 12));
         hitRate = Math.max(70, hitRate - evasionBonus);
+        console.log(`[AVs] Insight 闪避加成: -${evasionBonus}% (Insight: ${baseInsight}${defender.avsEvolutionBoost ? ' x2' : ''})`);
     }
     // Miss 检测
     if (typeof accuracy === 'number' && !isSureHit) {
@@ -430,11 +431,15 @@ function calcDamage(attacker, defender, move) {
     } else {
         let critRatio = fullMoveData.critRatio || 1;
         // AVs: Passion 暴击加成
+        // 【线性机制】暴击等级加成 = (effectivePassion / 255) * 1.5
+        // 满值 255 时 +1.5 级，100 时约 +0.6 级
         if (attacker.isAce && attacker.avs && attacker.avs.passion > 0) {
             const basePassion = attacker.getEffectiveAVs('passion');
             const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
-            if (effectivePassion >= 200) critRatio += 1;
-            else if (effectivePassion >= 150) critRatio += 0.5;
+            // 线性暴击等级加成：满值 +1.5 级
+            const passionCritBonus = (effectivePassion / 255) * 1.5;
+            critRatio += passionCritBonus;
+            console.log(`[AVs] Passion 暴击加成: +${passionCritBonus.toFixed(2)} 级 (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
         }
         let critChance = 1 / 24;
         if (critRatio >= 2 && critRatio < 3) critChance = 1 / 8;
@@ -816,9 +821,12 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         return result;
     }
     // IV. 触发副作用
+    // 【修复】使用 actualDamage（实际造成的伤害）而不是 result.damage（理论伤害）
+    // 这样反作用力计算才会基于实际伤害，避免锁血后反伤过高的BUG
+    const actualDamageForRecoil = result.displayDamage !== undefined ? result.displayDamage : result.damage;
     let pivotTriggered = false;
     if (defender.currHp > 0) {
-        const fxResult = applyMoveSecondaryEffects(attacker, defender, move, result.damage, battle, spriteIdRef !== 'player-sprite');
+        const fxResult = applyMoveSecondaryEffects(attacker, defender, move, actualDamageForRecoil, battle, spriteIdRef !== 'player-sprite');
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
         pivotTriggered = fxResult.pivot || false;
         fxLogs.forEach(txt => log(`<span style="font-size:0.95em;color:#e67e22">${txt}</span>`));
@@ -839,7 +847,7 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         }
     } else {
         // 防御方被击倒
-        const fxResult = applyMoveSecondaryEffects(attacker, defender, move, result.damage, battle, spriteIdRef !== 'player-sprite');
+        const fxResult = applyMoveSecondaryEffects(attacker, defender, move, actualDamageForRecoil, battle, spriteIdRef !== 'player-sprite');
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
         pivotTriggered = fxResult.pivot || false;
         const attackerOnlyLogs = fxLogs.filter(txt => 
@@ -2231,38 +2239,42 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     // =====================================================
     // === AVs: Devotion (献身) - 状态治愈 + 残血回复 ===
     // =====================================================
+    // 【线性机制】概率 = (effectiveDevotion / 255) * 0.35
+    // 满值 255 时约 35% 概率，100 时约 14% 概率
     // 只有【玩家方】的 isAce=true 宝可梦才能触发 AVs 被动
     if (isPlayerPoke && poke.isAce && poke.avs && poke.avs.devotion > 0) {
         const baseDevotion = poke.getEffectiveAVs ? poke.getEffectiveAVs('devotion') : poke.avs.devotion;
         const effectiveDevotion = poke.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
         const hpRatio = poke.currHp / poke.maxHp;
         const isCritical = hpRatio <= 0.30;
-        // 线性概率计算（基于 0-255 数值）
-        const baseChance = Math.min(0.15, (effectiveDevotion / 255) * 0.15);
+        // 线性概率计算：满值 35%，最低 5%
+        const baseChance = Math.max(0.05, (effectiveDevotion / 255) * 0.35);
         // 初始化全局触发标记
         if (!poke.avsTriggered) poke.avsTriggered = {};
         if (poke.devotionStatusTriggered === undefined) poke.devotionStatusTriggered = -1;
         const currentTurn = battle && battle.turn ? battle.turn : 0;
-        // 【触发条件 1】有异常状态 → 清除异常 + 回复 10% HP
-        if (poke.status && poke.devotionStatusTriggered !== currentTurn && baseChance > 0) {
+        // 【触发条件 1】有异常状态 → 清除异常 + 回复 15% HP
+        if (poke.status && poke.devotionStatusTriggered !== currentTurn) {
             if (Math.random() < baseChance) {
                 const oldStatus = poke.status;
                 poke.status = null;
                 poke.sleepTurns = 0;
-                const healAmount = Math.floor(poke.maxHp * 0.10);
+                const healAmount = Math.floor(poke.maxHp * 0.15);
                 poke.heal(healAmount);
-                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 为了不让训练家担心，治好了自己的${oldStatus}！回复了 ${healAmount} HP！(Devotion${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
+                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 为了不让训练家担心，治好了自己的${oldStatus}！回复了 ${healAmount} HP！(Devotion: ${baseDevotion}${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
                 poke.devotionStatusTriggered = currentTurn;
+                console.log(`[AVs] Devotion 状态治愈触发 (Chance: ${Math.round(baseChance * 100)}%, Devotion: ${baseDevotion})`);
             }
         }
-        // 【触发条件 2】残血（≤30%）→ 回复 40% HP（全局只能触发一次）
-        if (isCritical && !poke.avsTriggered.devotionCritical && baseChance > 0) {
-            const criticalChance = Math.min(1.0, baseChance + 0.08);
+        // 【触发条件 2】残血（≤30%）→ 回复 35% HP（全局只能触发一次）
+        if (isCritical && !poke.avsTriggered.devotionCritical) {
+            const criticalChance = Math.min(0.60, baseChance + 0.15);
             if (Math.random() < criticalChance) {
-                const healAmount = Math.floor(poke.maxHp * 0.40);
+                const healAmount = Math.floor(poke.maxHp * 0.35);
                 poke.heal(healAmount);
-                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 的献身之心激发了生命力！回复了 ${healAmount} HP！[危机爆发] (Devotion${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
+                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 的献身之心激发了生命力！回复了 ${healAmount} HP！[危机爆发] (Devotion: ${baseDevotion}${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
                 poke.avsTriggered.devotionCritical = true;
+                console.log(`[AVs] Devotion 危机爆发触发 (Chance: ${Math.round(criticalChance * 100)}%, Devotion: ${baseDevotion})`);
             }
         }
     }
@@ -4982,10 +4994,16 @@ function findKillMove(aiPoke, playerPoke) {
     console.log(`[AI KILL CHECK] ${aiPoke.name} vs ${playerPoke.name}: targetHp=${targetHp}/${targetMaxHp}, aiFaster=${aiFaster}`);
     let bestKillMove = null;
     let bestKillPriority = -999;
+    // 【修复】首回合限制技能列表
+    const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
     for (const move of aiPoke.moves) {
         const mergedMove = getMergedMoveData(move);
         const category = (mergedMove.cat || mergedMove.category || '').toLowerCase();
         if (category === 'status' || mergedMove.power === 0) continue;
+        // 【修复】跳过非首回合的首回合限制技能
+        if (firstTurnOnlyMoves.includes(mergedMove.name) && (aiPoke.turnsOnField || 0) > 0) {
+            continue;
+        }
         const dmgResult = simulateDamage(aiPoke, playerPoke, mergedMove);
         const priority = mergedMove.priority || 0;
         const normalDmg = dmgResult.damage;
@@ -5746,22 +5764,120 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         target: move.target || moveData.target || 'normal'
     };
     const moveFlags = fullMoveData.flags || {};
-    // 首回合限制技能：检查 flags.failinstruct 或特定条件
-    // Fake Out, First Impression, Mat Block 等都有 onTry 限制首回合
-    if (moveFlags.failinstruct || fullMoveData.condition?.duration === 1) {
-        // 简化：检查是否是已知的首回合技能
-        const firstTurnMoves = ['Fake Out', 'First Impression', 'Mat Block'];
-        if (firstTurnMoves.includes(moveName) && attacker.turnsOnField > 0) {
-            return -8888; // 已过首回合，选了也会失败
+    // =========================================================
+    // ConditionChecker: 条件限制检查器
+    // 检查招式在当前环境下是否合法/理智
+    // =========================================================
+    // [类型1: 首回合限定组] - Fake Out, First Impression, Mat Block
+    const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
+    if (firstTurnOnlyMoves.includes(moveName) && (attacker.turnsOnField || 0) > 0) {
+        console.log(`[AI BAN] ${moveName} 只能在首回合使用，当前 turnsOnField=${attacker.turnsOnField}`);
+        return -9999; // 非首回合，必定失败
+    }
+    // [类型2: 连发惩罚组] - Protect, Detect, King's Shield 等
+    // 连续使用守住类技能成功率大幅下降
+    const protectMoves = ['Protect', 'Detect', 'Spiky Shield', "King's Shield", 'Baneful Bunker', 
+                          'Obstruct', 'Silk Trap', 'Burning Bulwark', 'Endure', 'Wide Guard', 'Quick Guard'];
+    if (protectMoves.includes(moveName)) {
+        const lastMove = attacker.lastMoveUsed || '';
+        if (protectMoves.includes(lastMove)) {
+            console.log(`[AI BAN] ${moveName} 连续使用，成功率极低，禁止选择`);
+            return -8000; // 连续使用守住类技能，极大降低权重
         }
     }
-    // 睡眠状态才能用的技能：检查 flags.sleeptalk 或 sleepUsable
+    // [类型3: 先制博弈组] - Sucker Punch
+    // 如果对手上回合使用变化技，突袭大概率会失败
+    if (moveName === 'Sucker Punch') {
+        const defenderLastMove = defender.lastMoveUsed || '';
+        const defenderLastMoveId = defenderLastMove.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const defenderLastMoveData = (typeof MOVES !== 'undefined' && MOVES[defenderLastMoveId]) ? MOVES[defenderLastMoveId] : {};
+        const lastMoveCategory = (defenderLastMoveData.category || '').toLowerCase();
+        // 如果对手上回合用的是变化技，降低突袭优先级
+        if (lastMoveCategory === 'status') {
+            console.log(`[AI WARN] 对手上回合使用变化技 ${defenderLastMove}，突袭可能失败`);
+            return -500; // 降低优先级但不完全禁止
+        }
+    }
+    // [类型4: 状态冗余组] - 状态技对已有状态/免疫属性无效
+    // 4a. 状态异常技对已有状态的目标无效
+    const statusMoves = {
+        'Thunder Wave': { immuneTypes: ['Ground', 'Electric'], status: 'par' },
+        'Toxic': { immuneTypes: ['Steel', 'Poison'], status: 'tox' },
+        'Poison Powder': { immuneTypes: ['Steel', 'Poison', 'Grass'], status: 'psn' },
+        'Poison Gas': { immuneTypes: ['Steel', 'Poison'], status: 'psn' },
+        'Will-O-Wisp': { immuneTypes: ['Fire'], status: 'brn' },
+        'Hypnosis': { immuneTypes: [], status: 'slp' },
+        'Sleep Powder': { immuneTypes: ['Grass'], status: 'slp' },
+        'Spore': { immuneTypes: ['Grass'], status: 'slp' },
+        'Stun Spore': { immuneTypes: ['Grass', 'Electric'], status: 'par' },
+        'Glare': { immuneTypes: [], status: 'par' }
+    };
+    if (statusMoves[moveName]) {
+        const { immuneTypes, status } = statusMoves[moveName];
+        const defenderTypes = defender.types || [];
+        // 检查属性免疫
+        const isImmune = immuneTypes.some(t => defenderTypes.includes(t));
+        if (isImmune) {
+            console.log(`[AI BAN] ${moveName} 对 ${defenderTypes.join('/')} 属性无效`);
+            return -9999;
+        }
+        // 检查已有状态
+        if (defender.status) {
+            console.log(`[AI BAN] ${moveName} 对已有状态 ${defender.status} 的目标无效`);
+            return -9999;
+        }
+    }
+    // 4b. 天气技对已存在的相同天气无效
+    const weatherMoves = {
+        'Rain Dance': 'RainDance',
+        'Sunny Day': 'SunnyDay', 
+        'Sandstorm': 'Sandstorm',
+        'Hail': 'Hail',
+        'Snowscape': 'Snow'
+    };
+    if (weatherMoves[moveName] && typeof battle !== 'undefined' && battle.field) {
+        const currentWeather = battle.field.weather || '';
+        if (currentWeather && currentWeather.toLowerCase().includes(weatherMoves[moveName].toLowerCase())) {
+            console.log(`[AI BAN] ${moveName} 天气已存在，禁止使用`);
+            return -9999;
+        }
+    }
+    // [类型5: HP依赖组] - Explosion, Self-Destruct, Final Gambit, Destiny Bond
+    const selfKOMoves = ['Explosion', 'Self-Destruct', 'Final Gambit', 'Memento', 'Healing Wish', 'Lunar Dance'];
+    const hpPercentCheck = attacker.currHp / attacker.maxHp;
+    if (selfKOMoves.includes(moveName)) {
+        // Final Gambit 伤害等于自身当前HP，低HP时毫无意义
+        if (moveName === 'Final Gambit' && attacker.currHp < defender.currHp * 0.3) {
+            console.log(`[AI BAN] Final Gambit HP过低 (${attacker.currHp})，伤害不足`);
+            return -9000;
+        }
+        // 大爆炸/自爆：满血且队伍还有其他成员时不要送
+        if ((moveName === 'Explosion' || moveName === 'Self-Destruct') && hpPercentCheck > 0.7) {
+            const aliveCount = (aiParty || []).filter(p => p && p.currHp > 0).length;
+            if (aliveCount > 1) {
+                console.log(`[AI WARN] ${moveName} 满血且队伍还有 ${aliveCount} 只，降低优先级`);
+                return -2000; // 大幅降低但不完全禁止
+            }
+        }
+        // 检查对手是否有湿气特性（免疫爆炸）
+        const defenderAbility = (defender.ability || '').toLowerCase();
+        if ((moveName === 'Explosion' || moveName === 'Self-Destruct') && defenderAbility === 'damp') {
+            console.log(`[AI BAN] 对手有湿气特性，${moveName} 无效`);
+            return -9999;
+        }
+    }
+    // Destiny Bond 连续使用会失败
+    if (moveName === 'Destiny Bond' && attacker.lastMoveUsed === 'Destiny Bond') {
+        console.log(`[AI BAN] Destiny Bond 连续使用必定失败`);
+        return -9999;
+    }
+    // 睡眠状态才能用的技能
     if (moveFlags.nosleeptalk === undefined && (moveName === 'Sleep Talk' || moveName === 'Snore')) {
         if (attacker.status !== 'slp') {
             return -5000;
         }
     }
-    // 需要对手睡眠的技能：检查 onTryImmunity 或 condition
+    // 需要对手睡眠的技能
     if (fullMoveData.sleepUsable || moveName === 'Dream Eater') {
         if (defender.status !== 'slp') {
             return -5000;
@@ -7780,19 +7896,16 @@ class Pokemon {
         // =====================================================
         // === AVs: Trust (信赖) - Sync Guard 锁血效果 ===
         // =====================================================
-        // 【平衡调整】降低概率，每只宝可梦每场战斗只能触发一次
-        // Trust >= 200: 35% 概率触发（原 50%）
-        // Trust >= 150: 20% 概率触发（原 30%）
-        // Trust >= 100: 10% 概率触发（原 15%）
+        // 【线性机制】概率 = (effectiveTrust / 255) * 0.50
+        // 满值 255 时约 50% 概率，100 时约 20% 概率
+        // 每只宝可梦每场战斗只能触发一次
         // 只有 isAce=true 的宝可梦才能触发 AVs 被动
         if (this.isAce && this.avs && this.avs.trust > 0 && dmg >= this.currHp && !this.avsTriggered?.trustEndure) {
-            let triggerChance = 0;
             const baseTrust = this.getEffectiveAVs('trust');
             const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
-            if (effectiveTrust >= 200) triggerChance = 0.35;      // 削弱：50% -> 35%
-            else if (effectiveTrust >= 150) triggerChance = 0.20; // 削弱：30% -> 20%
-            else if (effectiveTrust >= 100) triggerChance = 0.10; // 削弱：15% -> 10%
-            if (triggerChance > 0 && Math.random() < triggerChance) {
+            // 线性概率：满值 50%，最低 5%（只要 trust > 0）
+            const triggerChance = Math.max(0.05, (effectiveTrust / 255) * 0.50);
+            if (Math.random() < triggerChance) {
                 this.currHp = 1;
                 this.avsTriggered.trustEndure = true; // 每场战斗只能触发一次
                 this.trustEndureTriggered = true; // 标记用于日志
@@ -11878,14 +11991,8 @@ const MoveHandlers = {
             }
             return {};
         },
-        onHit: (attacker, defender, damage, logs) => {
-            // 100% 畏缩效果
-            if (damage > 0 && defender.volatile) {
-                defender.volatile.flinch = true;
-                logs.push(`${defender.cnName} 畏缩了!`);
-            }
-            return {};
-        },
+        // 【修复】移除 onHit 钩子，畏缩效果由 battle-effects.js 的 secondary 处理统一处理
+        // 避免重复输出"畏缩了!"日志
         description: '先制技，仅在上场第一回合有效，100%畏缩'
     },
     'First Impression': {
@@ -16943,229 +17050,203 @@ function getDefaultBattleData() {
     return {
   "difficulty": "expert",
   "script": null,
-  "//PLAYER_SECTION": " (Player section kept as is from your prompt) ",
+  // ==================== 我方配置 (高人气全明星) ====================
+  // 设想为一个集齐了各世代高光宝可梦的“梦之队”
   "player": {
-    "name": "Red",
+    "name": "Red", // 或者你的角色名
     "unlocks": {
-      "enable_bond": true,
-      "enable_styles": true,
-      "enable_insight": true,
+      "enable_bond": true,    // 启用牵绊系统 (给甲贺忍蛙)
+      "enable_styles": true,  // 启用刚猛/迅疾
+      "enable_insight": true, // 启用心眼 (修正命中)
       "enable_mega": true,
       "enable_z_move": true,
       "enable_dynamax": true,
       "enable_tera": true
     },
     "party": [
+      // 1. [高速起手/Mega位]
       {
-        "name": "Pikachu-Partner",
+        "name": "Sceptile", 
+        "lv": 100, 
+        "gender": "M",
+        "item": "Sceptilite",
+        "mechanic": "mega", // Mega 进化
+        "nature": "Timid",  // 胆小 (+速 -攻)
+        "ability": "Lightning Rod", // Mega后避雷针
+        // 配合 Insight 保证 飞叶风暴 必中
+        "moves": ["Leaf Storm", "Dragon Pulse", "Focus Blast", "Giga Drain"],
+        "stats_meta": { "ev_level": 252 }, 
+        "avs": { "trust": 220, "passion": 255 }
+      },
+      // 2. [特功爆破/羁绊位]
+      {
+        "name": "Greninja-Ash", // 牵绊变身形态
         "lv": 100,
         "gender": "M",
-        "item": "Pikashunium Z",
-        "mechanic": "zmove",
-        "ability": "Static",
-        "isAce": true,
-        "moves": ["Thunderbolt", "Quick Attack", "Iron Tail", "Electroweb"],
-        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "name": "Mewtwo",
-        "lv": 100,
-        "gender": "N",
-        "item": "Mewtwonite Y",
-        "mechanic": "mega",
-        "mega_target": "mewtwomegay",
-        "ability": "Unnerve",
-        "moves": ["Psystrike", "Ice Beam", "Focus Blast", "Recover"],
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 200, "passion": 200 }
-      },
-      {
-        "name": "Greninja",
-        "lv": 100,
-        "gender": "M",
-        "item": "Choice Specs",
-        "mechanic": null,
+        "item": "Choice Specs", // 讲究眼镜
         "ability": "Battle Bond",
+        "nature": "Timid",
+        // 黄金手里剑 + 这种高速高攻在这个环境下很强
         "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "U-turn"],
         "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 220, "insight": 200 }
+        "avs": { "trust": 255, "devotion": 200 } // 极高羁绊
       },
+      // 3. [双刀/Z招式位]
       {
-        "name": "Koraidon",
+        "name": "Lucario",
         "lv": 100,
-        "gender": "N",
-        "item": "Clear Amulet",
-        "mechanic": "tera",
-        "teraType": "Fire",
-        "ability": "Orichalcum Pulse",
-        "moves": ["Collision Course", "Flare Blitz", "Dragon Claw", "Swords Dance"],
+        "gender": "M",
+        "item": "Fightinium Z",
+        "mechanic": "zmove", // Z 招式
+        "nature": "Naive",   // 天真 (双刀)
+        "ability": "Justified",
+        "moves": ["Close Combat", "Meteor Mash", "Extreme Speed", "Swords Dance"],
         "stats_meta": { "ev_level": 252 },
-        "avs": { "passion": 255 }
+        "avs": { "insight": 255 } // 波导心眼
       },
-      {
-        "name": "Necrozma-Dusk-Mane",
-        "lv": 100,
-        "gender": "N",
-        "item": "Ultranecrozium Z",
-        "mechanic": "mega",
-        "mega_target": "necrozmaultra",
-        "ability": "Prism Armor",
-        "moves": ["Photon Geyser", "Sunsteel Strike", "Earthquake", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "devotion": 200, "trust": 200 }
-      },
+      // 4. [超人气大核/太晶]
       {
         "name": "Charizard",
         "lv": 100,
         "gender": "M",
-        "nature": "Timid",
-        "item": "Heavy-Duty Boots",
-        "mechanic": "dynamax",
-        "mega_target": "charizardgmax",
+        "item": "Life Orb",
+        "mechanic": "tera",
+        "teraType": "Dragon", // 太晶龙 X
+        "nature": "Adamant",
         "ability": "Solar Power",
-        "moves": ["Blast Burn", "Hurricane", "Solar Beam", "Roost"],
+        "moves": ["Flare Blitz", "Dragon Claw", "Thunder Punch", "Dragon Dance"],
         "stats_meta": { "ev_level": 252 },
-        "avs": { "passion": 255, "insight": 100 }
+        "avs": { "passion": 255 } 
+      },
+      // 5. [环境准神/地龙]
+      {
+        "name": "Garchomp",
+        "lv": 100,
+        "gender": "F",
+        "item": "Rocky Helmet", // 凸凸头
+        "nature": "Jolly",
+        "ability": "Rough Skin",
+        "moves": ["Earthquake", "Scale Shot", "Iron Head", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 200 }
+      },
+      // 6. [妖精/吉祥物/屠龙者]
+      {
+        "name": "Sylveon",
+        "lv": 100,
+        "gender": "F",
+        "item": "Throat Spray", // 爽喉喷雾
+        "nature": "Modest",
+        "ability": "Pixilate",
+        // Insight 修正高音暴击与命中
+        "moves": ["Hyper Voice", "Psyshock", "Shadow Ball", "Calm Mind"],
+        "stats_meta": { "ev_level": 180 }, // 混耐分布
+        "avs": { "devotion": 255 }
       }
     ]
   },
-  "//ENEMY_SECTION": "================ 敌方(Gloria)配置 [OPTIMIZED] ==================",
+  // ==================== 敌方 (DAWN_DATA T4) ====================
   "enemy": {
-    "id": "gloria",
-    "name": "Champion Gloria",
-    "title": "Galar Champion",
+    "id": "dawn",
+    "name": "Top Coordinator Dawn",
     "lines": {
-      "start": "Let's seem them... the bonds we've forged in Galar!",
-      "win": "That was a proper good battle! Let's make some curry to celebrate!",
-      "lose": "What a shocker... You really are strong!",
-      "escape": "Off to camp, are we?",
-      "gmax_trigger": "Time to go big or go home! Dynamax!"
+      "start": "Spotlight, please! Let's show them a performance that shines even brighter than the sun!",
+      "win": "No need to worry! My Pokémon are always the stars of the show.",
+      "lose": "Oh wow... What a tough battle! You really dimmed our lights...",
+	  "turn1": "Everyone is watching! Move with elegance and grace!",
+	  "ace_out": "Lopunny! Show them the true meaning of beauty and power! Mega Evolve!",
+      "gmax_trigger": "Make it encompass the whole stage! Use minimal evasive movements!"
     },
+    // 基于 Tier 4 数据自动映射的配置解锁
     "unlocks": {
-        "enable_bond": false,
-        "enable_styles": false,
-        "enable_insight": false,
-        "enable_mega": false,
+        "enable_bond": false, 
+        "enable_styles": false,  
+        "enable_insight": true,  // 核心：心眼开启 (命中回避↑)
+        "enable_mega": true,    // 核心：Mega长耳兔
         "enable_z_move": false,
-        "//note": "Gloria is restricted to Dynamax only to match her region gimmick",
-        "enable_dynamax": true,
+        "enable_dynamax": false,
         "enable_tera": false
     }
   },
+  // 直接引用了 DAWN_DATA Tier 4 中的完整队伍与AVs配置
   "party": [
     {
-      "name": "Zacian-Crowned",
-      "lv": 100,
-      "gender": "N",
-      "nature": "Adamant",
-      "ability": "Intrepid Sword",
-      "item": "Rusted Sword",
-      "isAce": true, 
-      "mechanic": null,
-      "stats_meta": {
-        "is_perfect": true,
-        "ev_level": 252
-      },
-      "moves": [
-        "Behemoth Blade", 
-        "Play Rough", 
-        "Close Combat", 
-        "Swords Dance"
-      ],
-      "avs": { "trust": 255, "passion": 255, "insight": 200, "devotion": 150 }
+        // 1. [Mega手] 高速与强攻的完美结合
+        "name": "Lopunny",
+        "lv": 100, 
+        "gender": "F",
+        "nature": "Jolly", 
+        "ability": "Limber", 
+        "item": "Lopunnite",
+        "mechanic": "mega", 
+        // 极高 avs: Insight 使飞膝踢必中；Passion 使报恩威力最大化
+        "stats_meta": { "is_perfect": true, "ev_level": 252 }, 
+        "moves": ["Fake Out", "Return", "High Jump Kick", "Ice Punch"],
+        "avs": { "trust": 150, "passion": 200, "insight": 255, "devotion": 120 },
+        "isAce": true
     },
     {
-      "name": "Cinderace",
-      "lv": 100,
-      "gender": "M",
-      "nature": "Jolly",
-      "ability": "Libero",
-      "item": "Life Orb",
-      "mechanic": "dynamax",
-      "//mega_target": "Force G-Max form to access G-Max Fireball (ignores abilities)",
-      "mega_target": "cinderacegmax",
-      "stats_meta": { "ev_level": 252 },
-      "moves": [
-        "Pyro Ball", 
-        "Bounce", 
-        "Court Change", 
-        "Sucker Punch"
-      ],
-      "avs": { "trust": 150, "passion": 230 }
+        // 2. [飞机] 天恩畏缩与 Insight暴击流
+        "name": "Togekiss", 
+        "lv": 100,
+        "gender": "F",
+        "nature": "Timid", 
+        "ability": "Serene Grace", 
+        "item": "Kings Rock", // 王者之证 (素质拉满)
+        "stats_meta": { "ev_level": 252 },
+        // 空气切 60% 畏缩 + 高概率暴击
+        "moves": ["Air Slash", "Dazzling Gleam", "Aura Sphere", "Nasty Plot"],
+        "avs": { "trust": 200, "insight": 220 }
     },
     {
-      "name": "Urshifu-Rapid-Strike",
-      "lv": 100,
-      "gender": "M",
-      "nature": "Jolly",
-      "ability": "Unseen Fist",
-      "item": "Focus Sash",
-      "//note": "Changed to Sash to guarantee at least one hit or trade",
-      "mechanic": "dynamax",
-      "mega_target": "urshifugmax",
-      "stats_meta": { "ev_level": 252 },
-      "moves": [
-        "Surging Strikes", 
-        "Close Combat", 
-        "Ice Punch", 
-        "Aqua Jet"
-      ],
-      "avs": { "passion": 180, "trust": 80 }
+        // 3. [坦克] 标志性防御手
+        "name": "Torterra", 
+        "lv": 100,
+        "gender": "M",
+        "nature": "Adamant",
+        "ability": "Shell Armor", // 硬壳 (免疫CT)
+        "item": "Yache Berry",    // 抗冰果
+        "stats_meta": { "ev_level": 252 },
+        "moves": ["Wood Hammer", "Earthquake", "Stone Edge", "Synthesis"],
+        "avs": { "trust": 220, "devotion": 150 }
     },
     {
-      "name": "Rillaboom",
-      "lv": 100,
-      "gender": "M",
-      "nature": "Adamant",
-      "ability": "Grassy Surge",
-      "item": "Grassy Seed",
-      "mechanic": "dynamax",
-      "mega_target": "rillaboomgmax",
-      "stats_meta": { "ev_level": 252 },
-      "moves": [
-        "Grassy Glide", 
-        "Drum Beating", 
-        "High Horsepower", 
-        "U-turn"
-      ],
-      "avs": { "devotion": 150 }
+        // 4. [特盾] 好胜反威吓
+        "name": "Empoleon",
+        "lv": 100,
+        "gender": "M",
+        "nature": "Modest", 
+        "ability": "Competitive",
+        "item": "Assault Vest",   // 突击背心，配合Insight几乎打不动的特耐
+        "stats_meta": { "ev_level": 252 },
+        "moves": ["Hydro Pump", "Flash Cannon", "Ice Beam", "Aqua Jet"],
+        "avs": { "trust": 150, "devotion": 200 }
     },
     {
-      "name": "Corviknight",
-      "lv": 100,
-      "gender": "M",
-      "nature": "Impish",
-      "ability": "Mirror Armor",
-      "item": "Leftovers",
-      "mechanic": "dynamax",
-      "mega_target": "corviknightgmax",
-      "stats_meta": { "ev_level": 252 },
-      "moves": [
-        "Brave Bird", 
-        "Body Press", 
-        "Roost", 
-        "Iron Defense"
-      ],
-      "avs": { "trust": 220, "devotion": 200 }
+        // 5. [双刀] 
+        "name": "Infernape",
+        "lv": 100,
+        "gender": "M",
+        "nature": "Naive", 
+        "ability": "Iron Fist", 
+        "item": "Life Orb", 
+        "stats_meta": { "ev_level": 252 },
+        // Insight 让大字爆必中
+        "moves": ["Fire Blast", "Close Combat", "Mach Punch", "Grass Knot"],
+        "avs": { "passion": 255 }
     },
     {
-      "name": "Skwovet",
-      "lv": 100,
-      "gender": "F",
-      "nature": "Relaxed",
-      "ability": "Cheek Pouch",
-      "item": "Sitrus Berry",
-      "mechanic": "dynamax",
-      "//note": "The ultimate defensive wall meme bracket",
-      "stats_meta": { "ev_level": 255 },
-      "moves": [
-        "Super Fang", 
-        "Stuff Cheeks", 
-        "Body Slam", 
-        "Stockpile"
-      ],
-      "avs": { "insight": 255, "devotion": 255, "trust": 255, "passion": 255 }
+        // 6. [世界冠军的证明] 恶心人的白色恶魔
+        "name": "Pachirisu",
+        "lv": 100, 
+        "gender": "F",
+        "nature": "Impish", 
+        "ability": "Volt Absorb", // 蓄电
+        "item": "Sitrus Berry", 
+        "stats_meta": { "ev_level": 252 },
+        // Nuzzle(必麻) + Super Fang(半血)
+        "moves": ["Nuzzle", "Super Fang", "Charm", "Protect"],
+        "avs": { "trust": 255, "insight": 255, "devotion": 200 }
     }
   ]
 }
@@ -24399,7 +24480,15 @@ async function handleAttack(moveIndex, options = {}) {
             log(`<span style="color:#999">但是没有可以换入的宝可梦了!</span>`);
         }
         // 敌方倒下判定（在 pivot 换人之后）
+        // 【关键修复】同时检查玩家是否也倒下（粗糙皮肤/铁刺等接触伤害导致双方同时倒下）
         if (!e.isAlive()) {
+            // 先检查玩家是否也倒下
+            if (!p.isAlive()) {
+                console.log('[handleAttack] DOUBLE KO after player attack (Rough Skin/Iron Barbs)!');
+                await handleEnemyFainted(e);
+                await handlePlayerFainted(p);
+                return;
+            }
             await handleEnemyFainted(e);
             // 【修复】敌方倒下换人后，仍需执行回合末结算（G-Max DOT 等）
             const newE = battle.getEnemy();
@@ -24420,8 +24509,17 @@ async function handleAttack(moveIndex, options = {}) {
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
         console.log('[handleAttack] Enemy turn complete');
         // 【修复】Post-Move Check: 敌方使用自杀招式后立即处理倒下
+        // 【关键修复】同时检查玩家是否也倒下（反伤/粗糙皮肤等导致双方同时倒下）
         if (!e.isAlive()) {
-            console.log('[handleAttack] Enemy fainted after self-KO move (Memento/Explosion)');
+            console.log('[handleAttack] Enemy fainted after self-KO move (Memento/Explosion/Recoil)');
+            // 先检查玩家是否也倒下
+            if (!p.isAlive()) {
+                console.log('[handleAttack] DOUBLE KO: Both player and enemy fainted!');
+                // 双方同时倒下：先处理敌方，再处理玩家换人
+                await handleEnemyFainted(e);
+                await handlePlayerFainted(p);
+                return;
+            }
             await handleEnemyFainted(e);
             return;
         }
@@ -24455,8 +24553,16 @@ async function handleAttack(moveIndex, options = {}) {
         // ========== 敌方先动 ==========
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
         // 【修复】Post-Move Check: 敌方使用自杀招式后立即处理倒下
+        // 【关键修复】同时检查玩家是否也倒下（反伤/粗糙皮肤等导致双方同时倒下）
         if (!e.isAlive()) {
             console.log('[handleAttack] Enemy fainted after self-KO move in enemy-first branch');
+            // 先检查玩家是否也倒下
+            if (!p.isAlive()) {
+                console.log('[handleAttack] DOUBLE KO in enemy-first branch!');
+                await handleEnemyFainted(e);
+                await handlePlayerFainted(p);
+                return;
+            }
             await handleEnemyFainted(e);
             return;
         }
@@ -24549,7 +24655,15 @@ async function handleAttack(moveIndex, options = {}) {
         } else if (playerResult?.pivot) {
             log(`<span style="color:#999">但是没有可以换入的宝可梦了!</span>`);
         }
+        // 【关键修复】同时检查玩家是否也倒下（粗糙皮肤/铁刺等接触伤害导致双方同时倒下）
         if (!e.isAlive()) {
+            // 先检查玩家是否也倒下
+            if (!p.isAlive()) {
+                console.log('[handleAttack] DOUBLE KO after player attack in enemy-first branch!');
+                await handleEnemyFainted(e);
+                await handlePlayerFainted(p);
+                return;
+            }
             await handleEnemyFainted(e);
             // 【修复】敌方倒下换人后，仍需执行回合末结算（G-Max DOT 等）
             const newE = battle.getEnemy();

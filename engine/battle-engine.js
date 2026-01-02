@@ -599,6 +599,9 @@ class Pokemon {
         this.isAce = config.isAce || false;
         this.hasSecondWind = config.hasSecondWind || false;
         
+        // 首发标记 (isLead) - 标记该宝可梦是否为首发出战
+        this.isLead = config.isLead || false;
+        
         // === 互斥机制系统 (Mechanic Lock) ===
         // mechanic: 'mega' | 'dynamax' | 'zmove' | 'tera' | undefined
         this.mechanic = config.mechanic || null;
@@ -1322,6 +1325,20 @@ class BattleState {
             return poke;
         });
         
+        // 【isLead 首发逻辑】检查是否有标记为 isLead 的宝可梦，自动将其移到第一位
+        const leadIndex = this.enemyParty.findIndex(p => p.isLead === true);
+        if (leadIndex > 0) {
+            // 找到 isLead=true 的宝可梦且不在第一位，将其与第一位交换
+            const leadPokemon = this.enemyParty[leadIndex];
+            this.enemyParty[leadIndex] = this.enemyParty[0];
+            this.enemyParty[0] = leadPokemon;
+            console.log(`[LEAD] Enemy: ${leadPokemon.cnName} (${leadPokemon.name}) marked as isLead, swapped to first position`);
+        } else if (leadIndex === 0) {
+            console.log(`[LEAD] Enemy: ${this.enemyParty[0].cnName} is already in first position with isLead=true`);
+        } else {
+            console.log('[LEAD] Enemy: No Pokémon marked as isLead, using default order');
+        }
+        
         // 【调试】打印敌方队伍初始化状态
         console.log('[ENEMY PARTY] Loaded', this.enemyParty.length, 'Pokemon:');
         this.enemyParty.forEach((p, i) => {
@@ -1361,6 +1378,21 @@ class BattleState {
             }
             return poke;
         });
+        
+        // 【isLead 首发逻辑】检查是否有标记为 isLead 的宝可梦，自动将其移到第一位
+        const leadIndex = this.playerParty.findIndex(p => p.isLead === true);
+        if (leadIndex > 0) {
+            // 找到 isLead=true 的宝可梦且不在第一位，将其与第一位交换
+            const leadPokemon = this.playerParty[leadIndex];
+            this.playerParty[leadIndex] = this.playerParty[0];
+            this.playerParty[0] = leadPokemon;
+            console.log(`[LEAD] ${leadPokemon.cnName} (${leadPokemon.name}) marked as isLead, swapped to first position`);
+        } else if (leadIndex === 0) {
+            console.log(`[LEAD] ${this.playerParty[0].cnName} is already in first position with isLead=true`);
+        } else {
+            console.log('[LEAD] No Pokémon marked as isLead, using default order');
+        }
+        
         this.playerActive = 0;
         this.playerMegaUsed = false;
     }

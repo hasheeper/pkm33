@@ -54,6 +54,7 @@ function getDefaultBattleData() {
         "mechanic": "mega", // Mega 进化
         "nature": "Timid",  // 胆小 (+速 -攻)
         "ability": "Lightning Rod", // Mega后避雷针
+        "isLead": false,
         // 配合 Insight 保证 飞叶风暴 必中
         "moves": ["Leaf Storm", "Dragon Pulse", "Focus Blast", "Giga Drain"],
         "stats_meta": { "ev_level": 252 }, 
@@ -68,6 +69,7 @@ function getDefaultBattleData() {
         "item": "Choice Specs", // 讲究眼镜
         "ability": "Battle Bond",
         "nature": "Timid",
+        "isLead": false,
         // 黄金手里剑 + 这种高速高攻在这个环境下很强
         "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "U-turn"],
         "stats_meta": { "ev_level": 252 },
@@ -82,6 +84,7 @@ function getDefaultBattleData() {
         "mechanic": "zmove", // Z 招式
         "nature": "Naive",   // 天真 (双刀)
         "ability": "Justified",
+        "isLead": true,
         "moves": ["Close Combat", "Meteor Mash", "Extreme Speed", "Swords Dance"],
         "stats_meta": { "ev_level": 252 },
         "avs": { "insight": 255 } // 波导心眼
@@ -95,6 +98,7 @@ function getDefaultBattleData() {
         "mechanic": "tera",
         "teraType": "Dragon", // 太晶龙 X
         "nature": "Adamant",
+        "isLead": false,
         "ability": "Solar Power",
         "moves": ["Flare Blitz", "Dragon Claw", "Thunder Punch", "Dragon Dance"],
         "stats_meta": { "ev_level": 252 },
@@ -108,6 +112,7 @@ function getDefaultBattleData() {
         "item": "Rocky Helmet", // 凸凸头
         "nature": "Jolly",
         "ability": "Rough Skin",
+        "isLead": false,
         "moves": ["Earthquake", "Scale Shot", "Iron Head", "Swords Dance"],
         "stats_meta": { "ev_level": 252 },
         "avs": { "trust": 200 }
@@ -120,6 +125,7 @@ function getDefaultBattleData() {
         "item": "Throat Spray", // 爽喉喷雾
         "nature": "Modest",
         "ability": "Pixilate",
+        "isLead": false,
         // Insight 修正高音暴击与命中
         "moves": ["Hyper Voice", "Psyshock", "Shadow Ball", "Calm Mind"],
         "stats_meta": { "ev_level": 180 }, // 混耐分布
