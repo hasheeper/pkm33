@@ -91,7 +91,8 @@ const AbilityHandlers = {
             }
             return { absorbed: false };
         },
-        onBasePower: (attacker, defender, move, power) => {
+        // 【修复】参数顺序：(power, attacker, defender, move)
+        onBasePower: (power, attacker, defender, move) => {
             if (move.type === 'Fire' && attacker.flashFireBoost) return Math.floor(power * 1.5);
             return power;
         }
@@ -182,7 +183,10 @@ const AbilityHandlers = {
             }
             return { absorbed: false };
         },
-        onDefenderModifyDamage: (a, d, move, dmg) => move.type === 'Fire' ? Math.floor(dmg * 1.25) : dmg
+        // 【修复】参数顺序：(damage, attacker, defender, move, effectiveness)
+        onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness) => {
+            return move.type === 'Fire' ? Math.floor(damage * 1.25) : damage;
+        }
     },
   
     // 【神奇鳞片】异常状态时防御 x1.5 (此处简化为物防)
@@ -613,8 +617,9 @@ const AbilityHandlers = {
     },
 
     // 【慢出】永远最后行动 (优先度 -6)
+    // 【修复】参数顺序统一为：(priority, user, target, move)
     'Stall': {
-        onModifyPriority: (priority, pokemon, move) => {
+        onModifyPriority: (priority, user, target, move) => {
             // 返回一个极低的优先度修正，确保最后行动
             return -6;
         }
@@ -947,25 +952,16 @@ const AbilityHandlers = {
     },
 
     // 【毅力】异常状态时速度x1.5 (Quick Feet)
-    // 注意：Guts 已在第 772 行定义，此处不再重复
+    // 【修复】参数顺序：(stats, poke, battle)
     'Quick Feet': {
-        onModifyStat: (pokemon, stat, value) => {
-            if (stat === 'spe' && pokemon.status) {
-                return Math.floor(value * 1.5);
+        onModifyStat: (stats, poke, battle) => {
+            if (poke.status) {
+                stats.spe = Math.floor(stats.spe * 1.5);
             }
-            return value;
         }
     },
 
-    // 【神奇鳞片】异常状态时防御x1.5
-    'Marvel Scale': {
-        onModifyStat: (pokemon, stat, value) => {
-            if (stat === 'def' && pokemon.status) {
-                return Math.floor(value * 1.5);
-            }
-            return value;
-        }
-    },
+    // 注意：Marvel Scale 已在第 192 行定义，此处删除重复定义
 
     // 【不服输】被降能力时攻击+2
     'Defiant': {
@@ -1042,7 +1038,8 @@ const AbilityHandlers = {
     // 【洁净之盐】免疫所有异常状态（盐石巨灵）
     'Purifying Salt': {
         onImmunityStatus: () => true, // 免疫所有异常状态
-        onDefenderModifyDamage: (attacker, defender, move, damage) => {
+        // 【修复】参数顺序：(damage, attacker, defender, move, effectiveness)
+        onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness) => {
             // 幽灵系招式伤害减半
             if (move.type === 'Ghost') {
                 return Math.floor(damage * 0.5);

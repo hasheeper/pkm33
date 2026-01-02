@@ -136,6 +136,12 @@ function getTypeEffectiveness(atkType, defTypes, moveName = '') {
     const chart = TYPE_CHART[atkType];
     if (!chart) return 1;
     
+    // 防护：确保 defTypes 是有效数组
+    if (!Array.isArray(defTypes) || defTypes.length === 0) {
+        console.warn(`[TYPE EFFECTIVENESS] Invalid defTypes:`, defTypes, `for atkType:`, atkType);
+        return 1;
+    }
+    
     let multiplier = 1;
     const moveId = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
     

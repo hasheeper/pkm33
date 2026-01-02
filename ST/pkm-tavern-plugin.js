@@ -4318,7 +4318,7 @@ const NPC_ADDON_DATA = {
                 '-1': { label: '退票', desc: '态度尖锐，不加掩饰的厌烦，公事公办只想赶紧结束打发你走。' }
             },
             neutral: {
-                '0': { label: '路人', desc: '维持高岭之花的表面形象，内心放空，对你的存在并不在意。' }
+                '0': { label: '路人', desc: '只有外表不好惹，但一开口比较亲切，甚至有点操心作为路人你的样子' }
             },
             positive: {
                 '1': { label: '会员', desc: '嘴角微扬，会给你特权票根，把你当成还算顺眼的熟面孔照顾。' },
@@ -7002,6 +7002,19 @@ if (typeof window !== 'undefined') {
         // teraType: 'Fire' | 'Water' | ... | null (仅当 mechanic='tera' 时有效)
         if (pokemon.mechanic) {
           console.log(`${PLUGIN_NAME} [MECHANIC] ${pokemon.name}: ${pokemon.mechanic}${pokemon.teraType ? ` (${pokemon.teraType})` : ''}`);
+        }
+        
+        // === 确保 isAce 和 isLead 被保留 ===
+        // isAce: 标记王牌宝可梦（用于羁绊共鸣等特殊机制）
+        // isLead: 标记首发宝可梦（自动移到队伍第一位）
+        if (pokemon.isAce !== undefined) {
+          pokemon.isAce = Boolean(pokemon.isAce);
+        }
+        if (pokemon.isLead !== undefined) {
+          pokemon.isLead = Boolean(pokemon.isLead);
+          if (pokemon.isLead) {
+            console.log(`${PLUGIN_NAME} [LEAD] ${pokemon.name} marked as lead Pokemon`);
+          }
         }
         
         return pokemon;

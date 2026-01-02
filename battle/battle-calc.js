@@ -211,8 +211,12 @@ function calcDamage(attacker, defender, move) {
             console.log(`[ABILITY IMMUNE] ${defender.cnName} 的 ${defender.ability} 免疫了 ${move.name}！`);
             return { damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true, abilityImmune: defender.ability };
         }
+        // 【修复】onTryHit 需要预计算 effectiveness 用于 Wonder Guard 等特性
         if (ahDef.onTryHit) {
-            const tryHitResult = ahDef.onTryHit(attacker, defender, move);
+            // 预计算属性克制倍率
+            const defensiveTypes = defender.types || ['Normal'];
+            const preEffectiveness = getTypeEffectiveness(move.type || 'Normal', defensiveTypes, move.name);
+            const tryHitResult = ahDef.onTryHit(attacker, defender, move, preEffectiveness);
             if (tryHitResult && tryHitResult.blocked) {
                 console.log(`[ABILITY BLOCK] ${tryHitResult.message || defender.ability + ' 阻止了攻击'}`);
                 return { damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true, abilityImmune: defender.ability };
@@ -360,6 +364,7 @@ function calcDamage(attacker, defender, move) {
     let atkStat = isSpecial ? attacker.getStat('spa') : attacker.getStat('atk');
     let defStat = isSpecial ? defender.getStat('spd') : defender.getStat('def');
     
+    
     // === 【纯朴 Unaware】特性处理 ===
     if (typeof AbilityHandlers !== 'undefined') {
         const attackerHandler = attacker.ability ? AbilityHandlers[attacker.ability] : null;
@@ -409,7 +414,9 @@ function calcDamage(attacker, defender, move) {
     }
     
     // 属性克制
-    let effectiveness = getTypeEffectiveness(move.type, defensiveTypes, move.name);
+    // 【修复】确保 moveType 有效，优先使用 move.type，回退到 fullMoveData.type
+    const moveType = move.type || fullMoveData.type || 'Normal';
+    let effectiveness = getTypeEffectiveness(moveType, defensiveTypes, move.name);
     
     // === 本系加成 (STAB) ===
     let stab = 1;
@@ -417,7 +424,7 @@ function calcDamage(attacker, defender, move) {
     if (attacker.isTerastallized) {
         const teraType = attacker.teraType;
         const originalTypes = attacker.originalTypes || [];
-        const moveType = move.type;
+        const stabMoveType = moveType; // 使用上面已修复的 moveType
         
         if (teraType === 'Stellar') {
             if (originalTypes.includes(moveType)) {
@@ -451,7 +458,8 @@ function calcDamage(attacker, defender, move) {
             }
         }
     } else {
-        stab = attacker.types.includes(move.type) ? 1.5 : 1;
+        // 防护：确保 attacker.types 是有效数组，使用修复后的 moveType
+        stab = (Array.isArray(attacker.types) && attacker.types.includes(moveType)) ? 1.5 : 1;
     }
     
     // === 适应力特性 ===

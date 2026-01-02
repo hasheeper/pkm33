@@ -105,10 +105,12 @@ function getMovePriority(move, user = null, target = null) {
     }
     
     // === 通用 onModifyPriority 钩子 ===
+    // 【修复】参数顺序：(priority, user, target, move)
     if (user && user.ability && typeof AbilityHandlers !== 'undefined') {
         const abilityHandler = AbilityHandlers[user.ability];
         if (abilityHandler && abilityHandler.onModifyPriority) {
-            const modifiedPriority = abilityHandler.onModifyPriority(basePriority, user, move);
+            // target 参数在此上下文中可能不可用，传 null
+            const modifiedPriority = abilityHandler.onModifyPriority(basePriority, user, null, move);
             if (typeof modifiedPriority === 'number') {
                 basePriority = modifiedPriority;
             }
