@@ -275,8 +275,8 @@ function updateAllVisuals(forceSpriteAnim = false) {
     document.getElementById('player-name').innerText = p.cnName;
     document.getElementById('player-lvl').innerText = p.level;
     const enemyNameEl = document.getElementById('enemy-name');
-    const trainerName = battle.trainer?.name;
-    enemyNameEl.innerText = (battle.trainer?.id === 'wild' && trainerName) ? trainerName : e.cnName;
+    // 野生战斗时显示当前敌方宝可梦的名字，训练家战斗时显示宝可梦名字
+    enemyNameEl.innerText = e.cnName;
     const enemyLvEl = document.getElementById('enemy-lvl');
     enemyLvEl.innerText = e.level;
     enemyLvEl.style.color = (e.level > p.level + 20) ? '#e74c3c' : '';
