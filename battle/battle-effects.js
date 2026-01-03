@@ -128,8 +128,21 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
         changeStats(user, fullMoveData.self.boosts);
     }
     
+    // =========================================================
+    // 【Sheer Force 强行】特性检查
+    // 如果招式有 secondary 副作用且攻击方有 Sheer Force，跳过副作用
+    // 威力提升已在 ability-handlers.js 的 onBasePower 中处理
+    // =========================================================
+    const userAbilityId = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const hasSheerForce = userAbilityId === 'sheerforce';
+    const moveHasSecondary = fullMoveData.secondary || fullMoveData.secondaries;
+    
+    // Sheer Force 激活标记（用于生命宝珠反伤免疫）
+    const sheerForceActive = hasSheerForce && moveHasSecondary;
+    
     // 1.3 Secondary Effects（几率触发，通常对敌人）
-    if (fullMoveData.secondary) {
+    // 【Sheer Force】如果特性激活，跳过所有 secondary 副作用
+    if (fullMoveData.secondary && !sheerForceActive) {
         const chance = fullMoveData.secondary.chance || 100;
         if (Math.random() * 100 < chance) {
             if (fullMoveData.secondary.boosts) {
@@ -239,11 +252,16 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
         }
         
         // 生命宝珠反伤
+        // 【Sheer Force + Magic Guard】免疫生命宝珠反伤
         const userItem = (user.item || '').toLowerCase().replace(/[^a-z]/g, '');
         if (userItem === 'lifeorb' && damageDealt > 0) {
-            const lifeOrbRecoil = Math.max(1, Math.floor(user.maxHp * 0.1));
-            user.takeDamage(lifeOrbRecoil);
-            logs.push(`${user.cnName} 受到了生命宝珠的反噬!`);
+            // Sheer Force 激活时免疫生命宝珠反伤
+            // Magic Guard 也免疫（已在 noRecoilAbility 中处理）
+            if (!sheerForceActive) {
+                const lifeOrbRecoil = Math.max(1, Math.floor(user.maxHp * 0.1));
+                user.takeDamage(lifeOrbRecoil);
+                logs.push(`${user.cnName} 受到了生命宝珠的反噬!`);
+            }
         }
     }
     
@@ -322,7 +340,7 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
     // ========== 6. 接触类招式反馈效果 ==========
     const isContact = fullMoveData.flags && fullMoveData.flags.contact;
     
-    const userAbilityId = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    // userAbilityId 已在上方定义（Sheer Force 检查处）
     let hitCount = 1;
     if (fullMoveData.multihit) {
         if (Array.isArray(fullMoveData.multihit)) {

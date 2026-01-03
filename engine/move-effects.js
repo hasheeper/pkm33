@@ -1012,7 +1012,35 @@ function applyVolatileStatus(user, target, move) {
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
     if (fullMoveData.volatileStatus && fullMoveData.target === 'self') {
         const volatileKey = fullMoveData.volatileStatus;
-        if (user.volatile[volatileKey]) {
+        
+        // =========================================================
+        // Volatile 状态分类：
+        // 
+        // 【可叠加】由 move-handlers.js 处理层数逻辑，跳过通用检查：
+        //   - stockpile: 蓄力（最多3层）
+        // 
+        // 【刷新型】重复使用会刷新回合数/效果，不应失败：
+        //   - charge: 充电（下回合电系威力翻倍）
+        //   - laserfocus: 磨砺（下回合必定暴击）
+        //   - defensecurl: 变圆（滚动/冰球威力翻倍）
+        // 
+        // 【不可叠加】重复使用应该失败：
+        //   - aquaring, ingrain, focusenergy, substitute, 
+        //   - protect, endure, destinybond, imprison, etc.
+        // =========================================================
+        
+        // 可叠加的状态：由 handler 处理
+        const stackableVolatiles = ['stockpile'];
+        
+        // 刷新型状态：重复使用会刷新效果，不应失败
+        const refreshableVolatiles = ['charge', 'laserfocus', 'defensecurl'];
+        
+        if (stackableVolatiles.includes(volatileKey)) {
+            // 交给 handler 处理层数逻辑
+        } else if (refreshableVolatiles.includes(volatileKey)) {
+            // 刷新型：允许重复使用，会刷新效果
+        } else if (user.volatile[volatileKey]) {
+            // 不可叠加：已有状态则失败
             logs.push(`但是失败了! (${user.cnName} 已经处于该状态)`);
             return { success: false, logs };
         }

@@ -1933,6 +1933,32 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         if (fullMoveData.volatileStatus && fullMoveData.target === 'self') {
             const volatileKey = fullMoveData.volatileStatus;
             
+            // 【特殊处理】Stockpile 是可叠加的（最多3层），需要特殊逻辑
+            if (volatileKey === 'stockpile') {
+                const currentStacks = (attacker.volatile && attacker.volatile.stockpile) || 0;
+                
+                // 已满3层，禁止继续使用
+                if (currentStacks >= 3) {
+                    console.log(`[AI BAN] Stockpile：已满 ${currentStacks}/3 层，禁止继续使用`);
+                    return -99999;
+                }
+                
+                // 残血时不要蓄力（浪费回合）
+                if (hpPercent < 0.35) {
+                    console.log(`[AI BAN] Stockpile：残血 (${Math.round(hpPercent * 100)}%) 不应继续蓄力`);
+                    return -99999;
+                }
+                
+                // 已有2层且血量不高，不要继续蓄力
+                if (currentStacks >= 2 && hpPercent < 0.60) {
+                    console.log(`[AI PENALTY] Stockpile：已有 ${currentStacks} 层且血量不足，降低优先级`);
+                    return 5;
+                }
+                
+                // 正常情况下给予较低优先级（不应该无脑蓄力）
+                return 25;
+            }
+            
             // 1. 已有状态，禁止重复使用
             if (attacker.volatile && attacker.volatile[volatileKey]) {
                 console.log(`[AI BAN] ${moveName}：已有 ${volatileKey} 状态，禁止重复使用`);
@@ -1963,6 +1989,44 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
                 }
                 return 30;
             }
+        }
+        
+        // =========================================================
+        // 【特殊处理】Spit Up / Swallow 需要检查蓄力层数
+        // =========================================================
+        const moveId = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (moveId === 'spitup' || moveId === 'swallow') {
+            const stacks = (attacker.volatile && attacker.volatile.stockpile) || 0;
+            if (stacks === 0) {
+                console.log(`[AI BAN] ${moveName}：没有蓄力层数，无法使用`);
+                return -99999;
+            }
+            // 有蓄力时，根据层数给予评分
+            if (moveId === 'spitup') {
+                // 喷出：层数越多威力越高
+                return 50 + stacks * 30;
+            } else {
+                // 吞下：血量低时优先使用
+                if (hpPercent < 0.40) return 150;
+                if (hpPercent < 0.60) return 80;
+                return 30;
+            }
+        }
+        
+        // =========================================================
+        // 【特殊处理】Stuff Cheeks 需要检查是否持有树果
+        // =========================================================
+        if (moveId === 'stuffcheeks') {
+            const item = attacker.item || '';
+            const isBerry = item.toLowerCase().includes('berry') || item.includes('果');
+            if (!item || !isBerry) {
+                console.log(`[AI BAN] Stuff Cheeks：没有持有树果，无法使用`);
+                return -99999;
+            }
+            // 有树果时，血量健康时使用价值更高
+            if (hpPercent > 0.70) return 80;
+            if (hpPercent > 0.50) return 50;
+            return 20; // 残血时不太值得用
         }
         
         // =========================================================
@@ -2642,6 +2706,63 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         if (moveName === 'Meteor Beam' && !hasHerb) {
             // 没有香草但能强化，风险降低
             score -= 2000; // 仍有风险但不是完全禁用
+        }
+    }
+    
+    // =========================================================
+    // 【Extension 5】设置型技能评估 (Charge/Defense Curl/Laser Focus)
+    // 这些技能需要下回合才能发挥效果，需要评估使用时机
+    // =========================================================
+    const setupVolatileMoves = {
+        'Charge': { volatile: 'charge', benefit: 'Electric moves x2' },
+        'Defense Curl': { volatile: 'defensecurl', benefit: 'Rollout/Ice Ball x2' },
+        'Laser Focus': { volatile: 'laserfocus', benefit: 'Next attack crits' }
+    };
+    
+    if (setupVolatileMoves[moveName]) {
+        const setupInfo = setupVolatileMoves[moveName];
+        const hpPercent = attacker.currHp / attacker.maxHp;
+        
+        // 已有该状态，不需要重复使用
+        if (attacker.volatile && attacker.volatile[setupInfo.volatile]) {
+            score -= 5000;
+            console.log(`[AI SETUP] ${moveName}：已有 ${setupInfo.volatile} 状态，禁止重复使用`);
+        }
+        // 残血时不要用设置技能
+        else if (hpPercent < 0.35) {
+            score -= 3000;
+            console.log(`[AI SETUP] ${moveName}：残血 (${Math.round(hpPercent * 100)}%) 不应使用设置技能`);
+        }
+        // Charge：检查是否有电系技能可以受益
+        else if (moveName === 'Charge') {
+            const hasElectricMove = attacker.moves && attacker.moves.some(m => {
+                const merged = getMergedMoveData(m);
+                return merged.type === 'Electric' && (merged.basePower || merged.power || 0) >= 60;
+            });
+            if (!hasElectricMove) {
+                score -= 5000;
+                console.log(`[AI SETUP] Charge：没有高威力电系技能，无意义`);
+            } else if (hpPercent > 0.6) {
+                score += 50; // 血量健康时可以考虑
+            }
+        }
+        // Defense Curl：检查是否有 Rollout/Ice Ball
+        else if (moveName === 'Defense Curl') {
+            const hasRollout = attacker.moves && attacker.moves.some(m => 
+                m.name === 'Rollout' || m.name === 'Ice Ball'
+            );
+            if (!hasRollout) {
+                // 没有滚动/冰球，变圆只是普通的防御+1
+                score -= 100; // 轻微惩罚，因为还有防御提升效果
+            } else if (hpPercent > 0.6) {
+                score += 100; // 有配合技能时加分
+            }
+        }
+        // Laser Focus：下回合必定暴击
+        else if (moveName === 'Laser Focus') {
+            if (hpPercent > 0.5) {
+                score += 30; // 血量健康时可以考虑
+            }
         }
     }
     

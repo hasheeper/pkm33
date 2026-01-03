@@ -3456,6 +3456,270 @@ const MoveHandlers = {
             return {};
         },
         description: '造成伤害并使目标无法连续使用相同招式'
+    },
+    
+    // ============================================
+    // 蓄力系列技能 (Stockpile / Spit Up / Swallow)
+    // ============================================
+    
+    'Stockpile': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            if (!user.volatile) user.volatile = {};
+            const currentStacks = user.volatile.stockpile || 0;
+            
+            // 最多蓄力 3 次
+            if (currentStacks >= 3) {
+                logs.push(`${user.cnName} 已经蓄满了！无法继续蓄力！`);
+                return { failed: true };
+            }
+            
+            user.volatile.stockpile = currentStacks + 1;
+            const newStacks = user.volatile.stockpile;
+            
+            // 每次蓄力提升 1 级防御和特防
+            const defDiff = user.applyBoost('def', 1);
+            const spdDiff = user.applyBoost('spd', 1);
+            
+            logs.push(`${user.cnName} 蓄力了！(${newStacks}/3)`);
+            if (defDiff > 0) logs.push(`${user.cnName} 的防御提升了！`);
+            if (spdDiff > 0) logs.push(`${user.cnName} 的特防提升了！`);
+            
+            return {};
+        },
+        description: '蓄力（最多3次），每次提升1级防御和特防'
+    },
+    
+    'Spit Up': {
+        basePowerCallback: (attacker, defender) => {
+            const stacks = (attacker.volatile && attacker.volatile.stockpile) || 0;
+            // 威力 = 100 × 蓄力层数
+            return stacks * 100;
+        },
+        onUse: (user, target, logs, battle, isPlayer) => {
+            if (!user.volatile) user.volatile = {};
+            const stacks = user.volatile.stockpile || 0;
+            
+            if (stacks === 0) {
+                logs.push(`${user.cnName} 没有蓄力，喷出失败了！`);
+                return { failed: true };
+            }
+            
+            return {};
+        },
+        onHit: (user, target, damage, logs, battle) => {
+            // 使用后清空蓄力层数并降低对应的防御/特防
+            const stacks = (user.volatile && user.volatile.stockpile) || 0;
+            if (stacks > 0) {
+                user.applyBoost('def', -stacks);
+                user.applyBoost('spd', -stacks);
+                user.volatile.stockpile = 0;
+                logs.push(`${user.cnName} 的蓄力消耗殆尽！防御和特防下降了！`);
+            }
+            return {};
+        },
+        description: '消耗蓄力层数造成伤害（100/200/300威力）'
+    },
+    
+    'Swallow': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            if (!user.volatile) user.volatile = {};
+            const stacks = user.volatile.stockpile || 0;
+            
+            if (stacks === 0) {
+                logs.push(`${user.cnName} 没有蓄力，吞下失败了！`);
+                return { failed: true };
+            }
+            
+            // 回复量根据蓄力层数：1层=25%, 2层=50%, 3层=100%
+            const healPercent = stacks === 1 ? 0.25 : (stacks === 2 ? 0.50 : 1.00);
+            const healAmount = Math.floor(user.maxHp * healPercent);
+            const actualHeal = Math.min(healAmount, user.maxHp - user.currHp);
+            
+            user.currHp = Math.min(user.maxHp, user.currHp + healAmount);
+            logs.push(`${user.cnName} 吞下了蓄力！回复了 ${actualHeal} HP！`);
+            
+            // 消耗蓄力层数并降低对应的防御/特防
+            user.applyBoost('def', -stacks);
+            user.applyBoost('spd', -stacks);
+            user.volatile.stockpile = 0;
+            logs.push(`${user.cnName} 的蓄力消耗殆尽！防御和特防下降了！`);
+            
+            return {};
+        },
+        description: '消耗蓄力层数回复HP（25%/50%/100%）'
+    },
+    
+    'Stuff Cheeks': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 检查是否持有树果
+            const item = user.item || '';
+            const isBerry = item.toLowerCase().includes('berry') || 
+                           item.includes('果') ||
+                           (typeof window !== 'undefined' && typeof window.isBerry === 'function' && window.isBerry(item));
+            
+            if (!item || !isBerry) {
+                logs.push(`${user.cnName} 没有持有树果，大快朵颐失败了！`);
+                return { failed: true };
+            }
+            
+            // 强制吃掉树果
+            const berryName = user.item;
+            logs.push(`${user.cnName} 吃掉了 ${berryName}！`);
+            
+            // 触发树果效果（如果有 consumeItem 函数）
+            if (typeof window !== 'undefined' && typeof window.consumeItem === 'function') {
+                const itemLogs = window.consumeItem(user, battle);
+                if (itemLogs && itemLogs.length) {
+                    logs.push(...itemLogs);
+                }
+            } else {
+                // 简化处理：直接清除道具
+                user.item = null;
+            }
+            
+            // 防御大幅提升 (+2)
+            const defDiff = user.applyBoost('def', 2);
+            if (defDiff > 0) {
+                logs.push(`${user.cnName} 的防御大幅提升了！`);
+            } else {
+                logs.push(`${user.cnName} 的防御已经无法再提升了！`);
+            }
+            
+            return {};
+        },
+        description: '吃掉持有的树果并大幅提升防御'
+    },
+    
+    // ============================================
+    // 刷新型 Volatile 技能 (Refreshable Volatile Moves)
+    // 这些技能重复使用会刷新效果，不会失败
+    // ============================================
+    
+    'Charge': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            if (!user.volatile) user.volatile = {};
+            user.volatile.charge = true;
+            
+            // 充电还会提升特防
+            const spdDiff = user.applyBoost('spd', 1);
+            
+            logs.push(`${user.cnName} 开始充电！`);
+            if (spdDiff > 0) logs.push(`${user.cnName} 的特防提升了！`);
+            logs.push(`<span style="color:#f59e0b">下回合电系招式威力翻倍！</span>`);
+            
+            return {};
+        },
+        description: '充电，下回合电系招式威力翻倍，特防+1'
+    },
+    
+    'Defense Curl': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            if (!user.volatile) user.volatile = {};
+            user.volatile.defensecurl = true;
+            
+            // 变圆提升防御
+            const defDiff = user.applyBoost('def', 1);
+            
+            logs.push(`${user.cnName} 蜷缩起身体！`);
+            if (defDiff > 0) {
+                logs.push(`${user.cnName} 的防御提升了！`);
+            } else {
+                logs.push(`${user.cnName} 的防御已经无法再提升了！`);
+            }
+            
+            return {};
+        },
+        description: '变圆，防御+1，滚动/冰球威力翻倍'
+    },
+    
+    'Laser Focus': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            if (!user.volatile) user.volatile = {};
+            user.volatile.laserfocus = true;
+            
+            logs.push(`${user.cnName} 集中精神！`);
+            logs.push(`<span style="color:#ef4444">下回合攻击必定暴击！</span>`);
+            
+            return {};
+        },
+        description: '磨砺，下回合攻击必定暴击'
+    },
+    
+    // ============================================
+    // 滚动/冰球 (Rollout / Ice Ball)
+    // 威力递增，变圆后威力翻倍
+    // ============================================
+    
+    'Rollout': {
+        basePowerCallback: (attacker, defender) => {
+            // 基础威力 30，每次翻倍，最多5次 (30->60->120->240->480)
+            const rolloutCount = attacker.volatile?.rolloutCount || 1;
+            let power = 30 * Math.pow(2, rolloutCount - 1);
+            
+            // 变圆后威力翻倍
+            if (attacker.volatile?.defensecurl) {
+                power *= 2;
+            }
+            
+            return Math.min(480, power);
+        },
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.volatile) user.volatile = {};
+            user.volatile.rolloutCount = (user.volatile.rolloutCount || 0) + 1;
+            
+            // 最多5次
+            if (user.volatile.rolloutCount >= 5) {
+                user.volatile.rolloutCount = 0;
+                user.volatile.lockedMove = null;
+            } else {
+                user.volatile.lockedMove = 'Rollout';
+            }
+            
+            return {};
+        },
+        onMiss: (user, target, logs) => {
+            // 未命中则重置
+            if (user.volatile) {
+                user.volatile.rolloutCount = 0;
+                user.volatile.lockedMove = null;
+            }
+            return {};
+        },
+        description: '滚动，威力递增，变圆后翻倍'
+    },
+    
+    'Ice Ball': {
+        basePowerCallback: (attacker, defender) => {
+            const rolloutCount = attacker.volatile?.iceballCount || 1;
+            let power = 30 * Math.pow(2, rolloutCount - 1);
+            
+            if (attacker.volatile?.defensecurl) {
+                power *= 2;
+            }
+            
+            return Math.min(480, power);
+        },
+        onHit: (user, target, damage, logs, battle) => {
+            if (!user.volatile) user.volatile = {};
+            user.volatile.iceballCount = (user.volatile.iceballCount || 0) + 1;
+            
+            if (user.volatile.iceballCount >= 5) {
+                user.volatile.iceballCount = 0;
+                user.volatile.lockedMove = null;
+            } else {
+                user.volatile.lockedMove = 'Ice Ball';
+            }
+            
+            return {};
+        },
+        onMiss: (user, target, logs) => {
+            if (user.volatile) {
+                user.volatile.iceballCount = 0;
+                user.volatile.lockedMove = null;
+            }
+            return {};
+        },
+        description: '冰球，威力递增，变圆后翻倍'
     }
 
     // 注意：以下招式由 move-effects.js 统一处理，不需要在这里重复定义：

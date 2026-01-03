@@ -110,6 +110,18 @@ function calcDamage(attacker, defender, move) {
         }
     }
     
+    // === 【充电 Charge】电系招式威力翻倍 ===
+    const chargeMoveType = move.type || fullMoveData.type || 'Normal';
+    if (attacker.volatile && attacker.volatile.charge && chargeMoveType === 'Electric') {
+        basePower = Math.floor(basePower * 2);
+        console.log(`[CHARGE] ${attacker.cnName} 的充电使电系招式威力翻倍！(${basePower / 2} -> ${basePower})`);
+        // 使用后消耗
+        delete attacker.volatile.charge;
+    }
+    
+    // === 【磨砺 Laser Focus】下回合必定暴击 ===
+    // 在暴击判定处处理，这里只做标记检查
+    
     // === Mirror Coat / Counter 简化处理 ===
     if (move.name === 'Mirror Coat') {
         basePower = 100;
@@ -488,7 +500,13 @@ function calcDamage(attacker, defender, move) {
     
     // === 会心一击判定 ===
     let isCrit = false;
-    if (fullMoveData.willCrit) {
+    
+    // 【磨砺 Laser Focus】必定暴击
+    if (attacker.volatile && attacker.volatile.laserfocus) {
+        isCrit = true;
+        console.log(`[LASER FOCUS] ${attacker.cnName} 的磨砺使攻击必定暴击！`);
+        delete attacker.volatile.laserfocus;
+    } else if (fullMoveData.willCrit) {
         isCrit = true;
     } else {
         let critRatio = fullMoveData.critRatio || 1;
