@@ -352,11 +352,26 @@ function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
-    // 【战术指挥】DODGE! 指令：固定 50% 闪避加成
+    // 【战术指挥】DODGE! 指令：基础 40% 闪避 + Insight AVS 加成
+    // 点击后仅当回合生效
     if (defender.commandDodgeActive && !isSureHit) {
-        const dodgeBonus = 50; // 固定 50% 闪避
+        let dodgeBonus = 40; // 基础 40% 闪避
+        
+        // Insight AVS 加成：满值 255 时 +50%（总计 90%）
+        // 【全局开关】使用 getEffectiveAVs 检查有效值
+        if (defender.isAce && defender.avs && defender.getEffectiveAVs) {
+            const baseInsight = defender.getEffectiveAVs('insight');
+            if (baseInsight > 0) {
+                const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
+                const insightBonus = (Math.min(effectiveInsight, 255) / 255) * 50;
+                dodgeBonus += insightBonus;
+                console.log(`[COMMANDER] DODGE! Insight 加成: +${insightBonus.toFixed(1)}% (Insight: ${baseInsight})`);
+            }
+        }
+        
+        dodgeBonus = Math.min(dodgeBonus, 80); // 上限 80%（保证至少 20% 命中率）
         hitRate = Math.max(20, hitRate - dodgeBonus);
-        console.log(`[COMMANDER] DODGE! 指令激活！固定闪避 -${dodgeBonus}% (命中率: ${hitRate}%)`);
+        console.log(`[COMMANDER] DODGE! 指令激活！闪避 -${dodgeBonus.toFixed(1)}% (命中率: ${hitRate}%)`);
     }
     
     // Miss 检测
@@ -522,12 +537,16 @@ function calcDamage(attacker, defender, move, options = {}) {
     } else if (fullMoveData.willCrit) {
         isCrit = true;
     } else {
-        // 基础暴击概率：40%
-        let baseCritChance = 0.40;
+        // =====================================================
+        // === 暴击率计算（基于正版宝可梦机制） ===
+        // =====================================================
+        // 正版暴击阶段：+0 = 1/24 (~4.17%), +1 = 1/8 (12.5%), +2 = 1/2 (50%), +3+ = 100%
+        // 本系统简化为：基础 4.17%，高暴击招式 +12.5%，超高暴击招式再 +25%
+        let baseCritChance = 1 / 24; // ~4.17%，正版基础暴击率
         
-        // AVs: Passion 暴击加成
+        // AVs: Passion 暴击加成（仅限 isAce 宝可梦）
         // 【线性机制】暴击概率加成 = (effectivePassion / 255) * 0.20
-        // 满值 255 时 +20% 暴击率（总计 60%）
+        // 满值 255 时 +20% 暴击率
         let passionBonus = 0;
         if (attacker.isAce && attacker.avs) {
             const basePassion = attacker.getEffectiveAVs('passion');
@@ -542,26 +561,27 @@ function calcDamage(attacker, defender, move, options = {}) {
         
         let critChance = baseCritChance + passionBonus;
         
-        // 【战术指挥】FOCUS! 指令：暴击概率翻倍
-        // 注意：只有在实际战斗（非模拟）时才消耗指令
+        // 【战术指挥】FOCUS! 指令：当回合提供 40% 基础暴击率（独立于普通暴击）
+        // 点击后仅当回合生效，与普通暴击率叠加
         if (attacker.commandCritActive) {
-            critChance *= 2;
+            const focusBonus = 0.40; // FOCUS! 提供 40% 暴击率
+            critChance += focusBonus;
             critChance = Math.min(critChance, 1.0); // 上限 100%
             commandCritTriggered = true;
-            console.log(`[COMMANDER] FOCUS! 指令激活！暴击概率翻倍！(${(critChance * 100).toFixed(1)}%)`);
+            console.log(`[COMMANDER] FOCUS! 指令激活！+40% 暴击率！(总计: ${(critChance * 100).toFixed(1)}%)`);
             // 只在非模拟模式下消耗（isSimulation 参数由调用方传入）
             if (!options.isSimulation) {
                 attacker.commandCritActive = false; // 使用后消耗
             }
         }
         
-        // 招式自带高暴击率加成
+        // 招式自带高暴击率加成（critRatio 对应正版暴击阶段）
         const moveCritRatio = fullMoveData.critRatio || 1;
         if (moveCritRatio >= 2) {
-            critChance += 0.125; // +12.5%
+            critChance += 0.125; // +12.5%（相当于 +1 阶段）
         }
         if (moveCritRatio >= 3) {
-            critChance += 0.25; // 再 +25%
+            critChance += 0.25; // 再 +25%（相当于 +2 阶段）
         }
         
         critChance = Math.min(critChance, 1.0); // 上限 100%

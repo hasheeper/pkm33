@@ -858,12 +858,15 @@ class Pokemon {
             let endureChance = 0.50; // 基础 50%
             
             // Trust AVS 加成：满值 255 时 +50%
-            if (this.isAce && this.avs && this.avs.trust > 0) {
+            // 【全局开关】使用 getEffectiveAVs 检查有效值
+            if (this.isAce && this.avs) {
                 const baseTrust = this.getEffectiveAVs('trust');
-                const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
-                const trustBonus = (Math.min(effectiveTrust, 255) / 255) * 0.50;
-                endureChance += trustBonus;
-                console.log(`[COMMANDER] ENDURE! Trust 加成: +${(trustBonus * 100).toFixed(1)}% (Trust: ${baseTrust})`);
+                if (baseTrust > 0) {
+                    const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
+                    const trustBonus = (Math.min(effectiveTrust, 255) / 255) * 0.50;
+                    endureChance += trustBonus;
+                    console.log(`[COMMANDER] ENDURE! Trust 加成: +${(trustBonus * 100).toFixed(1)}% (Trust: ${baseTrust})`);
+                }
             }
             
             endureChance = Math.min(endureChance, 1.0); // 上限 100%

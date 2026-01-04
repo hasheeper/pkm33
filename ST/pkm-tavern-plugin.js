@@ -6931,11 +6931,31 @@ if (typeof window !== 'undefined') {
     const playerUnlocks = mergeUnlocks(resolvedPlayer.unlocks, eraPlayerData?.unlocks);
     const enemyUnlocks = resolvedEnemy.unlocks || null;
 
+    // === 处理全局系统开关 (settings) ===
+    // 从 ERA 数据或 AI 数据中获取 settings
+    const defaultSettings = {
+      enableAVS: true,
+      enableCommander: true,
+      enableEVO: true,
+      enableBGM: true,
+      enableSFX: true
+    };
+    const eraSettings = eraPlayerData?.settings || {};
+    const aiSettings = aiBattleData?.settings || {};
+    // AI 数据优先，然后是 ERA 数据，最后是默认值
+    const finalSettings = { ...defaultSettings, ...eraSettings, ...aiSettings };
+    
+    // === 处理 trainerProficiency ===
+    // 从 ERA 数据获取（已经在 handleGenerationBeforeInject 中处理了 proficiency_up）
+    const trainerProficiency = eraPlayerData?.trainerProficiency || 0;
+
     // 构建最终的战斗 JSON（前端 player/enemy 格式）
     const completeBattle = {
+      settings: finalSettings,
       difficulty: resolvedEnemy.difficulty || aiBattleData.difficulty || 'normal',
       player: {
         name: resolvedPlayer.name,
+        trainerProficiency: trainerProficiency,
         party: resolvedPlayer.party,
         unlocks: playerUnlocks
       },
@@ -6951,6 +6971,8 @@ if (typeof window !== 'undefined') {
     };
 
     console.log(`${PLUGIN_NAME} 构建完整战斗JSON:`, completeBattle);
+    console.log(`${PLUGIN_NAME} [SETTINGS] 全局系统开关:`, finalSettings);
+    console.log(`${PLUGIN_NAME} [PROFICIENCY] 训练家熟练度:`, trainerProficiency);
     console.log(`${PLUGIN_NAME} [UNLOCK] player unlocks:`, playerUnlocks);
     if (enemyUnlocks) {
       console.log(`${PLUGIN_NAME} [UNLOCK] enemy unlocks:`, enemyUnlocks);
@@ -7421,6 +7443,40 @@ ${inventorySection}
           console.log(`${PLUGIN_NAME} ✓ 已处理 ev_up 并更新到 ERA`);
         } catch (e) {
           console.warn(`${PLUGIN_NAME} 更新 ev_up 失败:`, e);
+        }
+      }
+      
+      // === 处理 proficiency_up：累加到 trainerProficiency ===
+      // ERA 格式：player.trainerProficiency (基础值), player.proficiency_up (增量)
+      // 战斗格式：player.trainerProficiency (总值)
+      const proficiencyUpdateData = {};
+      if (playerData) {
+        const currentProficiency = playerData.trainerProficiency || 0;
+        const proficiencyUp = playerData.proficiency_up || 0;
+        
+        if (proficiencyUp !== 0) {
+          // 累加并限制在 0-255 范围内
+          const newProficiency = Math.max(0, Math.min(255, currentProficiency + proficiencyUp));
+          
+          console.log(`${PLUGIN_NAME} [PROFICIENCY] 当前: ${currentProficiency}, +${proficiencyUp} = ${newProficiency}`);
+          
+          // 标记需要更新
+          proficiencyUpdateData['pkm.player.trainerProficiency'] = newProficiency;
+          proficiencyUpdateData['pkm.player.proficiency_up'] = 0;
+          
+          // 立即更新本地数据（用于注入）
+          playerData.trainerProficiency = newProficiency;
+          playerData.proficiency_up = 0;
+        }
+      }
+      
+      // 如果有 proficiency_up 需要处理，立即更新到 ERA
+      if (Object.keys(proficiencyUpdateData).length > 0) {
+        try {
+          await updateEraVars(proficiencyUpdateData);
+          console.log(`${PLUGIN_NAME} ✓ 已处理 proficiency_up 并更新到 ERA`);
+        } catch (e) {
+          console.warn(`${PLUGIN_NAME} 更新 proficiency_up 失败:`, e);
         }
       }
       
@@ -8287,6 +8343,25 @@ ${unlockItem.effect}
     function processObject(obj, path = '') {
       if (!obj || typeof obj !== 'object') return obj;
       
+      // === 处理 proficiency_up：累加到 trainerProficiency ===
+      // 检查是否是 pkm.player 的更新且包含 proficiency_up
+      if (path === 'pkm.player' || path.endsWith('.player')) {
+        const proficiencyUp = obj.proficiency_up;
+        if (proficiencyUp !== undefined && proficiencyUp !== null && typeof proficiencyUp === 'number' && proficiencyUp !== 0) {
+          const currentProficiency = _.get(currentVars, 'pkm.player.trainerProficiency', 0);
+          const newProficiency = Math.max(0, Math.min(255, currentProficiency + proficiencyUp));
+          
+          console.log(`${PLUGIN_NAME} [PROFICIENCY] 当前: ${currentProficiency}, +${proficiencyUp} = ${newProficiency}`);
+          
+          // 更新 trainerProficiency
+          obj.trainerProficiency = newProficiency;
+          
+          // 重置 proficiency_up 为 0
+          obj.proficiency_up = 0;
+        }
+      }
+      
+      // === 处理 ev_up：累加到 ev_level ===
       // 检查是否是 party 的槽位更新（pkm.player.party.slotX）
       if (path.includes('pkm.player.party.slot') && obj.stats_meta && typeof obj.stats_meta === 'object') {
         // 提取槽位键名 (slot1, slot2, ...)
@@ -8341,7 +8416,7 @@ ${unlockItem.effect}
         originalEventEmit.apply(window, arguments);
       }
     };
-    console.log(`${PLUGIN_NAME} ✓ ERA 变量更新拦截器已安装（ev_up 自动累加模式）`);
+    console.log(`${PLUGIN_NAME} ✓ ERA 变量更新拦截器已安装（ev_up/proficiency_up 自动累加模式）`);
   }
 
   console.log(`${PLUGIN_NAME} ✓✓✓ 插件加载完成 ✓✓✓`);

@@ -3678,12 +3678,15 @@ function applyCommandEffect(command, pokemon) {
             let listenChance = 0.40; // 基础 40%
             
             // Devotion AVS 加成：满值 255 时 +50%
-            if (pokemon.isAce && pokemon.avs && pokemon.avs.devotion > 0) {
+            // 【全局开关】使用 getEffectiveAVs 检查有效值
+            if (pokemon.isAce && pokemon.avs) {
                 const baseDevotion = pokemon.getEffectiveAVs('devotion');
-                const effectiveDevotion = pokemon.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
-                const devotionBonus = (Math.min(effectiveDevotion, 255) / 255) * 0.50;
-                listenChance += devotionBonus;
-                console.log(`[COMMANDER] LISTEN! Devotion 加成: +${(devotionBonus * 100).toFixed(1)}% (Devotion: ${baseDevotion})`);
+                if (baseDevotion > 0) {
+                    const effectiveDevotion = pokemon.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
+                    const devotionBonus = (Math.min(effectiveDevotion, 255) / 255) * 0.50;
+                    listenChance += devotionBonus;
+                    console.log(`[COMMANDER] LISTEN! Devotion 加成: +${(devotionBonus * 100).toFixed(1)}% (Devotion: ${baseDevotion})`);
+                }
             }
             
             listenChance = Math.min(listenChance, 1.0); // 上限 100%
