@@ -176,6 +176,11 @@ async function preloadBattleResources(playerParty, enemyParty, trainerId, onProg
  * 获取缓存的叫声并播放
  */
 function playCachedCry(name, volume = 0.45) {
+    // 【全局开关】SFX 系统关闭时不播放叫声
+    if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableSFX) {
+        return;
+    }
+    
     let id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     if (typeof POKEDEX !== 'undefined' && POKEDEX[id] && POKEDEX[id].baseSpecies) {

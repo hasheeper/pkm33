@@ -79,6 +79,12 @@ const BgmPlayer = {
     defaultVolume: 0.25,
     
     play(url, loop = true, fadeInDuration = 500) {
+        // 【全局开关】BGM 系统关闭时不播放
+        if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableBGM) {
+            console.log('[BGM] Disabled by GAME_SETTINGS');
+            return;
+        }
+        
         // 如果正在播放相同的 BGM 且未暂停，跳过
         if (this.currentAudio && this.currentKey === url && !this.currentAudio.paused) {
             console.log('[BGM] Already playing:', url);

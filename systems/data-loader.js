@@ -27,11 +27,180 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"difficulty":"expert","player":{"name":"player","party":[{"slot":1,"name":"Delphox","nickname":null,"species":null,"gender":"F","lv":40,"quality":"high","nature":"Sassy","ability":"Magician","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"isLead":true,"moves":["Flamethrower","Flame Charge","Mystical Fire","Howl"],"stats_meta":{"ivs":{"hp":31,"atk":31,"def":12,"spa":31,"spd":31,"spe":31},"ev_level":177,"ev_up":0},"notes":null,"avs":{"trust":217,"passion":255,"insight":61,"devotion":255}},{"slot":2,"name":"Wimpod","nickname":null,"species":null,"gender":"M","lv":28,"quality":"medium","nature":"Timid","ability":"Wimp Out","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Struggle Bug","Sand Attack","Defense Curl","Aqua Jet"],"stats_meta":{"ivs":{"hp":7,"atk":15,"def":28,"spa":18,"spd":21,"spe":31},"ev_level":78,"ev_up":0},"notes":null,"avs":{"trust":91,"passion":34,"insight":37,"devotion":28}},{"slot":3,"name":"Kirlia","nickname":null,"species":null,"gender":"F","lv":24,"quality":"high","nature":"Timid","ability":"Telepathy","shiny":false,"item":"Soothe Bell","mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Disarming Voice","Double Team","Confusion","Life Dew"],"stats_meta":{"ivs":{"hp":12,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"ev_level":83,"ev_up":0},"notes":null,"avs":{"trust":251,"passion":12,"insight":52,"devotion":255}},{"slot":4,"name":"Floragato","nickname":null,"species":null,"gender":"F","lv":33,"quality":"high","nature":"Adamant","ability":"Protean","shiny":false,"item":null,"mechanic":"tera","teraType":"Steel","isAce":true,"isLead":false,"moves":["Metal Claw","Leafage","Sucker Punch","Hone Claws"],"stats_meta":{"ivs":{"hp":1,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"ev_level":107,"ev_up":0},"notes":null,"avs":{"trust":25,"passion":69,"insight":38,"devotion":0}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":true}},"enemy":{"id":"Gloria","type":"trainer","name":"Gloria","lines":{"start":"Don't blink! Or you'll miss the taste of defeat!","win":"Haha! Looks like you're on dish duty!","lose":"Eh?! Greedent got stuffed?! ...Fine, a deal's a deal!","escape":"Hey! Where are you going?! The dishes are this way!"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":true,"enable_tera":false}},"party":[{"name":"Greedent","gender":"M","lv":40,"nature":"Impish","ability":"Cheek Pouch","shiny":false,"item":"Sitrus Berry","mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"ev_level":252},"moves":["Belch","Body Slam","Bullet Seed","Stockpile"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null}
-
-
-
-
+    return {
+  "settings": {
+    "enableAVS": true,
+    "enableCommander": true,
+    "enableEVO": true,
+    "enableBGM": true,
+    "enableSFX": true
+  },
+  "difficulty": "expert",
+  "player": {
+    "name": "player",
+    "trainerProficiency": 255,
+    "party": [
+      {
+        "slot": 1,
+        "name": "Delphox",
+        "gender": "F",
+        "lv": 36,
+        "quality": "high",
+        "nature": "Sassy",
+        "ability": "Magic Guard",
+        "shiny": false,
+        "item": null,
+        "mechanic": null,
+        "teraType": null,
+        "isAce": true,
+        "isLead": true,
+        "moves": ["Flamethrower", "Flame Charge", "Mystical Fire", "Howl"],
+        "stats_meta": {
+          "ivs": { "hp": 31, "atk": 31, "def": 12, "spa": 31, "spd": 31, "spe": 31 },
+          "ev_level": 177,
+          "ev_up": 0
+        },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "slot": 2,
+        "name": "Wimpod",
+        "gender": "M",
+        "lv": 28,
+        "quality": "medium",
+        "nature": "Timid",
+        "ability": "Wimp Out",
+        "shiny": false,
+        "item": null,
+        "mechanic": null,
+        "teraType": null,
+        "isAce": true,
+        "isLead": false,
+        "moves": ["Struggle Bug", "Sand Attack", "Defense Curl", "Aqua Jet"],
+        "stats_meta": {
+          "ivs": { "hp": 7, "atk": 15, "def": 28, "spa": 18, "spd": 21, "spe": 31 },
+          "ev_level": 78,
+          "ev_up": 0
+        },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "slot": 3,
+        "name": "Kirlia",
+        "gender": "F",
+        "lv": 24,
+        "quality": "high",
+        "nature": "Timid",
+        "ability": "Telepathy",
+        "shiny": false,
+        "item": "Soothe Bell",
+        "mechanic": null,
+        "teraType": null,
+        "isAce": true,
+        "isLead": false,
+        "moves": ["Disarming Voice", "Double Team", "Confusion", "Life Dew"],
+        "stats_meta": {
+          "ivs": { "hp": 12, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+          "ev_level": 83,
+          "ev_up": 0
+        },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      },
+      {
+        "slot": 4,
+        "name": "Floragato",
+        "gender": "F",
+        "lv": 33,
+        "quality": "high",
+        "nature": "Adamant",
+        "ability": "Protean",
+        "shiny": false,
+        "item": null,
+        "mechanic": "tera",
+        "teraType": "Steel",
+        "isAce": true,
+        "isLead": false,
+        "moves": ["Metal Claw", "Leafage", "Sucker Punch", "Hone Claws"],
+        "stats_meta": {
+          "ivs": { "hp": 1, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+          "ev_level": 107,
+          "ev_up": 0
+        },
+        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
+      }
+    ],
+    "unlocks": {
+      "enable_bond": false,
+      "enable_styles": false,
+      "enable_insight": false,
+      "enable_mega": false,
+      "enable_z_move": false,
+      "enable_dynamax": false,
+      "enable_tera": true
+    }
+  },
+  "enemy": {
+    "id": "Gloria",
+    "type": "trainer",
+    "name": "Gloria",
+    "lines": {
+      "start": "Don't blink! Or you'll miss the taste of defeat!",
+      "win": "Haha! Looks like you're on dish duty!",
+      "lose": "Eh?! Greedent got stuffed?! ...Fine, a deal's a deal!",
+      "escape": "Hey! Where are you going?! The dishes are this way!"
+    },
+    "unlocks": {
+      "enable_bond": false,
+      "enable_styles": false,
+      "enable_insight": false,
+      "enable_mega": false,
+      "enable_z_move": false,
+      "enable_dynamax": true,
+      "enable_tera": false
+    },
+    "party": [
+      {
+        "name": "Greedent",
+        "gender": "M",
+        "lv": 40,
+        "nature": "Impish",
+        "ability": "Cheek Pouch",
+        "shiny": false,
+        "item": "Sitrus Berry",
+        "mechanic": null,
+        "teraType": null,
+        "stats_meta": {
+          "ivs": { "hp": 31,"atk": 31,"def": 31,"spa": 31,"spd": 31,"spe": 31 },
+          "ev_level": 252
+        },
+        "moves": ["Belch", "Body Slam", "Bullet Seed", "Stockpile"],
+        "mega": null,
+        "avs": { "trust": 0, "passion": 0, "insight": 0, "devotion": 0 }
+      }
+    ]
+  },
+  "party": [
+    {
+      "name": "Greedent",
+      "gender": "M",
+      "lv": 40,
+      "nature": "Impish",
+      "ability": "Cheek Pouch",
+      "shiny": false,
+      "item": "Sitrus Berry",
+      "mechanic": null,
+      "teraType": null,
+      "stats_meta": {
+        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+        "ev_level": 252
+      },
+      "moves": ["Belch", "Body Slam", "Bullet Seed", "Stockpile"],
+      "mega": null,
+      "avs": { "trust": 0, "passion": 0, "insight": 0, "devotion": 0 }
+    }
+  ],
+  "script": null
+}
 
 
 

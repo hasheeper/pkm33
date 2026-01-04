@@ -93,6 +93,11 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     if (result.miss) {
         if (result.insightMiracle) {
             log(`<b style="color:#d4ac0d; text-shadow:0 0 5px gold;">✨ 不可能的奇迹！${defender.cnName} 看穿了绝对命中的轨迹！(Insight EX)</b>`);
+        } else if (defender.commandDodgeActive) {
+            // 【战术指挥】DODGE! 指令成功闪避
+            log(`<b style='color:#aaa'>但是攻击没有命中!</b>`);
+            log(`<b style="color:#00cec9; text-shadow:0 0 8px #00cec9;">👁️ ${defender.cnName} 听从了训练家的指挥，华丽地闪避了攻击！[DODGE!]</b>`);
+            defender.commandDodgeActive = false; // 使用后消耗
         } else if (result.insightDodge && defender.avs && defender.avs.insight >= 100) {
             log(`<b style='color:#aaa'>但是攻击没有命中!</b>`);
             log(`<b style="color:#a78bfa">✨ ${defender.cnName} 凭借灵犀感应预判了攻击轨迹! (Insight${defender.avsEvolutionBoost ? ' x2' : ''})</b>`);
@@ -226,6 +231,24 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
             defender.secondWindActivated = false;
         }
         
+        // 【战术指挥】HOLD ON! 指令触发日志
+        if (defender.commandEndureTriggered) {
+            log(`<b style="color:#a55eea; text-shadow:0 0 8px #a55eea;">🛡️ ${defender.cnName} 在训练家的呼喊下撑住了！</b>`);
+            defender.commandEndureTriggered = false;
+        }
+        
+        // Bond Endure (羁绊挺住) 触发日志 - 进化拦截器
+        if (defender.bondEndureActivated) {
+            log(`<b style="color:#d4ac0d; text-shadow:0 0 8px gold;">✨ ${defender.cnName} 因为想回应训练家的期待，撑住了！</b>`);
+            log(`<span style="color:#fbbf24;">💫 进化的光芒正在涌动...按下 [EVO] 按钮来回应它的意志！</span>`);
+            defender.bondEndureActivated = false;
+            
+            // 立即更新 EVO 按钮可见性
+            if (typeof updateEvolutionButtonVisuals === 'function') {
+                updateEvolutionButtonVisuals();
+            }
+        }
+        
         // === HP 阈值树果检查（文柚果、混乱果等）===
         // 【修复】先检查树果触发，但延迟输出日志，确保在伤害日志之后显示
         let berryLogs = [];
@@ -276,7 +299,11 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         
         if (result.isCrit) {
             infoParts.push('<b class="hl-crit">击中要害!</b>');
-            if (attacker.avs && attacker.avs.passion >= 100) {
+            // 【战术指挥】FOCUS! 指令触发的暴击
+            if (result.commandCritTriggered) {
+                infoParts.push(`<b style="color:#ff6b6b; text-shadow:0 0 5px #ff6b6b;">🔥 [FOCUS!]</b>`);
+            } else if (attacker.avs && attacker.getEffectiveAVs && attacker.getEffectiveAVs('passion') >= 100) {
+                // 【全局开关】使用 getEffectiveAVs 检查有效值（AVS 关闭时返回 0）
                 infoParts.push(`<b style="color:#f59e0b">🔥 (Passion${attacker.avsEvolutionBoost ? ' x2' : ''})</b>`);
             }
         }

@@ -20,9 +20,10 @@
  * @param {Pokemon} attacker 
  * @param {Pokemon} defender 
  * @param {object} move - { type, power, cat, accuracy }
+ * @param {object} options - { isSimulation: boolean } 可选参数
  * @returns {object} - { damage, effectiveness, isCrit, miss, hitCount, blocked }
  */
-function calcDamage(attacker, defender, move) {
+function calcDamage(attacker, defender, move, options = {}) {
     // 获取完整技能数据
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
@@ -336,15 +337,26 @@ function calcDamage(attacker, defender, move) {
     }
     
     // === AVs: Insight 闪避加成 ===
-    // 【线性机制】闪避加成 = (effectiveInsight / 255) * 12
-    // 满值 255 时约 12% 闪避加成，100 时约 5% 闪避加成
-    if (defender.isAce && defender.avs && defender.avs.insight > 0 && !isSureHit) {
+    // 【线性机制】闪避加成 = (effectiveInsight / 255) * 20
+    // 满值 255 时 20% 闪避加成，100 时约 8% 闪避加成
+    if (defender.isAce && defender.avs && !isSureHit) {
         const baseInsight = defender.getEffectiveAVs('insight');
-        const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
-        // 线性闪避加成：满值 12%，最低 1%
-        const evasionBonus = Math.max(1, Math.floor((effectiveInsight / 255) * 12));
-        hitRate = Math.max(70, hitRate - evasionBonus);
-        console.log(`[AVs] Insight 闪避加成: -${evasionBonus}% (Insight: ${baseInsight}${defender.avsEvolutionBoost ? ' x2' : ''})`);
+        // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
+        if (baseInsight > 0) {
+            const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
+            // 线性闪避加成：满值 20%，最低 1%
+            let evasionBonus = Math.max(1, Math.floor((effectiveInsight / 255) * 20));
+            
+            hitRate = Math.max(20, hitRate - evasionBonus); // 最低命中率降至 20%
+            console.log(`[AVs] Insight 闪避加成: -${evasionBonus}% (Insight: ${baseInsight}${defender.avsEvolutionBoost ? ' x2' : ''})`);
+        }
+    }
+    
+    // 【战术指挥】DODGE! 指令：固定 50% 闪避加成
+    if (defender.commandDodgeActive && !isSureHit) {
+        const dodgeBonus = 50; // 固定 50% 闪避
+        hitRate = Math.max(20, hitRate - dodgeBonus);
+        console.log(`[COMMANDER] DODGE! 指令激活！固定闪避 -${dodgeBonus}% (命中率: ${hitRate}%)`);
     }
     
     // Miss 检测
@@ -500,6 +512,7 @@ function calcDamage(attacker, defender, move) {
     
     // === 会心一击判定 ===
     let isCrit = false;
+    let commandCritTriggered = false;
     
     // 【磨砺 Laser Focus】必定暴击
     if (attacker.volatile && attacker.volatile.laserfocus) {
@@ -509,24 +522,50 @@ function calcDamage(attacker, defender, move) {
     } else if (fullMoveData.willCrit) {
         isCrit = true;
     } else {
-        let critRatio = fullMoveData.critRatio || 1;
+        // 基础暴击概率：40%
+        let baseCritChance = 0.40;
         
         // AVs: Passion 暴击加成
-        // 【线性机制】暴击等级加成 = (effectivePassion / 255) * 1.5
-        // 满值 255 时 +1.5 级，100 时约 +0.6 级
-        if (attacker.isAce && attacker.avs && attacker.avs.passion > 0) {
+        // 【线性机制】暴击概率加成 = (effectivePassion / 255) * 0.20
+        // 满值 255 时 +20% 暴击率（总计 60%）
+        let passionBonus = 0;
+        if (attacker.isAce && attacker.avs) {
             const basePassion = attacker.getEffectiveAVs('passion');
-            const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
-            // 线性暴击等级加成：满值 +1.5 级
-            const passionCritBonus = (effectivePassion / 255) * 1.5;
-            critRatio += passionCritBonus;
-            console.log(`[AVs] Passion 暴击加成: +${passionCritBonus.toFixed(2)} 级 (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
+            // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
+            if (basePassion > 0) {
+                const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
+                // 线性暴击概率加成：满值 +20%
+                passionBonus = (Math.min(effectivePassion, 255) / 255) * 0.20;
+                console.log(`[AVs] Passion 暴击加成: +${(passionBonus * 100).toFixed(1)}% (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
+            }
         }
         
-        let critChance = 1 / 24;
-        if (critRatio >= 2 && critRatio < 3) critChance = 1 / 8;
-        else if (critRatio >= 3 && critRatio < 4) critChance = 1 / 2;
-        else if (critRatio >= 4) critChance = 1;
+        let critChance = baseCritChance + passionBonus;
+        
+        // 【战术指挥】FOCUS! 指令：暴击概率翻倍
+        // 注意：只有在实际战斗（非模拟）时才消耗指令
+        if (attacker.commandCritActive) {
+            critChance *= 2;
+            critChance = Math.min(critChance, 1.0); // 上限 100%
+            commandCritTriggered = true;
+            console.log(`[COMMANDER] FOCUS! 指令激活！暴击概率翻倍！(${(critChance * 100).toFixed(1)}%)`);
+            // 只在非模拟模式下消耗（isSimulation 参数由调用方传入）
+            if (!options.isSimulation) {
+                attacker.commandCritActive = false; // 使用后消耗
+            }
+        }
+        
+        // 招式自带高暴击率加成
+        const moveCritRatio = fullMoveData.critRatio || 1;
+        if (moveCritRatio >= 2) {
+            critChance += 0.125; // +12.5%
+        }
+        if (moveCritRatio >= 3) {
+            critChance += 0.25; // 再 +25%
+        }
+        
+        critChance = Math.min(critChance, 1.0); // 上限 100%
+        
         if (Math.random() < critChance) isCrit = true;
     }
     const critMod = isCrit ? 1.5 : 1;
@@ -612,7 +651,8 @@ function calcDamage(attacker, defender, move) {
         miss: false, 
         hitCount,
         resistBerryTriggered,
-        resistBerryMessage
+        resistBerryMessage,
+        commandCritTriggered
     };
 }
 

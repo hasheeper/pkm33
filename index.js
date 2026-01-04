@@ -50,12 +50,30 @@ async function initGame() {
     if (sysMsg) sysMsg.textContent = "PRELOADING RESOURCES...";
     
     // 获取战斗数据
+    // 设置为 true 可强制使用 data-loader.js 中的默认数据（用于测试）
+    const FORCE_USE_DEFAULT_DATA = false;
+    
     let json;
-    if (typeof globalBattleData !== 'undefined' && globalBattleData) {
+    if (!FORCE_USE_DEFAULT_DATA && typeof globalBattleData !== 'undefined' && globalBattleData) {
         json = globalBattleData;
+        console.log('[PKM] 使用外部注入数据 (globalBattleData)');
     } else {
         json = getDefaultBattleData();
+        console.log('[PKM] 使用默认数据 (data-loader.js)');
     }
+    
+    // ============================================
+    // 【全局系统开关】从 JSON settings 读取
+    // ============================================
+    const settings = json.settings || {};
+    window.GAME_SETTINGS = {
+        enableAVS: settings.enableAVS !== false,           // AVS 羁绊值系统
+        enableCommander: settings.enableCommander !== false, // 战术指挥系统
+        enableEVO: settings.enableEVO !== false,           // 进化/羁绊共鸣系统
+        enableBGM: settings.enableBGM !== false,           // 背景音乐
+        enableSFX: settings.enableSFX !== false            // 音效
+    };
+    console.log('[SETTINGS] 全局系统开关:', window.GAME_SETTINGS);
     
     // 预加载本局资源
     const playerParty = (json.player && json.player.party) || [];
@@ -100,6 +118,18 @@ async function initGame() {
                 enable_tera: unlocks.enable_tera !== false         // 太晶化
             };
             console.log('[UNLOCK] 玩家解锁状态:', battle.playerUnlocks);
+            
+            // 【战术指挥系统】读取训练家熟练度
+            // JSON 格式: player.trainerProficiency (0-255)
+            if (json.player.trainerProficiency !== undefined) {
+                battle.trainerProficiency = Math.min(255, Math.max(0, json.player.trainerProficiency));
+                console.log('[COMMANDER] 从 JSON 读取训练家熟练度:', battle.trainerProficiency);
+            }
+            
+            // 【战术指挥系统】初始化
+            if (typeof initCommanderSystem === 'function') {
+                initCommanderSystem();
+            }
             
             // 检查玩家是否有 Mega 权限 (直接从 unlocks 读取)
             const playerCanMega = battle.playerUnlocks.enable_mega;
@@ -1024,9 +1054,10 @@ async function handleAttack(moveIndex, options = {}) {
     // =====================================================
     // === 敌方 AI 羁绊共鸣 (Bond Resonance) 触发逻辑 ===
     // =====================================================
+    // 【全局开关】EVO 系统关闭时不触发
     // 【解锁检查】Bond 需要 enable_bond
     // 【全局限制】每场战斗只能使用一次 Bond Resonance
-    if (enemyUnlocks.enable_bond && e.isAce && !battle.enemyBondUsed && !e.hasBondResonance && !e.hasEvolvedThisBattle) {
+    if (window.GAME_SETTINGS?.enableEVO !== false && enemyUnlocks.enable_bond && e.isAce && !battle.enemyBondUsed && !e.hasBondResonance && !e.hasEvolvedThisBattle) {
         // 检查是否满足触发条件
         const eHpRatio = e.currHp / e.maxHp;
         const eAvs = e.avs || { trust: 0, passion: 0, insight: 0, devotion: 0 };
@@ -2051,6 +2082,11 @@ async function executeEndPhase(p, e) {
         }
     }
     
+    // 【战术指挥系统】回合结束时清理指令状态
+    if (typeof clearCommandEffects === 'function') {
+        clearCommandEffects();
+    }
+    
     battle.locked = false;
     console.log('[executeEndPhase] Complete, battle.locked = false');
     } catch (err) {
@@ -2956,6 +2992,9 @@ window.EvolutionSystem = {
      * @returns {Object|null} 进化信息或 null
      */
     checkEligibility: function(pokemon) {
+        // 【全局开关】EVO 系统关闭时不触发
+        if (window.GAME_SETTINGS && !window.GAME_SETTINGS.enableEVO) return null;
+        
         // 基础检查
         if (!pokemon || pokemon.currHp <= 0) return null;
         if (pokemon.hasEvolvedThisBattle || pokemon.hasBondResonance) return null;
@@ -2990,9 +3029,21 @@ window.EvolutionSystem = {
             const reqLevel = Math.max(1, (nextData.evoLevel || 1) - 3);
             if (pokemon.level < reqLevel) return null;
 
-            // 2. AVs 阈值（放宽）：一阶(无prevo)需 60，二阶(有prevo)需 200
+            // 2. AVs 阈值：
+            // 一阶(无prevo): 80
+            // 二阶(有prevo): 160
+            // 只有一次进化(有prevo但进化型无evos): 140
             const isFirstStage = !data.prevo;
-            const reqAVs = isFirstStage ? 80 : 160;
+            const nextHasEvos = nextData.evos && nextData.evos.length > 0;
+            
+            let reqAVs;
+            if (isFirstStage) {
+                reqAVs = 80;  // 一阶段
+            } else if (!nextHasEvos) {
+                reqAVs = 140; // 只有一次升级（二阶进化到最终形态）
+            } else {
+                reqAVs = 160; // 二阶段（还能继续进化）
+            }
             if (totalAVs < reqAVs) return null;
 
             // 3. 危机锁 (HP 35% 以下) 或 Ace 宝可梦 60% 以下
@@ -3297,3 +3348,408 @@ window.triggerBattleEvolution = async function() {
     updateAllVisuals();
     battle.locked = false;
 };
+
+// =========================================================
+// COMMANDER SYSTEM (战术指挥系统)
+// =========================================================
+// 训练家熟练度决定指挥菜单弹出频率
+// 指令映射到 AVS 四维，提供强力的即时增益
+
+/**
+ * 初始化战术指挥系统
+ * 在战斗开始时调用
+ */
+function initCommanderSystem() {
+    // 训练家熟练度 (0-255)，影响触发概率
+    // 从 JSON 读取，默认 120
+    // JSON 格式: player.trainerProficiency
+    battle.trainerProficiency = battle.trainerProficiency || 120;
+    
+    // 当前回合的活跃指令
+    battle.activeCommand = null;
+    
+    // 本场战斗指令使用次数（全局计数）
+    // 新规则：dodge/crit 每只宝可梦一次，全局不限（最多6次）
+    //        cure/endure 每只宝可梦一次，全局限制2次
+    battle.commandUsage = {
+        dodge: 0,    // DODGE! (Insight) - 每只宝可梦一次，全局不限
+        crit: 0,     // FOCUS! (Passion) - 每只宝可梦一次，全局不限
+        cure: 0,     // LISTEN! (Devotion) - 每只宝可梦一次，全局2次
+        endure: 0    // ENDURE! (Trust) - 每只宝可梦一次，全局2次
+    };
+    
+    // 每种指令的最大使用次数（全局）
+    battle.commandLimits = {
+        dodge: 99,   // 每只宝可梦一次，全局不限（由宝可梦标记控制）
+        crit: 99,    // 每只宝可梦一次，全局不限（由宝可梦标记控制）
+        cure: 2,     // 全局 2 次
+        endure: 2    // 全局 2 次
+    };
+    
+    // 指令冷却（回合数）
+    battle.commandCooldown = 0;
+    
+    console.log(`[COMMANDER] System initialized. Proficiency: ${battle.trainerProficiency}`);
+}
+
+/**
+ * 检查是否应该显示指挥菜单
+ * 在 showMovesMenu 时调用
+ * @returns {boolean}
+ */
+function shouldShowCommanderMenu() {
+    // 【全局开关】Commander 系统关闭时不显示
+    if (window.GAME_SETTINGS && !window.GAME_SETTINGS.enableCommander) return false;
+    
+    if (!battle || battle.locked) return false;
+    
+    const p = battle.getPlayer();
+    if (!p || !p.isAce || p.currHp <= 0) return false;
+    
+    // 冷却中
+    if (battle.commandCooldown > 0) {
+        console.log(`[COMMANDER] On cooldown: ${battle.commandCooldown} turns remaining`);
+        return false;
+    }
+    
+    // 检查是否还有可用指令
+    // dodge/crit: 每只宝可梦一次，全局不限
+    // cure/endure: 每只宝可梦一次，全局限制2次
+    const dodgeAvailable = !p.commandDodgeUsed;
+    const critAvailable = !p.commandCritUsed;
+    const cureAvailable = !p.commandCureUsed && battle.commandUsage.cure < battle.commandLimits.cure;
+    const endureAvailable = !p.commandEndureUsed && battle.commandUsage.endure < battle.commandLimits.endure;
+    
+    const hasAvailableCommand = dodgeAvailable || critAvailable || cureAvailable || endureAvailable;
+    if (!hasAvailableCommand) {
+        console.log(`[COMMANDER] No available commands left for ${p.cnName}`);
+        return false;
+    }
+    
+    // 概率触发：Chance = Proficiency / 512
+    // 满熟练度 255 时约 50% 触发率
+    const proficiency = battle.trainerProficiency || 120;
+    const triggerChance = proficiency / 512;
+    const roll = Math.random();
+    
+    console.log(`[COMMANDER] Roll: ${roll.toFixed(3)} vs Chance: ${triggerChance.toFixed(3)} (Prof: ${proficiency})`);
+    
+    return roll < triggerChance;
+}
+
+/**
+ * 显示指挥菜单
+ */
+function showCommanderMenu() {
+    const overlay = document.getElementById('commander-overlay');
+    if (!overlay) return;
+    
+    // 更新按钮状态（禁用已用完的指令）
+    updateCommanderButtons();
+    
+    overlay.classList.remove('hidden');
+    
+    // 播放音效
+    if (typeof window.playSFX === 'function') {
+        window.playSFX('CONFIRM');
+    }
+    
+    // 日志提示
+    log(`<span style="color:#fbbf24; font-weight:bold;">⚡ 灵光一闪！你感受到了与伙伴的心灵共鸣！</span>`);
+    
+    console.log(`[COMMANDER] Menu shown`);
+}
+
+/**
+ * 关闭指挥菜单
+ */
+function closeCommanderMenu() {
+    const overlay = document.getElementById('commander-overlay');
+    if (overlay) {
+        overlay.classList.add('hidden');
+    }
+    
+    if (typeof window.playSFX === 'function') {
+        window.playSFX('CANCEL');
+    }
+    
+    console.log(`[COMMANDER] Menu closed (cancelled)`);
+}
+
+/**
+ * 更新指挥按钮状态
+ */
+function updateCommanderButtons() {
+    const p = battle.getPlayer();
+    const btnMap = {
+        dodge: '.pos-top',
+        cure: '.pos-left',
+        crit: '.pos-right',
+        endure: '.pos-bottom'
+    };
+    
+    // dodge 和 crit: 每只宝可梦一次，全局不限
+    const dodgeBtn = document.querySelector(btnMap.dodge);
+    if (dodgeBtn && p) {
+        if (p.commandDodgeUsed) {
+            dodgeBtn.disabled = true;
+            dodgeBtn.style.opacity = '0.4';
+            dodgeBtn.style.pointerEvents = 'none';
+        } else {
+            dodgeBtn.disabled = false;
+            dodgeBtn.style.opacity = '1';
+            dodgeBtn.style.pointerEvents = 'auto';
+        }
+    }
+    
+    const critBtn = document.querySelector(btnMap.crit);
+    if (critBtn && p) {
+        if (p.commandCritUsed) {
+            critBtn.disabled = true;
+            critBtn.style.opacity = '0.4';
+            critBtn.style.pointerEvents = 'none';
+        } else {
+            critBtn.disabled = false;
+            critBtn.style.opacity = '1';
+            critBtn.style.pointerEvents = 'auto';
+        }
+    }
+    
+    // cure 和 endure: 每只宝可梦一次 + 全局限制2次
+    const cureBtn = document.querySelector(btnMap.cure);
+    if (cureBtn && p) {
+        const cureDisabled = p.commandCureUsed || battle.commandUsage.cure >= battle.commandLimits.cure;
+        if (cureDisabled) {
+            cureBtn.disabled = true;
+            cureBtn.style.opacity = '0.4';
+            cureBtn.style.pointerEvents = 'none';
+        } else {
+            cureBtn.disabled = false;
+            cureBtn.style.opacity = '1';
+            cureBtn.style.pointerEvents = 'auto';
+        }
+    }
+    
+    const endureBtn = document.querySelector(btnMap.endure);
+    if (endureBtn && p) {
+        const endureDisabled = p.commandEndureUsed || battle.commandUsage.endure >= battle.commandLimits.endure;
+        if (endureDisabled) {
+            endureBtn.disabled = true;
+            endureBtn.style.opacity = '0.4';
+            endureBtn.style.pointerEvents = 'none';
+        } else {
+            endureBtn.disabled = false;
+            endureBtn.style.opacity = '1';
+            endureBtn.style.pointerEvents = 'auto';
+        }
+    }
+}
+
+/**
+ * 触发指令
+ * @param {string} command - 指令类型: 'dodge', 'crit', 'cure', 'endure'
+ */
+window.triggerCommand = function(command) {
+    const overlay = document.getElementById('commander-overlay');
+    if (overlay) {
+        overlay.classList.add('hidden');
+    }
+    
+    const p = battle.getPlayer();
+    if (!p) return;
+    
+    // 检查每只宝可梦一次的限制
+    if (command === 'dodge' && p.commandDodgeUsed) {
+        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 DODGE! 指令了！</span>`);
+        setTimeout(() => {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('moves-menu').classList.remove('hidden');
+        }, 100);
+        return;
+    }
+    if (command === 'crit' && p.commandCritUsed) {
+        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 FOCUS! 指令了！</span>`);
+        setTimeout(() => {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('moves-menu').classList.remove('hidden');
+        }, 100);
+        return;
+    }
+    if (command === 'cure' && p.commandCureUsed) {
+        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 LISTEN! 指令了！</span>`);
+        setTimeout(() => {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('moves-menu').classList.remove('hidden');
+        }, 100);
+        return;
+    }
+    if (command === 'endure' && p.commandEndureUsed) {
+        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 ENDURE! 指令了！</span>`);
+        setTimeout(() => {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('moves-menu').classList.remove('hidden');
+        }, 100);
+        return;
+    }
+    
+    // 检查全局使用次数（cure/endure 全局限制2次）
+    if ((command === 'cure' || command === 'endure') && 
+        battle.commandUsage[command] >= battle.commandLimits[command]) {
+        log(`<span style="color:#ef4444;">${command === 'cure' ? 'LISTEN!' : 'ENDURE!'} 指令全局次数已用尽！</span>`);
+        setTimeout(() => {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('moves-menu').classList.remove('hidden');
+        }, 100);
+        return;
+    }
+    
+    // 设置活跃指令
+    battle.activeCommand = command;
+    battle.commandUsage[command]++;
+    
+    // 标记每只宝可梦一次的指令（所有指令都是每只宝可梦一次）
+    if (command === 'dodge') {
+        p.commandDodgeUsed = true;
+    } else if (command === 'crit') {
+        p.commandCritUsed = true;
+    } else if (command === 'cure') {
+        p.commandCureUsed = true;
+    } else if (command === 'endure') {
+        p.commandEndureUsed = true;
+    }
+    
+    // 设置冷却（2回合后才能再次触发指挥菜单）
+    battle.commandCooldown = 2;
+    const commandInfo = {
+        dodge: { emoji: '👁️', label: 'DODGE!', cn: '快避开', avs: 'Insight', color: '#00cec9' },
+        crit: { emoji: '🔥', label: 'FOCUS!', cn: '击中要害', avs: 'Passion', color: '#ff6b6b' },
+        cure: { emoji: '🤝', label: 'LISTEN!', cn: '快清醒', avs: 'Trust', color: '#f1c40f' },
+        endure: { emoji: '🛡️', label: 'HOLD ON!', cn: '撑下去', avs: 'Devotion', color: '#a55eea' }
+    };
+    
+    const info = commandInfo[command];
+    
+    // 播放音效
+    if (typeof window.playSFX === 'function') {
+        window.playSFX('MEGA_EVOLVE');
+    }
+    
+    // 日志输出
+    log(`<div style="border-left: 4px solid ${info.color}; padding-left: 10px; margin: 5px 0;">`);
+    log(`<b style="color:${info.color}; font-size: 1.1em;">🗣️ [指挥] "${info.cn}！"</b>`);
+    log(`<span style="color:#9ca3af; font-size: 0.9em;">${p.cnName} 感受到了训练家的意志！(${info.avs})</span>`);
+    log(`</div>`);
+    
+    console.log(`[COMMANDER] Command triggered: ${command} (${info.cn})`);
+    
+    // 立即应用某些效果
+    applyCommandEffect(command, p);
+    
+    // 选择指令后，继续显示技能菜单
+    setTimeout(() => {
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('moves-menu').classList.remove('hidden');
+        if (typeof updateMegaButtonVisibility === 'function') {
+            updateMegaButtonVisibility();
+        }
+    }, 100);
+};
+
+/**
+ * 应用指令效果
+ * @param {string} command - 指令类型
+ * @param {Pokemon} pokemon - 目标宝可梦
+ */
+function applyCommandEffect(command, pokemon) {
+    switch (command) {
+        case 'dodge':
+            // 闪避：本回合闪避率翻倍（在 battle-calc.js 中检查）
+            pokemon.commandDodgeActive = true;
+            break;
+            
+        case 'crit':
+            // 暴击：下次攻击必定暴击（在 battle-calc.js 中检查）
+            pokemon.commandCritActive = true;
+            break;
+            
+        case 'cure':
+            // LISTEN! 解控：概率清除畏缩/混乱/着迷
+            // 基础 40% + Devotion AVS 50%（满值时 90%）
+            let listenChance = 0.40; // 基础 40%
+            
+            // Devotion AVS 加成：满值 255 时 +50%
+            if (pokemon.isAce && pokemon.avs && pokemon.avs.devotion > 0) {
+                const baseDevotion = pokemon.getEffectiveAVs('devotion');
+                const effectiveDevotion = pokemon.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
+                const devotionBonus = (Math.min(effectiveDevotion, 255) / 255) * 0.50;
+                listenChance += devotionBonus;
+                console.log(`[COMMANDER] LISTEN! Devotion 加成: +${(devotionBonus * 100).toFixed(1)}% (Devotion: ${baseDevotion})`);
+            }
+            
+            listenChance = Math.min(listenChance, 1.0); // 上限 100%
+            const listenRoll = Math.random();
+            console.log(`[COMMANDER] LISTEN! Roll: ${(listenRoll * 100).toFixed(1)}% vs Chance: ${(listenChance * 100).toFixed(1)}%`);
+            
+            if (listenRoll < listenChance) {
+                // 成功：清除负面状态
+                let cured = false;
+                if (pokemon.volatile) {
+                    if (pokemon.volatile.flinch) {
+                        delete pokemon.volatile.flinch;
+                        cured = true;
+                    }
+                    if (pokemon.volatile.confusion) {
+                        delete pokemon.volatile.confusion;
+                        delete pokemon.volatile.confusionTurns;
+                        cured = true;
+                    }
+                    if (pokemon.volatile.attract) {
+                        delete pokemon.volatile.attract;
+                        cured = true;
+                    }
+                }
+                if (cured) {
+                    log(`<b style="color:#f1c40f">💫 ${pokemon.cnName} 恢复了清醒！</b>`);
+                }
+                // 本回合攻击不受负面状态影响
+                pokemon.commandCureActive = true;
+                log(`<b style="color:#ff9f43; text-shadow:0 0 8px #ff9f43;">🤝 LISTEN! 指令成功！${pokemon.cnName} 听从了训练家的指挥！</b>`);
+            } else {
+                log(`<span style="color:#ef4444;">LISTEN! 指令失败...${pokemon.cnName} 没能听到训练家的声音...</span>`);
+            }
+            break;
+            
+        case 'endure':
+            // 挺住：本回合收到致命伤必定保留 1 HP（在 takeDamage 中检查）
+            pokemon.commandEndureActive = true;
+            break;
+    }
+}
+
+/**
+ * 回合结束时清理指令状态
+ */
+function clearCommandEffects() {
+    const p = battle.getPlayer();
+    if (p) {
+        p.commandDodgeActive = false;
+        p.commandCritActive = false;
+        p.commandCureActive = false;
+        p.commandEndureActive = false;
+    }
+    
+    // 清除活跃指令
+    battle.activeCommand = null;
+    
+    // 减少冷却
+    if (battle.commandCooldown > 0) {
+        battle.commandCooldown--;
+    }
+}
+
+// 导出到全局
+window.initCommanderSystem = initCommanderSystem;
+window.shouldShowCommanderMenu = shouldShowCommanderMenu;
+window.showCommanderMenu = showCommanderMenu;
+window.closeCommanderMenu = closeCommanderMenu;
+window.clearCommandEffects = clearCommandEffects;

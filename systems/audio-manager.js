@@ -115,6 +115,11 @@ const sfxCache = {};
  * @param {number} volumeOverride - 可选的音量覆盖 (0.0 - 1.0)
  */
 function playSFX(key, volumeOverride = null) {
+    // 【全局开关】SFX 系统关闭时不播放
+    if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableSFX) {
+        return;
+    }
+    
     const original = sfxCache[key];
     if (!original) {
         return;
@@ -168,6 +173,11 @@ const CRY_VOLUME = 0.45;
  * @param {string} speciesName - 宝可梦名字 (如 "Pikachu", "Charizard-Mega-Y")
  */
 window.playPokemonCry = function(speciesName) {
+    // 【全局开关】SFX 系统关闭时不播放叫声
+    if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableSFX) {
+        return;
+    }
+    
     if (!speciesName) return;
     
     // 优先使用预加载缓存

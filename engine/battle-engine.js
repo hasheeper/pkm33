@@ -696,6 +696,11 @@ class Pokemon {
      * @returns {number} 有效的 AVs 值
      */
     getEffectiveAVs(stat) {
+        // 【全局开关】AVS 系统关闭时返回 0
+        if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableAVS) {
+            return 0;
+        }
+        
         if (!this.avs || !this.avs[stat]) return 0;
         
         const rawValue = this.avs[stat];
@@ -806,18 +811,21 @@ class Pokemon {
         // 满值 255 时约 50% 概率，100 时约 20% 概率
         // 每只宝可梦每场战斗只能触发一次
         // 只有 isAce=true 的宝可梦才能触发 AVs 被动
-        if (this.isAce && this.avs && this.avs.trust > 0 && dmg >= this.currHp && !this.avsTriggered?.trustEndure) {
+        if (this.isAce && this.avs && dmg >= this.currHp && !this.avsTriggered?.trustEndure) {
             const baseTrust = this.getEffectiveAVs('trust');
-            const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
-            // 线性概率：满值 50%，最低 5%（只要 trust > 0）
-            const triggerChance = Math.max(0.05, (effectiveTrust / 255) * 0.50);
-            
-            if (Math.random() < triggerChance) {
-                this.currHp = 1;
-                this.avsTriggered.trustEndure = true; // 每场战斗只能触发一次
-                this.trustEndureTriggered = true; // 标记用于日志
-                console.log(`[AVs] ${this.cnName} 的 Trust 守护发动！(Chance: ${Math.round(triggerChance * 100)}%, Trust: ${baseTrust}${this.avsEvolutionBoost ? ' x2' : ''})`);
-                return; // 不执行后续扣血
+            // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
+            if (baseTrust > 0) {
+                const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
+                // 线性概率：满值 50%，最低 5%（只要 trust > 0）
+                const triggerChance = Math.max(0.05, (effectiveTrust / 255) * 0.50);
+                
+                if (Math.random() < triggerChance) {
+                    this.currHp = 1;
+                    this.avsTriggered.trustEndure = true; // 每场战斗只能触发一次
+                    this.trustEndureTriggered = true; // 标记用于日志
+                    console.log(`[AVs] ${this.cnName} 的 Trust 守护发动！(Chance: ${Math.round(triggerChance * 100)}%, Trust: ${baseTrust}${this.avsEvolutionBoost ? ' x2' : ''})`);
+                    return; // 不执行后续扣血
+                }
             }
         }
         
@@ -842,7 +850,117 @@ class Pokemon {
             return; // 不执行后续扣血
         }
         
+        // =====================================================
+        // === 【战术指挥】ENDURE! 指令 - 概率挺住 ===
+        // =====================================================
+        // 基础 50% + Trust AVS 50%（满值时 100%）
+        if (this.commandEndureActive && dmg >= this.currHp) {
+            let endureChance = 0.50; // 基础 50%
+            
+            // Trust AVS 加成：满值 255 时 +50%
+            if (this.isAce && this.avs && this.avs.trust > 0) {
+                const baseTrust = this.getEffectiveAVs('trust');
+                const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
+                const trustBonus = (Math.min(effectiveTrust, 255) / 255) * 0.50;
+                endureChance += trustBonus;
+                console.log(`[COMMANDER] ENDURE! Trust 加成: +${(trustBonus * 100).toFixed(1)}% (Trust: ${baseTrust})`);
+            }
+            
+            endureChance = Math.min(endureChance, 1.0); // 上限 100%
+            const roll = Math.random();
+            console.log(`[COMMANDER] ENDURE! Roll: ${(roll * 100).toFixed(1)}% vs Chance: ${(endureChance * 100).toFixed(1)}%`);
+            
+            this.commandEndureActive = false; // 使用后消耗
+            
+            if (roll < endureChance) {
+                this.currHp = 1;
+                this.commandEndureTriggered = true; // 标记用于日志
+                console.log(`[COMMANDER] ENDURE! 指令成功！${this.cnName} 在训练家的呼喊下撑住了！`);
+                return; // 不执行后续扣血
+            } else {
+                console.log(`[COMMANDER] ENDURE! 指令失败...${this.cnName} 没能撑住...`);
+            }
+        }
+        
+        // =====================================================
+        // === Bond Endure (羁绊挺住) - 进化拦截器 ===
+        // =====================================================
+        // 当满足进化条件时，致命伤害会锁血至 1 HP
+        // 条件：isAce + 有进化型 + AVs 达标 + 等级在宽容范围内 + 本场未进化过
+        // 触发后立即显示 EVO 按钮
+        if (this.isAce && dmg >= this.currHp && !this.hasEvolvedThisBattle && !this.bondEndureTriggered) {
+            const canBondEndure = this._checkBondEndureEligibility();
+            if (canBondEndure) {
+                this.currHp = 1;
+                this.bondEndureTriggered = true;
+                this.bondEndureActivated = true; // 标记用于日志和动画
+                console.log(`[Bond Endure] ${this.cnName} 因为想回应训练家的期待，撑住了！`);
+                return; // 不执行后续扣血
+            }
+        }
+        
         this.currHp = Math.max(0, this.currHp - dmg);
+    }
+    
+    /**
+     * 检查是否满足羁绊挺住条件（进化拦截）
+     * @returns {boolean}
+     */
+    _checkBondEndureEligibility() {
+        // 【全局开关】EVO 系统关闭时不触发
+        if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableEVO) {
+            return false;
+        }
+        
+        if (!this.avs) return false;
+        
+        // 计算 AVs 总和
+        const totalAVs = (this.getEffectiveAVs('trust') || 0) + 
+                         (this.getEffectiveAVs('passion') || 0) + 
+                         (this.getEffectiveAVs('insight') || 0) + 
+                         (this.getEffectiveAVs('devotion') || 0);
+        
+        // 获取宝可梦数据
+        const baseId = this.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const data = typeof POKEDEX !== 'undefined' ? POKEDEX[baseId] : null;
+        if (!data) return false;
+        
+        // 必须有进化型
+        if (!data.evos || data.evos.length === 0) return false;
+        
+        // 已 Mega 或已变身的不能触发
+        if (this.isMega || this.isTransformed) return false;
+        
+        // 获取进化型数据
+        const nextFormName = data.evos[0];
+        const nextId = nextFormName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const nextData = typeof POKEDEX !== 'undefined' ? POKEDEX[nextId] : null;
+        if (!nextData) return false;
+        
+        // 等级检查（允许越级3级）
+        const reqLevel = Math.max(1, (nextData.evoLevel || 1) - 3);
+        if (this.level < reqLevel) return false;
+        
+        // AVs 阈值检查
+        // 一阶(无prevo): 80
+        // 二阶(有prevo): 160
+        // 只有一次进化(有prevo但进化型无evos): 140
+        const isFirstStage = !data.prevo;
+        const nextHasEvos = nextData.evos && nextData.evos.length > 0;
+        
+        let reqAVs;
+        if (isFirstStage) {
+            reqAVs = 80;  // 一阶段
+        } else if (!nextHasEvos) {
+            reqAVs = 140; // 只有一次升级（二阶进化到最终形态）
+        } else {
+            reqAVs = 160; // 二阶段（还能继续进化）
+        }
+        
+        if (totalAVs < reqAVs) return false;
+        
+        console.log(`[Bond Endure Check] ${this.cnName}: AVs=${totalAVs}/${reqAVs}, Level=${this.level}/${reqLevel}, Target=${nextFormName}`);
+        return true;
     }
     
     // 回复

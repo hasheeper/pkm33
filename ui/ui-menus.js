@@ -18,12 +18,27 @@
  */
 function showMovesMenu() {
     console.log('[UI-MENUS] showMovesMenu called');
+    
+    const battle = typeof window !== 'undefined' ? window.battle : null;
+    
+    // =========================================================
+    // 【战术指挥系统】检查是否触发指挥菜单
+    // =========================================================
+    if (battle && typeof window.shouldShowCommanderMenu === 'function') {
+        if (window.shouldShowCommanderMenu()) {
+            // 触发指挥菜单，暂时不显示技能菜单
+            if (typeof window.showCommanderMenu === 'function') {
+                window.showCommanderMenu();
+                return; // 等待玩家选择指令后再显示技能菜单
+            }
+        }
+    }
+    
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('moves-menu').classList.remove('hidden');
     
     // 【古武系统】根据 enable_styles 显示/隐藏太极球
     const taijiOrb = document.getElementById('btn-style-taiji');
-    const battle = typeof window !== 'undefined' ? window.battle : null;
     console.log('[UI-MENUS] battle:', battle, 'taijiOrb:', taijiOrb);
     if (taijiOrb && battle) {
         const unlocks = battle.playerUnlocks || {};
