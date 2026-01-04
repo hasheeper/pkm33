@@ -3361,9 +3361,10 @@ window.triggerBattleEvolution = async function() {
  */
 function initCommanderSystem() {
     // 训练家熟练度 (0-255)，影响触发概率
-    // 从 JSON 读取，默认 120
+    // 从 JSON 读取，默认 0（新手训练家）
     // JSON 格式: player.trainerProficiency
-    battle.trainerProficiency = battle.trainerProficiency || 120;
+    // 注意：使用 ?? 而不是 ||，避免 0 被当作 falsy 值
+    battle.trainerProficiency = battle.trainerProficiency ?? 0;
     
     // 当前回合的活跃指令
     battle.activeCommand = null;
@@ -3428,7 +3429,8 @@ function shouldShowCommanderMenu() {
     
     // 概率触发：Chance = Proficiency / 512
     // 满熟练度 255 时约 50% 触发率
-    const proficiency = battle.trainerProficiency || 120;
+    // 注意：使用 ?? 而不是 ||，避免 0 被当作 falsy 值
+    const proficiency = battle.trainerProficiency ?? 0;
     const triggerChance = proficiency / 512;
     const roll = Math.random();
     

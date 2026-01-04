@@ -816,8 +816,9 @@ class Pokemon {
             // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
             if (baseTrust > 0) {
                 const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
-                // 线性概率：满值 50%，最低 5%（只要 trust > 0）
-                const triggerChance = Math.max(0.05, (effectiveTrust / 255) * 0.50);
+                // 线性概率：满值 50%，无保底（低 AVS 就是低概率）
+                // Trust 60 → 11.76%, Trust 100 → 19.6%, Trust 255 → 50%
+                const triggerChance = (effectiveTrust / 255) * 0.50;
                 
                 if (Math.random() < triggerChance) {
                     this.currHp = 1;

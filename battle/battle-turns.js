@@ -557,8 +557,9 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
             const hpRatio = poke.currHp / poke.maxHp;
             const isCritical = hpRatio <= 0.30;
             
-            // 线性概率计算：满值 35%，最低 5%
-            const baseChance = Math.max(0.05, (effectiveDevotion / 255) * 0.35);
+            // 线性概率计算：满值 35%，无保底（低 AVS 就是低概率）
+            // Devotion 10 → 1.37%, Devotion 100 → 13.7%, Devotion 255 → 35%
+            const baseChance = (effectiveDevotion / 255) * 0.35;
             
             // 初始化全局触发标记
             if (!poke.avsTriggered) poke.avsTriggered = {};
@@ -581,8 +582,10 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
             }
             
             // 【触发条件 2】残血（≤30%）→ 回复 35% HP（全局只能触发一次）
+            // 危机爆发概率 = 基础概率 * 1.5（而不是固定 +15%）
+            // Devotion 10 → 2.06%, Devotion 100 → 20.6%, Devotion 255 → 52.5%
             if (isCritical && !poke.avsTriggered.devotionCritical) {
-                const criticalChance = Math.min(0.60, baseChance + 0.15);
+                const criticalChance = Math.min(0.60, baseChance * 1.5);
                 if (Math.random() < criticalChance) {
                     const healAmount = Math.floor(poke.maxHp * 0.35);
                     poke.heal(healAmount);
