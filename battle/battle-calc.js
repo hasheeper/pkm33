@@ -171,81 +171,93 @@ function calcDamage(attacker, defender, move, options = {}) {
     }
     
     // === Protect/Detect 守住判定 ===
-    if (defender.volatile && defender.volatile.protect && basePower > 0) {
+    // 【严重BUG修复】守住应该阻挡所有攻击和变化技（除了特定穿透技能）
+    // 原逻辑错误：只检查 basePower > 0，导致变化技（如蘑菇孢子）不被阻挡
+    if (defender.volatile && defender.volatile.protect) {
         const isContact = fullMoveData.flags && fullMoveData.flags.contact;
         let protectEffect = null;
         
-        // 【无形拳 (Unseen Fist)】接触类招式穿透守住
-        const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-        if (isContact && attackerAbility === 'unseenfist') {
-            console.log(`[Unseen Fist] ${attacker.cnName} 的无形拳穿透了守住！`);
-            // 不 return blocked，继续计算伤害
-            // 但仍然触发守住的接触副作用（如王盾降攻）
-            if (defender.volatile.kingsShield) {
-                if (!attacker.boosts) attacker.boosts = {};
-                attacker.boosts.atk = Math.max(-6, (attacker.boosts.atk || 0) - 2);
-                protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的攻击大幅下降！` };
-            }
-            // 无形拳穿透后继续执行伤害计算，不在这里 return
-        } else if (isContact) {
-            // 碉堡 (Baneful Bunker): 接触攻击者中毒
-            if (defender.volatile.banefulBunker) {
-                const attackerTypes = attacker.types || [];
-                const canPoison = !attackerTypes.includes('Poison') && !attackerTypes.includes('Steel');
-                if (canPoison && !attacker.status) {
-                    attacker.status = 'psn';
-                    protectEffect = { type: 'poison', msg: `${attacker.cnName} 接触了碉堡，中毒了！` };
-                }
-            }
-            // 尖刺防守 (Spiky Shield)
-            else if (defender.volatile.spikyShield) {
-                const spikeDmg = Math.floor(attacker.maxHp / 8);
-                attacker.takeDamage(spikeDmg);
-                protectEffect = { type: 'damage', msg: `${attacker.cnName} 被尖刺刺伤了！(-${spikeDmg})` };
-            }
-            // 王者盾牌 (King's Shield)
-            else if (defender.volatile.kingsShield) {
-                if (!attacker.boosts) attacker.boosts = {};
-                attacker.boosts.atk = Math.max(-6, (attacker.boosts.atk || 0) - 2);
-                protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的攻击大幅下降！` };
-            }
-            // 拦堵 (Obstruct)
-            else if (defender.volatile.obstruct) {
-                if (!attacker.boosts) attacker.boosts = {};
-                attacker.boosts.def = Math.max(-6, (attacker.boosts.def || 0) - 2);
-                protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的防御大幅下降！` };
-            }
-            // 丝绸陷阱 (Silk Trap)
-            else if (defender.volatile.silkTrap) {
-                if (!attacker.boosts) attacker.boosts = {};
-                attacker.boosts.spe = Math.max(-6, (attacker.boosts.spe || 0) - 1);
-                protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的速度下降了！` };
-            }
-            // 火焰守护 (Burning Bulwark)
-            else if (defender.volatile.burningBulwark) {
-                const attackerTypes = attacker.types || [];
-                const canBurn = !attackerTypes.includes('Fire');
-                if (canBurn && !attacker.status) {
-                    attacker.status = 'brn';
-                    protectEffect = { type: 'burn', msg: `${attacker.cnName} 被灼伤了！` };
-                }
-            }
-            
-            // 非无形拳的情况，守住成功
-            return { 
-                damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true,
-                protectEffect 
-            };
-        }
+        // 检查是否为穿透守住的招式（佯攻 Feint、暗影袭击 Shadow Force 等）
+        const bypassProtectMoves = ['feint', 'shadowforce', 'phantomforce', 'hyperspacefury', 'hyperspacehole'];
+        const canBypassProtect = bypassProtectMoves.includes(moveId);
         
-        // 非接触类招式也被守住挡住
-        if (!isContact) {
-            return { 
-                damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true,
-                protectEffect: null 
-            };
+        if (canBypassProtect) {
+            console.log(`[PROTECT BYPASS] ${move.name} 穿透了守住！`);
+            // 穿透守住的招式，继续执行
+        } else {
+            // 【无形拳 (Unseen Fist)】接触类招式穿透守住（但只对攻击技有效，变化技仍被挡）
+            const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isStatusMove = basePower === 0 || category === 'Status';
+            
+            if (isContact && attackerAbility === 'unseenfist' && !isStatusMove) {
+                console.log(`[Unseen Fist] ${attacker.cnName} 的无形拳穿透了守住！`);
+                // 不 return blocked，继续计算伤害
+                // 但仍然触发守住的接触副作用（如王盾降攻）
+                if (defender.volatile.kingsShield) {
+                    if (!attacker.boosts) attacker.boosts = {};
+                    attacker.boosts.atk = Math.max(-6, (attacker.boosts.atk || 0) - 2);
+                    protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的攻击大幅下降！` };
+                }
+                // 无形拳穿透后继续执行伤害计算，不在这里 return
+            } else if (isContact && !isStatusMove) {
+                // 碉堡 (Baneful Bunker): 接触攻击者中毒
+                if (defender.volatile.banefulBunker) {
+                    const attackerTypes = attacker.types || [];
+                    const canPoison = !attackerTypes.includes('Poison') && !attackerTypes.includes('Steel');
+                    if (canPoison && !attacker.status) {
+                        attacker.status = 'psn';
+                        protectEffect = { type: 'poison', msg: `${attacker.cnName} 接触了碉堡，中毒了！` };
+                    }
+                }
+                // 尖刺防守 (Spiky Shield)
+                else if (defender.volatile.spikyShield) {
+                    const spikeDmg = Math.floor(attacker.maxHp / 8);
+                    attacker.takeDamage(spikeDmg);
+                    protectEffect = { type: 'damage', msg: `${attacker.cnName} 被尖刺刺伤了！(-${spikeDmg})` };
+                }
+                // 王者盾牌 (King's Shield)
+                else if (defender.volatile.kingsShield) {
+                    if (!attacker.boosts) attacker.boosts = {};
+                    attacker.boosts.atk = Math.max(-6, (attacker.boosts.atk || 0) - 2);
+                    protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的攻击大幅下降！` };
+                }
+                // 拦堵 (Obstruct)
+                else if (defender.volatile.obstruct) {
+                    if (!attacker.boosts) attacker.boosts = {};
+                    attacker.boosts.def = Math.max(-6, (attacker.boosts.def || 0) - 2);
+                    protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的防御大幅下降！` };
+                }
+                // 丝绸陷阱 (Silk Trap)
+                else if (defender.volatile.silkTrap) {
+                    if (!attacker.boosts) attacker.boosts = {};
+                    attacker.boosts.spe = Math.max(-6, (attacker.boosts.spe || 0) - 1);
+                    protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的速度下降了！` };
+                }
+                // 火焰守护 (Burning Bulwark)
+                else if (defender.volatile.burningBulwark) {
+                    const attackerTypes = attacker.types || [];
+                    const canBurn = !attackerTypes.includes('Fire');
+                    if (canBurn && !attacker.status) {
+                        attacker.status = 'brn';
+                        protectEffect = { type: 'burn', msg: `${attacker.cnName} 被灼伤了！` };
+                    }
+                }
+                
+                // 接触类攻击技被守住
+                return { 
+                    damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true,
+                    protectEffect 
+                };
+            } else {
+                // 【关键修复】非接触类招式（包括变化技如蘑菇孢子）也被守住挡住
+                console.log(`[PROTECT] ${defender.cnName} 的守住阻挡了 ${move.name}！`);
+                return { 
+                    damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true,
+                    protectEffect: null,
+                    protectBlocked: true // 标记被守住阻挡
+                };
+            }
         }
-        // 无形拳穿透守住的情况，继续执行后续伤害计算
     }
     
     // === 【破格系特性】判定 ===

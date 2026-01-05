@@ -120,8 +120,7 @@ const ITEMS = {
         consumable: false,
         fling: { basePower: 40 },
         effect: 'eviolite',
-        defBoost: 1.5,
-        spdBoost: 1.5,
+        statBoost: { def: 1.5, spd: 1.5 }, // 防御和特防x1.5
         requiresNFE: true, // 只对未完全进化的宝可梦有效
         description: '未完全进化的宝可梦防御和特防x1.5',
     },
@@ -135,7 +134,7 @@ const ITEMS = {
         consumable: false,
         fling: { basePower: 80 },
         effect: 'assaultVest',
-        spdBoost: 1.5,
+        statBoost: { spd: 1.5 }, // 特防x1.5
         disableStatus: true, // 禁止使用变化技
         description: '特防x1.5，但无法使用变化技',
     },

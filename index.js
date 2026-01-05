@@ -2433,6 +2433,18 @@ async function performSwitch(newIndex) {
         console.log(`[YAWN] ${oldP.cnName} 换下，清除哈欠状态`);
         delete oldP.volatile.yawn;
     }
+    
+    // 【吵闹修复】换人时清除吵闹状态（官方机制：使用者离场则吵闹结束）
+    if (oldP.volatile && oldP.volatile.uproar) {
+        console.log(`[UPROAR] ${oldP.cnName} 换下，吵闹状态结束`);
+        delete oldP.volatile.uproar;
+    }
+    
+    // 【Choice 锁招修复】换人时清除锁招状态（官方机制：换人解除锁招）
+    if (oldP.choiceLockedMove) {
+        console.log(`[CHOICE] ${oldP.cnName} 换下，解除 ${oldP.choiceLockedMove} 锁定`);
+        delete oldP.choiceLockedMove;
+    }
 
     // Pivot 换人使用不同的日志
     if (isPivot) {

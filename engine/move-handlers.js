@@ -867,7 +867,7 @@ const MoveHandlers = {
     
     'Rain Dance': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'rain';
+            if (battle) battle.weather = 'rain'; // 标准值: rain
             logs.push('天空下起了大雨!');
             logs.push('<span style="color:#3498db">水系技能威力提升，火系技能威力下降!</span>');
             return { weather: 'rain' };
@@ -877,7 +877,7 @@ const MoveHandlers = {
     
     'Sunny Day': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'sun';
+            if (battle) battle.weather = 'sun'; // 标准值: sun
             logs.push('阳光变得强烈了!');
             logs.push('<span style="color:#e67e22">火系技能威力提升，水系技能威力下降!</span>');
             return { weather: 'sun' };
@@ -887,17 +887,17 @@ const MoveHandlers = {
     
     'Sandstorm': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'sand';
+            if (battle) battle.weather = 'sandstorm'; // 标准值: sandstorm
             logs.push('沙暴刮起来了!');
             logs.push('<span style="color:#d4ac0d">岩石系特防提升，非岩/地/钢系每回合受伤!</span>');
-            return { weather: 'sand' };
+            return { weather: 'sandstorm' };
         },
         description: '召唤沙暴'
     },
     
     'Hail': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'hail';
+            if (battle) battle.weather = 'hail'; // 标准值: hail
             logs.push('开始下冰雹了!');
             logs.push('<span style="color:#5dade2">非冰系每回合受伤!</span>');
             return { weather: 'hail' };
@@ -907,7 +907,7 @@ const MoveHandlers = {
     
     'Snowscape': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'snow';
+            if (battle) battle.weather = 'snow'; // 标准值: snow
             logs.push('下起了雪!');
             logs.push('<span style="color:#85c1e9">冰系防御提升!</span>');
             return { weather: 'snow' };
@@ -1001,7 +1001,8 @@ const MoveHandlers = {
     'Solar Beam': {
         onUse: (attacker, defender, logs, battle) => {
             // 简化：直接发射，不需要蓄力
-            if (battle && battle.weather === 'sun') {
+            // 【天气统一】兼容 sun 和 harshsun
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 logs.push(`${attacker.cnName} 借助强烈的阳光，瞬间发射了日光束!`);
             } else {
                 logs.push(`${attacker.cnName} 迅速聚集能量发射了日光束!`);
@@ -1013,7 +1014,8 @@ const MoveHandlers = {
     
     'Solar Blade': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle && battle.weather === 'sun') {
+            // 【天气统一】兼容 sun 和 harshsun
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 logs.push(`${attacker.cnName} 借助阳光的力量挥出了日光刃!`);
             } else {
                 logs.push(`${attacker.cnName} 聚集光芒挥出了日光刃!`);
@@ -1431,8 +1433,9 @@ const MoveHandlers = {
         onHit: (attacker, defender, damage, logs, battle) => {
             let healRatio = 0.5;
             // 天气影响
+            // 【天气统一】兼容 sun 和 harshsun
             if (battle) {
-                if (battle.weather === 'sunnyday' || battle.weather === 'desolateland') {
+                if (battle.weather === 'sun' || battle.weather === 'harshsun') {
                     healRatio = 2/3;
                 } else if (battle.weather && battle.weather !== 'none') {
                     healRatio = 0.25;
@@ -1454,8 +1457,9 @@ const MoveHandlers = {
     'Morning Sun': {
         onHit: (attacker, defender, damage, logs, battle) => {
             let healRatio = 0.5;
+            // 【天气统一】兼容 sun 和 harshsun
             if (battle) {
-                if (battle.weather === 'sunnyday' || battle.weather === 'desolateland') {
+                if (battle.weather === 'sun' || battle.weather === 'harshsun') {
                     healRatio = 2/3;
                 } else if (battle.weather && battle.weather !== 'none') {
                     healRatio = 0.25;
@@ -1465,7 +1469,7 @@ const MoveHandlers = {
             const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
             if (actualHeal > 0) {
                 attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 沐浴晨光恢复了体力!`);
+                logs.push(`${attacker.cnName} 吸收了清晨的露水恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
             }
@@ -1477,8 +1481,9 @@ const MoveHandlers = {
     'Moonlight': {
         onHit: (attacker, defender, damage, logs, battle) => {
             let healRatio = 0.5;
+            // 【天气统一】兼容 sun 和 harshsun
             if (battle) {
-                if (battle.weather === 'sunnyday' || battle.weather === 'desolateland') {
+                if (battle.weather === 'sun' || battle.weather === 'harshsun') {
                     healRatio = 2/3;
                 } else if (battle.weather && battle.weather !== 'none') {
                     healRatio = 0.25;
@@ -1488,7 +1493,7 @@ const MoveHandlers = {
             const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
             if (actualHeal > 0) {
                 attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 沐浴月光恢复了体力!`);
+                logs.push(`${attacker.cnName} 吸收了月光恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
             }
@@ -2820,8 +2825,8 @@ const MoveHandlers = {
     'Max Flare': {
         isMax: true,
         onHit: (user, target, damage, logs, battle) => {
-            if (battle && battle.weather !== 'sunnyday') {
-                battle.weather = 'sunnyday';
+            if (battle && battle.weather !== 'sun') {
+                battle.weather = 'sun'; // 标准值: sun
                 battle.weatherTurns = 5;
                 logs.push(`<span style="color:#f59e0b">☀️ 阳光变得强烈了！</span>`);
             }
@@ -2833,8 +2838,8 @@ const MoveHandlers = {
     'Max Geyser': {
         isMax: true,
         onHit: (user, target, damage, logs, battle) => {
-            if (battle && battle.weather !== 'raindance') {
-                battle.weather = 'raindance';
+            if (battle && battle.weather !== 'rain') {
+                battle.weather = 'rain'; // 标准值: rain
                 battle.weatherTurns = 5;
                 logs.push(`<span style="color:#3b82f6">🌧️ 天空下起了大雨！</span>`);
             }
@@ -2847,7 +2852,7 @@ const MoveHandlers = {
         isMax: true,
         onHit: (user, target, damage, logs, battle) => {
             if (battle && battle.weather !== 'hail') {
-                battle.weather = 'hail';
+                battle.weather = 'hail'; // 标准值: hail
                 battle.weatherTurns = 5;
                 logs.push(`<span style="color:#a5f3fc">❄️ 冰雹开始下了！</span>`);
             }
@@ -2860,7 +2865,7 @@ const MoveHandlers = {
         isMax: true,
         onHit: (user, target, damage, logs, battle) => {
             if (battle && battle.weather !== 'sandstorm') {
-                battle.weather = 'sandstorm';
+                battle.weather = 'sandstorm'; // 标准值: sandstorm
                 battle.weatherTurns = 5;
                 logs.push(`<span style="color:#d97706">🏜️ 沙暴刮起来了！</span>`);
             }
@@ -3103,7 +3108,9 @@ const MoveHandlers = {
         onHit: (user, target, damage, logs, battle) => {
             if (!battle) return {};
             const userSide = (user === battle.getPlayer()) ? battle.playerSide : battle.enemySide;
-            const itemExt = (user.item === 'Light Clay') ? 3 : 0;
+            // 【道具统一】使用规范化 ID 比较
+            const userItemId = (user.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const itemExt = (userItemId === 'lightclay') ? 3 : 0;
             if (!userSide.auroraVeil || userSide.auroraVeil <= 0) {
                 userSide.auroraVeil = 5 + itemExt;
                 logs.push(`<b style="color:#a5f3fc">❄️ 极光旋律开启了极光幕！物理和特殊伤害都将减半！</b>`);
@@ -3836,12 +3843,61 @@ const MoveHandlers = {
             return {};
         },
         description: '必须已使用过其他所有招式才能发动'
-    }
+    },
 
     // 注意：以下招式由 move-effects.js 统一处理，不需要在这里重复定义：
     // - Taunt, Encore, Disable -> MoveEffects.applyVolatileStatus
     // - Stealth Rock, Spikes, Toxic Spikes, Sticky Web -> MoveEffects.applySideCondition
     // - Haze -> MoveEffects (已有 onHit 处理器在上方)
+    
+    // ============================================
+    // 【吵闹 Uproar】- 持续3回合，期间全场无法入睡
+    // ============================================
+    'Uproar': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 初始化或继续吵闹状态
+            if (!user.volatile) user.volatile = {};
+            
+            if (!user.volatile.uproar) {
+                // 开始吵闹，持续3回合
+                user.volatile.uproar = 3;
+                logs.push(`<span style="color:#f39c12">📢 ${user.cnName} 开始大吵大闹了！</span>`);
+            } else {
+                // 继续吵闹
+                logs.push(`<span style="color:#f39c12">📢 ${user.cnName} 继续大吵大闹！</span>`);
+            }
+            
+            // 唤醒场上所有睡着的宝可梦
+            if (battle) {
+                const playerPoke = battle.playerParty?.[battle.playerActive];
+                const enemyPoke = battle.enemyParty?.[battle.enemyActive];
+                
+                if (playerPoke && playerPoke.status === 'slp' && playerPoke !== user) {
+                    playerPoke.status = null;
+                    playerPoke.statusTurns = 0;
+                    logs.push(`${playerPoke.cnName} 被吵醒了！`);
+                }
+                if (enemyPoke && enemyPoke.status === 'slp' && enemyPoke !== user) {
+                    enemyPoke.status = null;
+                    enemyPoke.statusTurns = 0;
+                    logs.push(`${enemyPoke.cnName} 被吵醒了！`);
+                }
+            }
+            
+            return {};
+        },
+        onEndTurn: (pokemon, logs, battle) => {
+            // 回合结束时减少吵闹计数
+            if (pokemon.volatile?.uproar) {
+                pokemon.volatile.uproar--;
+                if (pokemon.volatile.uproar <= 0) {
+                    delete pokemon.volatile.uproar;
+                    logs.push(`${pokemon.cnName} 停止了吵闹。`);
+                }
+            }
+        },
+        description: '持续3回合大吵大闹，期间全场无法入睡，已睡着的会被吵醒'
+    }
 };
 
 // ============================================

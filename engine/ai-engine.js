@@ -938,8 +938,11 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
             const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
             if (sleepMoves.includes(moveName)) {
                 // 【修复】检查目标是否免疫睡眠
+                // 【软编码】从 AbilityHandlers 读取睡眠免疫特性列表
                 const targetAbility = (playerPoke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-                const sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+                const sleepImmuneAbilities = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers._sleepImmuneAbilities) 
+                    ? AbilityHandlers._sleepImmuneAbilities 
+                    : ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
                 const isImmune = sleepImmuneAbilities.includes(targetAbility);
                 
                 if (!isImmune) {
@@ -1436,8 +1439,10 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         
         // 睡眠状态特殊检查
         if (moveStatus === 'slp') {
-            // 睡眠免疫特性
-            const sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+            // 【软编码】从 AbilityHandlers 读取睡眠免疫特性列表
+            const sleepImmuneAbilities = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers._sleepImmuneAbilities) 
+                ? AbilityHandlers._sleepImmuneAbilities 
+                : ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
             if (sleepImmuneAbilities.includes(defenderAbility)) {
                 console.log(`[AI BAN] ${moveName} 对 ${defender.ability} 特性无效（睡眠免疫）`);
                 return -9999;
@@ -2344,8 +2349,11 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             if (!defender.status) {
                 if (sleepMoves.includes(moveName)) {
                     // 【修复】检查目标是否免疫睡眠
+                    // 【软编码】从 AbilityHandlers 读取睡眠免疫特性列表
                     const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-                    const sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+                    const sleepImmuneAbilities = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers._sleepImmuneAbilities) 
+                        ? AbilityHandlers._sleepImmuneAbilities 
+                        : ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
                     if (sleepImmuneAbilities.includes(defenderAbility)) {
                         statusScore = -100; // 免疫睡眠，不使用
                     } else {
@@ -2745,7 +2753,8 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     // 4.2 蓄力技能 (Solar Beam 等)
     if (chargeMoves.includes(moveName)) {
         const isSolar = moveName.includes('Solar');
-        const hasSun = (weather === 'sunnyday' || weather === 'desolateland');
+        // 【天气统一】兼容 sun 和 harshsun
+        const hasSun = (weather === 'sun' || weather === 'harshsun');
         const hasHerb = (attacker.item || '').toLowerCase().includes('power herb') || 
                         (attacker.item || '').includes('强力香草');
         

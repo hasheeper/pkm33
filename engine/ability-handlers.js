@@ -349,28 +349,28 @@ const AbilityHandlers = {
     // 【降雨】
     'Drizzle': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'raindance';
+            if (battle) battle.weather = 'rain'; // 标准值: rain
             logs.push(`🌧️ ${self.cnName} 带来了降雨!`);
         }
     },
     // 【日照】
     'Drought': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'sunnyday';
+            if (battle) battle.weather = 'sun'; // 标准值: sun
             logs.push(`☀️ ${self.cnName} 让阳光变得强烈了!`);
         }
     },
     // 【扬沙】
     'Sand Stream': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'sandstorm';
+            if (battle) battle.weather = 'sandstorm'; // 标准值: sandstorm
             logs.push(`🌪️ ${self.cnName} 扬起了沙暴!`);
         }
     },
     // 【降雪】
     'Snow Warning': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'snow';
+            if (battle) battle.weather = 'snow'; // 标准值: snow
             logs.push(`❄️ ${self.cnName} 让天空开始下雪了!`);
         }
     },
@@ -470,7 +470,9 @@ const AbilityHandlers = {
             // 检查是否有电气场地
             const hasElectricTerrain = battle && battle.field && battle.field.terrain === 'electricterrain';
             // 检查是否携带驱劲能量
-            const hasBoosterEnergy = self.item === 'Booster Energy';
+            // 【道具统一】使用规范化 ID 比较
+            const selfItemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const hasBoosterEnergy = selfItemId === 'boosterenergy';
             
             if (hasElectricTerrain || hasBoosterEnergy) {
                 // 找最高能力
@@ -513,9 +515,12 @@ const AbilityHandlers = {
     'Protosynthesis': {
         onStart: (self, enemy, logs, battle) => {
             // 检查是否有大晴天
-            const hasSun = battle && (battle.weather === 'sunnyday' || battle.weather === 'desolateland');
+            // 【天气统一】兼容标准值和极端天气
+            const hasSun = battle && (battle.weather === 'sun' || battle.weather === 'harshsun');
             // 检查是否携带驱劲能量
-            const hasBoosterEnergy = self.item === 'Booster Energy';
+            // 【道具统一】使用规范化 ID 比较
+            const selfItemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const hasBoosterEnergy = selfItemId === 'boosterenergy';
             
             if (hasSun || hasBoosterEnergy) {
                 // 找最高能力
@@ -685,6 +690,7 @@ const AbilityHandlers = {
     },
 
     // 【沙之力】沙暴中岩/地/钢威力x1.3
+    // 【天气统一】标准值: sandstorm
     'Sand Force': {
         onBasePower: (power, attacker, defender, move, battle) => {
             if (battle && battle.weather === 'sandstorm') {
@@ -836,24 +842,27 @@ const AbilityHandlers = {
     // ============================================
 
     // 【叶绿素】晴天速度翻倍
+    // 【天气统一】兼容 sun 和 harshsun
     'Chlorophyll': {
         onModifyStat: (stats, poke, battle) => {
-            if (battle && (battle.weather === 'sunnyday' || battle.weather === 'desolateland')) {
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 stats.spe *= 2;
             }
         }
     },
 
     // 【悠游自如】雨天速度翻倍
+    // 【天气统一】兼容 rain 和 heavyrain
     'Swift Swim': {
         onModifyStat: (stats, poke, battle) => {
-            if (battle && (battle.weather === 'raindance' || battle.weather === 'primordialsea')) {
+            if (battle && (battle.weather === 'rain' || battle.weather === 'heavyrain')) {
                 stats.spe *= 2;
             }
         }
     },
 
     // 【拨沙】沙暴速度翻倍
+    // 【天气统一】标准值: sandstorm
     'Sand Rush': {
         onModifyStat: (stats, poke, battle) => {
             if (battle && battle.weather === 'sandstorm') {
@@ -863,6 +872,7 @@ const AbilityHandlers = {
     },
 
     // 【拨雪】雪天速度翻倍
+    // 【天气统一】兼容 snow 和 hail
     'Slush Rush': {
         onModifyStat: (stats, poke, battle) => {
             if (battle && (battle.weather === 'snow' || battle.weather === 'hail')) {
@@ -872,9 +882,10 @@ const AbilityHandlers = {
     },
 
     // 【太阳之力】晴天特攻x1.5
+    // 【天气统一】兼容 sun 和 harshsun
     'Solar Power': {
         onModifyStat: (stats, poke, battle) => {
-            if (battle && (battle.weather === 'sunnyday' || battle.weather === 'desolateland')) {
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 stats.spa = Math.floor(stats.spa * 1.5);
             }
         }
@@ -1145,6 +1156,7 @@ const AbilityHandlers = {
     },
 
     // 【叶子防守】大晴天时免疫异常状态
+    // 【天气统一】兼容 sun 和 harshsun
     'Leaf Guard': {
         onImmunityStatus: (status, pokemon, battle) => {
             const weather = battle?.weather || (typeof window.battle !== 'undefined' ? window.battle.weather : null);
@@ -1241,7 +1253,9 @@ const AbilityHandlers = {
             // 漂浮特性免疫
             if (target.ability === 'Levitate') return false;
             // 气球道具免疫
-            if (target.item === 'Air Balloon') return false;
+            // 【道具统一】使用规范化 ID 比较
+            const targetItemId = (target.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (targetItemId === 'airballoon') return false;
             return true;
         }
     },
@@ -1445,7 +1459,9 @@ function checkCanSwitch(pokemon, opponent, battle) {
     // 0. 特殊状态直接放行
     // 如果使用了 U-turn 等 Pivot 招式，或者携带漂亮外壳，无视一切锁定
     if (pokemon.isPivoting) return { canSwitch: true };
-    if (pokemon.item === 'Shed Shell') return { canSwitch: true };
+    // 【道具统一】使用规范化 ID 比较
+    const pokeItemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (pokeItemId === 'shedshell') return { canSwitch: true };
 
     // 1. 幽灵系特权：想走就走（六代后）
     if (pokemon.types && pokemon.types.includes('Ghost')) return { canSwitch: true };
@@ -1486,6 +1502,16 @@ function checkCanSwitch(pokemon, opponent, battle) {
 
     return { canSwitch: true };
 }
+
+// ============================================
+// 【软编码】特性分类列表（供其他模块引用）
+// ============================================
+
+// 破格类特性（无视对手特性）
+AbilityHandlers._moldBreakerAbilities = ['moldbreaker', 'teravolt', 'turboblaze'];
+
+// 睡眠免疫特性
+AbilityHandlers._sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
 
 // 导出到全局
 if (typeof window !== 'undefined') {

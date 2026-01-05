@@ -132,6 +132,16 @@ async function executePlayerTurn(p, e, move) {
     }
     
     // =========================================================
+    // Choice 道具锁招（讲究头带/眼镜/围巾）- 玩家
+    // =========================================================
+    const pItem = p.item || '';
+    const pIsChoiceItem = pItem.includes('Choice') || pItem.includes('讲究');
+    if (pIsChoiceItem && !p.choiceLockedMove) {
+        p.choiceLockedMove = move.name;
+        console.log(`[CHOICE] ${p.name} 被 ${pItem} 锁定在 ${move.name}`);
+    }
+    
+    // =========================================================
     // Z-Move / Max Move 使用标记 (全场只能用一次)
     // =========================================================
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -446,18 +456,31 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
 
     // ----------------------------------------
     // 2. 中毒 (Poison): 扣 1/8 HP
+    // 【修复】检查 Poison Heal (毒疗) 特性
     // ----------------------------------------
-    if (poke.status === 'psn') {
-        const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
-        poke.takeDamage(dmg);
-        logs.push(`${poke.cnName} 受到毒素的伤害! (-${dmg})`);
-    }
-    
-    // 剧毒 (Toxic): 累加伤害 (简化为 1/8)
-    if (poke.status === 'tox') {
-        const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
-        poke.takeDamage(dmg);
-        logs.push(`${poke.cnName} 受到剧毒的伤害! (-${dmg})`);
+    if (poke.status === 'psn' || poke.status === 'tox') {
+        const pokeAbilityId = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        
+        // 检查毒疗特性
+        if (pokeAbilityId === 'poisonheal') {
+            // 毒疗：回复 1/8 HP
+            const healAmount = Math.max(1, Math.floor(poke.maxHp / 8));
+            if (typeof poke.heal === 'function') {
+                poke.heal(healAmount);
+            } else {
+                poke.currHp = Math.min(poke.maxHp, poke.currHp + healAmount);
+            }
+            logs.push(`<span style="color:#4cd137">💚 ${poke.cnName} 的毒疗特性发动，回复了 ${healAmount} 点体力!</span>`);
+        } else {
+            // 正常中毒伤害
+            const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+            poke.takeDamage(dmg);
+            if (poke.status === 'tox') {
+                logs.push(`${poke.cnName} 受到剧毒的伤害! (-${dmg})`);
+            } else {
+                logs.push(`${poke.cnName} 受到毒素的伤害! (-${dmg})`);
+            }
+        }
     }
 
     // ----------------------------------------
@@ -573,6 +596,79 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
                 const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
                 poke.takeDamage(dmg);
                 logs.push(`${poke.cnName} 受到冰雹的伤害! (-${dmg})`);
+            }
+        }
+    }
+
+    // ----------------------------------------
+    // 10. 天气相关特性回合末效果
+    // ----------------------------------------
+    const pokeAbilityForWeather = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const currentWeatherForAbility = battle?.weather;
+    
+    // 【湿润之躯 Hydration】雨天时回合末治愈所有异常状态
+    // 【天气统一】标准值: rain, 极端值: heavyrain
+    if (pokeAbilityForWeather === 'hydration' && poke.status) {
+        const isRainy = currentWeatherForAbility === 'rain' || currentWeatherForAbility === 'heavyrain';
+        if (isRainy) {
+            const oldStatus = poke.status;
+            const statusNames = { slp: '睡眠', psn: '中毒', tox: '剧毒', brn: '灼伤', par: '麻痹', frz: '冰冻' };
+            poke.status = null;
+            poke.statusTurns = 0;
+            poke.sleepTurns = 0;
+            logs.push(`<span style="color:#3498db">💧 ${poke.cnName} 的湿润之躯发动，${statusNames[oldStatus] || '异常状态'}痊愈了!</span>`);
+        }
+    }
+    
+    // 【蜕皮 Shed Skin】每回合 30% 概率治愈异常状态
+    if (pokeAbilityForWeather === 'shedskin' && poke.status) {
+        if (Math.random() < 0.30) {
+            const oldStatus = poke.status;
+            const statusNames = { slp: '睡眠', psn: '中毒', tox: '剧毒', brn: '灼伤', par: '麻痹', frz: '冰冻' };
+            poke.status = null;
+            poke.statusTurns = 0;
+            poke.sleepTurns = 0;
+            logs.push(`<span style="color:#9b59b6">✨ ${poke.cnName} 的蜕皮发动，${statusNames[oldStatus] || '异常状态'}痊愈了!</span>`);
+        }
+    }
+    
+    // 【冰冻之躯 Ice Body】冰雹/雪天时回复 1/16 HP
+    // 【天气统一】兼容 hail 和 snow
+    if (pokeAbilityForWeather === 'icebody' && (currentWeatherForAbility === 'hail' || currentWeatherForAbility === 'snow')) {
+        if (poke.currHp < poke.maxHp) {
+            const healAmount = Math.max(1, Math.floor(poke.maxHp / 16));
+            poke.heal(healAmount);
+            logs.push(`<span style="color:#74b9ff">${poke.cnName} 的冰冻之躯恢复了 ${healAmount} 点体力!</span>`);
+        }
+    }
+    
+    // 【干燥皮肤 Dry Skin】雨天回复 1/8 HP，晴天扣 1/8 HP
+    // 【天气统一】标准值: rain/sun, 极端值: heavyrain/harshsun
+    if (pokeAbilityForWeather === 'dryskin') {
+        const isRainyDry = currentWeatherForAbility === 'rain' || currentWeatherForAbility === 'heavyrain';
+        const isSunnyDry = currentWeatherForAbility === 'sun' || currentWeatherForAbility === 'harshsun';
+        if (isRainyDry) {
+            if (poke.currHp < poke.maxHp) {
+                const healAmount = Math.max(1, Math.floor(poke.maxHp / 8));
+                poke.heal(healAmount);
+                logs.push(`<span style="color:#3498db">${poke.cnName} 的干燥皮肤在雨中恢复了 ${healAmount} 点体力!</span>`);
+            }
+        } else if (isSunnyDry) {
+            const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+            poke.takeDamage(dmg);
+            logs.push(`<span style="color:#e74c3c">${poke.cnName} 的干燥皮肤在阳光下受到了 ${dmg} 点伤害!</span>`);
+        }
+    }
+    
+    // 【雨盘 Rain Dish】雨天回复 1/16 HP
+    // 【天气统一】标准值: rain, 极端值: heavyrain
+    if (pokeAbilityForWeather === 'raindish') {
+        const isRainyDish = currentWeatherForAbility === 'rain' || currentWeatherForAbility === 'heavyrain';
+        if (isRainyDish) {
+            if (poke.currHp < poke.maxHp) {
+                const healAmount = Math.max(1, Math.floor(poke.maxHp / 16));
+                poke.heal(healAmount);
+                logs.push(`<span style="color:#3498db">${poke.cnName} 的雨盘恢复了 ${healAmount} 点体力!</span>`);
             }
         }
     }

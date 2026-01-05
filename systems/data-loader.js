@@ -30,82 +30,75 @@ function getDefaultBattleData() {
     return {
   "difficulty": "expert",
   "script": {
-    "module": "status_logic_v2"
+    "module": "weather_status_logic"
   },
   "player": {
-    "name": "YOTA (Sleep Walker)",
+    "name": "YOTA (The Weather Master)",
     "party": [
       {
         "slot": 1,
-        "name": "Komala",
-        "nickname": "睡神🐨",
+        // 测试核心1：【状态盾 (Status Shield)】
+        "name": "Gliscor",
+        "nickname": "天蝎王",
         "lv": 100,
-        "ability": "Comatose", 
-        "item": "Leftovers", 
-        "moves": ["Last Resort", "Sleep Talk", "Sucker Punch", "Wood Hammer"],
-        "stats_meta": { "ev_level": 252 },
-        "//comment": "测试核心1：【绝对睡眠 (Comatose)】- 能行动，但也被视为睡着（应吃食梦伤害，应吃如梦魇伤害，免疫哈欠）"
+        "ability": "Poison Heal", // 毒疗：中毒回血
+        "item": "Toxic Orb",      // 剧毒宝珠：第一回合末让自己剧毒
+        "moves": ["Protect", "Facade", "Earthquake", "Swords Dance"],
+        "//comment": "逻辑点：我甚至不管你有多少催眠技能，我自己先中毒了，你就睡不了我。"
       },
       {
         "slot": 2,
-        "name": "Milotic",
+        // 测试核心2：【湿润之躯 (Hydration)】
+        "name": "Goodra-Hisui",
+        "nickname": "黏美龙",
         "lv": 100,
-        "item": "Flame Orb", 
-        "ability": "Marvel Scale", 
-        "moves": ["Rest", "Sleep Talk", "Scald", "Dragon Tail"],
-        "//comment": "测试核心2：【睡觉+梦话】Combo，以及【神奇鳞片】睡着加防御"
+        "ability": "Hydration", 
+        "item": "Damp Rock",
+        "moves": ["Rain Dance", "Rest", "Dragon Pulse", "Flash Cannon"],
+        "//comment": "逻辑点：这是最赖皮的【超级无限睡觉】。雨天开Rest -> 睡着回满 -> 回合结束Hydration触发 -> 秒醒。"
       },
       {
         "slot": 3,
-        "name": "Ursaluna",
+        // 测试核心3：【叶子防守 (Leaf Guard)】 vs 哈欠
+        "name": "Leafeon",
+        "nickname": "叶伊布",
         "lv": 100,
-        "item": "Flame Orb",
-        "ability": "Guts",
-        "moves": ["Facade", "Rest", "Sleep Talk", "Headlong Rush"],
-        "mechanic": "tera",
-        "teraType": "Normal",
-        "//comment": "测试核心3：毅力特性(Guts)下烧伤变睡觉，攻击力是否保持？"
+        "ability": "Leaf Guard", 
+        "moves": ["Leaf Blade", "Synthesis", "Sunny Day", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "//comment": "逻辑点：在晴天下，免疫所有异常状态（包括哈欠的后续生效）。"
       }
     ]
   },
   "enemy": {
-    "name": "The Nightmare Host (梦境吞噬者)",
+    "name": "Hypno (催眠信徒)",
     "type": "trainer",
     "party": [
       {
-        "name": "Darkrai",
-        "lv": 100,
-        "ability": "Bad Dreams", 
-        "item": "Wide Lens",
-        "moves": ["Dream Eater", "Dark Void", "Nasty Plot", "Sludge Bomb"],
-        "//comment": "判定点：特性【梦魇】每回合末是否扣Komala血？【食梦】打Komala是否生效？"
+        "name": "Breloom",
+        "lv": 60,
+        "ability": "Technician",
+        "item": "Focus Sash",
+        "moves": ["Spore", "Bullet Seed", "Mach Punch", "Rock Tomb"]
       },
       {
-        "name": "Exploud",
+        "name": "Torkoal", // 开晴天的人
         "lv": 100,
-        "ability": "Scrappy",
-        "item": "Choice Specs",
-        "mechanic": "tera",
-        "teraType": "Normal",
-        "moves": ["Boomburst", "Uproar", "Overheat", "Focus Blast"],
-        "//comment": "判定点：使用【吵闹 (Uproar)】后，我方睡觉的单位是否被强制唤醒？Komala是否不受影响？"
+        "ability": "Drought",
+        "moves": ["Yawn", "Overheat", "Stealth Rock", "Rapid Spin"]
       },
       {
         "name": "Gengar",
         "lv": 100,
-        "ability": "Cursed Body", 
-        "item": "Black Sludge",
-        "mechanic": "mega",
-        "mega_target": "gengarmega",
-        "moves": ["Hypnosis", "Hex", "Sludge Wave", "Destiny Bond"],
-        "//comment": "判定点：【祸不单行 (Hex)】打睡着的伤害加倍判定"
+        "ability": "Cursed Body",
+        "moves": ["Hypnosis", "Shadow Ball", "Sludge Bomb", "Destiny Bond"]
       }
     ],
     "lines": {
-      "start": "在永恒者面前，清醒是最大的诅咒。",
-      "win": "嘘……那是永远的长眠。",
-      "lose": "太吵了……把灯关上……",
-      "escape": "你逃不出梦境的边缘。"
+      "start": "不论天气如何，你们最终都会闭上眼睛。",
+      "win": "在这个世界里，清醒的人最痛苦。",
+      "lose": "好刺眼的...阳光...",
+      "escape": "梦醒时分。"
     }
   }
 }

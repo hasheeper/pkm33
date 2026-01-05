@@ -35,6 +35,39 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     const moveCategory = move.cat || '';
     const isStatusMove = moveCategory === 'status' || move.power === 0;
     
+    // =========================================================
+    // 【Magic Bounce 魔法镜】反弹变化技
+    // =========================================================
+    const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    
+    // 检查是否为可反弹的变化技（排除攻击者有破格特性的情况）
+    // 【软编码】破格特性列表从 ability-handlers.js 读取
+    const moldBreakerAbilities = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers._moldBreakerAbilities) 
+        ? AbilityHandlers._moldBreakerAbilities 
+        : ['moldbreaker', 'teravolt', 'turboblaze'];
+    const hasMoldBreaker = moldBreakerAbilities.includes(attackerAbility);
+    
+    if (defenderAbility === 'magicbounce' && isStatusMove && !hasMoldBreaker && !move._bounced) {
+        // 【软编码】从 moves-data.js 读取 reflectable 标记
+        const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+        
+        // 检查招式是否有 reflectable 标记
+        const isReflectable = fullMoveData.flags?.reflectable === 1 || fullMoveData.flags?.reflectable === true;
+        
+        if (isReflectable) {
+            log(`<b style='color:#e056fd'>✨ ${defender.cnName} 的魔法镜反弹了 ${move.cn || move.name}！</b>`);
+            
+            // 反弹招式：交换攻击者和防御者
+            const bouncedSpriteId = isPlayerAttacking ? 'player-sprite' : 'enemy-sprite';
+            
+            // 递归调用，但标记为已反弹防止无限循环
+            const bouncedMove = { ...move, _bounced: true };
+            return applyDamage(defender, attacker, bouncedMove, bouncedSpriteId);
+        }
+    }
+    
     if (handler && handler.onUse && !isStatusMove) {
         let preLogs = [];
         const preCheck = handler.onUse(attacker, defender, preLogs, battle, isPlayerAttacking);
@@ -67,8 +100,15 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     }
     
     // 0. 处理 Protect 守住拦截
-    if (result.blocked) {
-        log(`<b style='color:#3498db'>${defender.cnName} 守住了自己，免受了攻击!</b>`);
+    if (result.blocked && (result.protectBlocked || defender.volatile?.protect !== undefined)) {
+        // 【修复】区分攻击技和变化技的守住日志
+        if (result.protectBlocked) {
+            // 变化技被守住（如蘑菇孢子）
+            log(`<b style='color:#3498db'>${defender.cnName} 守住了自己，${move.cn || move.name} 被防住了!</b>`);
+        } else {
+            // 攻击技被守住
+            log(`<b style='color:#3498db'>${defender.cnName} 守住了自己，免受了攻击!</b>`);
+        }
         
         // 守住类招式的接触反制效果
         if (result.protectEffect) {

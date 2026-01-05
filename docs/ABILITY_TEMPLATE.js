@@ -86,7 +86,8 @@ const ModifyStatTemplate = {
             stats.atk *= 2;
             
             // 示例：天气条件下速度翻倍
-            if (battle && battle.weather === 'sunnyday') {
+            // 【天气统一】标准值: sun, 极端值: harshsun
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 stats.spe *= 2;
             }
             
@@ -193,7 +194,8 @@ const OnStartTemplate = {
     'Template_WeatherStart': {
         onStart: (self, enemy, logs, battle) => {
             // 设置天气
-            if (battle) battle.weather = 'sunnyday';
+            // 【天气统一】标准值: sun
+            if (battle) battle.weather = 'sun';
             logs.push(`☀️ ${self.cnName} 让阳光变得强烈了!`);
         }
     }
@@ -466,7 +468,8 @@ const ImmunityStatusTemplate = {
         // 条件状态免疫
         onImmunityStatus: (status, pokemon, battle) => {
             // 晴天时免疫所有状态
-            return battle && battle.weather === 'sunnyday';
+            // 【天气统一】标准值: sun, 极端值: harshsun
+            return battle && (battle.weather === 'sun' || battle.weather === 'harshsun');
         }
     }
 };

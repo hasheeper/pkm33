@@ -427,7 +427,9 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
             }
             
             // 凸凸头盔
-            if (target.item === 'Rocky Helmet' && user.isAlive()) {
+            // 【道具统一】使用规范化 ID 比较
+            const targetItemId = (target.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (targetItemId === 'rockyhelmet' && user.isAlive()) {
                 const helmetDmg = Math.floor(user.maxHp / 6);
                 user.takeDamage(helmetDmg);
                 if (hit === 0) logs.push(`${user.cnName} 被凸凸头盔伤害了！`);

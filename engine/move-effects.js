@@ -224,10 +224,29 @@ function tryInflictStatus(target, status, source = null, battle = null) {
         return { success: false, message: `${target.cnName} 无法入睡!` };
     }
     
+    // 【吵闹 Uproar】场上有吵闹状态时，所有宝可梦无法入睡
+    // 注意：只有当前在场的宝可梦有吵闹状态才生效，换人后吵闹状态会随宝可梦离场而消失
+    if (status === 'slp') {
+        const battleRef = battle || (typeof window !== 'undefined' ? window.battle : null);
+        if (battleRef) {
+            // 检查当前在场的玩家和敌方宝可梦是否有吵闹状态
+            const playerPoke = battleRef.playerParty?.[battleRef.playerActive];
+            const enemyPoke = battleRef.enemyParty?.[battleRef.enemyActive];
+            // 只检查当前在场宝可梦的吵闹状态（volatile 状态会在换人时被清除）
+            const playerHasUproar = playerPoke?.volatile?.uproar && playerPoke.currHp > 0;
+            const enemyHasUproar = enemyPoke?.volatile?.uproar && enemyPoke.currHp > 0;
+            if (playerHasUproar || enemyHasUproar) {
+                return { success: false, message: `场上太吵了，${target.cnName} 无法入睡!` };
+            }
+        }
+    }
+    
     // 【叶子防守 Leaf Guard】大晴天时免疫异常状态
+    // 【天气统一】标准值: sun, 极端值: harshsun
     if (targetAbility === 'leafguard') {
         const currentWeather = battle?.weather || (typeof window.battle !== 'undefined' ? window.battle.weather : null);
-        if (currentWeather === 'sun' || currentWeather === 'harshsun') {
+        const isSunny = currentWeather === 'sun' || currentWeather === 'harshsun';
+        if (isSunny) {
             return { success: false, message: `${target.cnName} 的叶子防守在阳光下阻止了异常状态!` };
         }
     }
@@ -621,13 +640,25 @@ function checkOHKOMove(attacker, defender, move) {
 }
 
 // ========== 天气系统 (Weather) ==========
+// 【天气统一】标准天气值定义
+// - sun: 晴天 (招式/特性统一使用)
+// - rain: 雨天 (招式/特性统一使用)
+// - sandstorm: 沙暴
+// - hail: 冰雹
+// - snow: 雪天
+// - harshsun: 大日照 (原始固拉多)
+// - heavyrain: 大雨 (原始盖欧卡)
 
 const WEATHER_TYPES = {
-    sunnyday: { name: '大晴天', fireBoost: 1.5, waterNerf: 0.5, solarBeamCharge: false },
-    raindance: { name: '下雨', waterBoost: 1.5, fireNerf: 0.5, thunderAccuracy: true },
+    // 标准天气
+    sun: { name: '大晴天', fireBoost: 1.5, waterNerf: 0.5, solarBeamCharge: false },
+    rain: { name: '下雨', waterBoost: 1.5, fireNerf: 0.5, thunderAccuracy: true },
     sandstorm: { name: '沙暴', dotTypes: ['Rock', 'Ground', 'Steel'], spDefBoost: ['Rock'] },
     hail: { name: '冰雹', dotExcept: ['Ice'], blizzardAccuracy: true },
-    snow: { name: '下雪', defBoost: ['Ice'] }
+    snow: { name: '下雪', defBoost: ['Ice'] },
+    // 极端天气
+    harshsun: { name: '大日照', fireBoost: 1.5, waterNerf: 0, solarBeamCharge: false, blockWater: true },
+    heavyrain: { name: '大雨', waterBoost: 1.5, fireNerf: 0, thunderAccuracy: true, blockFire: true }
 };
 
 /**

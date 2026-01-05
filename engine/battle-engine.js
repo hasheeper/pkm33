@@ -1056,6 +1056,37 @@ class Pokemon {
                 }
             }
             
+            // === 道具加成 (讲究系列、电气球、粗骨头、进化奇石等) ===
+            if (this.item && typeof window !== 'undefined' && typeof window.getItem === 'function') {
+                const itemData = window.getItem(this.item);
+                if (itemData && itemData.statBoost && itemData.statBoost[statName]) {
+                    const itemBoost = itemData.statBoost[statName];
+                    let shouldApply = true;
+                    
+                    // 检查是否为特定宝可梦专属道具
+                    if (itemData.itemUser) {
+                        // 专属道具：检查是否为指定宝可梦
+                        const pokeName = this.name.split('-')[0]; // 处理地区形态
+                        shouldApply = itemData.itemUser.some(u => this.name.includes(u) || pokeName === u);
+                    }
+                    
+                    // 检查是否为进化奇石（需要未完全进化）
+                    if (itemData.requiresNFE) {
+                        // 检查宝可梦是否可以进化（通过 POKEDEX 数据）
+                        const normalizedId = this.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const pokeData = (typeof POKEDEX !== 'undefined') ? POKEDEX[normalizedId] : null;
+                        // 如果有 evos 字段，说明可以进化，进化奇石生效
+                        // 如果没有 evos 字段，说明已经是最终形态，进化奇石不生效
+                        shouldApply = pokeData && pokeData.evos && pokeData.evos.length > 0;
+                    }
+                    
+                    if (shouldApply) {
+                        val = Math.floor(val * itemBoost);
+                        console.log(`[ITEM] ${this.cnName} 的 ${itemData.cnName || this.item} 使 ${statName} x${itemBoost}`);
+                    }
+                }
+            }
+            
             return Math.max(1, val);
         }
         
@@ -1134,6 +1165,21 @@ function checkCanMove(pokemon, move = null) {
         const category = fullMoveData.category || move.category || move.cat;
         if (category === 'Status') {
             return { can: false, msg: `${pokemon.cnName} 因为挑衅无法使用 ${move.cn || move.name}!` };
+        }
+    }
+    
+    // 5a2. 突击背心 (Assault Vest) - 无法使用变化技
+    if (pokemon.item && move) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = (typeof window !== 'undefined' && typeof window.getItem === 'function') 
+            ? window.getItem(pokemon.item) : null;
+        if (itemData && itemData.disableStatus) {
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+            const category = fullMoveData.category || move.category || move.cat;
+            if (category === 'Status') {
+                return { can: false, msg: `${pokemon.cnName} 的${itemData.cnName || pokemon.item}使其无法使用变化技!` };
+            }
         }
     }
     
