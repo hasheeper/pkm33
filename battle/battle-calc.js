@@ -132,6 +132,25 @@ function calcDamage(attacker, defender, move, options = {}) {
         move.cat = 'phys';
     }
     
+    // === 【食梦类招式】需要对手睡眠才能使用 ===
+    if (fullMoveData.sleepUsable && defender.status !== 'slp') {
+        // 【绝对睡眠 Comatose】视为睡眠状态
+        const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        const isComatose = defenderAbility === 'comatose';
+        if (!isComatose) {
+            console.log(`[SLEEP CHECK] ${move.name} 失败：${defender.cnName} 没有睡眠`);
+            return { 
+                damage: 0, 
+                effectiveness: 0, 
+                isCrit: false, 
+                miss: false, 
+                hitCount: 0, 
+                failed: true,
+                failMessage: `但是招式失败了！`
+            };
+        }
+    }
+    
     // === Protect/Detect 守住判定 ===
     if (defender.volatile && defender.volatile.protect && basePower > 0) {
         const isContact = fullMoveData.flags && fullMoveData.flags.contact;

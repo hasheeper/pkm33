@@ -1022,6 +1022,85 @@ const AbilityHandlers = {
     'Vital Spirit': {
         onImmunityStatus: (status) => status === 'slp'
     },
+    
+    // 【甘幕 Sweet Veil】己方全员免疫睡眠（包括队友）
+    'Sweet Veil': {
+        onImmunityStatus: (status) => status === 'slp',
+        // 标记：队友也免疫睡眠（双打用）
+        teamSleepImmune: true
+    },
+    
+    // 【早起 Early Bird】睡眠回合减半
+    'Early Bird': {
+        // 标记：睡眠回合消耗速度加倍
+        earlyBird: true
+    },
+    
+    // 【蜕皮 Shed Skin】每回合结束时30%概率治愈异常状态
+    'Shed Skin': {
+        onEndTurn: (pokemon, logs) => {
+            if (pokemon.status && Math.random() < 0.3) {
+                const oldStatus = pokemon.status;
+                pokemon.status = null;
+                pokemon.statusTurns = 0;
+                pokemon.sleepTurns = 0;
+                const statusNames = { par: '麻痹', brn: '灶伤', psn: '中毒', tox: '剧毒', slp: '睡眠', frz: '冰冻' };
+                logs.push(`${pokemon.cnName} 的蜕皮治愈了${statusNames[oldStatus] || '异常状态'}！`);
+            }
+        }
+    },
+    
+    // 【梦魇 Bad Dreams】对手睡眠时每回合扣除1/8HP（达克莱伊专属）
+    'Bad Dreams': {
+        onEndTurn: (pokemon, logs) => {
+            // 梦魇是对对手生效，需要在回合结束时检查对手
+            const battle = window.battle;
+            if (!battle) return;
+            
+            // 确定对手
+            const isPlayer = battle.playerParty && battle.playerParty.includes(pokemon);
+            const opponent = isPlayer ? battle.getEnemy() : battle.getPlayer();
+            
+            if (opponent && opponent.isAlive() && opponent.status === 'slp') {
+                const damage = Math.max(1, Math.floor(opponent.maxHp / 8));
+                opponent.takeDamage(damage);
+                logs.push(`<span style="color:#8b5cf6">👻 ${opponent.cnName} 被 ${pokemon.cnName} 的梦魇侵蚀了 ${damage} HP！</span>`);
+            }
+        }
+    },
+    
+    // 【孢子 Effect Spore】接触时有概率让对手中毒、麻痹或睡眠
+    'Effect Spore': {
+        onContactStatus: (attacker, defender) => {
+            // 草系免疫孢子
+            if (attacker.types && attacker.types.includes('Grass')) {
+                return null;
+            }
+            // 防尘护目镜免疫
+            const attackerItem = (attacker.item || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (attackerItem === 'safetygoggles') {
+                return null;
+            }
+            // 防尘特性免疫
+            const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (attackerAbility === 'overcoat') {
+                return null;
+            }
+            
+            // 30%概率触发，平分三种状态
+            if (Math.random() < 0.3) {
+                const rand = Math.random();
+                if (rand < 0.33) {
+                    return { status: 'slp', message: `${attacker.cnName} 被孢子催眠了！` };
+                } else if (rand < 0.66) {
+                    return { status: 'par', message: `${attacker.cnName} 被孢子麻痹了！` };
+                } else {
+                    return { status: 'psn', message: `${attacker.cnName} 被孢子毒到了！` };
+                }
+            }
+            return null;
+        }
+    },
 
     // 【粉彩护幕】免疫中毒（伽勒尔小火马/烈焰马）
     'Pastel Veil': {

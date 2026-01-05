@@ -136,6 +136,12 @@ async function handleEnemyPivot(passBoosts = false) {
             delete currentE.choiceLockedMove;
         }
         
+        // 【哈欠修复】换人时清除哈欠状态（官方机制：换人可以躲避哈欠）
+        if (currentE.volatile && currentE.volatile.yawn) {
+            console.log(`[YAWN] ${currentE.cnName} 换下，清除哈欠状态`);
+            delete currentE.volatile.yawn;
+        }
+        
         // 如果换下的宝可梦处于极巨化状态，恢复招式
         if (currentE.isDynamaxed && typeof window.applyDynamaxState === 'function') {
             console.log(`[SWITCH] Enemy ${currentE.name} was Dynamaxed, restoring moves`);

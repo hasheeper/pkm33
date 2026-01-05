@@ -48,7 +48,13 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     // 使用 battle-engine 的伤害计算
     const result = calcDamage(attacker, defender, move);
     
-    // 0. 处理特性免疫 (漂浮、避雷针等)
+    // 0. 处理招式失败（如食梦对未睡眠目标）
+    if (result.failed) {
+        log(`<b style='color:#e74c3c'>${result.failMessage || '但是招式失败了！'}</b>`);
+        return result;
+    }
+    
+    // 0. 处理特性免疫 (飘浮、避雷针等)
     if (result.abilityImmune) {
         log(`<b style='color:#9b59b6'>${defender.cnName} 的 ${result.abilityImmune} 吸收/免疫了攻击!</b>`);
         return result;

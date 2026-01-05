@@ -2427,6 +2427,12 @@ async function performSwitch(newIndex) {
         }
         oldP.resetBoosts();
     }
+    
+    // 【哈欠修复】换人时清除哈欠状态（官方机制：换人可以躲避哈欠）
+    if (oldP.volatile && oldP.volatile.yawn) {
+        console.log(`[YAWN] ${oldP.cnName} 换下，清除哈欠状态`);
+        delete oldP.volatile.yawn;
+    }
 
     // Pivot 换人使用不同的日志
     if (isPivot) {

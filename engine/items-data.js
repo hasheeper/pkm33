@@ -180,6 +180,20 @@ const ITEMS = {
         description: '被接触类招式攻击时，攻击者损失1/6最大HP',
     },
     
+    // --- 防尘护目镜 (Safety Goggles) ---
+    safetygoggles: {
+        id: 'safetygoggles',
+        name: 'Safety Goggles',
+        cnName: '防尘护目镜',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 80 },
+        effect: 'safetyGoggles',
+        immunePowder: true, // 免疫粉末类招式
+        immuneWeatherDamage: true, // 免疫沙暴/冰雹伤害
+        description: '免疫粉末类招式（催眠粉、蘑菇孢子等）和沙暴/冰雹伤害',
+    },
+    
     // --- 达人带 (Expert Belt) ---
     expertbelt: {
         id: 'expertbelt',
@@ -1582,6 +1596,50 @@ const ItemEffects = {
             if (!pokemon.volatile) pokemon.volatile = {};
             pokemon.volatile.custap = true;
             logs.push(`<span style="color:#9b59b6">⚡ ${pokemon.cnName} 吃掉了${berryName}，下一次行动将获得先制！</span>`);
+            return true;
+        }
+        
+        return false;
+    },
+    
+    /**
+     * 【新增】检查状态治愈树果（零余果、桃桃果、木子果等）
+     * 应在状态变化后立即调用
+     * @param {Object} pokemon - 宝可梦
+     * @param {Array} logs - 日志数组
+     * @returns {boolean} 是否触发了树果
+     */
+    checkStatusBerry(pokemon, logs = []) {
+        if (!pokemon.item || !pokemon.status) return false;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        if (!itemData || !itemData.isBerry) return false;
+        
+        const berryName = itemData.cnName || itemData.name;
+        
+        // 状态治愈树果 (cureStatus)
+        if (itemData.effect === 'cureStatus' && itemData.cures === pokemon.status) {
+            const statusNames = { par: '麻痹', brn: '灶伤', psn: '中毒', tox: '剧毒', slp: '睡眠', frz: '冰冻' };
+            pokemon.status = null;
+            pokemon.statusTurns = 0;
+            pokemon.sleepTurns = 0;
+            pokemon.sleepDuration = 0;
+            pokemon.item = null;
+            logs.push(`<span style="color:#27ae60">🍒 ${pokemon.cnName} 吃掉了${berryName}，治愈了${statusNames[itemData.cures] || '异常状态'}！</span>`);
+            return true;
+        }
+        
+        // 全状态治愈树果 (木子果 Lum Berry)
+        if (itemData.effect === 'cureAll' && pokemon.status) {
+            const statusNames = { par: '麻痹', brn: '灶伤', psn: '中毒', tox: '剧毒', slp: '睡眠', frz: '冰冻' };
+            const oldStatus = pokemon.status;
+            pokemon.status = null;
+            pokemon.statusTurns = 0;
+            pokemon.sleepTurns = 0;
+            pokemon.sleepDuration = 0;
+            pokemon.item = null;
+            logs.push(`<span style="color:#27ae60">🍒 ${pokemon.cnName} 吃掉了${berryName}，治愈了${statusNames[oldStatus] || '异常状态'}！</span>`);
             return true;
         }
         

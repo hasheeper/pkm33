@@ -478,17 +478,36 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
 
     // ----------------------------------------
     // 6. 哈欠 (Yawn): 倒计时，时间到睡着
+    // 【修复】使用 tryInflictStatus 进行特性/场地免疫检查
     // ----------------------------------------
     if (poke.volatile && poke.volatile['yawn']) {
         poke.volatile['yawn'] -= 1;
         if (poke.volatile['yawn'] <= 0) {
+            delete poke.volatile['yawn'];
             if (!poke.status) {
-                poke.status = 'slp';
-                poke.sleepTurns = Math.floor(Math.random() * 3) + 2;
-                delete poke.volatile['yawn'];
-                logs.push(`${poke.cnName} 的睡意袭来了! -> 睡着了!`);
-            } else {
-                delete poke.volatile['yawn'];
+                // 【关键修复】检查电气场地防睡
+                const battle = window.battle;
+                const currentTerrain = battle?.terrain;
+                const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                const isGrounded = !poke.types?.includes('Flying') && pokeAbility !== 'levitate';
+                
+                if (currentTerrain === 'electricterrain' && isGrounded) {
+                    logs.push(`电气场地保护了 ${poke.cnName}，无法入睡！`);
+                } else if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                    // 使用 tryInflictStatus 检查特性免疫（不眠/干劲/绝对睡眠等）
+                    const result = MoveEffects.tryInflictStatus(poke, 'slp', null, battle);
+                    if (result.success) {
+                        poke.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                        logs.push(`${poke.cnName} 的睡意袭来了! -> 睡着了!`);
+                    } else {
+                        logs.push(result.message || `${poke.cnName} 无法入睡！`);
+                    }
+                } else {
+                    // 回退逻辑：直接设置睡眠
+                    poke.status = 'slp';
+                    poke.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                    logs.push(`${poke.cnName} 的睡意袭来了! -> 睡着了!`);
+                }
             }
         } else {
             logs.push(`${poke.cnName} 更加困倦了...`);
@@ -521,8 +540,11 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
     const hasMagicGuard = pokeAbility === 'magicguard';
     const hasOvercoat = pokeAbility === 'overcoat';
+    // 【Safety Goggles】防尘护目镜免疫沙暴/冰雹伤害
+    const pokeItem = (poke.item || '').toLowerCase().replace(/[^a-z]/g, '');
+    const hasSafetyGoggles = pokeItem === 'safetygoggles';
     
-    if (currentWeather && !hasMagicGuard && !hasOvercoat) {
+    if (currentWeather && !hasMagicGuard && !hasOvercoat && !hasSafetyGoggles) {
         if (currentWeather === 'sandstorm') {
             const immuneToSand = poke.types && (poke.types.includes('Rock') || poke.types.includes('Ground') || poke.types.includes('Steel'));
             const sandAbilityImmune = ['sandveil', 'sandforce', 'sandrush'].includes(pokeAbility);

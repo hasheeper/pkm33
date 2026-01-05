@@ -30,72 +30,102 @@ function getDefaultBattleData() {
     return {
   "difficulty": "expert",
   "script": {
-    "module": "necrozma_fusion_hook", // 假装通过Hook触发脚本
-    "trigger_fusion_selection": true
+    "module": "status_monitor",
+    "log_sleep_turns": true // 开启睡眠回合数详细日志追踪
   },
-  
+
   "player": {
-    "name": "YOTA",
-    "canMega": true,
-    "unlocks": {
-        "enable_z_move": true,
-        "enable_ultra_burst": true
-    },
+    "name": "YOTA (Sleep Master)",
+    // 玩家采用【催眠控制 + 梦魇削血 + 睡觉满血复活】战术
     "party": [
       {
         "slot": 1,
-        "name": "Necrozma",
+        "name": "Breloom", 
+        "nickname": "蘑漫",
         "lv": 100,
-        "gender": "N",
-        "shiny": true,
-        "nature": "Modest",
-        "ability": "Prism Armor",
-        "item": "Ultranecrozium Z", 
-        "mechanic": "zmove", 
-        "isAce": true, 
+        "gender": "M",
+        "nature": "Jolly",
+        "ability": "Technician",
+        "item": "Focus Sash", // 气势披带：确保能活下来放出一发必中的蘑菇孢子
+        "moves": ["Spore", "Yawn", "Bullet Seed", "Rock Tomb"],
+        "avs": { "insight": 200 }, // 提升命中相关判定，虽孢子是必中
         "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 255, "passion": 200, "insight": 255, "devotion": 150 },
-        "moves": ["Photon Geyser", "Prismatic Laser", "Earth Power", "Calm Mind"]
+        "//comment": "核心机制：【蘑菇孢子 (Spore)】- 唯一的100%命中率睡眠技"
       },
       {
         "slot": 2,
-        "name": "Solgaleo",
+        "name": "Darkrai",
         "lv": 100,
-        "item": "Choice Scarf",
-        "ability": "Full Metal Body",
-        "moves": ["Sunsteel Strike", "Flare Blitz", "Zen Headbutt", "Wild Charge"]
+        "gender": "N",
+        "nature": "Timid",
+        "ability": "Bad Dreams", // 核心特性：梦魇 - 每回合扣除睡眠对手 1/8 HP
+        "item": "Wide Lens", // 广角镜：提升神出鬼没的【黑洞/催眠术】命中率
+        "mechanic": "tera",
+        "teraType": "Poison", // 既然是恶魔，太晶毒防格斗
+        "moves": ["Dark Void", "Dream Eater", "Nasty Plot", "Sludge Bomb"],
+        "//comment": "核心机制：【梦魇 + 食梦】 - 睡眠Combo流"
       },
       {
         "slot": 3,
-        "name": "Lunala",
+        "name": "Snorlax",
         "lv": 100,
-        "item": "Leftovers",
-        "ability": "Shadow Shield",
-        "moves": ["Moongeist Beam", "Psyshock", "Roost", "Will-O-Wisp"]
+        "gender": "M",
+        "nature": "Adamant",
+        "ability": "Thick Fat",
+        "item": "Chesto Berry", // 核心道具：零余果
+        "mechanic": "dynamax", // 极巨化卡比兽超硬
+        "moves": ["Rest", "Belly Drum", "Body Slam", "Heavy Slam"],
+        "avs": { "devotion": 255 }, // 根性极高
+        "stats_meta": { "ev_level": 252 },
+        "//comment": "核心机制：【睡觉 (Rest) + 零余果 (Chesto Berry)】 - 瞬间满血苏醒Buff"
       }
     ]
   },
+
   "enemy": {
-    "name": "Eternatus (The Darkest Day)",
-    "type": "wild", 
+    "name": "Awakened Guardian (守夜人)",
+    "type": "trainer",
     "lines": {
-      "start": "ROOOOOOO——!!! (次元的裂缝被无尽的毒云撕裂！)",
-      "win": "天空被染成了绝望的深红……",
-      "lose": "无限的能量甚至被更耀眼的光芒贯穿了！",
-      "escape": "不可能从闇夜中逃脱。"
+      "start": "在此领域之中，无人可以闭眼沉睡。",
+      "win": "永远的警惕是生存的代价。",
+      "lose": "好吧……我想我也该……休息一下了……(Zzz)",
+      "escape": "就算是噩梦也无法追上我。"
     },
+    // 敌方配置完全针对睡眠免疫构建
     "party": [
       {
-        "name": "Eternatus-Eternamax", 
+        "name": "Primeape",
         "lv": 100,
-        "ability": "Pressure",
-        "item": "Black Sludge",
-        "mechanic": "dynamax", // 强制巨化逻辑
-        "moves": ["Eternamax Cannon", "Dynamax Cannon", "Sludge Bomb", "Recover"],
-        "stats_meta": { 
-            "ev_level": 252,
-            "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
-        }
+        "gender": "M",
+        "ability": "Vital Spirit", // [特质] 干劲：100%免疫睡眠，蘑菇孢子无效
+        "item": "Choice Scarf", // 讲究围巾：高速压制
+        "moves": ["Close Combat", "U-turn", "Ice Punch", "Gunk Shot"],
+        "stats_meta": { "ev_level": 252 },
+        "//comment": "Counter机制 1：【干劲】特性"
+      },
+      {
+        "name": "Tapu Koko",
+        "lv": 100,
+        "gender": "N",
+        "ability": "Electric Surge", // [场地] 电气制造者：开场布置电气场地，地面的大家都不准睡觉
+        "item": "Life Orb",
+        "moves": ["Thunderbolt", "Dazzling Gleam", "U-turn", "Roost"],
+        "mechanic": "zmove", // 允许这种守卫神使用Z
+        "stats_meta": { "ev_level": 252 },
+        "//comment": "Counter机制 2：【电气场地】 - 环境锁死睡眠状态"
+      },
+      {
+        "name": "Garganacl", 
+        "lv": 100,
+        "gender": "M",
+        "nature": "Careful",
+        "ability": "Purifying Salt", // [特质] 洁净之盐：Gen9新特性，免疫所有异常状态（含睡眠）
+        "item": "Leftovers",
+        "mechanic": "tera", 
+        "teraType": "Ghost", // 著名的太晶鬼盐石巨灵
+        "moves": ["Salt Cure", "Recover", "Iron Defense", "Body Press"],
+        "stats_meta": { "ev_level": 252 },
+        "//comment": "Counter机制 3：【洁净之盐】 - 异常状态免疫"
       }
     ]
   }

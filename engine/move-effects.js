@@ -231,17 +231,22 @@ function tryInflictStatus(target, status, source = null, battle = null) {
             return { success: false, message: `${target.cnName} 的叶子防守在阳光下阻止了异常状态!` };
         }
     }
-    
-    // === 【薄雾场地 Misty Terrain】免疫异常状态 ===
+
+    // === 【场地免疫检查】===
     const currentTerrain = battle?.terrain || (typeof window.battle !== 'undefined' ? window.battle.terrain : null);
-    if (currentTerrain === 'misty') {
-        // 检查是否在地面上（飞行系/漂浮不受场地影响）
-        const isGrounded = !target.types?.includes('Flying') && targetAbility !== 'levitate';
-        if (isGrounded) {
-            return { success: false, message: `薄雾场地保护了 ${target.cnName}，无法陷入异常状态!` };
-        }
+    // 检查是否在地面上（飞行系/飘浮不受场地影响）
+    const isGrounded = !target.types?.includes('Flying') && targetAbility !== 'levitate';
+
+    // 【电气场地 Electric Terrain】免疫睡眠
+    if (currentTerrain === 'electricterrain' && status === 'slp' && isGrounded) {
+        return { success: false, message: `电气场地保护了 ${target.cnName}，无法入睡!` };
     }
-    
+
+    // 【薄雾场地 Misty Terrain】免疫异常状态
+    if (currentTerrain === 'mistyterrain' && isGrounded) {
+        return { success: false, message: `薄雾场地保护了 ${target.cnName}，无法陷入异常状态!` };
+    }
+
     // === 【属性免疫检查】===
     const immunities = {
         par: ['Electric'], // 电系免疫麻痹
@@ -279,6 +284,15 @@ function tryInflictStatus(target, status, source = null, battle = null) {
         message = `${source?.cnName} 的腐蚀特性让 ${target.cnName} 中毒了!`;
     }
     
+    // 【修复】立即检查状态治愈树果（零余果/桃桃果/木子果等）
+    if (typeof ItemEffects !== 'undefined' && ItemEffects.checkStatusBerry) {
+        const berryLogs = [];
+        const triggered = ItemEffects.checkStatusBerry(target, berryLogs);
+        if (triggered && berryLogs.length > 0) {
+            message += ' ' + berryLogs.join(' ');
+        }
+    }
+    
     return { success: true, message };
 }
 
@@ -306,7 +320,12 @@ function processStatusEffects(pokemon) {
             break;
             
         case 'slp':
-            pokemon.statusTurns++;
+            // 【Early Bird 早起】睡眠回合消耗加倍
+            const pokeAbility = (pokemon.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const hasEarlyBird = pokeAbility === 'earlybird';
+            const sleepIncrement = hasEarlyBird ? 2 : 1;
+            pokemon.statusTurns += sleepIncrement;
+            
             const sleepDuration = pokemon.sleepDuration || (Math.floor(Math.random() * 3) + 1);
             pokemon.sleepDuration = sleepDuration;
             
@@ -314,7 +333,9 @@ function processStatusEffects(pokemon) {
                 pokemon.status = null;
                 pokemon.statusTurns = 0;
                 pokemon.sleepDuration = 0;
-                result.message = `${pokemon.cnName} 醒来了!`;
+                result.message = hasEarlyBird 
+                    ? `${pokemon.cnName} 的早起让它快速醒来了!`
+                    : `${pokemon.cnName} 醒来了!`;
             } else {
                 result.canMove = false;
                 result.message = `${pokemon.cnName} 正在睡觉...`;
@@ -413,11 +434,26 @@ function processMoveStatusEffects(user, target, move) {
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
     
-    // === 【草系免疫粉末类招式】===
+    // === 【粉末类招式免疫检查】===
     const powderMoves = ['spore', 'sleeppowder', 'poisonpowder', 'stunspore', 'ragepowder', 'cottonspore', 'powder'];
-    if (powderMoves.includes(moveId) && target.types && target.types.includes('Grass')) {
-        logs.push(`${target.cnName} 的草属性免疫了粉末类招式!`);
-        return logs;
+    if (powderMoves.includes(moveId)) {
+        // 草系免疫
+        if (target.types && target.types.includes('Grass')) {
+            logs.push(`${target.cnName} 的草属性免疫了粉末类招式!`);
+            return logs;
+        }
+        // 防尘护目镜免疫
+        const targetItem = (target.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (targetItem === 'safetygoggles') {
+            logs.push(`${target.cnName} 的防尘护目镜免疫了粉末类招式!`);
+            return logs;
+        }
+        // 防尘特性免疫
+        const targetAbility = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (targetAbility === 'overcoat') {
+            logs.push(`${target.cnName} 的防尘特性免疫了粉末类招式!`);
+            return logs;
+        }
     }
     
     // === 【草系免疫寄生种子】===
@@ -1448,17 +1484,8 @@ function tickVolatileStatus(pokemon, opponent = null) {
     }
     
     // 哈欠 -> 睡眠
-    if (pokemon.volatile.yawn && pokemon.volatile.yawn > 0) {
-        pokemon.volatile.yawn--;
-        if (pokemon.volatile.yawn === 0) {
-            if (!pokemon.status) {
-                pokemon.status = 'slp';
-                pokemon.sleepTurns = 0;
-                logs.push(`${pokemon.cnName} 睡着了!`);
-            }
-            delete pokemon.volatile.yawn;
-        }
-    }
+    // 【已移除】哈欠的倒计时在 battle-turns.js 中统一处理，避免重复减少
+    // 该处理包含电气场地/薄雾场地免疫检查
     
     // 灭亡之歌
     if (pokemon.volatile.perishsong && pokemon.volatile.perishsong > 0) {

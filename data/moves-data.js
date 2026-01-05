@@ -3401,6 +3401,7 @@ const MOVES = {
 		priority: 0,
 		flags: { protect: 1, mirror: 1, heal: 1, metronome: 1 },
 		drain: [1, 2],
+		sleepUsable: true, // 【修复】标记为需要对手睡眠才能使用
 		onTryImmunity: null,
 		secondary: null,
 		target: "normal",

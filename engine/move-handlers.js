@@ -1833,8 +1833,19 @@ const MoveHandlers = {
             attacker.statusTurns = 0;
             // 睡眠回合数（Rest 固定睡2回合，第3回合醒来）
             attacker.sleepTurns = 3;
+            attacker.sleepDuration = 3;
             
             logs.push(`${attacker.cnName} 睡着了并恢复了全部体力!`);
+            
+            // 【修复】立即检查状态治愈树果（零余果/木子果）
+            if (typeof ItemEffects !== 'undefined' && ItemEffects.checkStatusBerry) {
+                const berryLogs = [];
+                const triggered = ItemEffects.checkStatusBerry(attacker, berryLogs);
+                if (triggered) {
+                    berryLogs.forEach(txt => logs.push(txt));
+                }
+            }
+            
             return { rest: true };
         },
         description: '完全回复HP，但陷入睡眠2回合'
