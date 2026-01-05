@@ -42,8 +42,10 @@ const SIGNATURE_Z_MATRIX = {
     'darkestlariat+incineroar': 'Malicious Moonsault',
     'sparklingaria+primarina': 'Oceanic Operetta',
     'spiritshackle+decidueye': 'Sinister Arrow Raid',
-    // 传说/神兽
-    'photongeyser+necrozma': 'Light That Burns the Sky',
+    // 传说/神兽 - 奈克洛兹玛专属 Z（只有究极形态才能使用）
+    // 原始 Necrozma、日骡子、月骡子不能直接使用专属 Z
+    // 必须先 Ultra Burst 变成究极奈克洛兹玛才能使用
+    'photongeyser+necrozmaultra': 'Light That Burns the Sky',
     'sunsteelstrike+solgaleo': 'Searing Sunraze Smash',
     'moongeistbeam+lunala': 'Menacing Moonraze Maelstrom',
     'spectralthief+marshadow': 'Soul-Stealing 7-Star Strike',
@@ -152,7 +154,8 @@ function calculateBestZForPokemon(pokemon) {
     // 使用缓存避免重复计算
     if (pokemon._cachedBestZ !== undefined) return pokemon._cachedBestZ;
     
-    const speciesId = (pokemon.name || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/(partner|alola|galar|gmax|mega|cap)/g, '');
+    // 注意：不过滤 ultra，因为 Necrozma-Ultra 需要保留完整名称来匹配专属 Z
+    const speciesId = (pokemon.name || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/(partner|alola|galar|gmax|mega|cap|duskmane|dawnwings)/g, '');
     
     let bestFound = null;
     let highestPrio = Infinity;
@@ -196,7 +199,8 @@ function getZMoveTarget(baseMoveObj, pokemon) {
     // 准备 Key
     const moveId = (baseMoveObj.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const moveType = baseMoveObj.type || 'Normal';
-    const speciesRoot = (pokemon.name || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/(partner|alola|galar|gmax|mega|cap)/g, '');
+    // 注意：不过滤 ultra，因为 Necrozma-Ultra 需要保留完整名称来匹配专属 Z
+    const speciesRoot = (pokemon.name || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/(partner|alola|galar|gmax|mega|cap|duskmane|dawnwings)/g, '');
     
     // 1. 获取这只宝可梦"命中注定"的专属 Z（优先级最高的那个）
     const theOneZ = calculateBestZForPokemon(pokemon);

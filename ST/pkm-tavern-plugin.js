@@ -7254,6 +7254,10 @@ if (typeof window !== 'undefined') {
       const nature = pokemon.nature || '???';
       const ability = pokemon.ability || '???';
       
+      // 领队标记
+      const isLead = pokemon.isLead === true;
+      const leadTag = isLead ? ' [🎯领队]' : '';
+      
       // IVs 和 EVs - 自动补全缺失数据
       const filledStatsMeta = autoFillStatsMeta(pokemon);
       const ivs = filledStatsMeta.ivs;
@@ -7275,7 +7279,7 @@ if (typeof window !== 'undefined') {
         return `move${moveIdx + 1}: ${moveName}`;
       }).join(' | ');
 
-      return `slot${slotNum}. ${gender} ${name} (Lv.${level})
+      return `slot${slotNum}. ${gender} ${name} (Lv.${level})${leadTag}
    🧬 [Nature: ${nature}] [Ability: ${ability}]
    💎 [Stats: ${ivsDisplay}] [EVs: ${evLevel}] [AVs: ${avsDisplay}]
    ⚔️ Moves (${movesCount}/4): ${movesDetailed}`;
@@ -7374,13 +7378,28 @@ if (typeof window !== 'undefined') {
       inventorySection = '\n🎒 《洛迪亚特区 · 羁绊遗物清单》\n  (空空如也...尚未获得任何羁绊遗物)\n';
     }
 
+    // 构建 BOX 宝可梦简要显示
+    let boxSection = '';
+    const boxData = playerData?.box || {};
+    const boxPokemon = Object.entries(boxData)
+      .filter(([key, pokemon]) => pokemon && pokemon.name)
+      .map(([key, pokemon]) => {
+        const name = pokemon.nickname || pokemon.name;
+        const level = pokemon.lv || pokemon.level || '??';
+        return `${name}/Lv.${level}`;
+      });
+    
+    if (boxPokemon.length > 0) {
+      boxSection = `\n📦 《BOX 存储》(${boxPokemon.length})\n  ${boxPokemon.join(' | ')}\n`;
+    }
+
     return `<pkm_team_summary>
 【当前玩家状态】
 👤 训练家: ${playerName} | 🔓 解锁: [${unlocksStr}] | 🎒 队伍: (${partyCount}/6)
 --------------------------------------------------
 ${partyLines}
 --------------------------------------------------
-${inventorySection}
+${inventorySection}${boxSection}
 --------------------------------------------------
 💡 提示: 战斗中请通过 <PKM_BATTLE> 标签调用队伍。
 </pkm_team_summary>`;

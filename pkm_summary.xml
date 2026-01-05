@@ -304,19 +304,35 @@ function calcDamage(attacker, defender, move, options = {}) {
     // === AVs: Insight 闪避加成 ===
     // 【线性机制】闪避加成 = (effectiveInsight / 255) * 20
     // 满值 255 时 20% 闪避加成，100 时约 8% 闪避加成
-    if (defender.isAce && defender.avs && defender.avs.insight > 0 && !isSureHit) {
+    if (defender.isAce && defender.avs && !isSureHit) {
         const baseInsight = defender.getEffectiveAVs('insight');
-        const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
-        // 线性闪避加成：满值 20%，最低 1%
-        let evasionBonus = Math.max(1, Math.floor((effectiveInsight / 255) * 20));
-        hitRate = Math.max(20, hitRate - evasionBonus); // 最低命中率降至 20%
-        console.log(`[AVs] Insight 闪避加成: -${evasionBonus}% (Insight: ${baseInsight}${defender.avsEvolutionBoost ? ' x2' : ''})`);
+        // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
+        if (baseInsight > 0) {
+            const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
+            // 线性闪避加成：满值 20%，最低 1%
+            let evasionBonus = Math.max(1, Math.floor((effectiveInsight / 255) * 20));
+            hitRate = Math.max(20, hitRate - evasionBonus); // 最低命中率降至 20%
+            console.log(`[AVs] Insight 闪避加成: -${evasionBonus}% (Insight: ${baseInsight}${defender.avsEvolutionBoost ? ' x2' : ''})`);
+        }
     }
-    // 【战术指挥】DODGE! 指令：固定 50% 闪避加成
+    // 【战术指挥】DODGE! 指令：基础 40% 闪避 + Insight AVS 加成
+    // 点击后仅当回合生效
     if (defender.commandDodgeActive && !isSureHit) {
-        const dodgeBonus = 50; // 固定 50% 闪避
+        let dodgeBonus = 40; // 基础 40% 闪避
+        // Insight AVS 加成：满值 255 时 +50%（总计 90%）
+        // 【全局开关】使用 getEffectiveAVs 检查有效值
+        if (defender.isAce && defender.avs && defender.getEffectiveAVs) {
+            const baseInsight = defender.getEffectiveAVs('insight');
+            if (baseInsight > 0) {
+                const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
+                const insightBonus = (Math.min(effectiveInsight, 255) / 255) * 50;
+                dodgeBonus += insightBonus;
+                console.log(`[COMMANDER] DODGE! Insight 加成: +${insightBonus.toFixed(1)}% (Insight: ${baseInsight})`);
+            }
+        }
+        dodgeBonus = Math.min(dodgeBonus, 80); // 上限 80%（保证至少 20% 命中率）
         hitRate = Math.max(20, hitRate - dodgeBonus);
-        console.log(`[COMMANDER] DODGE! 指令激活！固定闪避 -${dodgeBonus}% (命中率: ${hitRate}%)`);
+        console.log(`[COMMANDER] DODGE! 指令激活！闪避 -${dodgeBonus.toFixed(1)}% (命中率: ${hitRate}%)`);
     }
     // Miss 检测
     if (typeof accuracy === 'number' && !isSureHit) {
@@ -459,39 +475,47 @@ function calcDamage(attacker, defender, move, options = {}) {
     } else if (fullMoveData.willCrit) {
         isCrit = true;
     } else {
-        // 基础暴击概率：40%
-        let baseCritChance = 0.40;
-        // AVs: Passion 暴击加成
+        // =====================================================
+        // === 暴击率计算（基于正版宝可梦机制） ===
+        // =====================================================
+        // 正版暴击阶段：+0 = 1/24 (~4.17%), +1 = 1/8 (12.5%), +2 = 1/2 (50%), +3+ = 100%
+        // 本系统简化为：基础 4.17%，高暴击招式 +12.5%，超高暴击招式再 +25%
+        let baseCritChance = 1 / 24; // ~4.17%，正版基础暴击率
+        // AVs: Passion 暴击加成（仅限 isAce 宝可梦）
         // 【线性机制】暴击概率加成 = (effectivePassion / 255) * 0.20
-        // 满值 255 时 +20% 暴击率（总计 60%）
+        // 满值 255 时 +20% 暴击率
         let passionBonus = 0;
-        if (attacker.isAce && attacker.avs && attacker.avs.passion > 0) {
+        if (attacker.isAce && attacker.avs) {
             const basePassion = attacker.getEffectiveAVs('passion');
-            const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
-            // 线性暴击概率加成：满值 +20%
-            passionBonus = (Math.min(effectivePassion, 255) / 255) * 0.20;
-            console.log(`[AVs] Passion 暴击加成: +${(passionBonus * 100).toFixed(1)}% (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
+            // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
+            if (basePassion > 0) {
+                const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
+                // 线性暴击概率加成：满值 +20%
+                passionBonus = (Math.min(effectivePassion, 255) / 255) * 0.20;
+                console.log(`[AVs] Passion 暴击加成: +${(passionBonus * 100).toFixed(1)}% (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
+            }
         }
         let critChance = baseCritChance + passionBonus;
-        // 【战术指挥】FOCUS! 指令：暴击概率翻倍
-        // 注意：只有在实际战斗（非模拟）时才消耗指令
+        // 【战术指挥】FOCUS! 指令：当回合提供 40% 基础暴击率（独立于普通暴击）
+        // 点击后仅当回合生效，与普通暴击率叠加
         if (attacker.commandCritActive) {
-            critChance *= 2;
+            const focusBonus = 0.40; // FOCUS! 提供 40% 暴击率
+            critChance += focusBonus;
             critChance = Math.min(critChance, 1.0); // 上限 100%
             commandCritTriggered = true;
-            console.log(`[COMMANDER] FOCUS! 指令激活！暴击概率翻倍！(${(critChance * 100).toFixed(1)}%)`);
+            console.log(`[COMMANDER] FOCUS! 指令激活！+40% 暴击率！(总计: ${(critChance * 100).toFixed(1)}%)`);
             // 只在非模拟模式下消耗（isSimulation 参数由调用方传入）
             if (!options.isSimulation) {
                 attacker.commandCritActive = false; // 使用后消耗
             }
         }
-        // 招式自带高暴击率加成
+        // 招式自带高暴击率加成（critRatio 对应正版暴击阶段）
         const moveCritRatio = fullMoveData.critRatio || 1;
         if (moveCritRatio >= 2) {
-            critChance += 0.125; // +12.5%
+            critChance += 0.125; // +12.5%（相当于 +1 阶段）
         }
         if (moveCritRatio >= 3) {
-            critChance += 0.25; // 再 +25%
+            critChance += 0.25; // 再 +25%（相当于 +2 阶段）
         }
         critChance = Math.min(critChance, 1.0); // 上限 100%
         if (Math.random() < critChance) isCrit = true;
@@ -845,7 +869,8 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
             // 【战术指挥】FOCUS! 指令触发的暴击
             if (result.commandCritTriggered) {
                 infoParts.push(`<b style="color:#ff6b6b; text-shadow:0 0 5px #ff6b6b;">🔥 [FOCUS!]</b>`);
-            } else if (attacker.avs && attacker.avs.passion >= 100) {
+            } else if (attacker.avs && attacker.getEffectiveAVs && attacker.getEffectiveAVs('passion') >= 100) {
+                // 【全局开关】使用 getEffectiveAVs 检查有效值（AVS 关闭时返回 0）
                 infoParts.push(`<b style="color:#f59e0b">🔥 (Passion${attacker.avsEvolutionBoost ? ' x2' : ''})</b>`);
             }
         }
@@ -2331,39 +2356,45 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     // 【线性机制】概率 = (effectiveDevotion / 255) * 0.35
     // 满值 255 时约 35% 概率，100 时约 14% 概率
     // 只有【玩家方】的 isAce=true 宝可梦才能触发 AVs 被动
-    if (isPlayerPoke && poke.isAce && poke.avs && poke.avs.devotion > 0) {
+    if (isPlayerPoke && poke.isAce && poke.avs) {
         const baseDevotion = poke.getEffectiveAVs ? poke.getEffectiveAVs('devotion') : poke.avs.devotion;
-        const effectiveDevotion = poke.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
-        const hpRatio = poke.currHp / poke.maxHp;
-        const isCritical = hpRatio <= 0.30;
-        // 线性概率计算：满值 35%，最低 5%
-        const baseChance = Math.max(0.05, (effectiveDevotion / 255) * 0.35);
-        // 初始化全局触发标记
-        if (!poke.avsTriggered) poke.avsTriggered = {};
-        if (poke.devotionStatusTriggered === undefined) poke.devotionStatusTriggered = -1;
-        const currentTurn = battle && battle.turn ? battle.turn : 0;
-        // 【触发条件 1】有异常状态 → 清除异常 + 回复 15% HP
-        if (poke.status && poke.devotionStatusTriggered !== currentTurn) {
-            if (Math.random() < baseChance) {
-                const oldStatus = poke.status;
-                poke.status = null;
-                poke.sleepTurns = 0;
-                const healAmount = Math.floor(poke.maxHp * 0.15);
-                poke.heal(healAmount);
-                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 为了不让训练家担心，治好了自己的${oldStatus}！回复了 ${healAmount} HP！(Devotion: ${baseDevotion}${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
-                poke.devotionStatusTriggered = currentTurn;
-                console.log(`[AVs] Devotion 状态治愈触发 (Chance: ${Math.round(baseChance * 100)}%, Devotion: ${baseDevotion})`);
+        // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
+        if (baseDevotion > 0) {
+            const effectiveDevotion = poke.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
+            const hpRatio = poke.currHp / poke.maxHp;
+            const isCritical = hpRatio <= 0.30;
+            // 线性概率计算：满值 35%，无保底（低 AVS 就是低概率）
+            // Devotion 10 → 1.37%, Devotion 100 → 13.7%, Devotion 255 → 35%
+            const baseChance = (effectiveDevotion / 255) * 0.35;
+            // 初始化全局触发标记
+            if (!poke.avsTriggered) poke.avsTriggered = {};
+            if (poke.devotionStatusTriggered === undefined) poke.devotionStatusTriggered = -1;
+            const currentTurn = battle && battle.turn ? battle.turn : 0;
+            // 【触发条件 1】有异常状态 → 清除异常 + 回复 15% HP
+            if (poke.status && poke.devotionStatusTriggered !== currentTurn) {
+                if (Math.random() < baseChance) {
+                    const oldStatus = poke.status;
+                    poke.status = null;
+                    poke.sleepTurns = 0;
+                    const healAmount = Math.floor(poke.maxHp * 0.15);
+                    poke.heal(healAmount);
+                    logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 为了不让训练家担心，治好了自己的${oldStatus}！回复了 ${healAmount} HP！(Devotion: ${baseDevotion}${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
+                    poke.devotionStatusTriggered = currentTurn;
+                    console.log(`[AVs] Devotion 状态治愈触发 (Chance: ${Math.round(baseChance * 100)}%, Devotion: ${baseDevotion})`);
+                }
             }
-        }
-        // 【触发条件 2】残血（≤30%）→ 回复 35% HP（全局只能触发一次）
-        if (isCritical && !poke.avsTriggered.devotionCritical) {
-            const criticalChance = Math.min(0.60, baseChance + 0.15);
-            if (Math.random() < criticalChance) {
-                const healAmount = Math.floor(poke.maxHp * 0.35);
-                poke.heal(healAmount);
-                logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 的献身之心激发了生命力！回复了 ${healAmount} HP！[危机爆发] (Devotion: ${baseDevotion}${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
-                poke.avsTriggered.devotionCritical = true;
-                console.log(`[AVs] Devotion 危机爆发触发 (Chance: ${Math.round(criticalChance * 100)}%, Devotion: ${baseDevotion})`);
+            // 【触发条件 2】残血（≤30%）→ 回复 35% HP（全局只能触发一次）
+            // 危机爆发概率 = 基础概率 * 1.5（而不是固定 +15%）
+            // Devotion 10 → 2.06%, Devotion 100 → 20.6%, Devotion 255 → 52.5%
+            if (isCritical && !poke.avsTriggered.devotionCritical) {
+                const criticalChance = Math.min(0.60, baseChance * 1.5);
+                if (Math.random() < criticalChance) {
+                    const healAmount = Math.floor(poke.maxHp * 0.35);
+                    poke.heal(healAmount);
+                    logs.push(`<b style="color:#e91e63">💕 ${poke.cnName} 的献身之心激发了生命力！回复了 ${healAmount} HP！[危机爆发] (Devotion: ${baseDevotion}${poke.avsEvolutionBoost ? ' x2' : ''})</b>`);
+                    poke.avsTriggered.devotionCritical = true;
+                    console.log(`[AVs] Devotion 危机爆发触发 (Chance: ${Math.round(criticalChance * 100)}%, Devotion: ${baseDevotion})`);
+                }
             }
         }
     }
@@ -8009,6 +8040,10 @@ class Pokemon {
      * @returns {number} 有效的 AVs 值
      */
     getEffectiveAVs(stat) {
+        // 【全局开关】AVS 系统关闭时返回 0
+        if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableAVS) {
+            return 0;
+        }
         if (!this.avs || !this.avs[stat]) return 0;
         const rawValue = this.avs[stat];
         // 获取解锁状态（区分玩家和敌方）
@@ -8105,17 +8140,21 @@ class Pokemon {
         // 满值 255 时约 50% 概率，100 时约 20% 概率
         // 每只宝可梦每场战斗只能触发一次
         // 只有 isAce=true 的宝可梦才能触发 AVs 被动
-        if (this.isAce && this.avs && this.avs.trust > 0 && dmg >= this.currHp && !this.avsTriggered?.trustEndure) {
+        if (this.isAce && this.avs && dmg >= this.currHp && !this.avsTriggered?.trustEndure) {
             const baseTrust = this.getEffectiveAVs('trust');
-            const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
-            // 线性概率：满值 50%，最低 5%（只要 trust > 0）
-            const triggerChance = Math.max(0.05, (effectiveTrust / 255) * 0.50);
-            if (Math.random() < triggerChance) {
-                this.currHp = 1;
-                this.avsTriggered.trustEndure = true; // 每场战斗只能触发一次
-                this.trustEndureTriggered = true; // 标记用于日志
-                console.log(`[AVs] ${this.cnName} 的 Trust 守护发动！(Chance: ${Math.round(triggerChance * 100)}%, Trust: ${baseTrust}${this.avsEvolutionBoost ? ' x2' : ''})`);
-                return; // 不执行后续扣血
+            // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
+            if (baseTrust > 0) {
+                const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
+                // 线性概率：满值 50%，无保底（低 AVS 就是低概率）
+                // Trust 60 → 11.76%, Trust 100 → 19.6%, Trust 255 → 50%
+                const triggerChance = (effectiveTrust / 255) * 0.50;
+                if (Math.random() < triggerChance) {
+                    this.currHp = 1;
+                    this.avsTriggered.trustEndure = true; // 每场战斗只能触发一次
+                    this.trustEndureTriggered = true; // 标记用于日志
+                    console.log(`[AVs] ${this.cnName} 的 Trust 守护发动！(Chance: ${Math.round(triggerChance * 100)}%, Trust: ${baseTrust}${this.avsEvolutionBoost ? ' x2' : ''})`);
+                    return; // 不执行后续扣血
+                }
             }
         }
         // =====================================================
@@ -8143,12 +8182,15 @@ class Pokemon {
         if (this.commandEndureActive && dmg >= this.currHp) {
             let endureChance = 0.50; // 基础 50%
             // Trust AVS 加成：满值 255 时 +50%
-            if (this.isAce && this.avs && this.avs.trust > 0) {
+            // 【全局开关】使用 getEffectiveAVs 检查有效值
+            if (this.isAce && this.avs) {
                 const baseTrust = this.getEffectiveAVs('trust');
-                const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
-                const trustBonus = (Math.min(effectiveTrust, 255) / 255) * 0.50;
-                endureChance += trustBonus;
-                console.log(`[COMMANDER] ENDURE! Trust 加成: +${(trustBonus * 100).toFixed(1)}% (Trust: ${baseTrust})`);
+                if (baseTrust > 0) {
+                    const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
+                    const trustBonus = (Math.min(effectiveTrust, 255) / 255) * 0.50;
+                    endureChance += trustBonus;
+                    console.log(`[COMMANDER] ENDURE! Trust 加成: +${(trustBonus * 100).toFixed(1)}% (Trust: ${baseTrust})`);
+                }
             }
             endureChance = Math.min(endureChance, 1.0); // 上限 100%
             const roll = Math.random();
@@ -8186,6 +8228,10 @@ class Pokemon {
      * @returns {boolean}
      */
     _checkBondEndureEligibility() {
+        // 【全局开关】EVO 系统关闭时不触发
+        if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableEVO) {
+            return false;
+        }
         if (!this.avs) return false;
         // 计算 AVs 总和
         const totalAVs = (this.getEffectiveAVs('trust') || 0) + 
@@ -17052,6 +17098,10 @@ const sfxCache = {};
  * @param {number} volumeOverride - 可选的音量覆盖 (0.0 - 1.0)
  */
 function playSFX(key, volumeOverride = null) {
+    // 【全局开关】SFX 系统关闭时不播放
+    if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableSFX) {
+        return;
+    }
     const original = sfxCache[key];
     if (!original) {
         return;
@@ -17097,6 +17147,10 @@ const CRY_VOLUME = 0.45;
  * @param {string} speciesName - 宝可梦名字 (如 "Pikachu", "Charizard-Mega-Y")
  */
 window.playPokemonCry = function(speciesName) {
+    // 【全局开关】SFX 系统关闭时不播放叫声
+    if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableSFX) {
+        return;
+    }
     if (!speciesName) return;
     // 优先使用预加载缓存
     if (typeof playCachedCry === 'function') {
@@ -17192,6 +17246,11 @@ const BgmPlayer = {
     currentKey: null,
     defaultVolume: 0.25,
     play(url, loop = true, fadeInDuration = 500) {
+        // 【全局开关】BGM 系统关闭时不播放
+        if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableBGM) {
+            console.log('[BGM] Disabled by GAME_SETTINGS');
+            return;
+        }
         // 如果正在播放相同的 BGM 且未暂停，跳过
         if (this.currentAudio && this.currentKey === url && !this.currentAudio.paused) {
             console.log('[BGM] Already playing:', url);
@@ -17611,173 +17670,7 @@ if (typeof module !== 'undefined' && module.exports) {
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {
-  "difficulty": "expert",
-  "player": {
-    "name": "player",
-    "trainerProficiency": 255,
-    "party": [
-      {
-        "slot": 1,
-        "name": "Delphox",
-        "gender": "F",
-        "lv": 36,
-        "quality": "high",
-        "nature": "Sassy",
-        "ability": "Magic Guard",
-        "shiny": false,
-        "item": null,
-        "mechanic": null,
-        "teraType": null,
-        "isAce": true,
-        "isLead": true,
-        "moves": ["Flamethrower", "Flame Charge", "Mystical Fire", "Howl"],
-        "stats_meta": {
-          "ivs": { "hp": 31, "atk": 31, "def": 12, "spa": 31, "spd": 31, "spe": 31 },
-          "ev_level": 177,
-          "ev_up": 0
-        },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "slot": 2,
-        "name": "Wimpod",
-        "gender": "M",
-        "lv": 28,
-        "quality": "medium",
-        "nature": "Timid",
-        "ability": "Wimp Out",
-        "shiny": false,
-        "item": null,
-        "mechanic": null,
-        "teraType": null,
-        "isAce": true,
-        "isLead": false,
-        "moves": ["Struggle Bug", "Sand Attack", "Defense Curl", "Aqua Jet"],
-        "stats_meta": {
-          "ivs": { "hp": 7, "atk": 15, "def": 28, "spa": 18, "spd": 21, "spe": 31 },
-          "ev_level": 78,
-          "ev_up": 0
-        },
-        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 }
-      },
-      {
-        "slot": 3,
-        "name": "Kirlia",
-        "gender": "F",
-        "lv": 24,
-        "quality": "high",
-        "nature": "Timid",
-        "ability": "Telepathy",
-        "shiny": false,
-        "item": "Soothe Bell",
-        "mechanic": null,
-        "teraType": null,
-        "isAce": true,
-        "isLead": false,
-        "moves": ["Disarming Voice", "Double Team", "Confusion", "Life Dew"],
-        "stats_meta": {
-          "ivs": { "hp": 12, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-          "ev_level": 83,
-          "ev_up": 0
-        },
-        "avs": { "trust": 251, "passion": 12, "insight": 52, "devotion": 255 }
-      },
-      {
-        "slot": 4,
-        "name": "Floragato",
-        "gender": "F",
-        "lv": 33,
-        "quality": "high",
-        "nature": "Adamant",
-        "ability": "Protean",
-        "shiny": false,
-        "item": null,
-        "mechanic": "tera",
-        "teraType": "Steel",
-        "isAce": true,
-        "isLead": false,
-        "moves": ["Metal Claw", "Leafage", "Sucker Punch", "Hone Claws"],
-        "stats_meta": {
-          "ivs": { "hp": 1, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-          "ev_level": 107,
-          "ev_up": 0
-        },
-        "avs": { "trust": 25, "passion": 69, "insight": 38, "devotion": 0 }
-      }
-    ],
-    "unlocks": {
-      "enable_bond": false,
-      "enable_styles": false,
-      "enable_insight": false,
-      "enable_mega": false,
-      "enable_z_move": false,
-      "enable_dynamax": false,
-      "enable_tera": true
-    }
-  },
-  "enemy": {
-    "id": "Gloria",
-    "type": "trainer",
-    "name": "Gloria",
-    "lines": {
-      "start": "Don't blink! Or you'll miss the taste of defeat!",
-      "win": "Haha! Looks like you're on dish duty!",
-      "lose": "Eh?! Greedent got stuffed?! ...Fine, a deal's a deal!",
-      "escape": "Hey! Where are you going?! The dishes are this way!"
-    },
-    "unlocks": {
-      "enable_bond": false,
-      "enable_styles": false,
-      "enable_insight": false,
-      "enable_mega": false,
-      "enable_z_move": false,
-      "enable_dynamax": true,
-      "enable_tera": false
-    },
-    "party": [
-      {
-        "name": "Greedent",
-        "gender": "M",
-        "lv": 40,
-        "nature": "Impish",
-        "ability": "Cheek Pouch",
-        "shiny": false,
-        "item": "Sitrus Berry",
-        "mechanic": null,
-        "teraType": null,
-        "stats_meta": {
-          "ivs": { "hp": 31,"atk": 31,"def": 31,"spa": 31,"spd": 31,"spe": 31 },
-          "ev_level": 252
-        },
-        "moves": ["Belch", "Body Slam", "Bullet Seed", "Stockpile"],
-        "mega": null,
-        "avs": { "trust": 0, "passion": 0, "insight": 0, "devotion": 0 }
-      }
-    ]
-  },
-  "party": [
-    {
-      "name": "Greedent",
-      "gender": "M",
-      "lv": 40,
-      "nature": "Impish",
-      "ability": "Cheek Pouch",
-      "shiny": false,
-      "item": "Sitrus Berry",
-      "mechanic": null,
-      "teraType": null,
-      "stats_meta": {
-        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-        "ev_level": 252
-      },
-      "moves": ["Belch", "Body Slam", "Bullet Seed", "Stockpile"],
-      "mega": null,
-      "avs": { "trust": 0, "passion": 0, "insight": 0, "devotion": 0 }
-    }
-  ],
-  "script": null
-}
+    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true},"difficulty":"normal","player":{"name":"player","trainerProficiency":255,"party":[{"slot":1,"name":"Popplio","nickname":null,"species":null,"gender":"F","lv":6,"quality":"high","nature":"Modest","ability":"Torrent","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Pound","Water Gun","Growl","Disarming Voice"],"stats_meta":{"ivs":{"hp":3,"atk":31,"def":28,"spa":26,"spd":31,"spe":31},"ev_level":14,"ev_up":0},"notes":null,"avs":{"trust":60,"passion":35,"insight":25,"devotion":10}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"enemy":{"id":"Sewer Blockage","type":"wild","name":"Sewer Blockage","lines":{"start":"Beto-beto... (Gurgling ominously)","win":"Beto... (Expands and covers the floor)","lose":"Be...to?! (Dissolves into the drain)","escape":"Beto! (Blocks the path)"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"party":[{"name":"Grimer-Alola","gender":"M","lv":7,"nature":"Mild","ability":"Poison Touch","shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":9,"atk":1,"def":2,"spa":12,"spd":11,"spe":13},"ev_level":0},"moves":["Pound","Poison Gas","Bite","Minimize"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null}
 }
 // ============================================
 // JSON 数据加载
@@ -18049,6 +17942,10 @@ async function preloadBattleResources(playerParty, enemyParty, trainerId, onProg
  * 获取缓存的叫声并播放
  */
 function playCachedCry(name, volume = 0.45) {
+    // 【全局开关】SFX 系统关闭时不播放叫声
+    if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableSFX) {
+        return;
+    }
     let id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     if (typeof POKEDEX !== 'undefined' && POKEDEX[id] && POKEDEX[id].baseSpecies) {
         id = POKEDEX[id].baseSpecies.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -24144,6 +24041,18 @@ async function initGame() {
         json = getDefaultBattleData();
         console.log('[PKM] 使用默认数据 (data-loader.js)');
     }
+    // ============================================
+    // 【全局系统开关】从 JSON settings 读取
+    // ============================================
+    const settings = json.settings || {};
+    window.GAME_SETTINGS = {
+        enableAVS: settings.enableAVS !== false,           // AVS 羁绊值系统
+        enableCommander: settings.enableCommander !== false, // 战术指挥系统
+        enableEVO: settings.enableEVO !== false,           // 进化/羁绊共鸣系统
+        enableBGM: settings.enableBGM !== false,           // 背景音乐
+        enableSFX: settings.enableSFX !== false            // 音效
+    };
+    console.log('[SETTINGS] 全局系统开关:', window.GAME_SETTINGS);
     // 预加载本局资源
     const playerParty = (json.player && json.player.party) || [];
     const enemyParty = json.party || (json.enemy && json.enemy.party) || [];
@@ -24979,9 +24888,10 @@ async function handleAttack(moveIndex, options = {}) {
     // =====================================================
     // === 敌方 AI 羁绊共鸣 (Bond Resonance) 触发逻辑 ===
     // =====================================================
+    // 【全局开关】EVO 系统关闭时不触发
     // 【解锁检查】Bond 需要 enable_bond
     // 【全局限制】每场战斗只能使用一次 Bond Resonance
-    if (enemyUnlocks.enable_bond && e.isAce && !battle.enemyBondUsed && !e.hasBondResonance && !e.hasEvolvedThisBattle) {
+    if (window.GAME_SETTINGS?.enableEVO !== false && enemyUnlocks.enable_bond && e.isAce && !battle.enemyBondUsed && !e.hasBondResonance && !e.hasEvolvedThisBattle) {
         // 检查是否满足触发条件
         const eHpRatio = e.currHp / e.maxHp;
         const eAvs = e.avs || { trust: 0, passion: 0, insight: 0, devotion: 0 };
@@ -26674,6 +26584,8 @@ window.EvolutionSystem = {
      * @returns {Object|null} 进化信息或 null
      */
     checkEligibility: function(pokemon) {
+        // 【全局开关】EVO 系统关闭时不触发
+        if (window.GAME_SETTINGS && !window.GAME_SETTINGS.enableEVO) return null;
         // 基础检查
         if (!pokemon || pokemon.currHp <= 0) return null;
         if (pokemon.hasEvolvedThisBattle || pokemon.hasBondResonance) return null;
@@ -26983,9 +26895,10 @@ window.triggerBattleEvolution = async function() {
  */
 function initCommanderSystem() {
     // 训练家熟练度 (0-255)，影响触发概率
-    // 从 JSON 读取，默认 120
+    // 从 JSON 读取，默认 0（新手训练家）
     // JSON 格式: player.trainerProficiency
-    battle.trainerProficiency = battle.trainerProficiency || 120;
+    // 注意：使用 ?? 而不是 ||，避免 0 被当作 falsy 值
+    battle.trainerProficiency = battle.trainerProficiency ?? 0;
     // 当前回合的活跃指令
     battle.activeCommand = null;
     // 本场战斗指令使用次数（全局计数）
@@ -27014,6 +26927,8 @@ function initCommanderSystem() {
  * @returns {boolean}
  */
 function shouldShowCommanderMenu() {
+    // 【全局开关】Commander 系统关闭时不显示
+    if (window.GAME_SETTINGS && !window.GAME_SETTINGS.enableCommander) return false;
     if (!battle || battle.locked) return false;
     const p = battle.getPlayer();
     if (!p || !p.isAce || p.currHp <= 0) return false;
@@ -27036,7 +26951,8 @@ function shouldShowCommanderMenu() {
     }
     // 概率触发：Chance = Proficiency / 512
     // 满熟练度 255 时约 50% 触发率
-    const proficiency = battle.trainerProficiency || 120;
+    // 注意：使用 ?? 而不是 ||，避免 0 被当作 falsy 值
+    const proficiency = battle.trainerProficiency ?? 0;
     const triggerChance = proficiency / 512;
     const roll = Math.random();
     console.log(`[COMMANDER] Roll: ${roll.toFixed(3)} vs Chance: ${triggerChance.toFixed(3)} (Prof: ${proficiency})`);
@@ -27253,12 +27169,15 @@ function applyCommandEffect(command, pokemon) {
             // 基础 40% + Devotion AVS 50%（满值时 90%）
             let listenChance = 0.40; // 基础 40%
             // Devotion AVS 加成：满值 255 时 +50%
-            if (pokemon.isAce && pokemon.avs && pokemon.avs.devotion > 0) {
+            // 【全局开关】使用 getEffectiveAVs 检查有效值
+            if (pokemon.isAce && pokemon.avs) {
                 const baseDevotion = pokemon.getEffectiveAVs('devotion');
-                const effectiveDevotion = pokemon.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
-                const devotionBonus = (Math.min(effectiveDevotion, 255) / 255) * 0.50;
-                listenChance += devotionBonus;
-                console.log(`[COMMANDER] LISTEN! Devotion 加成: +${(devotionBonus * 100).toFixed(1)}% (Devotion: ${baseDevotion})`);
+                if (baseDevotion > 0) {
+                    const effectiveDevotion = pokemon.avsEvolutionBoost ? baseDevotion * 2 : baseDevotion;
+                    const devotionBonus = (Math.min(effectiveDevotion, 255) / 255) * 0.50;
+                    listenChance += devotionBonus;
+                    console.log(`[COMMANDER] LISTEN! Devotion 加成: +${(devotionBonus * 100).toFixed(1)}% (Devotion: ${baseDevotion})`);
+                }
             }
             listenChance = Math.min(listenChance, 1.0); // 上限 100%
             const listenRoll = Math.random();

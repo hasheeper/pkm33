@@ -2320,6 +2320,12 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             const hpPercent = attacker.currHp / attacker.maxHp;
             const defenderHpPercent = defender.currHp / defender.maxHp;
             
+            // 【关键修复】满血时绝对不使用回复技能
+            if (hpPercent >= 0.95) {
+                console.log(`[AI BAN] ${moveName}：满血 (${Math.round(hpPercent * 100)}%) 禁止使用回复技能`);
+                return -9999; // 满血时绝对不回血
+            }
+            
             // 【修正】对手残血时，大幅降低回血技能优先级
             if (defenderHpPercent < 0.25 && hpPercent > 0.4) {
                 // 对手快死了，我还健康，不要回血！去输出！
@@ -2331,7 +2337,7 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             } else if (hpPercent < 0.7) {
                 statusScore = 30 + Math.random() * 15;
             } else {
-                statusScore = 5;
+                statusScore = -100; // 血量健康时不应该回血
             }
         }
         

@@ -27,7 +27,81 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true},"difficulty":"normal","player":{"name":"player","trainerProficiency":255,"party":[{"slot":1,"name":"Popplio","nickname":null,"species":null,"gender":"F","lv":6,"quality":"high","nature":"Modest","ability":"Torrent","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Pound","Water Gun","Growl","Disarming Voice"],"stats_meta":{"ivs":{"hp":3,"atk":31,"def":28,"spa":26,"spd":31,"spe":31},"ev_level":14,"ev_up":0},"notes":null,"avs":{"trust":60,"passion":35,"insight":25,"devotion":10}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"enemy":{"id":"Sewer Blockage","type":"wild","name":"Sewer Blockage","lines":{"start":"Beto-beto... (Gurgling ominously)","win":"Beto... (Expands and covers the floor)","lose":"Be...to?! (Dissolves into the drain)","escape":"Beto! (Blocks the path)"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false}},"party":[{"name":"Grimer-Alola","gender":"M","lv":7,"nature":"Mild","ability":"Poison Touch","shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":9,"atk":1,"def":2,"spa":12,"spd":11,"spe":13},"ev_level":0},"moves":["Pound","Poison Gas","Bite","Minimize"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null}
+    return {
+  "difficulty": "expert",
+  "script": {
+    "module": "necrozma_fusion_hook", // 假装通过Hook触发脚本
+    "trigger_fusion_selection": true
+  },
+  
+  "player": {
+    "name": "YOTA",
+    "canMega": true,
+    "unlocks": {
+        "enable_z_move": true,
+        "enable_ultra_burst": true
+    },
+    "party": [
+      {
+        "slot": 1,
+        "name": "Necrozma",
+        "lv": 100,
+        "gender": "N",
+        "shiny": true,
+        "nature": "Modest",
+        "ability": "Prism Armor",
+        "item": "Ultranecrozium Z", 
+        "mechanic": "zmove", 
+        "isAce": true, 
+        "stats_meta": { "ev_level": 252 },
+        "avs": { "trust": 255, "passion": 200, "insight": 255, "devotion": 150 },
+        "moves": ["Photon Geyser", "Prismatic Laser", "Earth Power", "Calm Mind"]
+      },
+      {
+        "slot": 2,
+        "name": "Solgaleo",
+        "lv": 100,
+        "item": "Choice Scarf",
+        "ability": "Full Metal Body",
+        "moves": ["Sunsteel Strike", "Flare Blitz", "Zen Headbutt", "Wild Charge"]
+      },
+      {
+        "slot": 3,
+        "name": "Lunala",
+        "lv": 100,
+        "item": "Leftovers",
+        "ability": "Shadow Shield",
+        "moves": ["Moongeist Beam", "Psyshock", "Roost", "Will-O-Wisp"]
+      }
+    ]
+  },
+  "enemy": {
+    "name": "Eternatus (The Darkest Day)",
+    "type": "wild", 
+    "lines": {
+      "start": "ROOOOOOO——!!! (次元的裂缝被无尽的毒云撕裂！)",
+      "win": "天空被染成了绝望的深红……",
+      "lose": "无限的能量甚至被更耀眼的光芒贯穿了！",
+      "escape": "不可能从闇夜中逃脱。"
+    },
+    "party": [
+      {
+        "name": "Eternatus-Eternamax", 
+        "lv": 100,
+        "ability": "Pressure",
+        "item": "Black Sludge",
+        "mechanic": "dynamax", // 强制巨化逻辑
+        "moves": ["Eternamax Cannon", "Dynamax Cannon", "Sludge Bomb", "Recover"],
+        "stats_meta": { 
+            "ev_level": 252,
+            "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
+        }
+      }
+    ]
+  }
+}
+
+
 
 
 

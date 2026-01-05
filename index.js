@@ -136,6 +136,14 @@ async function initGame() {
             battle.setPlayerParty(json.player.party, playerCanMega);
             battle.playerName = json.player.name || '主角';
             log(`<b>${battle.playerName}</b> 准备战斗！`);
+            
+            // === Necrozma 合体检测 ===
+            // 检测队伍中是否有 Necrozma + Solgaleo/Lunala 组合
+            if (typeof checkAndProcessNecrozmaFusion === 'function') {
+                checkAndProcessNecrozmaFusion(battle.playerParty, log, () => {
+                    console.log('[NECROZMA FUSION] 合体检测完成');
+                });
+            }
         } else {
             // Fallback: 默认玩家队伍
             battle.setPlayerParty([
@@ -574,6 +582,7 @@ async function handleAttack(moveIndex, options = {}) {
     // =========================================================
     // Z-Move 转换逻辑：使用自动推导系统
     // 【互斥检查】Mega/极巨化状态下禁止使用 Z 招式
+    // 【Ultra Burst】日/月骡子使用 Z 招式时先触发 Ultra Burst
     // =========================================================
     if (options.useZ && options.zTarget && !battle.playerZUsed) {
         // 【安全检查】如果已经 Mega 或极巨化，禁止使用 Z 招式
@@ -582,6 +591,21 @@ async function handleAttack(moveIndex, options = {}) {
             log(`<b style="color:#aaa">...但在目前的形态下无法引出 Z 力量！</b>`);
             // 不转换，使用原始招式
         } else {
+            // =========================================================
+            // 【Ultra Burst】日/月骡子 → 究极奈克洛兹玛
+            // 使用专属 Z 招式 "Light That Burns the Sky" 时触发
+            // =========================================================
+            if (typeof canUltraBurst === 'function' && canUltraBurst(p)) {
+                const burstResult = executeUltraBurst(p);
+                if (burstResult.success) {
+                    burstResult.logs.forEach(msg => log(msg));
+                    updateAllVisuals('player');
+                    await wait(800);
+                    // 更新引用（变身后属性可能改变）
+                    p = battle.getPlayer();
+                }
+            }
+            
             const zTarget = options.zTarget;
             const zMoveId = zTarget.name.toLowerCase().replace(/[^a-z0-9]/g, '');
             const zMoveData = (typeof MOVES !== 'undefined' && MOVES[zMoveId]) ? MOVES[zMoveId] : {};
@@ -1251,6 +1275,7 @@ async function handleAttack(moveIndex, options = {}) {
         // 如果敌方配置了 mechanic='zmove' 且还没用过 Z 招式
         // 【解锁检查】Z 招式需要 enable_z_move
         // 优先寻找能触发专属 Z 的招式，否则尝试转换当前招式
+        // 【Ultra Burst】日/月骡子使用 Z 招式时先触发 Ultra Burst
         const enemyUnlocksForZ = battle.enemyUnlocks || {};
         if (enemyUnlocksForZ.enable_z_move && e.mechanic === 'zmove' && !battle.enemyZUsed && enemyMove) {
             let zTarget = null;
@@ -1279,6 +1304,20 @@ async function handleAttack(moveIndex, options = {}) {
             }
             
             if (zTarget) {
+                // =========================================================
+                // 【敌方 Ultra Burst】日/月骡子 → 究极奈克洛兹玛
+                // =========================================================
+                if (typeof canUltraBurst === 'function' && canUltraBurst(e)) {
+                    const burstResult = executeUltraBurst(e);
+                    if (burstResult.success) {
+                        burstResult.logs.forEach(msg => log(msg));
+                        updateAllVisuals('enemy');
+                        await wait(800);
+                        // 更新引用
+                        e = battle.getEnemy();
+                    }
+                }
+                
                 console.log(`[AI Z-MOVE] 敌方 AI 推导 Z 招式: ${zBaseMove.name} -> ${zTarget.name} (威力: ${zTarget.power})`);
                 // 创建 Z 招式对象
                 enemyMove = {
