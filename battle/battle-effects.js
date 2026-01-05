@@ -49,6 +49,47 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
             if (result.selfDestruct) {
                 // 自爆类技能已在 handler 中处理 HP
             }
+            // 【梦话/模仿等】callMove: 递归执行另一个招式
+            if (result.callMove) {
+                const calledMove = result.callMove;
+                const calledMoveName = calledMove.name || calledMove;
+                const calledMoveId = calledMoveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const calledMoveData = (typeof MOVES !== 'undefined' && MOVES[calledMoveId]) ? MOVES[calledMoveId] : {};
+                
+                // 构建招式对象
+                const moveToExecute = {
+                    name: calledMoveName,
+                    cn: calledMove.cn || calledMoveData.cnName || calledMoveName,
+                    type: calledMoveData.type || 'Normal',
+                    power: calledMoveData.basePower || 0,
+                    cat: calledMoveData.category === 'Physical' ? 'phys' : 
+                         calledMoveData.category === 'Special' ? 'spec' : 'status',
+                    accuracy: calledMoveData.accuracy || 100
+                };
+                
+                logs.push(`<span style="color:#a78bfa">→ 使用了 ${moveToExecute.cn}!</span>`);
+                
+                // 递归调用伤害计算和副作用
+                if (typeof applyDamage === 'function' && moveToExecute.power > 0) {
+                    const spriteId = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                    const dmgResult = applyDamage(user, target, moveToExecute, spriteId);
+                    if (dmgResult && dmgResult.damage > 0) {
+                        damageDealt = dmgResult.damage;
+                    }
+                } else {
+                    // 状态招式：直接调用副作用处理
+                    const subResult = applyMoveSecondaryEffects(user, target, moveToExecute, 0, battle, isPlayer);
+                    logs.push(...subResult.logs);
+                    if (subResult.pivot) {
+                        return { logs, pivot: true };
+                    }
+                }
+                
+                // 跳过原招式的后续处理
+                if (result.skipDamage) {
+                    return { logs, pivot: false };
+                }
+            }
         }
     }
     

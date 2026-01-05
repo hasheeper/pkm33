@@ -931,13 +931,22 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
         }
         
         // === 状态技能 ===
-        const statusMoves = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore'];
+        // 【修复】更新 fallback 列表以包含所有睡眠招式
+        const statusMoves = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
         if (statusMoves.includes(moveName) && !playerPoke.status) {
             // 对手没有状态才用
-            const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis'];
+            const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
             if (sleepMoves.includes(moveName)) {
-                score = 180;
-                reasoning = 'Sleep opportunity';
+                // 【修复】检查目标是否免疫睡眠
+                const targetAbility = (playerPoke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                const sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+                const isImmune = sleepImmuneAbilities.includes(targetAbility);
+                
+                if (!isImmune) {
+                    score = 180;
+                    reasoning = 'Sleep opportunity';
+                }
+                // 如果免疫则不给分，跳过此招式
             } else if (moveName === 'Thunder Wave' && getEffectiveSpeed(playerPoke) > getEffectiveSpeed(aiPoke)) {
                 score = 120;
                 reasoning = 'Speed control';
@@ -1382,35 +1391,67 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     }
     
     // [类型4: 状态冗余组] - 状态技对已有状态/免疫属性无效
-    // 4a. 状态异常技对已有状态的目标无效
-    const statusMoves = {
-        'Thunder Wave': { immuneTypes: ['Ground', 'Electric'], status: 'par' },
-        'Toxic': { immuneTypes: ['Steel', 'Poison'], status: 'tox' },
-        'Poison Powder': { immuneTypes: ['Steel', 'Poison', 'Grass'], status: 'psn' },
-        'Poison Gas': { immuneTypes: ['Steel', 'Poison'], status: 'psn' },
-        'Will-O-Wisp': { immuneTypes: ['Fire'], status: 'brn' },
-        'Hypnosis': { immuneTypes: [], status: 'slp' },
-        'Sleep Powder': { immuneTypes: ['Grass'], status: 'slp' },
-        'Spore': { immuneTypes: ['Grass'], status: 'slp' },
-        'Stun Spore': { immuneTypes: ['Grass', 'Electric'], status: 'par' },
-        'Glare': { immuneTypes: [], status: 'par' }
-    };
+    // 【优化】从 moves-data.js 动态读取状态招式信息
+    const moveStatus = fullMoveData.status; // 直接从招式数据获取状态类型
+    const defenderTypes = defender.types || [];
+    const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
     
-    if (statusMoves[moveName]) {
-        const { immuneTypes, status } = statusMoves[moveName];
-        const defenderTypes = defender.types || [];
-        
-        // 检查属性免疫
-        const isImmune = immuneTypes.some(t => defenderTypes.includes(t));
-        if (isImmune) {
-            console.log(`[AI BAN] ${moveName} 对 ${defenderTypes.join('/')} 属性无效`);
-            return -9999;
-        }
-        
+    if (moveStatus) {
         // 检查已有状态
         if (defender.status) {
             console.log(`[AI BAN] ${moveName} 对已有状态 ${defender.status} 的目标无效`);
             return -9999;
+        }
+        
+        // 粉末类招式对草系免疫
+        if (moveFlags.powder && defenderTypes.includes('Grass')) {
+            console.log(`[AI BAN] ${moveName} 粉末招式对草系无效`);
+            return -9999;
+        }
+        
+        // 电系招式对地面系免疫（电磁波）
+        if (fullMoveData.type === 'Electric' && defenderTypes.includes('Ground')) {
+            console.log(`[AI BAN] ${moveName} 电系招式对地面系无效`);
+            return -9999;
+        }
+        
+        // 火系免疫烧伤
+        if (moveStatus === 'brn' && defenderTypes.includes('Fire')) {
+            console.log(`[AI BAN] ${moveName} 对火系无效`);
+            return -9999;
+        }
+        
+        // 毒/钢系免疫中毒
+        if ((moveStatus === 'psn' || moveStatus === 'tox') && 
+            (defenderTypes.includes('Poison') || defenderTypes.includes('Steel'))) {
+            console.log(`[AI BAN] ${moveName} 对毒/钢系无效`);
+            return -9999;
+        }
+        
+        // 电系免疫麻痹
+        if (moveStatus === 'par' && defenderTypes.includes('Electric')) {
+            console.log(`[AI BAN] ${moveName} 对电系无效`);
+            return -9999;
+        }
+        
+        // 睡眠状态特殊检查
+        if (moveStatus === 'slp') {
+            // 睡眠免疫特性
+            const sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+            if (sleepImmuneAbilities.includes(defenderAbility)) {
+                console.log(`[AI BAN] ${moveName} 对 ${defender.ability} 特性无效（睡眠免疫）`);
+                return -9999;
+            }
+            
+            // 电气场地免疫睡眠
+            const battle = window.battle;
+            if (battle?.terrain === 'electricterrain') {
+                const isGrounded = !defenderTypes.includes('Flying') && defenderAbility !== 'levitate';
+                if (isGrounded) {
+                    console.log(`[AI BAN] ${moveName} 在电气场地中对地面单位无效`);
+                    return -9999;
+                }
+            }
         }
     }
     
@@ -2294,14 +2335,22 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         }
         
         // 状态技能
-        const statusInflict = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore'];
-        const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Sing'];
+        // 【修复】更新 fallback 列表以包含所有睡眠招式
+        const statusInflict = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
+        const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
         const paralyzeMoves = MC.AI_PARALYZE_MOVES || ['Thunder Wave', 'Glare', 'Stun Spore'];
         
         if (statusInflict.includes(moveName)) {
             if (!defender.status) {
                 if (sleepMoves.includes(moveName)) {
-                    statusScore = 70 + Math.random() * 30;
+                    // 【修复】检查目标是否免疫睡眠
+                    const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                    const sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+                    if (sleepImmuneAbilities.includes(defenderAbility)) {
+                        statusScore = -100; // 免疫睡眠，不使用
+                    } else {
+                        statusScore = 70 + Math.random() * 30;
+                    }
                 } else if (paralyzeMoves.includes(moveName)) {
                     statusScore = defender.spe > attacker.spe ? 60 + Math.random() * 20 : 30 + Math.random() * 20;
                 } else if (moveName === 'Will-O-Wisp') {

@@ -30,104 +30,83 @@ function getDefaultBattleData() {
     return {
   "difficulty": "expert",
   "script": {
-    "module": "status_monitor",
-    "log_sleep_turns": true // 开启睡眠回合数详细日志追踪
+    "module": "status_logic_v2"
   },
-
   "player": {
-    "name": "YOTA (Sleep Master)",
-    // 玩家采用【催眠控制 + 梦魇削血 + 睡觉满血复活】战术
+    "name": "YOTA (Sleep Walker)",
     "party": [
       {
         "slot": 1,
-        "name": "Breloom", 
-        "nickname": "蘑漫",
+        "name": "Komala",
+        "nickname": "睡神🐨",
         "lv": 100,
-        "gender": "M",
-        "nature": "Jolly",
-        "ability": "Technician",
-        "item": "Focus Sash", // 气势披带：确保能活下来放出一发必中的蘑菇孢子
-        "moves": ["Spore", "Yawn", "Bullet Seed", "Rock Tomb"],
-        "avs": { "insight": 200 }, // 提升命中相关判定，虽孢子是必中
+        "ability": "Comatose", 
+        "item": "Leftovers", 
+        "moves": ["Last Resort", "Sleep Talk", "Sucker Punch", "Wood Hammer"],
         "stats_meta": { "ev_level": 252 },
-        "//comment": "核心机制：【蘑菇孢子 (Spore)】- 唯一的100%命中率睡眠技"
+        "//comment": "测试核心1：【绝对睡眠 (Comatose)】- 能行动，但也被视为睡着（应吃食梦伤害，应吃如梦魇伤害，免疫哈欠）"
       },
       {
         "slot": 2,
-        "name": "Darkrai",
+        "name": "Milotic",
         "lv": 100,
-        "gender": "N",
-        "nature": "Timid",
-        "ability": "Bad Dreams", // 核心特性：梦魇 - 每回合扣除睡眠对手 1/8 HP
-        "item": "Wide Lens", // 广角镜：提升神出鬼没的【黑洞/催眠术】命中率
-        "mechanic": "tera",
-        "teraType": "Poison", // 既然是恶魔，太晶毒防格斗
-        "moves": ["Dark Void", "Dream Eater", "Nasty Plot", "Sludge Bomb"],
-        "//comment": "核心机制：【梦魇 + 食梦】 - 睡眠Combo流"
+        "item": "Flame Orb", 
+        "ability": "Marvel Scale", 
+        "moves": ["Rest", "Sleep Talk", "Scald", "Dragon Tail"],
+        "//comment": "测试核心2：【睡觉+梦话】Combo，以及【神奇鳞片】睡着加防御"
       },
       {
         "slot": 3,
-        "name": "Snorlax",
+        "name": "Ursaluna",
         "lv": 100,
-        "gender": "M",
-        "nature": "Adamant",
-        "ability": "Thick Fat",
-        "item": "Chesto Berry", // 核心道具：零余果
-        "mechanic": "dynamax", // 极巨化卡比兽超硬
-        "moves": ["Rest", "Belly Drum", "Body Slam", "Heavy Slam"],
-        "avs": { "devotion": 255 }, // 根性极高
-        "stats_meta": { "ev_level": 252 },
-        "//comment": "核心机制：【睡觉 (Rest) + 零余果 (Chesto Berry)】 - 瞬间满血苏醒Buff"
+        "item": "Flame Orb",
+        "ability": "Guts",
+        "moves": ["Facade", "Rest", "Sleep Talk", "Headlong Rush"],
+        "mechanic": "tera",
+        "teraType": "Normal",
+        "//comment": "测试核心3：毅力特性(Guts)下烧伤变睡觉，攻击力是否保持？"
       }
     ]
   },
-
   "enemy": {
-    "name": "Awakened Guardian (守夜人)",
+    "name": "The Nightmare Host (梦境吞噬者)",
     "type": "trainer",
-    "lines": {
-      "start": "在此领域之中，无人可以闭眼沉睡。",
-      "win": "永远的警惕是生存的代价。",
-      "lose": "好吧……我想我也该……休息一下了……(Zzz)",
-      "escape": "就算是噩梦也无法追上我。"
-    },
-    // 敌方配置完全针对睡眠免疫构建
     "party": [
       {
-        "name": "Primeape",
+        "name": "Darkrai",
         "lv": 100,
-        "gender": "M",
-        "ability": "Vital Spirit", // [特质] 干劲：100%免疫睡眠，蘑菇孢子无效
-        "item": "Choice Scarf", // 讲究围巾：高速压制
-        "moves": ["Close Combat", "U-turn", "Ice Punch", "Gunk Shot"],
-        "stats_meta": { "ev_level": 252 },
-        "//comment": "Counter机制 1：【干劲】特性"
+        "ability": "Bad Dreams", 
+        "item": "Wide Lens",
+        "moves": ["Dream Eater", "Dark Void", "Nasty Plot", "Sludge Bomb"],
+        "//comment": "判定点：特性【梦魇】每回合末是否扣Komala血？【食梦】打Komala是否生效？"
       },
       {
-        "name": "Tapu Koko",
+        "name": "Exploud",
         "lv": 100,
-        "gender": "N",
-        "ability": "Electric Surge", // [场地] 电气制造者：开场布置电气场地，地面的大家都不准睡觉
-        "item": "Life Orb",
-        "moves": ["Thunderbolt", "Dazzling Gleam", "U-turn", "Roost"],
-        "mechanic": "zmove", // 允许这种守卫神使用Z
-        "stats_meta": { "ev_level": 252 },
-        "//comment": "Counter机制 2：【电气场地】 - 环境锁死睡眠状态"
+        "ability": "Scrappy",
+        "item": "Choice Specs",
+        "mechanic": "tera",
+        "teraType": "Normal",
+        "moves": ["Boomburst", "Uproar", "Overheat", "Focus Blast"],
+        "//comment": "判定点：使用【吵闹 (Uproar)】后，我方睡觉的单位是否被强制唤醒？Komala是否不受影响？"
       },
       {
-        "name": "Garganacl", 
+        "name": "Gengar",
         "lv": 100,
-        "gender": "M",
-        "nature": "Careful",
-        "ability": "Purifying Salt", // [特质] 洁净之盐：Gen9新特性，免疫所有异常状态（含睡眠）
-        "item": "Leftovers",
-        "mechanic": "tera", 
-        "teraType": "Ghost", // 著名的太晶鬼盐石巨灵
-        "moves": ["Salt Cure", "Recover", "Iron Defense", "Body Press"],
-        "stats_meta": { "ev_level": 252 },
-        "//comment": "Counter机制 3：【洁净之盐】 - 异常状态免疫"
+        "ability": "Cursed Body", 
+        "item": "Black Sludge",
+        "mechanic": "mega",
+        "mega_target": "gengarmega",
+        "moves": ["Hypnosis", "Hex", "Sludge Wave", "Destiny Bond"],
+        "//comment": "判定点：【祸不单行 (Hex)】打睡着的伤害加倍判定"
       }
-    ]
+    ],
+    "lines": {
+      "start": "在永恒者面前，清醒是最大的诅咒。",
+      "win": "嘘……那是永远的长眠。",
+      "lose": "太吵了……把灯关上……",
+      "escape": "你逃不出梦境的边缘。"
+    }
   }
 }
 

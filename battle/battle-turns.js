@@ -125,6 +125,12 @@ async function executePlayerTurn(p, e, move) {
     // 记录本回合使用的技能
     p.lastMoveUsed = move.name;
     
+    // 【珍藏(Last Resort)支持】追踪所有成功使用过的招式
+    if (!result?.failed) {
+        if (!p.usedMoves) p.usedMoves = new Set();
+        p.usedMoves.add(move.name);
+    }
+    
     // =========================================================
     // Z-Move / Max Move 使用标记 (全场只能用一次)
     // =========================================================
@@ -247,6 +253,12 @@ async function executeEnemyTurn(e, p, move) {
     
     // 记录本回合使用的技能
     e.lastMoveUsed = move.name;
+    
+    // 【珍藏(Last Resort)支持】追踪所有成功使用过的招式
+    if (!result?.failed) {
+        if (!e.usedMoves) e.usedMoves = new Set();
+        e.usedMoves.add(move.name);
+    }
     
     // =========================================================
     // Choice 道具锁招（讲究头带/眼镜/围巾）

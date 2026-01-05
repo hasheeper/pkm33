@@ -1061,7 +1061,11 @@ const AbilityHandlers = {
             const isPlayer = battle.playerParty && battle.playerParty.includes(pokemon);
             const opponent = isPlayer ? battle.getEnemy() : battle.getPlayer();
             
-            if (opponent && opponent.isAlive() && opponent.status === 'slp') {
+            // 检查对手是否睡眠（包括绝对睡眠 Comatose 特性）
+            const opponentAbility = (opponent?.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isAsleep = opponent?.status === 'slp' || opponentAbility === 'comatose';
+            
+            if (opponent && opponent.isAlive() && isAsleep) {
                 const damage = Math.max(1, Math.floor(opponent.maxHp / 8));
                 opponent.takeDamage(damage);
                 logs.push(`<span style="color:#8b5cf6">👻 ${opponent.cnName} 被 ${pokemon.cnName} 的梦魇侵蚀了 ${damage} HP！</span>`);

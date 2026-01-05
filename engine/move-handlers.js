@@ -3731,6 +3731,111 @@ const MoveHandlers = {
             return {};
         },
         description: '冰球，威力递增，变圆后翻倍'
+    },
+
+    // ============================================
+    // 梦话 (Sleep Talk) - 睡眠中随机使用其他招式
+    // ============================================
+    'Sleep Talk': {
+        onUse: (user, target, logs, battle) => {
+            // 检查使用者是否睡眠（包括绝对睡眠特性）
+            const userAbility = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isAsleep = user.status === 'slp' || userAbility === 'comatose';
+            
+            if (!isAsleep) {
+                logs.push(`但是招式失败了！`);
+                return { failed: true };
+            }
+            
+            // 获取可用招式（排除梦话自身和不能被梦话调用的招式）
+            const availableMoves = [];
+            const userMoves = user.moves || [];
+            
+            for (const moveSlot of userMoves) {
+                const moveName = moveSlot.name || moveSlot;
+                if (moveName === 'Sleep Talk') continue; // 排除梦话自身
+                
+                // 检查招式是否有 nosleeptalk 标记
+                const moveId = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const moveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+                if (moveData.flags && moveData.flags.nosleeptalk) continue;
+                
+                availableMoves.push(moveSlot);
+            }
+            
+            if (availableMoves.length === 0) {
+                logs.push(`但是招式失败了！`);
+                return { failed: true };
+            }
+            
+            // 随机选择一个招式
+            const randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            const selectedMoveName = randomMove.name || randomMove;
+            
+            logs.push(`梦话选择了 ${selectedMoveName}！`);
+            
+            // 返回要执行的招式
+            return { 
+                callMove: randomMove,
+                skipDamage: true // 跳过梦话本身的伤害计算
+            };
+        },
+        description: '睡眠中随机使用其他招式'
+    },
+
+    // ============================================
+    // 打鼾 (Snore) - 睡眠中使用的音波攻击
+    // ============================================
+    'Snore': {
+        onUse: (user, target, logs, battle) => {
+            // 检查使用者是否睡眠（包括绝对睡眠特性）
+            const userAbility = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isAsleep = user.status === 'slp' || userAbility === 'comatose';
+            
+            if (!isAsleep) {
+                logs.push(`但是招式失败了！`);
+                return { failed: true };
+            }
+            
+            // 打鼾可以正常使用，不需要特殊处理
+            return {};
+        },
+        description: '睡眠中使用的音波攻击，可能使对手畏缩'
+    },
+
+    // ============================================
+    // 珍藏 (Last Resort) - 必须已使用过其他所有招式
+    // ============================================
+    'Last Resort': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            const userMoves = user.moves || [];
+            const usedMoves = user.usedMoves || new Set();
+            
+            // 统计需要使用的其他招式数量
+            let otherMoveCount = 0;
+            let usedOtherMoveCount = 0;
+            
+            for (const moveSlot of userMoves) {
+                const moveName = moveSlot.name || moveSlot;
+                if (moveName === 'Last Resort') continue;
+                
+                otherMoveCount++;
+                if (usedMoves.has(moveName)) {
+                    usedOtherMoveCount++;
+                }
+            }
+            
+            // 如果没有其他招式，或者还有招式没用过，则失败
+            if (otherMoveCount === 0 || usedOtherMoveCount < otherMoveCount) {
+                logs.push(`但是招式失败了！`);
+                console.log(`[LAST RESORT] 失败：已用 ${usedOtherMoveCount}/${otherMoveCount} 个其他招式`);
+                return { failed: true };
+            }
+            
+            console.log(`[LAST RESORT] 成功：已用 ${usedOtherMoveCount}/${otherMoveCount} 个其他招式`);
+            return {};
+        },
+        description: '必须已使用过其他所有招式才能发动'
     }
 
     // 注意：以下招式由 move-effects.js 统一处理，不需要在这里重复定义：
