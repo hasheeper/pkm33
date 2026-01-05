@@ -1442,7 +1442,7 @@ function checkAttract(pokemon) {
  * @param {object} move 技能数据
  * @returns {object} { absorbed, remainingDamage, logs }
  */
-function checkSubstitute(defender, damage, move) {
+function checkSubstitute(defender, damage, move, attacker = null) {
     const logs = [];
     
     if (!defender.volatile || !defender.volatile.substitute || defender.volatile.substitute <= 0) {
@@ -1452,6 +1452,13 @@ function checkSubstitute(defender, damage, move) {
     // 声音类技能穿透替身
     if (isSoundMove(move)) {
         return { absorbed: false, remainingDamage: damage, logs };
+    }
+    
+    // 【Infiltrator】穿透特性无视替身
+    if (attacker && typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability]) {
+        if (AbilityHandlers[attacker.ability].ignoreSubstitute) {
+            return { absorbed: false, remainingDamage: damage, logs };
+        }
     }
     
     const subHp = defender.volatile.substitute;

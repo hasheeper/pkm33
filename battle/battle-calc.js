@@ -664,7 +664,12 @@ function calcDamage(attacker, defender, move, options = {}) {
     }
     
     // === 双墙/极光幕减伤 ===
-    if (typeof battle !== 'undefined' && battle) {
+    // 【Infiltrator】穿透特性无视光墙/反射壁/极光幕
+    const attackerIgnoresScreens = (typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability])
+        ? AbilityHandlers[attacker.ability].ignoreScreens
+        : false;
+    
+    if (typeof battle !== 'undefined' && battle && !attackerIgnoresScreens) {
         const defenderSide = (defender === battle.getPlayer?.()) ? battle.playerSide : battle.enemySide;
         
         if (defenderSide) {

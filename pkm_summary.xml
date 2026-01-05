@@ -118,79 +118,125 @@ function calcDamage(attacker, defender, move, options = {}) {
         basePower = 80;
         move.cat = 'phys';
     }
+    // === 【睡眠相关招式检查】 ===
+    // 辅助函数：检查宝可梦是否处于睡眠状态（包括绝对睡眠特性）
+    const isAsleep = (poke) => {
+        if (poke.status === 'slp') return true;
+        const ability = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        return ability === 'comatose'; // 绝对睡眠视为永久睡眠
+    };
+    // 【梦话/打鼾 (Sleep Talk/Snore)】需要使用者睡眠才能使用
+    const isSleepTalkOrSnore = moveName === 'Sleep Talk' || moveName === 'Snore';
+    if (isSleepTalkOrSnore && !isAsleep(attacker)) {
+        console.log(`[SLEEP CHECK] ${move.name} 失败：${attacker.cnName} 没有睡眠`);
+        return { 
+            damage: 0, 
+            effectiveness: 0, 
+            isCrit: false, 
+            miss: false, 
+            hitCount: 0, 
+            failed: true,
+            failMessage: `但是招式失败了！`
+        };
+    }
+    // 【食梦 (Dream Eater)】需要目标睡眠才能使用
+    const isDreamEater = moveName === 'Dream Eater';
+    if (isDreamEater && !isAsleep(defender)) {
+        console.log(`[SLEEP CHECK] ${move.name} 失败：${defender.cnName} 没有睡眠`);
+        return { 
+            damage: 0, 
+            effectiveness: 0, 
+            isCrit: false, 
+            miss: false, 
+            hitCount: 0, 
+            failed: true,
+            failMessage: `但是招式失败了！`
+        };
+    }
     // === Protect/Detect 守住判定 ===
-    if (defender.volatile && defender.volatile.protect && basePower > 0) {
+    // 【严重BUG修复】守住应该阻挡所有攻击和变化技（除了特定穿透技能）
+    // 原逻辑错误：只检查 basePower > 0，导致变化技（如蘑菇孢子）不被阻挡
+    if (defender.volatile && defender.volatile.protect) {
         const isContact = fullMoveData.flags && fullMoveData.flags.contact;
         let protectEffect = null;
-        // 【无形拳 (Unseen Fist)】接触类招式穿透守住
-        const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-        if (isContact && attackerAbility === 'unseenfist') {
-            console.log(`[Unseen Fist] ${attacker.cnName} 的无形拳穿透了守住！`);
-            // 不 return blocked，继续计算伤害
-            // 但仍然触发守住的接触副作用（如王盾降攻）
-            if (defender.volatile.kingsShield) {
-                if (!attacker.boosts) attacker.boosts = {};
-                attacker.boosts.atk = Math.max(-6, (attacker.boosts.atk || 0) - 2);
-                protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的攻击大幅下降！` };
-            }
-            // 无形拳穿透后继续执行伤害计算，不在这里 return
-        } else if (isContact) {
-            // 碉堡 (Baneful Bunker): 接触攻击者中毒
-            if (defender.volatile.banefulBunker) {
-                const attackerTypes = attacker.types || [];
-                const canPoison = !attackerTypes.includes('Poison') && !attackerTypes.includes('Steel');
-                if (canPoison && !attacker.status) {
-                    attacker.status = 'psn';
-                    protectEffect = { type: 'poison', msg: `${attacker.cnName} 接触了碉堡，中毒了！` };
+        // 检查是否为穿透守住的招式（佯攻 Feint、暗影袭击 Shadow Force 等）
+        const bypassProtectMoves = ['feint', 'shadowforce', 'phantomforce', 'hyperspacefury', 'hyperspacehole'];
+        const canBypassProtect = bypassProtectMoves.includes(moveId);
+        if (canBypassProtect) {
+            console.log(`[PROTECT BYPASS] ${move.name} 穿透了守住！`);
+            // 穿透守住的招式，继续执行
+        } else {
+            // 【无形拳 (Unseen Fist)】接触类招式穿透守住（但只对攻击技有效，变化技仍被挡）
+            const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isStatusMove = basePower === 0 || category === 'Status';
+            if (isContact && attackerAbility === 'unseenfist' && !isStatusMove) {
+                console.log(`[Unseen Fist] ${attacker.cnName} 的无形拳穿透了守住！`);
+                // 不 return blocked，继续计算伤害
+                // 但仍然触发守住的接触副作用（如王盾降攻）
+                if (defender.volatile.kingsShield) {
+                    if (!attacker.boosts) attacker.boosts = {};
+                    attacker.boosts.atk = Math.max(-6, (attacker.boosts.atk || 0) - 2);
+                    protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的攻击大幅下降！` };
                 }
-            }
-            // 尖刺防守 (Spiky Shield)
-            else if (defender.volatile.spikyShield) {
-                const spikeDmg = Math.floor(attacker.maxHp / 8);
-                attacker.takeDamage(spikeDmg);
-                protectEffect = { type: 'damage', msg: `${attacker.cnName} 被尖刺刺伤了！(-${spikeDmg})` };
-            }
-            // 王者盾牌 (King's Shield)
-            else if (defender.volatile.kingsShield) {
-                if (!attacker.boosts) attacker.boosts = {};
-                attacker.boosts.atk = Math.max(-6, (attacker.boosts.atk || 0) - 2);
-                protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的攻击大幅下降！` };
-            }
-            // 拦堵 (Obstruct)
-            else if (defender.volatile.obstruct) {
-                if (!attacker.boosts) attacker.boosts = {};
-                attacker.boosts.def = Math.max(-6, (attacker.boosts.def || 0) - 2);
-                protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的防御大幅下降！` };
-            }
-            // 丝绸陷阱 (Silk Trap)
-            else if (defender.volatile.silkTrap) {
-                if (!attacker.boosts) attacker.boosts = {};
-                attacker.boosts.spe = Math.max(-6, (attacker.boosts.spe || 0) - 1);
-                protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的速度下降了！` };
-            }
-            // 火焰守护 (Burning Bulwark)
-            else if (defender.volatile.burningBulwark) {
-                const attackerTypes = attacker.types || [];
-                const canBurn = !attackerTypes.includes('Fire');
-                if (canBurn && !attacker.status) {
-                    attacker.status = 'brn';
-                    protectEffect = { type: 'burn', msg: `${attacker.cnName} 被灼伤了！` };
+                // 无形拳穿透后继续执行伤害计算，不在这里 return
+            } else if (isContact && !isStatusMove) {
+                // 碉堡 (Baneful Bunker): 接触攻击者中毒
+                if (defender.volatile.banefulBunker) {
+                    const attackerTypes = attacker.types || [];
+                    const canPoison = !attackerTypes.includes('Poison') && !attackerTypes.includes('Steel');
+                    if (canPoison && !attacker.status) {
+                        attacker.status = 'psn';
+                        protectEffect = { type: 'poison', msg: `${attacker.cnName} 接触了碉堡，中毒了！` };
+                    }
                 }
+                // 尖刺防守 (Spiky Shield)
+                else if (defender.volatile.spikyShield) {
+                    const spikeDmg = Math.floor(attacker.maxHp / 8);
+                    attacker.takeDamage(spikeDmg);
+                    protectEffect = { type: 'damage', msg: `${attacker.cnName} 被尖刺刺伤了！(-${spikeDmg})` };
+                }
+                // 王者盾牌 (King's Shield)
+                else if (defender.volatile.kingsShield) {
+                    if (!attacker.boosts) attacker.boosts = {};
+                    attacker.boosts.atk = Math.max(-6, (attacker.boosts.atk || 0) - 2);
+                    protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的攻击大幅下降！` };
+                }
+                // 拦堵 (Obstruct)
+                else if (defender.volatile.obstruct) {
+                    if (!attacker.boosts) attacker.boosts = {};
+                    attacker.boosts.def = Math.max(-6, (attacker.boosts.def || 0) - 2);
+                    protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的防御大幅下降！` };
+                }
+                // 丝绸陷阱 (Silk Trap)
+                else if (defender.volatile.silkTrap) {
+                    if (!attacker.boosts) attacker.boosts = {};
+                    attacker.boosts.spe = Math.max(-6, (attacker.boosts.spe || 0) - 1);
+                    protectEffect = { type: 'statDrop', msg: `${attacker.cnName} 的速度下降了！` };
+                }
+                // 火焰守护 (Burning Bulwark)
+                else if (defender.volatile.burningBulwark) {
+                    const attackerTypes = attacker.types || [];
+                    const canBurn = !attackerTypes.includes('Fire');
+                    if (canBurn && !attacker.status) {
+                        attacker.status = 'brn';
+                        protectEffect = { type: 'burn', msg: `${attacker.cnName} 被灼伤了！` };
+                    }
+                }
+                // 接触类攻击技被守住
+                return { 
+                    damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true,
+                    protectEffect 
+                };
+            } else {
+                // 【关键修复】非接触类招式（包括变化技如蘑菇孢子）也被守住挡住
+                console.log(`[PROTECT] ${defender.cnName} 的守住阻挡了 ${move.name}！`);
+                return { 
+                    damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true,
+                    protectEffect: null,
+                    protectBlocked: true // 标记被守住阻挡
+                };
             }
-            // 非无形拳的情况，守住成功
-            return { 
-                damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true,
-                protectEffect 
-            };
         }
-        // 非接触类招式也被守住挡住
-        if (!isContact) {
-            return { 
-                damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true,
-                protectEffect: null 
-            };
-        }
-        // 无形拳穿透守住的情况，继续执行后续伤害计算
     }
     // === 【破格系特性】判定 ===
     const attackerAbilityId = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -635,6 +681,32 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     // 只对攻击技做前置检查，变化技的 onUse 在后面处理
     const moveCategory = move.cat || '';
     const isStatusMove = moveCategory === 'status' || move.power === 0;
+    // =========================================================
+    // 【Magic Bounce 魔法镜】反弹变化技
+    // =========================================================
+    const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    // 检查是否为可反弹的变化技（排除攻击者有破格特性的情况）
+    // 【软编码】破格特性列表从 ability-handlers.js 读取
+    const moldBreakerAbilities = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers._moldBreakerAbilities) 
+        ? AbilityHandlers._moldBreakerAbilities 
+        : ['moldbreaker', 'teravolt', 'turboblaze'];
+    const hasMoldBreaker = moldBreakerAbilities.includes(attackerAbility);
+    if (defenderAbility === 'magicbounce' && isStatusMove && !hasMoldBreaker && !move._bounced) {
+        // 【软编码】从 moves-data.js 读取 reflectable 标记
+        const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+        // 检查招式是否有 reflectable 标记
+        const isReflectable = fullMoveData.flags?.reflectable === 1 || fullMoveData.flags?.reflectable === true;
+        if (isReflectable) {
+            log(`<b style='color:#e056fd'>✨ ${defender.cnName} 的魔法镜反弹了 ${move.cn || move.name}！</b>`);
+            // 反弹招式：交换攻击者和防御者
+            const bouncedSpriteId = isPlayerAttacking ? 'player-sprite' : 'enemy-sprite';
+            // 递归调用，但标记为已反弹防止无限循环
+            const bouncedMove = { ...move, _bounced: true };
+            return applyDamage(defender, attacker, bouncedMove, bouncedSpriteId);
+        }
+    }
     if (handler && handler.onUse && !isStatusMove) {
         let preLogs = [];
         const preCheck = handler.onUse(attacker, defender, preLogs, battle, isPlayerAttacking);
@@ -646,7 +718,12 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     }
     // 使用 battle-engine 的伤害计算
     const result = calcDamage(attacker, defender, move);
-    // 0. 处理特性免疫 (漂浮、避雷针等)
+    // 0. 处理招式失败（如食梦对未睡眠目标）
+    if (result.failed) {
+        log(`<b style='color:#e74c3c'>${result.failMessage || '但是招式失败了！'}</b>`);
+        return result;
+    }
+    // 0. 处理特性免疫 (飘浮、避雷针等)
     if (result.abilityImmune) {
         log(`<b style='color:#9b59b6'>${defender.cnName} 的 ${result.abilityImmune} 吸收/免疫了攻击!</b>`);
         return result;
@@ -657,8 +734,15 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         return result;
     }
     // 0. 处理 Protect 守住拦截
-    if (result.blocked) {
-        log(`<b style='color:#3498db'>${defender.cnName} 守住了自己，免受了攻击!</b>`);
+    if (result.blocked && (result.protectBlocked || defender.volatile?.protect !== undefined)) {
+        // 【修复】区分攻击技和变化技的守住日志
+        if (result.protectBlocked) {
+            // 变化技被守住（如蘑菇孢子）
+            log(`<b style='color:#3498db'>${defender.cnName} 守住了自己，${move.cn || move.name} 被防住了!</b>`);
+        } else {
+            // 攻击技被守住
+            log(`<b style='color:#3498db'>${defender.cnName} 守住了自己，免受了攻击!</b>`);
+        }
         // 守住类招式的接触反制效果
         if (result.protectEffect) {
             log(`<b style='color:#e74c3c'>${result.protectEffect.msg}</b>`);
@@ -1044,6 +1128,43 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
             if (result.selfDestruct) {
                 // 自爆类技能已在 handler 中处理 HP
             }
+            // 【梦话/模仿等】callMove: 递归执行另一个招式
+            if (result.callMove) {
+                const calledMove = result.callMove;
+                const calledMoveName = calledMove.name || calledMove;
+                const calledMoveId = calledMoveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const calledMoveData = (typeof MOVES !== 'undefined' && MOVES[calledMoveId]) ? MOVES[calledMoveId] : {};
+                // 构建招式对象
+                const moveToExecute = {
+                    name: calledMoveName,
+                    cn: calledMove.cn || calledMoveData.cnName || calledMoveName,
+                    type: calledMoveData.type || 'Normal',
+                    power: calledMoveData.basePower || 0,
+                    cat: calledMoveData.category === 'Physical' ? 'phys' : 
+                         calledMoveData.category === 'Special' ? 'spec' : 'status',
+                    accuracy: calledMoveData.accuracy || 100
+                };
+                logs.push(`<span style="color:#a78bfa">→ 使用了 ${moveToExecute.cn}!</span>`);
+                // 递归调用伤害计算和副作用
+                if (typeof applyDamage === 'function' && moveToExecute.power > 0) {
+                    const spriteId = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                    const dmgResult = applyDamage(user, target, moveToExecute, spriteId);
+                    if (dmgResult && dmgResult.damage > 0) {
+                        damageDealt = dmgResult.damage;
+                    }
+                } else {
+                    // 状态招式：直接调用副作用处理
+                    const subResult = applyMoveSecondaryEffects(user, target, moveToExecute, 0, battle, isPlayer);
+                    logs.push(...subResult.logs);
+                    if (subResult.pivot) {
+                        return { logs, pivot: true };
+                    }
+                }
+                // 跳过原招式的后续处理
+                if (result.skipDamage) {
+                    return { logs, pivot: false };
+                }
+            }
         }
     }
     // === onHit 钩子 (命中后效果) ===
@@ -1348,7 +1469,9 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
                 }
             }
             // 凸凸头盔
-            if (target.item === 'Rocky Helmet' && user.isAlive()) {
+            // 【道具统一】使用规范化 ID 比较
+            const targetItemId = (target.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (targetItemId === 'rockyhelmet' && user.isAlive()) {
                 const helmetDmg = Math.floor(user.maxHp / 6);
                 user.takeDamage(helmetDmg);
                 if (hit === 0) logs.push(`${user.cnName} 被凸凸头盔伤害了！`);
@@ -1493,6 +1616,11 @@ async function handleEnemyPivot(passBoosts = false) {
         if (currentE.choiceLockedMove) {
             console.log(`[CHOICE] ${currentE.name} 换下，解除 ${currentE.choiceLockedMove} 锁定`);
             delete currentE.choiceLockedMove;
+        }
+        // 【哈欠修复】换人时清除哈欠状态（官方机制：换人可以躲避哈欠）
+        if (currentE.volatile && currentE.volatile.yawn) {
+            console.log(`[YAWN] ${currentE.cnName} 换下，清除哈欠状态`);
+            delete currentE.volatile.yawn;
         }
         // 如果换下的宝可梦处于极巨化状态，恢复招式
         if (currentE.isDynamaxed && typeof window.applyDynamaxState === 'function') {
@@ -1993,6 +2121,20 @@ async function executePlayerTurn(p, e, move) {
     const result = applyDamage(p, e, move, 'enemy-sprite');
     // 记录本回合使用的技能
     p.lastMoveUsed = move.name;
+    // 【珍藏(Last Resort)支持】追踪所有成功使用过的招式
+    if (!result?.failed) {
+        if (!p.usedMoves) p.usedMoves = new Set();
+        p.usedMoves.add(move.name);
+    }
+    // =========================================================
+    // Choice 道具锁招（讲究头带/眼镜/围巾）- 玩家
+    // =========================================================
+    const pItem = p.item || '';
+    const pIsChoiceItem = pItem.includes('Choice') || pItem.includes('讲究');
+    if (pIsChoiceItem && !p.choiceLockedMove) {
+        p.choiceLockedMove = move.name;
+        console.log(`[CHOICE] ${p.name} 被 ${pItem} 锁定在 ${move.name}`);
+    }
     // =========================================================
     // Z-Move / Max Move 使用标记 (全场只能用一次)
     // =========================================================
@@ -2095,6 +2237,11 @@ async function executeEnemyTurn(e, p, move) {
     const result = applyDamage(e, p, move, 'player-sprite');
     // 记录本回合使用的技能
     e.lastMoveUsed = move.name;
+    // 【珍藏(Last Resort)支持】追踪所有成功使用过的招式
+    if (!result?.failed) {
+        if (!e.usedMoves) e.usedMoves = new Set();
+        e.usedMoves.add(move.name);
+    }
     // =========================================================
     // Choice 道具锁招（讲究头带/眼镜/围巾）
     // =========================================================
@@ -2251,17 +2398,30 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     }
     // ----------------------------------------
     // 2. 中毒 (Poison): 扣 1/8 HP
+    // 【修复】检查 Poison Heal (毒疗) 特性
     // ----------------------------------------
-    if (poke.status === 'psn') {
-        const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
-        poke.takeDamage(dmg);
-        logs.push(`${poke.cnName} 受到毒素的伤害! (-${dmg})`);
-    }
-    // 剧毒 (Toxic): 累加伤害 (简化为 1/8)
-    if (poke.status === 'tox') {
-        const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
-        poke.takeDamage(dmg);
-        logs.push(`${poke.cnName} 受到剧毒的伤害! (-${dmg})`);
+    if (poke.status === 'psn' || poke.status === 'tox') {
+        const pokeAbilityId = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        // 检查毒疗特性
+        if (pokeAbilityId === 'poisonheal') {
+            // 毒疗：回复 1/8 HP
+            const healAmount = Math.max(1, Math.floor(poke.maxHp / 8));
+            if (typeof poke.heal === 'function') {
+                poke.heal(healAmount);
+            } else {
+                poke.currHp = Math.min(poke.maxHp, poke.currHp + healAmount);
+            }
+            logs.push(`<span style="color:#4cd137">💚 ${poke.cnName} 的毒疗特性发动，回复了 ${healAmount} 点体力!</span>`);
+        } else {
+            // 正常中毒伤害
+            const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+            poke.takeDamage(dmg);
+            if (poke.status === 'tox') {
+                logs.push(`${poke.cnName} 受到剧毒的伤害! (-${dmg})`);
+            } else {
+                logs.push(`${poke.cnName} 受到毒素的伤害! (-${dmg})`);
+            }
+        }
     }
     // ----------------------------------------
     // 3. 寄生种子 (Leech Seed): 被对方吸血 1/8
@@ -2290,17 +2450,35 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     }
     // ----------------------------------------
     // 6. 哈欠 (Yawn): 倒计时，时间到睡着
+    // 【修复】使用 tryInflictStatus 进行特性/场地免疫检查
     // ----------------------------------------
     if (poke.volatile && poke.volatile['yawn']) {
         poke.volatile['yawn'] -= 1;
         if (poke.volatile['yawn'] <= 0) {
+            delete poke.volatile['yawn'];
             if (!poke.status) {
-                poke.status = 'slp';
-                poke.sleepTurns = Math.floor(Math.random() * 3) + 2;
-                delete poke.volatile['yawn'];
-                logs.push(`${poke.cnName} 的睡意袭来了! -> 睡着了!`);
-            } else {
-                delete poke.volatile['yawn'];
+                // 【关键修复】检查电气场地防睡
+                const battle = window.battle;
+                const currentTerrain = battle?.terrain;
+                const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                const isGrounded = !poke.types?.includes('Flying') && pokeAbility !== 'levitate';
+                if (currentTerrain === 'electricterrain' && isGrounded) {
+                    logs.push(`电气场地保护了 ${poke.cnName}，无法入睡！`);
+                } else if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                    // 使用 tryInflictStatus 检查特性免疫（不眠/干劲/绝对睡眠等）
+                    const result = MoveEffects.tryInflictStatus(poke, 'slp', null, battle);
+                    if (result.success) {
+                        poke.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                        logs.push(`${poke.cnName} 的睡意袭来了! -> 睡着了!`);
+                    } else {
+                        logs.push(result.message || `${poke.cnName} 无法入睡！`);
+                    }
+                } else {
+                    // 回退逻辑：直接设置睡眠
+                    poke.status = 'slp';
+                    poke.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                    logs.push(`${poke.cnName} 的睡意袭来了! -> 睡着了!`);
+                }
             }
         } else {
             logs.push(`${poke.cnName} 更加困倦了...`);
@@ -2330,7 +2508,10 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
     const hasMagicGuard = pokeAbility === 'magicguard';
     const hasOvercoat = pokeAbility === 'overcoat';
-    if (currentWeather && !hasMagicGuard && !hasOvercoat) {
+    // 【Safety Goggles】防尘护目镜免疫沙暴/冰雹伤害
+    const pokeItem = (poke.item || '').toLowerCase().replace(/[^a-z]/g, '');
+    const hasSafetyGoggles = pokeItem === 'safetygoggles';
+    if (currentWeather && !hasMagicGuard && !hasOvercoat && !hasSafetyGoggles) {
         if (currentWeather === 'sandstorm') {
             const immuneToSand = poke.types && (poke.types.includes('Rock') || poke.types.includes('Ground') || poke.types.includes('Steel'));
             const sandAbilityImmune = ['sandveil', 'sandforce', 'sandrush'].includes(pokeAbility);
@@ -2347,6 +2528,73 @@ function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
                 const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
                 poke.takeDamage(dmg);
                 logs.push(`${poke.cnName} 受到冰雹的伤害! (-${dmg})`);
+            }
+        }
+    }
+    // ----------------------------------------
+    // 10. 天气相关特性回合末效果
+    // ----------------------------------------
+    const pokeAbilityForWeather = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const currentWeatherForAbility = battle?.weather;
+    // 【湿润之躯 Hydration】雨天时回合末治愈所有异常状态
+    // 【天气统一】标准值: rain, 极端值: heavyrain
+    if (pokeAbilityForWeather === 'hydration' && poke.status) {
+        const isRainy = currentWeatherForAbility === 'rain' || currentWeatherForAbility === 'heavyrain';
+        if (isRainy) {
+            const oldStatus = poke.status;
+            const statusNames = { slp: '睡眠', psn: '中毒', tox: '剧毒', brn: '灼伤', par: '麻痹', frz: '冰冻' };
+            poke.status = null;
+            poke.statusTurns = 0;
+            poke.sleepTurns = 0;
+            logs.push(`<span style="color:#3498db">💧 ${poke.cnName} 的湿润之躯发动，${statusNames[oldStatus] || '异常状态'}痊愈了!</span>`);
+        }
+    }
+    // 【蜕皮 Shed Skin】每回合 30% 概率治愈异常状态
+    if (pokeAbilityForWeather === 'shedskin' && poke.status) {
+        if (Math.random() < 0.30) {
+            const oldStatus = poke.status;
+            const statusNames = { slp: '睡眠', psn: '中毒', tox: '剧毒', brn: '灼伤', par: '麻痹', frz: '冰冻' };
+            poke.status = null;
+            poke.statusTurns = 0;
+            poke.sleepTurns = 0;
+            logs.push(`<span style="color:#9b59b6">✨ ${poke.cnName} 的蜕皮发动，${statusNames[oldStatus] || '异常状态'}痊愈了!</span>`);
+        }
+    }
+    // 【冰冻之躯 Ice Body】冰雹/雪天时回复 1/16 HP
+    // 【天气统一】兼容 hail 和 snow
+    if (pokeAbilityForWeather === 'icebody' && (currentWeatherForAbility === 'hail' || currentWeatherForAbility === 'snow')) {
+        if (poke.currHp < poke.maxHp) {
+            const healAmount = Math.max(1, Math.floor(poke.maxHp / 16));
+            poke.heal(healAmount);
+            logs.push(`<span style="color:#74b9ff">${poke.cnName} 的冰冻之躯恢复了 ${healAmount} 点体力!</span>`);
+        }
+    }
+    // 【干燥皮肤 Dry Skin】雨天回复 1/8 HP，晴天扣 1/8 HP
+    // 【天气统一】标准值: rain/sun, 极端值: heavyrain/harshsun
+    if (pokeAbilityForWeather === 'dryskin') {
+        const isRainyDry = currentWeatherForAbility === 'rain' || currentWeatherForAbility === 'heavyrain';
+        const isSunnyDry = currentWeatherForAbility === 'sun' || currentWeatherForAbility === 'harshsun';
+        if (isRainyDry) {
+            if (poke.currHp < poke.maxHp) {
+                const healAmount = Math.max(1, Math.floor(poke.maxHp / 8));
+                poke.heal(healAmount);
+                logs.push(`<span style="color:#3498db">${poke.cnName} 的干燥皮肤在雨中恢复了 ${healAmount} 点体力!</span>`);
+            }
+        } else if (isSunnyDry) {
+            const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+            poke.takeDamage(dmg);
+            logs.push(`<span style="color:#e74c3c">${poke.cnName} 的干燥皮肤在阳光下受到了 ${dmg} 点伤害!</span>`);
+        }
+    }
+    // 【雨盘 Rain Dish】雨天回复 1/16 HP
+    // 【天气统一】标准值: rain, 极端值: heavyrain
+    if (pokeAbilityForWeather === 'raindish') {
+        const isRainyDish = currentWeatherForAbility === 'rain' || currentWeatherForAbility === 'heavyrain';
+        if (isRainyDish) {
+            if (poke.currHp < poke.maxHp) {
+                const healAmount = Math.max(1, Math.floor(poke.maxHp / 16));
+                poke.heal(healAmount);
+                logs.push(`<span style="color:#3498db">${poke.cnName} 的雨盘恢复了 ${healAmount} 点体力!</span>`);
             }
         }
     }
@@ -3771,28 +4019,28 @@ const AbilityHandlers = {
     // 【降雨】
     'Drizzle': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'raindance';
+            if (battle) battle.weather = 'rain'; // 标准值: rain
             logs.push(`🌧️ ${self.cnName} 带来了降雨!`);
         }
     },
     // 【日照】
     'Drought': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'sunnyday';
+            if (battle) battle.weather = 'sun'; // 标准值: sun
             logs.push(`☀️ ${self.cnName} 让阳光变得强烈了!`);
         }
     },
     // 【扬沙】
     'Sand Stream': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'sandstorm';
+            if (battle) battle.weather = 'sandstorm'; // 标准值: sandstorm
             logs.push(`🌪️ ${self.cnName} 扬起了沙暴!`);
         }
     },
     // 【降雪】
     'Snow Warning': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'snow';
+            if (battle) battle.weather = 'snow'; // 标准值: snow
             logs.push(`❄️ ${self.cnName} 让天空开始下雪了!`);
         }
     },
@@ -3886,7 +4134,9 @@ const AbilityHandlers = {
             // 检查是否有电气场地
             const hasElectricTerrain = battle && battle.field && battle.field.terrain === 'electricterrain';
             // 检查是否携带驱劲能量
-            const hasBoosterEnergy = self.item === 'Booster Energy';
+            // 【道具统一】使用规范化 ID 比较
+            const selfItemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const hasBoosterEnergy = selfItemId === 'boosterenergy';
             if (hasElectricTerrain || hasBoosterEnergy) {
                 // 找最高能力
                 const stats = { atk: self.atk, def: self.def, spa: self.spa, spd: self.spd, spe: self.spe };
@@ -3924,9 +4174,12 @@ const AbilityHandlers = {
     'Protosynthesis': {
         onStart: (self, enemy, logs, battle) => {
             // 检查是否有大晴天
-            const hasSun = battle && (battle.weather === 'sunnyday' || battle.weather === 'desolateland');
+            // 【天气统一】兼容标准值和极端天气
+            const hasSun = battle && (battle.weather === 'sun' || battle.weather === 'harshsun');
             // 检查是否携带驱劲能量
-            const hasBoosterEnergy = self.item === 'Booster Energy';
+            // 【道具统一】使用规范化 ID 比较
+            const selfItemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const hasBoosterEnergy = selfItemId === 'boosterenergy';
             if (hasSun || hasBoosterEnergy) {
                 // 找最高能力
                 const stats = { atk: self.atk, def: self.def, spa: self.spa, spd: self.spd, spe: self.spe };
@@ -4082,6 +4335,7 @@ const AbilityHandlers = {
         }
     },
     // 【沙之力】沙暴中岩/地/钢威力x1.3
+    // 【天气统一】标准值: sandstorm
     'Sand Force': {
         onBasePower: (power, attacker, defender, move, battle) => {
             if (battle && battle.weather === 'sandstorm') {
@@ -4218,22 +4472,25 @@ const AbilityHandlers = {
     // H. 第二梯队补充 - 天气加速类
     // ============================================
     // 【叶绿素】晴天速度翻倍
+    // 【天气统一】兼容 sun 和 harshsun
     'Chlorophyll': {
         onModifyStat: (stats, poke, battle) => {
-            if (battle && (battle.weather === 'sunnyday' || battle.weather === 'desolateland')) {
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 stats.spe *= 2;
             }
         }
     },
     // 【悠游自如】雨天速度翻倍
+    // 【天气统一】兼容 rain 和 heavyrain
     'Swift Swim': {
         onModifyStat: (stats, poke, battle) => {
-            if (battle && (battle.weather === 'raindance' || battle.weather === 'primordialsea')) {
+            if (battle && (battle.weather === 'rain' || battle.weather === 'heavyrain')) {
                 stats.spe *= 2;
             }
         }
     },
     // 【拨沙】沙暴速度翻倍
+    // 【天气统一】标准值: sandstorm
     'Sand Rush': {
         onModifyStat: (stats, poke, battle) => {
             if (battle && battle.weather === 'sandstorm') {
@@ -4242,6 +4499,7 @@ const AbilityHandlers = {
         }
     },
     // 【拨雪】雪天速度翻倍
+    // 【天气统一】兼容 snow 和 hail
     'Slush Rush': {
         onModifyStat: (stats, poke, battle) => {
             if (battle && (battle.weather === 'snow' || battle.weather === 'hail')) {
@@ -4250,9 +4508,10 @@ const AbilityHandlers = {
         }
     },
     // 【太阳之力】晴天特攻x1.5
+    // 【天气统一】兼容 sun 和 harshsun
     'Solar Power': {
         onModifyStat: (stats, poke, battle) => {
-            if (battle && (battle.weather === 'sunnyday' || battle.weather === 'desolateland')) {
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 stats.spa = Math.floor(stats.spa * 1.5);
             }
         }
@@ -4381,6 +4640,80 @@ const AbilityHandlers = {
     'Vital Spirit': {
         onImmunityStatus: (status) => status === 'slp'
     },
+    // 【甘幕 Sweet Veil】己方全员免疫睡眠（包括队友）
+    'Sweet Veil': {
+        onImmunityStatus: (status) => status === 'slp',
+        // 标记：队友也免疫睡眠（双打用）
+        teamSleepImmune: true
+    },
+    // 【早起 Early Bird】睡眠回合减半
+    'Early Bird': {
+        // 标记：睡眠回合消耗速度加倍
+        earlyBird: true
+    },
+    // 【蜕皮 Shed Skin】每回合结束时30%概率治愈异常状态
+    'Shed Skin': {
+        onEndTurn: (pokemon, logs) => {
+            if (pokemon.status && Math.random() < 0.3) {
+                const oldStatus = pokemon.status;
+                pokemon.status = null;
+                pokemon.statusTurns = 0;
+                pokemon.sleepTurns = 0;
+                const statusNames = { par: '麻痹', brn: '灶伤', psn: '中毒', tox: '剧毒', slp: '睡眠', frz: '冰冻' };
+                logs.push(`${pokemon.cnName} 的蜕皮治愈了${statusNames[oldStatus] || '异常状态'}！`);
+            }
+        }
+    },
+    // 【梦魇 Bad Dreams】对手睡眠时每回合扣除1/8HP（达克莱伊专属）
+    'Bad Dreams': {
+        onEndTurn: (pokemon, logs) => {
+            // 梦魇是对对手生效，需要在回合结束时检查对手
+            const battle = window.battle;
+            if (!battle) return;
+            // 确定对手
+            const isPlayer = battle.playerParty && battle.playerParty.includes(pokemon);
+            const opponent = isPlayer ? battle.getEnemy() : battle.getPlayer();
+            // 检查对手是否睡眠（包括绝对睡眠 Comatose 特性）
+            const opponentAbility = (opponent?.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isAsleep = opponent?.status === 'slp' || opponentAbility === 'comatose';
+            if (opponent && opponent.isAlive() && isAsleep) {
+                const damage = Math.max(1, Math.floor(opponent.maxHp / 8));
+                opponent.takeDamage(damage);
+                logs.push(`<span style="color:#8b5cf6">👻 ${opponent.cnName} 被 ${pokemon.cnName} 的梦魇侵蚀了 ${damage} HP！</span>`);
+            }
+        }
+    },
+    // 【孢子 Effect Spore】接触时有概率让对手中毒、麻痹或睡眠
+    'Effect Spore': {
+        onContactStatus: (attacker, defender) => {
+            // 草系免疫孢子
+            if (attacker.types && attacker.types.includes('Grass')) {
+                return null;
+            }
+            // 防尘护目镜免疫
+            const attackerItem = (attacker.item || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (attackerItem === 'safetygoggles') {
+                return null;
+            }
+            // 防尘特性免疫
+            const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (attackerAbility === 'overcoat') {
+                return null;
+            }
+            // 30%概率触发，平分三种状态
+            if (Math.random() < 0.3) {
+                const rand = Math.random();
+                if (rand < 0.33) {
+                    return { status: 'slp', message: `${attacker.cnName} 被孢子催眠了！` };
+                } else if (rand < 0.66) {
+                    return { status: 'par', message: `${attacker.cnName} 被孢子麻痹了！` };
+                } else {
+                    return { status: 'psn', message: `${attacker.cnName} 被孢子毒到了！` };
+                }
+            }
+            return null;
+        }
+    },
     // 【粉彩护幕】免疫中毒（伽勒尔小火马/烈焰马）
     'Pastel Veil': {
         onImmunityStatus: (status) => status === 'psn' || status === 'tox',
@@ -4416,6 +4749,7 @@ const AbilityHandlers = {
         }
     },
     // 【叶子防守】大晴天时免疫异常状态
+    // 【天气统一】兼容 sun 和 harshsun
     'Leaf Guard': {
         onImmunityStatus: (status, pokemon, battle) => {
             const weather = battle?.weather || (typeof window.battle !== 'undefined' ? window.battle.weather : null);
@@ -4502,7 +4836,9 @@ const AbilityHandlers = {
             // 漂浮特性免疫
             if (target.ability === 'Levitate') return false;
             // 气球道具免疫
-            if (target.item === 'Air Balloon') return false;
+            // 【道具统一】使用规范化 ID 比较
+            const targetItemId = (target.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (targetItemId === 'airballoon') return false;
             return true;
         }
     },
@@ -4681,7 +5017,9 @@ function checkCanSwitch(pokemon, opponent, battle) {
     // 0. 特殊状态直接放行
     // 如果使用了 U-turn 等 Pivot 招式，或者携带漂亮外壳，无视一切锁定
     if (pokemon.isPivoting) return { canSwitch: true };
-    if (pokemon.item === 'Shed Shell') return { canSwitch: true };
+    // 【道具统一】使用规范化 ID 比较
+    const pokeItemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (pokeItemId === 'shedshell') return { canSwitch: true };
     // 1. 幽灵系特权：想走就走（六代后）
     if (pokemon.types && pokemon.types.includes('Ghost')) return { canSwitch: true };
     // 2. 检查自身的异常状态 (Volatile)
@@ -4717,6 +5055,13 @@ function checkCanSwitch(pokemon, opponent, battle) {
     }
     return { canSwitch: true };
 }
+// ============================================
+// 【软编码】特性分类列表（供其他模块引用）
+// ============================================
+// 破格类特性（无视对手特性）
+AbilityHandlers._moldBreakerAbilities = ['moldbreaker', 'teravolt', 'turboblaze'];
+// 睡眠免疫特性
+AbilityHandlers._sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
 // 导出到全局
 if (typeof window !== 'undefined') {
     window.AbilityHandlers = AbilityHandlers;
@@ -5528,13 +5873,24 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
             }
         }
         // === 状态技能 ===
-        const statusMoves = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore'];
+        // 【修复】更新 fallback 列表以包含所有睡眠招式
+        const statusMoves = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
         if (statusMoves.includes(moveName) && !playerPoke.status) {
             // 对手没有状态才用
-            const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis'];
+            const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
             if (sleepMoves.includes(moveName)) {
-                score = 180;
-                reasoning = 'Sleep opportunity';
+                // 【修复】检查目标是否免疫睡眠
+                // 【软编码】从 AbilityHandlers 读取睡眠免疫特性列表
+                const targetAbility = (playerPoke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                const sleepImmuneAbilities = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers._sleepImmuneAbilities) 
+                    ? AbilityHandlers._sleepImmuneAbilities 
+                    : ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+                const isImmune = sleepImmuneAbilities.includes(targetAbility);
+                if (!isImmune) {
+                    score = 180;
+                    reasoning = 'Sleep opportunity';
+                }
+                // 如果免疫则不给分，跳过此招式
             } else if (moveName === 'Thunder Wave' && getEffectiveSpeed(playerPoke) > getEffectiveSpeed(aiPoke)) {
                 score = 120;
                 reasoning = 'Speed control';
@@ -5917,32 +6273,61 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         }
     }
     // [类型4: 状态冗余组] - 状态技对已有状态/免疫属性无效
-    // 4a. 状态异常技对已有状态的目标无效
-    const statusMoves = {
-        'Thunder Wave': { immuneTypes: ['Ground', 'Electric'], status: 'par' },
-        'Toxic': { immuneTypes: ['Steel', 'Poison'], status: 'tox' },
-        'Poison Powder': { immuneTypes: ['Steel', 'Poison', 'Grass'], status: 'psn' },
-        'Poison Gas': { immuneTypes: ['Steel', 'Poison'], status: 'psn' },
-        'Will-O-Wisp': { immuneTypes: ['Fire'], status: 'brn' },
-        'Hypnosis': { immuneTypes: [], status: 'slp' },
-        'Sleep Powder': { immuneTypes: ['Grass'], status: 'slp' },
-        'Spore': { immuneTypes: ['Grass'], status: 'slp' },
-        'Stun Spore': { immuneTypes: ['Grass', 'Electric'], status: 'par' },
-        'Glare': { immuneTypes: [], status: 'par' }
-    };
-    if (statusMoves[moveName]) {
-        const { immuneTypes, status } = statusMoves[moveName];
-        const defenderTypes = defender.types || [];
-        // 检查属性免疫
-        const isImmune = immuneTypes.some(t => defenderTypes.includes(t));
-        if (isImmune) {
-            console.log(`[AI BAN] ${moveName} 对 ${defenderTypes.join('/')} 属性无效`);
-            return -9999;
-        }
+    // 【优化】从 moves-data.js 动态读取状态招式信息
+    const moveStatus = fullMoveData.status; // 直接从招式数据获取状态类型
+    const defenderTypes = defender.types || [];
+    const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (moveStatus) {
         // 检查已有状态
         if (defender.status) {
             console.log(`[AI BAN] ${moveName} 对已有状态 ${defender.status} 的目标无效`);
             return -9999;
+        }
+        // 粉末类招式对草系免疫
+        if (moveFlags.powder && defenderTypes.includes('Grass')) {
+            console.log(`[AI BAN] ${moveName} 粉末招式对草系无效`);
+            return -9999;
+        }
+        // 电系招式对地面系免疫（电磁波）
+        if (fullMoveData.type === 'Electric' && defenderTypes.includes('Ground')) {
+            console.log(`[AI BAN] ${moveName} 电系招式对地面系无效`);
+            return -9999;
+        }
+        // 火系免疫烧伤
+        if (moveStatus === 'brn' && defenderTypes.includes('Fire')) {
+            console.log(`[AI BAN] ${moveName} 对火系无效`);
+            return -9999;
+        }
+        // 毒/钢系免疫中毒
+        if ((moveStatus === 'psn' || moveStatus === 'tox') && 
+            (defenderTypes.includes('Poison') || defenderTypes.includes('Steel'))) {
+            console.log(`[AI BAN] ${moveName} 对毒/钢系无效`);
+            return -9999;
+        }
+        // 电系免疫麻痹
+        if (moveStatus === 'par' && defenderTypes.includes('Electric')) {
+            console.log(`[AI BAN] ${moveName} 对电系无效`);
+            return -9999;
+        }
+        // 睡眠状态特殊检查
+        if (moveStatus === 'slp') {
+            // 【软编码】从 AbilityHandlers 读取睡眠免疫特性列表
+            const sleepImmuneAbilities = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers._sleepImmuneAbilities) 
+                ? AbilityHandlers._sleepImmuneAbilities 
+                : ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+            if (sleepImmuneAbilities.includes(defenderAbility)) {
+                console.log(`[AI BAN] ${moveName} 对 ${defender.ability} 特性无效（睡眠免疫）`);
+                return -9999;
+            }
+            // 电气场地免疫睡眠
+            const battle = window.battle;
+            if (battle?.terrain === 'electricterrain') {
+                const isGrounded = !defenderTypes.includes('Flying') && defenderAbility !== 'levitate';
+                if (isGrounded) {
+                    console.log(`[AI BAN] ${moveName} 在电气场地中对地面单位无效`);
+                    return -9999;
+                }
+            }
         }
     }
     // 4b. 天气技对已存在的相同天气无效
@@ -6732,13 +7117,24 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             else statusScore = 5;
         }
         // 状态技能
-        const statusInflict = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore'];
-        const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Sing'];
+        // 【修复】更新 fallback 列表以包含所有睡眠招式
+        const statusInflict = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
+        const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
         const paralyzeMoves = MC.AI_PARALYZE_MOVES || ['Thunder Wave', 'Glare', 'Stun Spore'];
         if (statusInflict.includes(moveName)) {
             if (!defender.status) {
                 if (sleepMoves.includes(moveName)) {
-                    statusScore = 70 + Math.random() * 30;
+                    // 【修复】检查目标是否免疫睡眠
+                    // 【软编码】从 AbilityHandlers 读取睡眠免疫特性列表
+                    const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                    const sleepImmuneAbilities = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers._sleepImmuneAbilities) 
+                        ? AbilityHandlers._sleepImmuneAbilities 
+                        : ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+                    if (sleepImmuneAbilities.includes(defenderAbility)) {
+                        statusScore = -100; // 免疫睡眠，不使用
+                    } else {
+                        statusScore = 70 + Math.random() * 30;
+                    }
                 } else if (paralyzeMoves.includes(moveName)) {
                     statusScore = defender.spe > attacker.spe ? 60 + Math.random() * 20 : 30 + Math.random() * 20;
                 } else if (moveName === 'Will-O-Wisp') {
@@ -7092,7 +7488,8 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     // 4.2 蓄力技能 (Solar Beam 等)
     if (chargeMoves.includes(moveName)) {
         const isSolar = moveName.includes('Solar');
-        const hasSun = (weather === 'sunnyday' || weather === 'desolateland');
+        // 【天气统一】兼容 sun 和 harshsun
+        const hasSun = (weather === 'sun' || weather === 'harshsun');
         const hasHerb = (attacker.item || '').toLowerCase().includes('power herb') || 
                         (attacker.item || '').includes('强力香草');
         if (isSolar && !hasSun && !hasHerb) {
@@ -8352,6 +8749,33 @@ class Pokemon {
                     val = shell[statName];
                 }
             }
+            // === 道具加成 (讲究系列、电气球、粗骨头、进化奇石等) ===
+            if (this.item && typeof window !== 'undefined' && typeof window.getItem === 'function') {
+                const itemData = window.getItem(this.item);
+                if (itemData && itemData.statBoost && itemData.statBoost[statName]) {
+                    const itemBoost = itemData.statBoost[statName];
+                    let shouldApply = true;
+                    // 检查是否为特定宝可梦专属道具
+                    if (itemData.itemUser) {
+                        // 专属道具：检查是否为指定宝可梦
+                        const pokeName = this.name.split('-')[0]; // 处理地区形态
+                        shouldApply = itemData.itemUser.some(u => this.name.includes(u) || pokeName === u);
+                    }
+                    // 检查是否为进化奇石（需要未完全进化）
+                    if (itemData.requiresNFE) {
+                        // 检查宝可梦是否可以进化（通过 POKEDEX 数据）
+                        const normalizedId = this.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        const pokeData = (typeof POKEDEX !== 'undefined') ? POKEDEX[normalizedId] : null;
+                        // 如果有 evos 字段，说明可以进化，进化奇石生效
+                        // 如果没有 evos 字段，说明已经是最终形态，进化奇石不生效
+                        shouldApply = pokeData && pokeData.evos && pokeData.evos.length > 0;
+                    }
+                    if (shouldApply) {
+                        val = Math.floor(val * itemBoost);
+                        console.log(`[ITEM] ${this.cnName} 的 ${itemData.cnName || this.item} 使 ${statName} x${itemBoost}`);
+                    }
+                }
+            }
             return Math.max(1, val);
         }
         // 命中/闪避返回等级值，由引擎计算最终命中率
@@ -8420,6 +8844,20 @@ function checkCanMove(pokemon, move = null) {
         const category = fullMoveData.category || move.category || move.cat;
         if (category === 'Status') {
             return { can: false, msg: `${pokemon.cnName} 因为挑衅无法使用 ${move.cn || move.name}!` };
+        }
+    }
+    // 5a2. 突击背心 (Assault Vest) - 无法使用变化技
+    if (pokemon.item && move) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = (typeof window !== 'undefined' && typeof window.getItem === 'function') 
+            ? window.getItem(pokemon.item) : null;
+        if (itemData && itemData.disableStatus) {
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+            const category = fullMoveData.category || move.category || move.cat;
+            if (category === 'Status') {
+                return { can: false, msg: `${pokemon.cnName} 的${itemData.cnName || pokemon.item}使其无法使用变化技!` };
+            }
         }
     }
     // 5b. 再来一次 (Encore) - 只能使用被锁定的招式
@@ -8951,8 +9389,7 @@ const ITEMS = {
         consumable: false,
         fling: { basePower: 40 },
         effect: 'eviolite',
-        defBoost: 1.5,
-        spdBoost: 1.5,
+        statBoost: { def: 1.5, spd: 1.5 }, // 防御和特防x1.5
         requiresNFE: true, // 只对未完全进化的宝可梦有效
         description: '未完全进化的宝可梦防御和特防x1.5',
     },
@@ -8965,7 +9402,7 @@ const ITEMS = {
         consumable: false,
         fling: { basePower: 80 },
         effect: 'assaultVest',
-        spdBoost: 1.5,
+        statBoost: { spd: 1.5 }, // 特防x1.5
         disableStatus: true, // 禁止使用变化技
         description: '特防x1.5，但无法使用变化技',
     },
@@ -9005,6 +9442,19 @@ const ITEMS = {
         effect: 'rockyHelmet',
         contactDamage: 1/6, // 接触攻击者损失 1/6 HP
         description: '被接触类招式攻击时，攻击者损失1/6最大HP',
+    },
+    // --- 防尘护目镜 (Safety Goggles) ---
+    safetygoggles: {
+        id: 'safetygoggles',
+        name: 'Safety Goggles',
+        cnName: '防尘护目镜',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 80 },
+        effect: 'safetyGoggles',
+        immunePowder: true, // 免疫粉末类招式
+        immuneWeatherDamage: true, // 免疫沙暴/冰雹伤害
+        description: '免疫粉末类招式（催眠粉、蘑菇孢子等）和沙暴/冰雹伤害',
     },
     // --- 达人带 (Expert Belt) ---
     expertbelt: {
@@ -10356,6 +10806,44 @@ const ItemEffects = {
         }
         return false;
     },
+    /**
+     * 【新增】检查状态治愈树果（零余果、桃桃果、木子果等）
+     * 应在状态变化后立即调用
+     * @param {Object} pokemon - 宝可梦
+     * @param {Array} logs - 日志数组
+     * @returns {boolean} 是否触发了树果
+     */
+    checkStatusBerry(pokemon, logs = []) {
+        if (!pokemon.item || !pokemon.status) return false;
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        if (!itemData || !itemData.isBerry) return false;
+        const berryName = itemData.cnName || itemData.name;
+        // 状态治愈树果 (cureStatus)
+        if (itemData.effect === 'cureStatus' && itemData.cures === pokemon.status) {
+            const statusNames = { par: '麻痹', brn: '灶伤', psn: '中毒', tox: '剧毒', slp: '睡眠', frz: '冰冻' };
+            pokemon.status = null;
+            pokemon.statusTurns = 0;
+            pokemon.sleepTurns = 0;
+            pokemon.sleepDuration = 0;
+            pokemon.item = null;
+            logs.push(`<span style="color:#27ae60">🍒 ${pokemon.cnName} 吃掉了${berryName}，治愈了${statusNames[itemData.cures] || '异常状态'}！</span>`);
+            return true;
+        }
+        // 全状态治愈树果 (木子果 Lum Berry)
+        if (itemData.effect === 'cureAll' && pokemon.status) {
+            const statusNames = { par: '麻痹', brn: '灶伤', psn: '中毒', tox: '剧毒', slp: '睡眠', frz: '冰冻' };
+            const oldStatus = pokemon.status;
+            pokemon.status = null;
+            pokemon.statusTurns = 0;
+            pokemon.sleepTurns = 0;
+            pokemon.sleepDuration = 0;
+            pokemon.item = null;
+            logs.push(`<span style="color:#27ae60">🍒 ${pokemon.cnName} 吃掉了${berryName}，治愈了${statusNames[oldStatus] || '异常状态'}！</span>`);
+            return true;
+        }
+        return false;
+    },
 };
 // ============================================
 // 工具函数
@@ -10626,21 +11114,42 @@ function tryInflictStatus(target, status, source = null, battle = null) {
     if ((targetAbility === 'insomnia' || targetAbility === 'vitalspirit') && status === 'slp') {
         return { success: false, message: `${target.cnName} 无法入睡!` };
     }
+    // 【吵闹 Uproar】场上有吵闹状态时，所有宝可梦无法入睡
+    // 注意：只有当前在场的宝可梦有吵闹状态才生效，换人后吵闹状态会随宝可梦离场而消失
+    if (status === 'slp') {
+        const battleRef = battle || (typeof window !== 'undefined' ? window.battle : null);
+        if (battleRef) {
+            // 检查当前在场的玩家和敌方宝可梦是否有吵闹状态
+            const playerPoke = battleRef.playerParty?.[battleRef.playerActive];
+            const enemyPoke = battleRef.enemyParty?.[battleRef.enemyActive];
+            // 只检查当前在场宝可梦的吵闹状态（volatile 状态会在换人时被清除）
+            const playerHasUproar = playerPoke?.volatile?.uproar && playerPoke.currHp > 0;
+            const enemyHasUproar = enemyPoke?.volatile?.uproar && enemyPoke.currHp > 0;
+            if (playerHasUproar || enemyHasUproar) {
+                return { success: false, message: `场上太吵了，${target.cnName} 无法入睡!` };
+            }
+        }
+    }
     // 【叶子防守 Leaf Guard】大晴天时免疫异常状态
+    // 【天气统一】标准值: sun, 极端值: harshsun
     if (targetAbility === 'leafguard') {
         const currentWeather = battle?.weather || (typeof window.battle !== 'undefined' ? window.battle.weather : null);
-        if (currentWeather === 'sun' || currentWeather === 'harshsun') {
+        const isSunny = currentWeather === 'sun' || currentWeather === 'harshsun';
+        if (isSunny) {
             return { success: false, message: `${target.cnName} 的叶子防守在阳光下阻止了异常状态!` };
         }
     }
-    // === 【薄雾场地 Misty Terrain】免疫异常状态 ===
+    // === 【场地免疫检查】===
     const currentTerrain = battle?.terrain || (typeof window.battle !== 'undefined' ? window.battle.terrain : null);
-    if (currentTerrain === 'misty') {
-        // 检查是否在地面上（飞行系/漂浮不受场地影响）
-        const isGrounded = !target.types?.includes('Flying') && targetAbility !== 'levitate';
-        if (isGrounded) {
-            return { success: false, message: `薄雾场地保护了 ${target.cnName}，无法陷入异常状态!` };
-        }
+    // 检查是否在地面上（飞行系/飘浮不受场地影响）
+    const isGrounded = !target.types?.includes('Flying') && targetAbility !== 'levitate';
+    // 【电气场地 Electric Terrain】免疫睡眠
+    if (currentTerrain === 'electricterrain' && status === 'slp' && isGrounded) {
+        return { success: false, message: `电气场地保护了 ${target.cnName}，无法入睡!` };
+    }
+    // 【薄雾场地 Misty Terrain】免疫异常状态
+    if (currentTerrain === 'mistyterrain' && isGrounded) {
+        return { success: false, message: `薄雾场地保护了 ${target.cnName}，无法陷入异常状态!` };
     }
     // === 【属性免疫检查】===
     const immunities = {
@@ -10673,6 +11182,14 @@ function tryInflictStatus(target, status, source = null, battle = null) {
     if (hasCorrosion && (status === 'psn' || status === 'tox')) {
         message = `${source?.cnName} 的腐蚀特性让 ${target.cnName} 中毒了!`;
     }
+    // 【修复】立即检查状态治愈树果（零余果/桃桃果/木子果等）
+    if (typeof ItemEffects !== 'undefined' && ItemEffects.checkStatusBerry) {
+        const berryLogs = [];
+        const triggered = ItemEffects.checkStatusBerry(target, berryLogs);
+        if (triggered && berryLogs.length > 0) {
+            message += ' ' + berryLogs.join(' ');
+        }
+    }
     return { success: true, message };
 }
 /**
@@ -10696,14 +11213,20 @@ function processStatusEffects(pokemon) {
             }
             break;
         case 'slp':
-            pokemon.statusTurns++;
+            // 【Early Bird 早起】睡眠回合消耗加倍
+            const pokeAbility = (pokemon.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const hasEarlyBird = pokeAbility === 'earlybird';
+            const sleepIncrement = hasEarlyBird ? 2 : 1;
+            pokemon.statusTurns += sleepIncrement;
             const sleepDuration = pokemon.sleepDuration || (Math.floor(Math.random() * 3) + 1);
             pokemon.sleepDuration = sleepDuration;
             if (pokemon.statusTurns >= sleepDuration) {
                 pokemon.status = null;
                 pokemon.statusTurns = 0;
                 pokemon.sleepDuration = 0;
-                result.message = `${pokemon.cnName} 醒来了!`;
+                result.message = hasEarlyBird 
+                    ? `${pokemon.cnName} 的早起让它快速醒来了!`
+                    : `${pokemon.cnName} 醒来了!`;
             } else {
                 result.canMove = false;
                 result.message = `${pokemon.cnName} 正在睡觉...`;
@@ -10789,11 +11312,26 @@ function processMoveStatusEffects(user, target, move) {
     const logs = [];
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
-    // === 【草系免疫粉末类招式】===
+    // === 【粉末类招式免疫检查】===
     const powderMoves = ['spore', 'sleeppowder', 'poisonpowder', 'stunspore', 'ragepowder', 'cottonspore', 'powder'];
-    if (powderMoves.includes(moveId) && target.types && target.types.includes('Grass')) {
-        logs.push(`${target.cnName} 的草属性免疫了粉末类招式!`);
-        return logs;
+    if (powderMoves.includes(moveId)) {
+        // 草系免疫
+        if (target.types && target.types.includes('Grass')) {
+            logs.push(`${target.cnName} 的草属性免疫了粉末类招式!`);
+            return logs;
+        }
+        // 防尘护目镜免疫
+        const targetItem = (target.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (targetItem === 'safetygoggles') {
+            logs.push(`${target.cnName} 的防尘护目镜免疫了粉末类招式!`);
+            return logs;
+        }
+        // 防尘特性免疫
+        const targetAbility = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (targetAbility === 'overcoat') {
+            logs.push(`${target.cnName} 的防尘特性免疫了粉末类招式!`);
+            return logs;
+        }
     }
     // === 【草系免疫寄生种子】===
     if (moveId === 'leechseed' && target.types && target.types.includes('Grass')) {
@@ -10941,12 +11479,24 @@ function checkOHKOMove(attacker, defender, move) {
     }
 }
 // ========== 天气系统 (Weather) ==========
+// 【天气统一】标准天气值定义
+// - sun: 晴天 (招式/特性统一使用)
+// - rain: 雨天 (招式/特性统一使用)
+// - sandstorm: 沙暴
+// - hail: 冰雹
+// - snow: 雪天
+// - harshsun: 大日照 (原始固拉多)
+// - heavyrain: 大雨 (原始盖欧卡)
 const WEATHER_TYPES = {
-    sunnyday: { name: '大晴天', fireBoost: 1.5, waterNerf: 0.5, solarBeamCharge: false },
-    raindance: { name: '下雨', waterBoost: 1.5, fireNerf: 0.5, thunderAccuracy: true },
+    // 标准天气
+    sun: { name: '大晴天', fireBoost: 1.5, waterNerf: 0.5, solarBeamCharge: false },
+    rain: { name: '下雨', waterBoost: 1.5, fireNerf: 0.5, thunderAccuracy: true },
     sandstorm: { name: '沙暴', dotTypes: ['Rock', 'Ground', 'Steel'], spDefBoost: ['Rock'] },
     hail: { name: '冰雹', dotExcept: ['Ice'], blizzardAccuracy: true },
-    snow: { name: '下雪', defBoost: ['Ice'] }
+    snow: { name: '下雪', defBoost: ['Ice'] },
+    // 极端天气
+    harshsun: { name: '大日照', fireBoost: 1.5, waterNerf: 0, solarBeamCharge: false, blockWater: true },
+    heavyrain: { name: '大雨', waterBoost: 1.5, fireNerf: 0, thunderAccuracy: true, blockFire: true }
 };
 /**
  * 获取天气对技能威力的修正
@@ -11692,17 +12242,8 @@ function tickVolatileStatus(pokemon, opponent = null) {
         }
     }
     // 哈欠 -> 睡眠
-    if (pokemon.volatile.yawn && pokemon.volatile.yawn > 0) {
-        pokemon.volatile.yawn--;
-        if (pokemon.volatile.yawn === 0) {
-            if (!pokemon.status) {
-                pokemon.status = 'slp';
-                pokemon.sleepTurns = 0;
-                logs.push(`${pokemon.cnName} 睡着了!`);
-            }
-            delete pokemon.volatile.yawn;
-        }
-    }
+    // 【已移除】哈欠的倒计时在 battle-turns.js 中统一处理，避免重复减少
+    // 该处理包含电气场地/薄雾场地免疫检查
     // 灭亡之歌
     if (pokemon.volatile.perishsong && pokemon.volatile.perishsong > 0) {
         pokemon.volatile.perishsong--;
@@ -12803,7 +13344,7 @@ const MoveHandlers = {
     // ============================================
     'Rain Dance': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'rain';
+            if (battle) battle.weather = 'rain'; // 标准值: rain
             logs.push('天空下起了大雨!');
             logs.push('<span style="color:#3498db">水系技能威力提升，火系技能威力下降!</span>');
             return { weather: 'rain' };
@@ -12812,7 +13353,7 @@ const MoveHandlers = {
     },
     'Sunny Day': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'sun';
+            if (battle) battle.weather = 'sun'; // 标准值: sun
             logs.push('阳光变得强烈了!');
             logs.push('<span style="color:#e67e22">火系技能威力提升，水系技能威力下降!</span>');
             return { weather: 'sun' };
@@ -12821,16 +13362,16 @@ const MoveHandlers = {
     },
     'Sandstorm': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'sand';
+            if (battle) battle.weather = 'sandstorm'; // 标准值: sandstorm
             logs.push('沙暴刮起来了!');
             logs.push('<span style="color:#d4ac0d">岩石系特防提升，非岩/地/钢系每回合受伤!</span>');
-            return { weather: 'sand' };
+            return { weather: 'sandstorm' };
         },
         description: '召唤沙暴'
     },
     'Hail': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'hail';
+            if (battle) battle.weather = 'hail'; // 标准值: hail
             logs.push('开始下冰雹了!');
             logs.push('<span style="color:#5dade2">非冰系每回合受伤!</span>');
             return { weather: 'hail' };
@@ -12839,7 +13380,7 @@ const MoveHandlers = {
     },
     'Snowscape': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'snow';
+            if (battle) battle.weather = 'snow'; // 标准值: snow
             logs.push('下起了雪!');
             logs.push('<span style="color:#85c1e9">冰系防御提升!</span>');
             return { weather: 'snow' };
@@ -12924,7 +13465,8 @@ const MoveHandlers = {
     'Solar Beam': {
         onUse: (attacker, defender, logs, battle) => {
             // 简化：直接发射，不需要蓄力
-            if (battle && battle.weather === 'sun') {
+            // 【天气统一】兼容 sun 和 harshsun
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 logs.push(`${attacker.cnName} 借助强烈的阳光，瞬间发射了日光束!`);
             } else {
                 logs.push(`${attacker.cnName} 迅速聚集能量发射了日光束!`);
@@ -12935,7 +13477,8 @@ const MoveHandlers = {
     },
     'Solar Blade': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle && battle.weather === 'sun') {
+            // 【天气统一】兼容 sun 和 harshsun
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
                 logs.push(`${attacker.cnName} 借助阳光的力量挥出了日光刃!`);
             } else {
                 logs.push(`${attacker.cnName} 聚集光芒挥出了日光刃!`);
@@ -13298,8 +13841,9 @@ const MoveHandlers = {
         onHit: (attacker, defender, damage, logs, battle) => {
             let healRatio = 0.5;
             // 天气影响
+            // 【天气统一】兼容 sun 和 harshsun
             if (battle) {
-                if (battle.weather === 'sunnyday' || battle.weather === 'desolateland') {
+                if (battle.weather === 'sun' || battle.weather === 'harshsun') {
                     healRatio = 2/3;
                 } else if (battle.weather && battle.weather !== 'none') {
                     healRatio = 0.25;
@@ -13320,8 +13864,9 @@ const MoveHandlers = {
     'Morning Sun': {
         onHit: (attacker, defender, damage, logs, battle) => {
             let healRatio = 0.5;
+            // 【天气统一】兼容 sun 和 harshsun
             if (battle) {
-                if (battle.weather === 'sunnyday' || battle.weather === 'desolateland') {
+                if (battle.weather === 'sun' || battle.weather === 'harshsun') {
                     healRatio = 2/3;
                 } else if (battle.weather && battle.weather !== 'none') {
                     healRatio = 0.25;
@@ -13331,7 +13876,7 @@ const MoveHandlers = {
             const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
             if (actualHeal > 0) {
                 attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 沐浴晨光恢复了体力!`);
+                logs.push(`${attacker.cnName} 吸收了清晨的露水恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
             }
@@ -13342,8 +13887,9 @@ const MoveHandlers = {
     'Moonlight': {
         onHit: (attacker, defender, damage, logs, battle) => {
             let healRatio = 0.5;
+            // 【天气统一】兼容 sun 和 harshsun
             if (battle) {
-                if (battle.weather === 'sunnyday' || battle.weather === 'desolateland') {
+                if (battle.weather === 'sun' || battle.weather === 'harshsun') {
                     healRatio = 2/3;
                 } else if (battle.weather && battle.weather !== 'none') {
                     healRatio = 0.25;
@@ -13353,7 +13899,7 @@ const MoveHandlers = {
             const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
             if (actualHeal > 0) {
                 attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 沐浴月光恢复了体力!`);
+                logs.push(`${attacker.cnName} 吸收了月光恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
             }
@@ -13658,7 +14204,16 @@ const MoveHandlers = {
             attacker.statusTurns = 0;
             // 睡眠回合数（Rest 固定睡2回合，第3回合醒来）
             attacker.sleepTurns = 3;
+            attacker.sleepDuration = 3;
             logs.push(`${attacker.cnName} 睡着了并恢复了全部体力!`);
+            // 【修复】立即检查状态治愈树果（零余果/木子果）
+            if (typeof ItemEffects !== 'undefined' && ItemEffects.checkStatusBerry) {
+                const berryLogs = [];
+                const triggered = ItemEffects.checkStatusBerry(attacker, berryLogs);
+                if (triggered) {
+                    berryLogs.forEach(txt => logs.push(txt));
+                }
+            }
             return { rest: true };
         },
         description: '完全回复HP，但陷入睡眠2回合'
@@ -14515,8 +15070,8 @@ const MoveHandlers = {
     'Max Flare': {
         isMax: true,
         onHit: (user, target, damage, logs, battle) => {
-            if (battle && battle.weather !== 'sunnyday') {
-                battle.weather = 'sunnyday';
+            if (battle && battle.weather !== 'sun') {
+                battle.weather = 'sun'; // 标准值: sun
                 battle.weatherTurns = 5;
                 logs.push(`<span style="color:#f59e0b">☀️ 阳光变得强烈了！</span>`);
             }
@@ -14527,8 +15082,8 @@ const MoveHandlers = {
     'Max Geyser': {
         isMax: true,
         onHit: (user, target, damage, logs, battle) => {
-            if (battle && battle.weather !== 'raindance') {
-                battle.weather = 'raindance';
+            if (battle && battle.weather !== 'rain') {
+                battle.weather = 'rain'; // 标准值: rain
                 battle.weatherTurns = 5;
                 logs.push(`<span style="color:#3b82f6">🌧️ 天空下起了大雨！</span>`);
             }
@@ -14540,7 +15095,7 @@ const MoveHandlers = {
         isMax: true,
         onHit: (user, target, damage, logs, battle) => {
             if (battle && battle.weather !== 'hail') {
-                battle.weather = 'hail';
+                battle.weather = 'hail'; // 标准值: hail
                 battle.weatherTurns = 5;
                 logs.push(`<span style="color:#a5f3fc">❄️ 冰雹开始下了！</span>`);
             }
@@ -14552,7 +15107,7 @@ const MoveHandlers = {
         isMax: true,
         onHit: (user, target, damage, logs, battle) => {
             if (battle && battle.weather !== 'sandstorm') {
-                battle.weather = 'sandstorm';
+                battle.weather = 'sandstorm'; // 标准值: sandstorm
                 battle.weatherTurns = 5;
                 logs.push(`<span style="color:#d97706">🏜️ 沙暴刮起来了！</span>`);
             }
@@ -14775,7 +15330,9 @@ const MoveHandlers = {
         onHit: (user, target, damage, logs, battle) => {
             if (!battle) return {};
             const userSide = (user === battle.getPlayer()) ? battle.playerSide : battle.enemySide;
-            const itemExt = (user.item === 'Light Clay') ? 3 : 0;
+            // 【道具统一】使用规范化 ID 比较
+            const userItemId = (user.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const itemExt = (userItemId === 'lightclay') ? 3 : 0;
             if (!userSide.auroraVeil || userSide.auroraVeil <= 0) {
                 userSide.auroraVeil = 5 + itemExt;
                 logs.push(`<b style="color:#a5f3fc">❄️ 极光旋律开启了极光幕！物理和特殊伤害都将减半！</b>`);
@@ -15329,11 +15886,141 @@ const MoveHandlers = {
             return {};
         },
         description: '冰球，威力递增，变圆后翻倍'
-    }
+    },
+    // ============================================
+    // 梦话 (Sleep Talk) - 睡眠中随机使用其他招式
+    // ============================================
+    'Sleep Talk': {
+        onUse: (user, target, logs, battle) => {
+            // 检查使用者是否睡眠（包括绝对睡眠特性）
+            const userAbility = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isAsleep = user.status === 'slp' || userAbility === 'comatose';
+            if (!isAsleep) {
+                logs.push(`但是招式失败了！`);
+                return { failed: true };
+            }
+            // 获取可用招式（排除梦话自身和不能被梦话调用的招式）
+            const availableMoves = [];
+            const userMoves = user.moves || [];
+            for (const moveSlot of userMoves) {
+                const moveName = moveSlot.name || moveSlot;
+                if (moveName === 'Sleep Talk') continue; // 排除梦话自身
+                // 检查招式是否有 nosleeptalk 标记
+                const moveId = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const moveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+                if (moveData.flags && moveData.flags.nosleeptalk) continue;
+                availableMoves.push(moveSlot);
+            }
+            if (availableMoves.length === 0) {
+                logs.push(`但是招式失败了！`);
+                return { failed: true };
+            }
+            // 随机选择一个招式
+            const randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            const selectedMoveName = randomMove.name || randomMove;
+            logs.push(`梦话选择了 ${selectedMoveName}！`);
+            // 返回要执行的招式
+            return { 
+                callMove: randomMove,
+                skipDamage: true // 跳过梦话本身的伤害计算
+            };
+        },
+        description: '睡眠中随机使用其他招式'
+    },
+    // ============================================
+    // 打鼾 (Snore) - 睡眠中使用的音波攻击
+    // ============================================
+    'Snore': {
+        onUse: (user, target, logs, battle) => {
+            // 检查使用者是否睡眠（包括绝对睡眠特性）
+            const userAbility = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isAsleep = user.status === 'slp' || userAbility === 'comatose';
+            if (!isAsleep) {
+                logs.push(`但是招式失败了！`);
+                return { failed: true };
+            }
+            // 打鼾可以正常使用，不需要特殊处理
+            return {};
+        },
+        description: '睡眠中使用的音波攻击，可能使对手畏缩'
+    },
+    // ============================================
+    // 珍藏 (Last Resort) - 必须已使用过其他所有招式
+    // ============================================
+    'Last Resort': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            const userMoves = user.moves || [];
+            const usedMoves = user.usedMoves || new Set();
+            // 统计需要使用的其他招式数量
+            let otherMoveCount = 0;
+            let usedOtherMoveCount = 0;
+            for (const moveSlot of userMoves) {
+                const moveName = moveSlot.name || moveSlot;
+                if (moveName === 'Last Resort') continue;
+                otherMoveCount++;
+                if (usedMoves.has(moveName)) {
+                    usedOtherMoveCount++;
+                }
+            }
+            // 如果没有其他招式，或者还有招式没用过，则失败
+            if (otherMoveCount === 0 || usedOtherMoveCount < otherMoveCount) {
+                logs.push(`但是招式失败了！`);
+                console.log(`[LAST RESORT] 失败：已用 ${usedOtherMoveCount}/${otherMoveCount} 个其他招式`);
+                return { failed: true };
+            }
+            console.log(`[LAST RESORT] 成功：已用 ${usedOtherMoveCount}/${otherMoveCount} 个其他招式`);
+            return {};
+        },
+        description: '必须已使用过其他所有招式才能发动'
+    },
     // 注意：以下招式由 move-effects.js 统一处理，不需要在这里重复定义：
     // - Taunt, Encore, Disable -> MoveEffects.applyVolatileStatus
     // - Stealth Rock, Spikes, Toxic Spikes, Sticky Web -> MoveEffects.applySideCondition
     // - Haze -> MoveEffects (已有 onHit 处理器在上方)
+    // ============================================
+    // 【吵闹 Uproar】- 持续3回合，期间全场无法入睡
+    // ============================================
+    'Uproar': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 初始化或继续吵闹状态
+            if (!user.volatile) user.volatile = {};
+            if (!user.volatile.uproar) {
+                // 开始吵闹，持续3回合
+                user.volatile.uproar = 3;
+                logs.push(`<span style="color:#f39c12">📢 ${user.cnName} 开始大吵大闹了！</span>`);
+            } else {
+                // 继续吵闹
+                logs.push(`<span style="color:#f39c12">📢 ${user.cnName} 继续大吵大闹！</span>`);
+            }
+            // 唤醒场上所有睡着的宝可梦
+            if (battle) {
+                const playerPoke = battle.playerParty?.[battle.playerActive];
+                const enemyPoke = battle.enemyParty?.[battle.enemyActive];
+                if (playerPoke && playerPoke.status === 'slp' && playerPoke !== user) {
+                    playerPoke.status = null;
+                    playerPoke.statusTurns = 0;
+                    logs.push(`${playerPoke.cnName} 被吵醒了！`);
+                }
+                if (enemyPoke && enemyPoke.status === 'slp' && enemyPoke !== user) {
+                    enemyPoke.status = null;
+                    enemyPoke.statusTurns = 0;
+                    logs.push(`${enemyPoke.cnName} 被吵醒了！`);
+                }
+            }
+            return {};
+        },
+        onEndTurn: (pokemon, logs, battle) => {
+            // 回合结束时减少吵闹计数
+            if (pokemon.volatile?.uproar) {
+                pokemon.volatile.uproar--;
+                if (pokemon.volatile.uproar <= 0) {
+                    delete pokemon.volatile.uproar;
+                    logs.push(`${pokemon.cnName} 停止了吵闹。`);
+                }
+            }
+        },
+        description: '持续3回合大吵大闹，期间全场无法入睡，已睡着的会被吵醒'
+    }
 };
 // ============================================
 // 辅助函数：获取技能处理器
@@ -18340,73 +19027,76 @@ function getDefaultBattleData() {
     return {
   "difficulty": "expert",
   "script": {
-    "module": "necrozma_fusion_hook", // 假装通过Hook触发脚本
-    "trigger_fusion_selection": true
+    "module": "weather_status_logic"
   },
   "player": {
-    "name": "YOTA",
-    "canMega": true,
-    "unlocks": {
-        "enable_z_move": true,
-        "enable_ultra_burst": true
-    },
+    "name": "YOTA (The Weather Master)",
     "party": [
       {
         "slot": 1,
-        "name": "Necrozma",
+        // 测试核心1：【状态盾 (Status Shield)】
+        "name": "Gliscor",
+        "nickname": "天蝎王",
         "lv": 100,
-        "gender": "N",
-        "shiny": true,
-        "nature": "Modest",
-        "ability": "Prism Armor",
-        "item": "Ultranecrozium Z", 
-        "mechanic": "zmove", 
-        "isAce": true, 
-        "stats_meta": { "ev_level": 252 },
-        "avs": { "trust": 255, "passion": 200, "insight": 255, "devotion": 150 },
-        "moves": ["Photon Geyser", "Prismatic Laser", "Earth Power", "Calm Mind"]
+        "ability": "Poison Heal", // 毒疗：中毒回血
+        "item": "Toxic Orb",      // 剧毒宝珠：第一回合末让自己剧毒
+        "moves": ["Protect", "Facade", "Earthquake", "Swords Dance"],
+        "//comment": "逻辑点：我甚至不管你有多少催眠技能，我自己先中毒了，你就睡不了我。"
       },
       {
         "slot": 2,
-        "name": "Solgaleo",
+        // 测试核心2：【湿润之躯 (Hydration)】
+        "name": "Goodra-Hisui",
+        "nickname": "黏美龙",
         "lv": 100,
-        "item": "Choice Scarf",
-        "ability": "Full Metal Body",
-        "moves": ["Sunsteel Strike", "Flare Blitz", "Zen Headbutt", "Wild Charge"]
+        "ability": "Hydration", 
+        "item": "Damp Rock",
+        "moves": ["Rain Dance", "Rest", "Dragon Pulse", "Flash Cannon"],
+        "//comment": "逻辑点：这是最赖皮的【超级无限睡觉】。雨天开Rest -> 睡着回满 -> 回合结束Hydration触发 -> 秒醒。"
       },
       {
         "slot": 3,
-        "name": "Lunala",
+        // 测试核心3：【叶子防守 (Leaf Guard)】 vs 哈欠
+        "name": "Leafeon",
+        "nickname": "叶伊布",
         "lv": 100,
-        "item": "Leftovers",
-        "ability": "Shadow Shield",
-        "moves": ["Moongeist Beam", "Psyshock", "Roost", "Will-O-Wisp"]
+        "ability": "Leaf Guard", 
+        "moves": ["Leaf Blade", "Synthesis", "Sunny Day", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "//comment": "逻辑点：在晴天下，免疫所有异常状态（包括哈欠的后续生效）。"
       }
     ]
   },
   "enemy": {
-    "name": "Eternatus (The Darkest Day)",
-    "type": "wild", 
-    "lines": {
-      "start": "ROOOOOOO——!!! (次元的裂缝被无尽的毒云撕裂！)",
-      "win": "天空被染成了绝望的深红……",
-      "lose": "无限的能量甚至被更耀眼的光芒贯穿了！",
-      "escape": "不可能从闇夜中逃脱。"
-    },
+    "name": "Hypno (催眠信徒)",
+    "type": "trainer",
     "party": [
       {
-        "name": "Eternatus-Eternamax", 
+        "name": "Breloom",
+        "lv": 60,
+        "ability": "Technician",
+        "item": "Focus Sash",
+        "moves": ["Spore", "Bullet Seed", "Mach Punch", "Rock Tomb"]
+      },
+      {
+        "name": "Torkoal", // 开晴天的人
         "lv": 100,
-        "ability": "Pressure",
-        "item": "Black Sludge",
-        "mechanic": "dynamax", // 强制巨化逻辑
-        "moves": ["Eternamax Cannon", "Dynamax Cannon", "Sludge Bomb", "Recover"],
-        "stats_meta": { 
-            "ev_level": 252,
-            "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
-        }
+        "ability": "Drought",
+        "moves": ["Yawn", "Overheat", "Stealth Rock", "Rapid Spin"]
+      },
+      {
+        "name": "Gengar",
+        "lv": 100,
+        "ability": "Cursed Body",
+        "moves": ["Hypnosis", "Shadow Ball", "Sludge Bomb", "Destiny Bond"]
       }
-    ]
+    ],
+    "lines": {
+      "start": "不论天气如何，你们最终都会闭上眼睛。",
+      "win": "在这个世界里，清醒的人最痛苦。",
+      "lose": "好刺眼的...阳光...",
+      "escape": "梦醒时分。"
+    }
   }
 }
 }
@@ -26836,6 +27526,21 @@ async function performSwitch(newIndex) {
         }
         oldP.resetBoosts();
     }
+    // 【哈欠修复】换人时清除哈欠状态（官方机制：换人可以躲避哈欠）
+    if (oldP.volatile && oldP.volatile.yawn) {
+        console.log(`[YAWN] ${oldP.cnName} 换下，清除哈欠状态`);
+        delete oldP.volatile.yawn;
+    }
+    // 【吵闹修复】换人时清除吵闹状态（官方机制：使用者离场则吵闹结束）
+    if (oldP.volatile && oldP.volatile.uproar) {
+        console.log(`[UPROAR] ${oldP.cnName} 换下，吵闹状态结束`);
+        delete oldP.volatile.uproar;
+    }
+    // 【Choice 锁招修复】换人时清除锁招状态（官方机制：换人解除锁招）
+    if (oldP.choiceLockedMove) {
+        console.log(`[CHOICE] ${oldP.cnName} 换下，解除 ${oldP.choiceLockedMove} 锁定`);
+        delete oldP.choiceLockedMove;
+    }
     // Pivot 换人使用不同的日志
     if (isPivot) {
         log(`${oldP.cnName} 撤回！${newPoke.cnName} 登场！`);
@@ -28015,85 +28720,6 @@ window.shouldShowCommanderMenu = shouldShowCommanderMenu;
 window.showCommanderMenu = showCommanderMenu;
 window.closeCommanderMenu = closeCommanderMenu;
 window.clearCommandEffects = clearCommandEffects;
-]]></file>
-    <file name="ISLEADER_IMPLEMENTATION.md"><![CDATA[# isLead 功能实现总结
-## 功能说明
-`isLead` 字段用于标记哪只宝可梦应该作为首发出战。当某只宝可梦的 `isLead` 设置为 `true` 时，系统会自动将其移动到队伍的第一个位置（在战斗UI中）。
-## 实现细节
-### 1. Pokemon 构造函数 (battle-engine.js:602-603)
-```javascript
-// 首发标记 (isLead) - 标记该宝可梦是否为首发出战
-this.isLead = config.isLead || false;
-```
-### 2. ST插件支持 (pkm-tavern-plugin.js:7007-7018)
-在 `normalizePokemonFormat` 函数中添加了 `isLead` 和 `isAce` 字段的保留逻辑：
-```javascript
-// === 确保 isAce 和 isLead 被保留 ===
-// isAce: 标记王牌宝可梦（用于羁绊共鸣等特殊机制）
-// isLead: 标记首发宝可梦（自动移到队伍第一位）
-if (pokemon.isAce !== undefined) {
-  pokemon.isAce = Boolean(pokemon.isAce);
-}
-if (pokemon.isLead !== undefined) {
-  pokemon.isLead = Boolean(pokemon.isLead);
-  if (pokemon.isLead) {
-    console.log(`${PLUGIN_NAME} [LEAD] ${pokemon.name} marked as lead Pokemon`);
-  }
-}
-```
-### 3. 玩家队伍处理 (battle-engine.js:1368-1380)
-在 `setPlayerParty` 方法中添加了自动交换逻辑：
-- 查找标记为 `isLead: true` 的宝可梦
-- 如果找到且不在第一位，自动与第一位交换
-- 如果已在第一位，保持不变
-- 如果都为 `false`，使用默认顺序
-### 4. 敌方队伍处理 (battle-engine.js:1328-1340)
-在 `loadFromJSON` 方法中添加了相同的自动交换逻辑，确保敌方训练家的首发宝可梦也能正确处理。
-### 5. JSON 数据格式示例
-```json
-"party": [
-  {
-    "name": "Zacian-Crowned",
-    "lv": 99,
-    "isAce": true,
-    "isLead": false,
-    "moves": [...]
-  },
-  {
-    "name": "Cinderace",
-    "lv": 97,
-    "isLead": true,
-    "mechanic": "dynamax",
-    "moves": [...]
-  },
-  {
-    "name": "Rillaboom",
-    "lv": 95,
-    "isLead": false,
-    "moves": [...]
-  }
-]
-```
-## 逻辑规则
-1. **只能有一只首发**：系统会查找第一个 `isLead: true` 的宝可梦
-2. **自动交换位置**：找到后会与第一位交换，确保首发在第一个位置
-3. **默认行为**：如果所有宝可梦都是 `false`，则使用 JSON 中的原始顺序
-4. **控制台日志**：系统会输出 `[LEAD]` 标签的日志，方便调试
-5. **ST插件支持**：PKM_FRONTEND 会自动保留 `isLead` 字段并输出日志
-## 示例场景
-在 Gloria 的队伍中：
-- 原始顺序：Zacian-Crowned (第1位), Cinderace (第2位), Rillaboom (第3位)...
-- Cinderace 标记为 `isLead: true`
-- 战斗开始时自动交换：Cinderace (第1位), Zacian-Crowned (第2位), Rillaboom (第3位)...
-- 战斗UI中 Cinderace 会作为首发出战
-## 命名理由
-- **术语准确性**：在竞技对战（VGC/Pokemon Showdown）中，首发宝可梦称为 "Lead"
-- **语义清晰**：相比 `isFirst` 或 `active`，`isLead` 明确指代"领头"的位置逻辑
-- **命名一致性**：与现有的 `isAce` 字段保持相同的驼峰命名风格
-## 完整实现文件列表
-1. ✅ `engine/battle-engine.js` - Pokemon构造函数 + 队伍交换逻辑
-2. ✅ `ST/pkm-tavern-plugin.js` - PKM_FRONTEND 字段保留
-3. ✅ `data/trainer-data.js` - 示例数据（Gloria Tier 4）
 ]]></file>
     <file name="mega-selection-dialog.js"><![CDATA[/**
  * 显示 Mega 形态选择对话框（喷火龙/超梦 X/Y 选择）

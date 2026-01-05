@@ -516,6 +516,466 @@ const ITEMS = {
         description: '妖精属性招式威力x1.2',
     },
     
+    // ========== 消耗型香草 (Consumable Herbs) ==========
+    
+    // 【白色香草 White Herb】破壳梦核心
+    whiteherb: {
+        id: 'whiteherb',
+        name: 'White Herb',
+        cnName: '白色香草',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 10 },
+        effect: 'whiteHerb',
+        description: '能力下降时自动还原（一次性）',
+    },
+    
+    // 【强力香草 Power Herb】蓄力技瞬发
+    powerherb: {
+        id: 'powerherb',
+        name: 'Power Herb',
+        cnName: '强力香草',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 10 },
+        effect: 'powerHerb',
+        description: '蓄力技能第一回合就可以瞬发（一次性）',
+    },
+    
+    // 【精神香草 Mental Herb】空间队核心
+    mentalherb: {
+        id: 'mentalherb',
+        name: 'Mental Herb',
+        cnName: '精神香草',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 10 },
+        effect: 'mentalHerb',
+        cures: ['taunt', 'encore', 'torment', 'healblock', 'disable', 'attract'],
+        description: '解除挑衅、再来一次、无理取闹、回复封锁、定身法、着迷（一次性）',
+    },
+    
+    // ========== 天气岩石 (Weather Rocks) ==========
+    
+    // 【热岩石 Heat Rock】晴天队核心
+    heatrock: {
+        id: 'heatrock',
+        name: 'Heat Rock',
+        cnName: '热岩石',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 60 },
+        effect: 'extendWeather',
+        weather: 'sun',
+        duration: 8, // 从5回合延长到8回合
+        description: '晴天持续8回合（默认5回合）',
+    },
+    
+    // 【潮湿岩石 Damp Rock】雨天队核心
+    damprock: {
+        id: 'damprock',
+        name: 'Damp Rock',
+        cnName: '潮湿岩石',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 60 },
+        effect: 'extendWeather',
+        weather: 'rain',
+        duration: 8,
+        description: '雨天持续8回合（默认5回合）',
+    },
+    
+    // 【沙沙岩石 Smooth Rock】沙暴队核心
+    smoothrock: {
+        id: 'smoothrock',
+        name: 'Smooth Rock',
+        cnName: '沙沙岩石',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 10 },
+        effect: 'extendWeather',
+        weather: 'sandstorm',
+        duration: 8,
+        description: '沙暴持续8回合（默认5回合）',
+    },
+    
+    // 【冰冷岩石 Icy Rock】雪天队核心
+    icyrock: {
+        id: 'icyrock',
+        name: 'Icy Rock',
+        cnName: '冰冷岩石',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 40 },
+        effect: 'extendWeather',
+        weather: 'snow',
+        duration: 8,
+        description: '雪天持续8回合（默认5回合）',
+    },
+    
+    // ========== 场地种子 (Terrain Seeds) ==========
+    
+    // 【电气种子 Electric Seed】电气场地消耗
+    electricseed: {
+        id: 'electricseed',
+        name: 'Electric Seed',
+        cnName: '电气种子',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 10 },
+        effect: 'terrainSeed',
+        terrain: 'electricterrain',
+        boosts: { def: 1 },
+        description: '电气场地时防御+1（一次性）',
+    },
+    
+    // 【青草种子 Grassy Seed】青草场地消耗
+    grassyseed: {
+        id: 'grassyseed',
+        name: 'Grassy Seed',
+        cnName: '青草种子',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 10 },
+        effect: 'terrainSeed',
+        terrain: 'grassyterrain',
+        boosts: { def: 1 },
+        description: '青草场地时防御+1（一次性）',
+    },
+    
+    // 【薄雾种子 Misty Seed】薄雾场地消耗
+    mistyseed: {
+        id: 'mistyseed',
+        name: 'Misty Seed',
+        cnName: '薄雾种子',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 10 },
+        effect: 'terrainSeed',
+        terrain: 'mistyterrain',
+        boosts: { spd: 1 },
+        description: '薄雾场地时特防+1（一次性）',
+    },
+    
+    // 【精神种子 Psychic Seed】精神场地消耗
+    psychicseed: {
+        id: 'psychicseed',
+        name: 'Psychic Seed',
+        cnName: '精神种子',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 10 },
+        effect: 'terrainSeed',
+        terrain: 'psychicterrain',
+        boosts: { spd: 1 },
+        description: '精神场地时特防+1（一次性）',
+    },
+    
+    // 【大地膜 Terrain Extender】场地延长
+    terrainextender: {
+        id: 'terrainextender',
+        name: 'Terrain Extender',
+        cnName: '大地膜',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 60 },
+        effect: 'extendTerrain',
+        duration: 8, // 从5回合延长到8回合
+        description: '场地持续8回合（默认5回合）',
+    },
+    
+    // ========== 战术针对型道具 (Niche Tech Items) ==========
+    
+    // 【漂亮外壳 Shed Shell】反制踩影
+    shedshell: {
+        id: 'shedshell',
+        name: 'Shed Shell',
+        cnName: '漂亮外壳',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 10 },
+        effect: 'shedShell',
+        ignoreTrapping: true, // 无视踩影、磁力等
+        description: '无视因特性或招式导致的无法换人',
+    },
+    
+    // 【一般宝石 Normal Gem】大爆炸核心
+    normalgem: {
+        id: 'normalgem',
+        name: 'Normal Gem',
+        cnName: '一般宝石',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 0 },
+        effect: 'typeGem',
+        boostedType: 'Normal',
+        boost: 1.3, // Gen6+ 是 1.3，Gen5 是 1.5
+        description: '一般属性招式威力x1.3（一次性）',
+    },
+    
+    // 【飞行宝石 Flying Gem】杂技核心
+    flyinggem: {
+        id: 'flyinggem',
+        name: 'Flying Gem',
+        cnName: '飞行宝石',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 0 },
+        effect: 'typeGem',
+        boostedType: 'Flying',
+        boost: 1.3,
+        description: '飞行属性招式威力x1.3（一次性）',
+    },
+    
+    // 【节拍器 Metronome (Item)】连打战术
+    metronomeitem: {
+        id: 'metronomeitem',
+        name: 'Metronome',
+        cnName: '节拍器',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 30 },
+        effect: 'metronome',
+        maxBoost: 2.0, // 最高 x2.0
+        description: '连续使用同一招式，威力递增（最高x2.0）',
+    },
+    
+    // 【驱劲能量 Booster Energy】悖谬种核心
+    boosterenergy: {
+        id: 'boosterenergy',
+        name: 'Booster Energy',
+        cnName: '驱劲能量',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 30 },
+        effect: 'boosterEnergy',
+        description: '激活古代活性/夸克充能特性（一次性）',
+    },
+    
+    // ========== 属性石板 (Plates) - 阿尔宙斯专属 ==========
+    
+    flameplate: {
+        id: 'flameplate',
+        name: 'Flame Plate',
+        cnName: '火之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Fire',
+        boost: 1.2,
+        onPlate: 'Arceus', // 阿尔宙斯专属变形
+        description: '火属性招式威力x1.2，阿尔宙斯变为火属性',
+    },
+    splashplate: {
+        id: 'splashplate',
+        name: 'Splash Plate',
+        cnName: '水之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Water',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '水属性招式威力x1.2，阿尔宙斯变为水属性',
+    },
+    meadowplate: {
+        id: 'meadowplate',
+        name: 'Meadow Plate',
+        cnName: '草之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Grass',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '草属性招式威力x1.2，阿尔宙斯变为草属性',
+    },
+    zapplate: {
+        id: 'zapplate',
+        name: 'Zap Plate',
+        cnName: '雷之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Electric',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '电属性招式威力x1.2，阿尔宙斯变为电属性',
+    },
+    icicleplate: {
+        id: 'icicleplate',
+        name: 'Icicle Plate',
+        cnName: '冰之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Ice',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '冰属性招式威力x1.2，阿尔宙斯变为冰属性',
+    },
+    fistplate: {
+        id: 'fistplate',
+        name: 'Fist Plate',
+        cnName: '拳之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Fighting',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '格斗属性招式威力x1.2，阿尔宙斯变为格斗属性',
+    },
+    toxicplate: {
+        id: 'toxicplate',
+        name: 'Toxic Plate',
+        cnName: '毒之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Poison',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '毒属性招式威力x1.2，阿尔宙斯变为毒属性',
+    },
+    earthplate: {
+        id: 'earthplate',
+        name: 'Earth Plate',
+        cnName: '地之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Ground',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '地面属性招式威力x1.2，阿尔宙斯变为地面属性',
+    },
+    skyplate: {
+        id: 'skyplate',
+        name: 'Sky Plate',
+        cnName: '天之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Flying',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '飞行属性招式威力x1.2，阿尔宙斯变为飞行属性',
+    },
+    mindplate: {
+        id: 'mindplate',
+        name: 'Mind Plate',
+        cnName: '心之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Psychic',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '超能属性招式威力x1.2，阿尔宙斯变为超能属性',
+    },
+    insectplate: {
+        id: 'insectplate',
+        name: 'Insect Plate',
+        cnName: '虫之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Bug',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '虫属性招式威力x1.2，阿尔宙斯变为虫属性',
+    },
+    stoneplate: {
+        id: 'stoneplate',
+        name: 'Stone Plate',
+        cnName: '岩之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Rock',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '岩石属性招式威力x1.2，阿尔宙斯变为岩石属性',
+    },
+    spookyplate: {
+        id: 'spookyplate',
+        name: 'Spooky Plate',
+        cnName: '妖之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Ghost',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '幽灵属性招式威力x1.2，阿尔宙斯变为幽灵属性',
+    },
+    dracoplate: {
+        id: 'dracoplate',
+        name: 'Draco Plate',
+        cnName: '龙之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Dragon',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '龙属性招式威力x1.2，阿尔宙斯变为龙属性',
+    },
+    dreadplate: {
+        id: 'dreadplate',
+        name: 'Dread Plate',
+        cnName: '恶之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Dark',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '恶属性招式威力x1.2，阿尔宙斯变为恶属性',
+    },
+    ironplate: {
+        id: 'ironplate',
+        name: 'Iron Plate',
+        cnName: '钢之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Steel',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '钢属性招式威力x1.2，阿尔宙斯变为钢属性',
+    },
+    pixieplate: {
+        id: 'pixieplate',
+        name: 'Pixie Plate',
+        cnName: '妖之石板',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 90 },
+        effect: 'plate',
+        plateType: 'Fairy',
+        boost: 1.2,
+        onPlate: 'Arceus',
+        description: '妖精属性招式威力x1.2，阿尔宙斯变为妖精属性',
+    },
+    
     // ========== 太晶珠 (Tera Orbs) ==========
     
     teraorb: {
@@ -876,7 +1336,7 @@ const ITEMS = {
     occaberry: {
         id: 'occaberry',
         name: 'Occa Berry',
-        cnName: '枝荔果',
+        cnName: '欧卡果',
         category: 'berry',
         consumable: true,
         isBerry: true,
@@ -972,7 +1432,7 @@ const ITEMS = {
     cobaberry: {
         id: 'cobaberry',
         name: 'Coba Berry',
-        cnName: '勿花果',
+        cnName: '科巴果',
         category: 'berry',
         consumable: true,
         isBerry: true,
@@ -1107,7 +1567,7 @@ const ITEMS = {
     ganlonberry: {
         id: 'ganlonberry',
         name: 'Ganlon Berry',
-        cnName: '龙睛果',
+        cnName: '龙成果',
         category: 'berry',
         consumable: true,
         isBerry: true,
@@ -1120,7 +1580,7 @@ const ITEMS = {
     salacberry: {
         id: 'salacberry',
         name: 'Salac Berry',
-        cnName: '沙鳞果',
+        cnName: '莎啦果',
         category: 'berry',
         consumable: true,
         isBerry: true,
@@ -1643,6 +2103,233 @@ const ItemEffects = {
         }
         
         return false;
+    },
+    
+    // ============================================
+    // 2026-01 新增道具效果
+    // ============================================
+    
+    /**
+     * 【白色香草 White Herb】能力下降时自动还原
+     * 应在 applyBoost 后调用
+     * @param {Object} pokemon - 宝可梦
+     * @param {string} stat - 下降的能力
+     * @param {number} stages - 下降的阶级（负数）
+     * @param {Array} logs - 日志数组
+     * @returns {boolean} 是否触发
+     */
+    checkWhiteHerb(pokemon, stat, stages, logs = []) {
+        if (!pokemon.item || stages >= 0) return false;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId !== 'whiteherb') return false;
+        
+        // 还原所有下降的能力
+        const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度', acc: '命中', eva: '闪避' };
+        const restored = [];
+        
+        for (const s of ['atk', 'def', 'spa', 'spd', 'spe', 'acc', 'eva']) {
+            if (pokemon.boosts && pokemon.boosts[s] < 0) {
+                restored.push(statNames[s] || s);
+                pokemon.boosts[s] = 0;
+            }
+        }
+        
+        if (restored.length > 0) {
+            pokemon.item = null;
+            logs.push(`<b style="color:#27ae60">🌿 ${pokemon.cnName} 的白色香草生效了！${restored.join('、')}恢复了！</b>`);
+            return true;
+        }
+        
+        return false;
+    },
+    
+    /**
+     * 【精神香草 Mental Herb】解除挑衅等状态
+     * 应在被挑衅/再来一次等状态后调用
+     * @param {Object} pokemon - 宝可梦
+     * @param {string} condition - 被施加的状态
+     * @param {Array} logs - 日志数组
+     * @returns {boolean} 是否触发
+     */
+    checkMentalHerb(pokemon, condition, logs = []) {
+        if (!pokemon.item) return false;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId !== 'mentalherb') return false;
+        
+        const cures = ['taunt', 'encore', 'torment', 'healblock', 'disable', 'attract'];
+        if (!cures.includes(condition)) return false;
+        
+        // 解除状态
+        if (pokemon.volatile) {
+            pokemon.volatile[condition] = 0;
+        }
+        
+        const conditionNames = {
+            taunt: '挑衅', encore: '再来一次', torment: '无理取闹',
+            healblock: '回复封锁', disable: '定身法', attract: '着迷'
+        };
+        
+        pokemon.item = null;
+        logs.push(`<b style="color:#9b59b6">🌿 ${pokemon.cnName} 的精神香草生效了！解除了${conditionNames[condition] || condition}！</b>`);
+        return true;
+    },
+    
+    /**
+     * 【天气岩石】获取天气持续回合数
+     * @param {Object} pokemon - 使用天气技能的宝可梦
+     * @param {string} weather - 天气类型
+     * @returns {number} 持续回合数
+     */
+    getWeatherDuration(pokemon, weather) {
+        if (!pokemon.item) return 5;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        
+        if (!itemData || itemData.effect !== 'extendWeather') return 5;
+        if (itemData.weather !== weather) return 5;
+        
+        return itemData.duration || 8;
+    },
+    
+    /**
+     * 【场地种子】检查场地种子触发
+     * 应在场地变化或入场时调用
+     * @param {Object} pokemon - 宝可梦
+     * @param {string} terrain - 当前场地
+     * @param {Array} logs - 日志数组
+     * @returns {boolean} 是否触发
+     */
+    checkTerrainSeed(pokemon, terrain, logs = []) {
+        if (!pokemon.item || !terrain) return false;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        
+        if (!itemData || itemData.effect !== 'terrainSeed') return false;
+        if (itemData.terrain !== terrain) return false;
+        
+        // 应用能力提升
+        const seedName = itemData.cnName || itemData.name;
+        const statNames = { def: '防御', spd: '特防' };
+        
+        for (const [stat, amount] of Object.entries(itemData.boosts)) {
+            if (typeof pokemon.applyBoost === 'function') {
+                pokemon.applyBoost(stat, amount);
+            } else {
+                if (!pokemon.boosts) pokemon.boosts = {};
+                pokemon.boosts[stat] = Math.min(6, (pokemon.boosts[stat] || 0) + amount);
+            }
+            logs.push(`<b style="color:#22c55e">🌱 ${pokemon.cnName} 的${seedName}生效了！${statNames[stat] || stat}提升了！</b>`);
+        }
+        
+        pokemon.item = null;
+        
+        // 触发 Unburden
+        if (typeof AbilityHandlers !== 'undefined' && pokemon.ability) {
+            const handler = AbilityHandlers[pokemon.ability];
+            if (handler && handler.onItemLost) {
+                handler.onItemLost(pokemon, seedName, logs);
+            }
+        }
+        
+        return true;
+    },
+    
+    /**
+     * 【大地膜】获取场地持续回合数
+     * @param {Object} pokemon - 使用场地技能的宝可梦
+     * @returns {number} 持续回合数
+     */
+    getTerrainDuration(pokemon) {
+        if (!pokemon.item) return 5;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId === 'terrainextender') return 8;
+        
+        return 5;
+    },
+    
+    /**
+     * 【属性宝石】检查属性宝石触发
+     * 应在伤害计算前调用
+     * @param {Object} pokemon - 攻击方
+     * @param {string} moveType - 招式属性
+     * @param {Array} logs - 日志数组
+     * @returns {number} 威力倍率
+     */
+    checkTypeGem(pokemon, moveType, logs = []) {
+        if (!pokemon.item) return 1;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        
+        if (!itemData || itemData.effect !== 'typeGem') return 1;
+        if (itemData.boostedType !== moveType) return 1;
+        
+        const gemName = itemData.cnName || itemData.name;
+        pokemon.item = null;
+        logs.push(`<b style="color:#a855f7">💎 ${pokemon.cnName} 的${gemName}发光了！</b>`);
+        
+        return itemData.boost || 1.3;
+    },
+    
+    /**
+     * 【漂亮外壳】检查是否可以换人
+     * @param {Object} pokemon - 宝可梦
+     * @returns {boolean} 是否可以无视束缚换人
+     */
+    canEscapeTrapping(pokemon) {
+        if (!pokemon.item) return false;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        
+        return itemData && itemData.ignoreTrapping;
+    },
+    
+    /**
+     * 【节拍器】获取连续使用同一招式的威力加成
+     * @param {Object} pokemon - 宝可梦
+     * @param {string} moveName - 当前招式名
+     * @returns {number} 威力倍率
+     */
+    getMetronomeBoost(pokemon, moveName) {
+        if (!pokemon.item) return 1;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId !== 'metronomeitem') return 1;
+        
+        // 检查是否连续使用同一招式
+        if (!pokemon.lastMove || pokemon.lastMove !== moveName) {
+            pokemon.metronomeCount = 1;
+            return 1;
+        }
+        
+        // 连续使用，递增计数
+        pokemon.metronomeCount = Math.min(5, (pokemon.metronomeCount || 1) + 1);
+        // 威力 = 1.0 + 0.2 * (count - 1)，最高 2.0
+        return 1 + 0.2 * (pokemon.metronomeCount - 1);
+    },
+    
+    /**
+     * 【石板】获取石板威力加成
+     * @param {Object} pokemon - 宝可梦
+     * @param {string} moveType - 招式属性
+     * @returns {number} 威力倍率
+     */
+    getPlateBoost(pokemon, moveType) {
+        if (!pokemon.item) return 1;
+        
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const itemData = ITEMS[itemId];
+        
+        if (!itemData || itemData.effect !== 'plate') return 1;
+        if (itemData.plateType !== moveType) return 1;
+        
+        return itemData.boost || 1.2;
     },
 };
 

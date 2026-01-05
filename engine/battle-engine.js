@@ -972,6 +972,34 @@ class Pokemon {
         this.currHp = Math.min(this.maxHp, this.currHp + amount);
     }
     
+    /**
+     * 消耗道具（触发 Unburden 等特性）
+     * @param {string} reason - 消耗原因 ('use', 'fling', 'knockoff', 'consume')
+     * @returns {string|null} - 被消耗的道具名称
+     */
+    consumeItem(reason = 'consume') {
+        if (!this.item) return null;
+        
+        const consumedItem = this.item;
+        this.item = null;
+        
+        // 触发 onItemLost 钩子（Unburden 等特性）
+        if (typeof AbilityHandlers !== 'undefined' && this.ability) {
+            const handler = AbilityHandlers[this.ability];
+            if (handler && handler.onItemLost) {
+                let logs = [];
+                handler.onItemLost(this, consumedItem, logs);
+                // 日志输出由调用方处理
+                if (logs.length > 0 && typeof log === 'function') {
+                    logs.forEach(txt => log(txt));
+                }
+            }
+        }
+        
+        console.log(`[ITEM] ${this.cnName} 的 ${consumedItem} 被消耗了 (${reason})`);
+        return consumedItem;
+    }
+    
     // === 重置能力变化 (换人时调用) ===
     resetBoosts() {
         this.boosts = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 };

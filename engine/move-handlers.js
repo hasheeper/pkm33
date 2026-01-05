@@ -12,9 +12,61 @@
  * - onHit: 命中后的额外效果
  * - onMiss: 未命中时的效果
  * - onUse: 使用时的效果（蓄力等）
+ * - onAfterHit: 命中后的额外效果（带伤害参数）
  * - modifyAtk: 修改攻击力计算
  * - modifyDef: 修改防御力计算
  */
+
+// ============================================
+// 辅助函数
+// ============================================
+
+/**
+ * 检查道具是否可以被 Knock Off 打落
+ * 不能打落：Mega 石、Z 纯晶、专属道具（朱红色宝珠等）
+ */
+function canKnockOff(pokemon) {
+    if (!pokemon.item) return false;
+    
+    const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    // Mega 石不能打落
+    if (itemId.endsWith('ite') || itemId.endsWith('itex') || itemId.endsWith('itey')) {
+        // 检查是否是对应宝可梦的 Mega 石
+        const pokemonId = pokemon.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId.includes(pokemonId) || itemId.includes('mega')) {
+            return false;
+        }
+    }
+    
+    // Z 纯晶不能打落
+    if (itemId.endsWith('z') && itemId.includes('ium')) {
+        return false;
+    }
+    
+    // 专属道具不能打落（朱红色宝珠、靛蓝色宝珠等）
+    const unremovableItems = [
+        'redorb', 'blueorb', // 固拉多/盖欧卡
+        'griseousorb', 'griseouscore', // 骑拉帝纳
+        'adamantorb', 'lustrousorb', // 帝牙卢卡/帕路奇亚
+        'souldew', // 拉帝亚斯/拉帝欧斯（Gen6 前）
+        'rustedsword', 'rustedshield', // 苍响/藏玛然特
+        'boosterenergy', // 悖谬种（不能打落）
+    ];
+    if (unremovableItems.includes(itemId)) {
+        return false;
+    }
+    
+    // Sticky Hold 特性防止道具被打落
+    if (typeof AbilityHandlers !== 'undefined' && pokemon.ability) {
+        const handler = AbilityHandlers[pokemon.ability];
+        if (handler && handler.preventItemTheft) {
+            return false;
+        }
+    }
+    
+    return true;
+}
 
 const MoveHandlers = {
     
@@ -292,6 +344,128 @@ const MoveHandlers = {
             return 85;
         },
         description: '如果比对手先出手，威力翻倍 (170)'
+    },
+    
+    // ============================================
+    // 2.5 条件倍率技能 (Conditional Power Moves)
+    // ============================================
+    
+    // 【落拳 Knock Off】竞技环境万金油
+    // 如果目标持有可移除道具，威力 x1.5，攻击后移除道具
+    'Knock Off': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 检查目标是否持有可移除道具
+            if (defender.item && canKnockOff(defender)) {
+                console.log(`[Knock Off] 目标持有 ${defender.item}，威力 x1.5`);
+                return 97; // 65 * 1.5 = 97.5
+            }
+            return 65;
+        },
+        onAfterHit: (attacker, defender, move, damage, logs) => {
+            // 攻击后移除道具
+            if (defender.item && canKnockOff(defender) && damage > 0) {
+                const removedItem = defender.item;
+                defender.item = null;
+                logs.push(`<b style="color:#8b5cf6">🔨 ${defender.cnName} 的 ${removedItem} 被打落了！</b>`);
+                
+                // 触发 Unburden 等特性
+                if (typeof defender.consumeItem === 'function') {
+                    // consumeItem 已经处理了 item = null，这里只触发钩子
+                    if (typeof AbilityHandlers !== 'undefined' && defender.ability) {
+                        const handler = AbilityHandlers[defender.ability];
+                        if (handler && handler.onItemLost) {
+                            handler.onItemLost(defender, removedItem, logs);
+                        }
+                    }
+                }
+            }
+        },
+        description: '如果目标持有道具，威力x1.5并打落道具'
+    },
+    
+    // 【杂技 Acrobatics】消耗流飞行系核心
+    // 不持有道具时威力翻倍 (55 -> 110)
+    'Acrobatics': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (!attacker.item) {
+                console.log(`[Acrobatics] 无道具，威力翻倍！110`);
+                return 110;
+            }
+            return 55;
+        },
+        description: '不持有道具时威力翻倍 (110)'
+    },
+    
+    // 【硬撑 Facade】异常状态物攻手核心
+    // 烧伤/麻痹/中毒时威力翻倍，且无视烧伤的物攻减半
+    'Facade': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (attacker.status === 'brn' || attacker.status === 'par' || 
+                attacker.status === 'psn' || attacker.status === 'tox') {
+                console.log(`[Facade] 异常状态，威力翻倍！140`);
+                return 140;
+            }
+            return 70;
+        },
+        ignoreBurn: true, // 标记：无视烧伤的物攻减半
+        description: '异常状态时威力翻倍 (140)，无视烧伤减攻'
+    },
+    
+    // 【祸不单行 Hex】鬼火流特攻手核心
+    // 目标有异常状态时威力翻倍
+    'Hex': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (defender.status) {
+                console.log(`[Hex] 目标有异常状态，威力翻倍！130`);
+                return 130;
+            }
+            return 65;
+        },
+        description: '目标有异常状态时威力翻倍 (130)'
+    },
+    
+    // 【报复 Payback】被打后威力翻倍
+    'Payback': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 简化：如果速度比对手慢，视为后手，威力翻倍
+            const mySpeed = attacker.getStat ? attacker.getStat('spe') : attacker.spe;
+            const enemySpeed = defender.getStat ? defender.getStat('spe') : defender.spe;
+            if (mySpeed < enemySpeed) {
+                return 100;
+            }
+            return 50;
+        },
+        description: '后手时威力翻倍 (100)'
+    },
+    
+    // 【报仇 Revenge】被打后威力翻倍
+    'Revenge': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 如果本回合受到过伤害，威力翻倍
+            if (attacker.turnData && attacker.turnData.lastDamageTaken && attacker.turnData.lastDamageTaken.amount > 0) {
+                return 120;
+            }
+            return 60;
+        },
+        description: '本回合受伤后威力翻倍 (120)'
+    },
+    
+    // 【觉醒力量 Wake-Up Slap】目标睡眠时威力翻倍并唤醒
+    'Wake-Up Slap': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (defender.status === 'slp') {
+                return 140;
+            }
+            return 70;
+        },
+        onAfterHit: (attacker, defender, move, damage, logs) => {
+            if (defender.status === 'slp' && damage > 0) {
+                defender.status = null;
+                defender.sleepTurns = 0;
+                logs.push(`${defender.cnName} 被打醒了！`);
+            }
+        },
+        description: '目标睡眠时威力翻倍并唤醒'
     },
     
     // 【光子喷涌】使用物攻和特攻中较高的一方计算伤害
@@ -916,6 +1090,126 @@ const MoveHandlers = {
     },
     
     // ============================================
+    // 6.5 环境动态技能 (Environment-Based Moves)
+    // ============================================
+    
+    // 【天气球 Weather Ball】天气队核心补盲技能
+    // 根据天气改变属性和威力
+    'Weather Ball': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 有天气时威力翻倍
+            if (battle && battle.weather && battle.weather !== 'none') {
+                console.log(`[Weather Ball] 天气 ${battle.weather}，威力翻倍！100`);
+                return 100;
+            }
+            return 50;
+        },
+        onModifyType: (move, attacker, battle) => {
+            if (!battle || !battle.weather || battle.weather === 'none') return 'Normal';
+            
+            switch (battle.weather) {
+                case 'sun':
+                case 'harshsun':
+                    return 'Fire';
+                case 'rain':
+                case 'heavyrain':
+                    return 'Water';
+                case 'sandstorm':
+                    return 'Rock';
+                case 'hail':
+                case 'snow':
+                    return 'Ice';
+                default:
+                    return 'Normal';
+            }
+        },
+        description: '根据天气改变属性和威力'
+    },
+    
+    // 【广域战力 Expanding Force】精神场地核心技能
+    // 精神场地下威力提升，且变为全体攻击
+    'Expanding Force': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (battle && battle.terrain === 'psychicterrain') {
+                console.log(`[Expanding Force] 精神场地，威力提升！120`);
+                return 120; // 80 * 1.5
+            }
+            return 80;
+        },
+        description: '精神场地下威力x1.5'
+    },
+    
+    // 【冲浪 Rising Voltage】电气场地下威力翻倍
+    'Rising Voltage': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (battle && battle.terrain === 'electricterrain') {
+                console.log(`[Rising Voltage] 电气场地，威力翻倍！140`);
+                return 140;
+            }
+            return 70;
+        },
+        description: '电气场地下威力翻倍'
+    },
+    
+    // 【青草滑梯 Grassy Glide】青草场地下先制
+    'Grassy Glide': {
+        priority: 0, // 默认优先度
+        onModifyPriority: (priority, user, target, move, battle) => {
+            if (battle && battle.terrain === 'grassyterrain') {
+                console.log(`[Grassy Glide] 青草场地，先制+1！`);
+                return 1;
+            }
+            return priority;
+        },
+        description: '青草场地下先制'
+    },
+    
+    // 【薄雾爆发 Misty Explosion】薄雾场地下威力x1.5
+    'Misty Explosion': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (battle && battle.terrain === 'mistyterrain') {
+                console.log(`[Misty Explosion] 薄雾场地，威力x1.5！150`);
+                return 150;
+            }
+            return 100;
+        },
+        onUse: (attacker, defender, logs, battle) => {
+            // 使用者倒下
+            attacker.currHp = 0;
+            logs.push(`${attacker.cnName} 引发了薄雾爆发！`);
+            return { selfDestruct: true };
+        },
+        description: '薄雾场地下威力x1.5，使用者倒下'
+    },
+    
+    // 【大地之力 Terrain Pulse】根据场地改变属性
+    'Terrain Pulse': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (battle && battle.terrain && battle.terrain !== 'none') {
+                return 100; // 威力翻倍
+            }
+            return 50;
+        },
+        onModifyType: (move, attacker, battle) => {
+            if (!battle || !battle.terrain || battle.terrain === 'none') return 'Normal';
+            
+            switch (battle.terrain) {
+                case 'electricterrain':
+                    return 'Electric';
+                case 'grassyterrain':
+                    return 'Grass';
+                case 'mistyterrain':
+                    return 'Fairy';
+                case 'psychicterrain':
+                    return 'Psychic';
+                default:
+                    return 'Normal';
+            }
+        },
+        description: '根据场地改变属性和威力'
+    },
+    
+    // ============================================
     // 7. 场地技能 (Terrain/Hazard Moves) - 简化版
     // ============================================
     
@@ -1043,11 +1337,131 @@ const MoveHandlers = {
     },
     
     // ============================================
+    // 8.5 半无敌状态技能 (Semi-Invulnerable Moves)
+    // ============================================
+    // 注意：完整的两回合逻辑需要引擎支持 isCharging 状态
+    // 这里简化为单回合版本，但保留 breaksProtect 等关键属性
+    
+    // 【潜灵奇袭 Phantom Force】多龙巴鲁托核心技能
+    // 穿透守住，拖极巨化回合
+    'Phantom Force': {
+        breaksProtect: true, // 穿透守住
+        onUse: (attacker, defender, logs, battle) => {
+            // 简化：单回合版本
+            logs.push(`${attacker.cnName} 消失在了异次元中...`);
+            logs.push(`${attacker.cnName} 从异次元发动了攻击！`);
+            return {};
+        },
+        description: '穿透守住'
+    },
+    
+    // 【暗影潜袭 Shadow Force】骑拉帝纳专属
+    'Shadow Force': {
+        breaksProtect: true,
+        onUse: (attacker, defender, logs, battle) => {
+            logs.push(`${attacker.cnName} 消失在了暗影中...`);
+            logs.push(`${attacker.cnName} 从暗影中发动了攻击！`);
+            return {};
+        },
+        description: '穿透守住'
+    },
+    
+    // 【飞翔 Fly】
+    'Fly': {
+        onUse: (attacker, defender, logs, battle) => {
+            logs.push(`${attacker.cnName} 飞上了高空！`);
+            logs.push(`${attacker.cnName} 俯冲攻击！`);
+            return {};
+        },
+        description: '飞上高空后攻击'
+    },
+    
+    // 【挖洞 Dig】
+    'Dig': {
+        onUse: (attacker, defender, logs, battle) => {
+            logs.push(`${attacker.cnName} 钻入了地下！`);
+            logs.push(`${attacker.cnName} 从地下发动攻击！`);
+            return {};
+        },
+        description: '钻入地下后攻击'
+    },
+    
+    // 【潜水 Dive】
+    'Dive': {
+        onUse: (attacker, defender, logs, battle) => {
+            logs.push(`${attacker.cnName} 潜入了水中！`);
+            logs.push(`${attacker.cnName} 从水中发动攻击！`);
+            return {};
+        },
+        description: '潜入水中后攻击'
+    },
+    
+    // 【弹跳 Bounce】
+    'Bounce': {
+        onUse: (attacker, defender, logs, battle) => {
+            logs.push(`${attacker.cnName} 跳到了高空！`);
+            logs.push(`${attacker.cnName} 落下攻击！`);
+            return {};
+        },
+        secondary: { chance: 30, status: 'par' },
+        description: '跳到高空后攻击，30%麻痹'
+    },
+    
+    // 【天空落下 Sky Drop】
+    'Sky Drop': {
+        onUse: (attacker, defender, logs, battle) => {
+            logs.push(`${attacker.cnName} 抓住 ${defender.cnName} 飞上了高空！`);
+            logs.push(`${attacker.cnName} 将 ${defender.cnName} 摔落！`);
+            return {};
+        },
+        description: '抓住对手飞上高空后摔落'
+    },
+    
+    // ============================================
+    // 8.6 延迟伤害技能 (Future Moves)
+    // ============================================
+    // 注意：完整的延迟伤害需要引擎支持 futureMove 队列
+    // 这里简化为立即造成伤害，但保留无视免疫等关键属性
+    
+    // 【预知未来 Future Sight】再生力受队核心
+    'Future Sight': {
+        ignoreImmunity: true, // 无视一般免疫（恶系仍可被命中）
+        onUse: (attacker, defender, logs, battle) => {
+            logs.push(`${attacker.cnName} 预见了未来！`);
+            // 简化：立即造成伤害而非延迟
+            // 完整实现需要 battle.futureMove 队列
+            return {};
+        },
+        description: '预见未来的攻击（简化为立即伤害）'
+    },
+    
+    // 【破灭之愿 Doom Desire】基拉祈专属
+    'Doom Desire': {
+        ignoreImmunity: true,
+        onUse: (attacker, defender, logs, battle) => {
+            logs.push(`${attacker.cnName} 许下了破灭之愿！`);
+            return {};
+        },
+        description: '许下破灭之愿（简化为立即伤害）'
+    },
+    
+    // ============================================
     // 9. 其他特殊技能
     // ============================================
     
     'Explosion': {
-        onUse: (attacker, defender, logs) => {
+        onUse: (attacker, defender, logs, battle) => {
+            // 【Damp 湿气】检查场上是否有湿气特性
+            const hasDamp = [attacker, defender].some(p => {
+                if (!p || !p.ability) return false;
+                const handler = typeof AbilityHandlers !== 'undefined' ? AbilityHandlers[p.ability] : null;
+                return handler && handler.preventExplosion;
+            });
+            if (hasDamp) {
+                logs.push(`<b style="color:#3498db">💧 湿气阻止了爆炸！</b>`);
+                return { failed: true };
+            }
+            
             logs.push(`${attacker.cnName} 引爆了自己!`);
             // 自爆：使用者倒下
             attacker.currHp = 0;
@@ -1057,7 +1471,18 @@ const MoveHandlers = {
     },
     
     'Self-Destruct': {
-        onUse: (attacker, defender, logs) => {
+        onUse: (attacker, defender, logs, battle) => {
+            // 【Damp 湿气】检查场上是否有湿气特性
+            const hasDamp = [attacker, defender].some(p => {
+                if (!p || !p.ability) return false;
+                const handler = typeof AbilityHandlers !== 'undefined' ? AbilityHandlers[p.ability] : null;
+                return handler && handler.preventExplosion;
+            });
+            if (hasDamp) {
+                logs.push(`<b style="color:#3498db">💧 湿气阻止了自爆！</b>`);
+                return { failed: true };
+            }
+            
             logs.push(`${attacker.cnName} 自爆了!`);
             attacker.currHp = 0;
             return { selfDestruct: true };

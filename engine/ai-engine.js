@@ -184,8 +184,27 @@ function getHardAiMove(attacker, defender, aiParty = null) {
 // 换人冷却追踪（防止连续换人）
 let lastSwitchTurn = -999;
 
-// 折返技能列表
-const PIVOT_MOVES = ['U-turn', 'Volt Switch', 'Flip Turn', 'Parting Shot', 'Teleport', 'Baton Pass'];
+// 折返技能列表 (后备，优先使用 moves-data.js 的 selfSwitch 字段)
+const PIVOT_MOVES_FALLBACK = ['U-turn', 'Volt Switch', 'Flip Turn', 'Parting Shot', 'Teleport', 'Baton Pass'];
+
+/**
+ * 检测招式是否为折返技能（使用后自动换人）
+ * 优先使用 PS moves-data.js 的 selfSwitch 字段
+ */
+function isPivotMove(move) {
+    const moveName = move.name || '';
+    const moveId = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    // 优先从 PS 数据库检查
+    if (typeof MOVES !== 'undefined' && MOVES[moveId]) {
+        const moveData = MOVES[moveId];
+        // selfSwitch 可以是 true 或字符串（如 'copyvolatile', 'shedtail'）
+        if (moveData.selfSwitch) return true;
+    }
+    
+    // 后备硬编码
+    return PIVOT_MOVES_FALLBACK.includes(moveName);
+}
 
 /**
  * =======================================================
@@ -820,7 +839,6 @@ function evaluatePrediction(aiPoke, playerPoke, aiParty) {
  * 评估战略性技能（强化、状态、回复）
  */
 function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
-    const MC = (typeof MOVE_CONSTANTS !== 'undefined') ? MOVE_CONSTANTS : {};
     const myHpPercent = aiPoke.currHp / aiPoke.maxHp;
     const myHp = aiPoke.currHp;
     const myMaxHp = aiPoke.maxHp;
@@ -918,9 +936,10 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
             }
         }
         
-        // === 回复技能 ===
-        const healMoves = MC.AI_HEAL_MOVES || ['Recover', 'Roost', 'Soft-Boiled', 'Slack Off', 'Moonlight', 'Morning Sun', 'Synthesis'];
-        if (healMoves.includes(moveName)) {
+        // === 回复技能 === 【软编码】使用 PS 的 heal 字段
+        const moveHealData = moveData.heal || (moveData.flags && moveData.flags.heal);
+        const isSelfHeal = moveHealData && (target === 'self' || target === 'adjacentAllyOrSelf');
+        if (isSelfHeal) {
             if (myHpPercent < 0.4) {
                 score = 200;
                 reasoning = 'Critical heal';
@@ -930,13 +949,12 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
             }
         }
         
-        // === 状态技能 ===
-        // 【修复】更新 fallback 列表以包含所有睡眠招式
-        const statusMoves = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
-        if (statusMoves.includes(moveName) && !playerPoke.status) {
+        // === 状态技能 === 【软编码】使用 PS 的 status 字段
+        const moveStatusEffect = moveData.status; // 'slp', 'par', 'brn', 'psn', 'tox'
+        if (moveStatusEffect && !playerPoke.status) {
             // 对手没有状态才用
-            const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
-            if (sleepMoves.includes(moveName)) {
+            // 睡眠招式
+            if (moveStatusEffect === 'slp') {
                 // 【修复】检查目标是否免疫睡眠
                 // 【软编码】从 AbilityHandlers 读取睡眠免疫特性列表
                 const targetAbility = (playerPoke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -950,13 +968,16 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
                     reasoning = 'Sleep opportunity';
                 }
                 // 如果免疫则不给分，跳过此招式
-            } else if (moveName === 'Thunder Wave' && getEffectiveSpeed(playerPoke) > getEffectiveSpeed(aiPoke)) {
+            // 麻痹招式
+            } else if (moveStatusEffect === 'par' && getEffectiveSpeed(playerPoke) > getEffectiveSpeed(aiPoke)) {
                 score = 120;
                 reasoning = 'Speed control';
-            } else if (moveName === 'Will-O-Wisp' && playerPoke.atk > playerPoke.spa) {
+            // 烧伤招式
+            } else if (moveStatusEffect === 'brn' && playerPoke.atk > playerPoke.spa) {
                 score = 110;
                 reasoning = 'Physical attacker burn';
-            } else if (moveName === 'Toxic') {
+            // 中毒招式
+            } else if (moveStatusEffect === 'psn' || moveStatusEffect === 'tox') {
                 score = 90;
                 reasoning = 'Chip damage';
             }
@@ -1760,8 +1781,6 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     const category = (move.cat || move.category || '').toLowerCase();
     const isStatus = category === 'status' || move.power === 0 || move.basePower === 0;
     
-    const MC = (typeof MOVE_CONSTANTS !== 'undefined') ? MOVE_CONSTANTS : {};
-    
     // =========================================================
     // 【Anti-Spam 修正】替身 (Substitute) 特殊处理
     // 防止 AI 无限循环使用替身
@@ -2330,24 +2349,27 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             }
         }
         
-        // 强化技能
-        const boostMoves = MC.AI_BOOST_MOVES || ['Swords Dance', 'Calm Mind', 'Dragon Dance', 'Nasty Plot'];
-        if (boostMoves.includes(moveName)) {
-            const relevantBoost = attacker.spa > attacker.atk ? (attacker.boosts?.spa || 0) : (attacker.boosts?.atk || 0);
-            if (relevantBoost < 2) statusScore = 80 + Math.random() * 20;
-            else if (relevantBoost < 4) statusScore = 40 + Math.random() * 20;
-            else statusScore = 5;
+        // 强化技能 - 【软编码】使用 PS 的 boosts 字段
+        const moveBoosts = fullMoveData.boosts;
+        const isSelfBoostMove = moveBoosts && ['self', 'allySide', 'adjacentAllyOrSelf'].includes(fullMoveData.target);
+        if (isSelfBoostMove) {
+            // 检查是否有攻击/特攻强化
+            const hasOffensiveBoost = (moveBoosts.atk && moveBoosts.atk > 0) || (moveBoosts.spa && moveBoosts.spa > 0);
+            if (hasOffensiveBoost) {
+                const relevantBoost = attacker.spa > attacker.atk ? (attacker.boosts?.spa || 0) : (attacker.boosts?.atk || 0);
+                if (relevantBoost < 2) statusScore = 80 + Math.random() * 20;
+                else if (relevantBoost < 4) statusScore = 40 + Math.random() * 20;
+                else statusScore = 5;
+            }
         }
         
-        // 状态技能
-        // 【修复】更新 fallback 列表以包含所有睡眠招式
-        const statusInflict = MC.AI_STATUS_MOVES || ['Thunder Wave', 'Will-O-Wisp', 'Toxic', 'Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
-        const sleepMoves = MC.AI_SLEEP_MOVES || ['Spore', 'Sleep Powder', 'Hypnosis', 'Dark Void', 'Yawn', 'Sing', 'Grass Whistle', 'Lovely Kiss'];
-        const paralyzeMoves = MC.AI_PARALYZE_MOVES || ['Thunder Wave', 'Glare', 'Stun Spore'];
+        // 状态技能 - 【软编码】使用 PS 的 status 字段
+        const inflictedStatus = fullMoveData.status; // 'slp', 'par', 'brn', 'psn', 'tox', 'frz'
         
-        if (statusInflict.includes(moveName)) {
+        if (inflictedStatus) {
             if (!defender.status) {
-                if (sleepMoves.includes(moveName)) {
+                // 睡眠招式
+                if (inflictedStatus === 'slp') {
                     // 【修复】检查目标是否免疫睡眠
                     // 【软编码】从 AbilityHandlers 读取睡眠免疫特性列表
                     const defenderAbility = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -2359,11 +2381,14 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
                     } else {
                         statusScore = 70 + Math.random() * 30;
                     }
-                } else if (paralyzeMoves.includes(moveName)) {
+                // 麻痹招式
+                } else if (inflictedStatus === 'par') {
                     statusScore = defender.spe > attacker.spe ? 60 + Math.random() * 20 : 30 + Math.random() * 20;
-                } else if (moveName === 'Will-O-Wisp') {
+                // 烧伤招式
+                } else if (inflictedStatus === 'brn') {
                     statusScore = defender.atk > defender.spa ? 65 + Math.random() * 20 : 25 + Math.random() * 15;
-                } else if (moveName === 'Toxic') {
+                // 中毒招式
+                } else if (inflictedStatus === 'psn' || inflictedStatus === 'tox') {
                     statusScore = 50 + Math.random() * 20;
                 }
             } else {
@@ -2371,9 +2396,10 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             }
         }
         
-        // 回复技能
-        const healMoves = MC.AI_HEAL_MOVES || ['Recover', 'Roost', 'Soft-Boiled', 'Slack Off'];
-        if (healMoves.includes(moveName)) {
+        // 回复技能 - 【软编码】优先使用 PS 的 heal 字段或 flags.heal
+        const isHealMove = (fullMoveData.heal || (fullMoveData.flags && fullMoveData.flags.heal)) && 
+                           fullMoveData.target === 'self';
+        if (isHealMove) {
             const hpPercent = attacker.currHp / attacker.maxHp;
             const defenderHpPercent = defender.currHp / defender.maxHp;
             
@@ -2457,9 +2483,9 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         }
         
         // 守住类 - 考虑连续使用惩罚
-        // 【修复】添加 Max Guard（极巨化时变化技转换的守住招式）
-        const protectMoves = MC.AI_PROTECT_MOVES || ['Protect', 'Detect', 'King\'s Shield', 'Spiky Shield', 'Baneful Bunker', 'Obstruct', 'Silk Trap', 'Max Guard'];
-        if (protectMoves.includes(moveName)) {
+        // 【软编码】使用 PS 的 stallingMove 字段
+        const isProtectMove = fullMoveData.stallingMove === true;
+        if (isProtectMove) {
             // 检查连续使用惩罚
             const protectCounter = attacker.protectCounter || 0;
             if (protectCounter > 0) {
@@ -2887,25 +2913,21 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     
     // ========================================
     // 【v2.1】反伤技能智能评估 - 禁止自杀式袭击
+    // 【软编码】优先使用 PS moves-data.js 的 recoil 字段
     // ========================================
-    const recoilMoveNames = (typeof RECOIL_MOVES !== 'undefined') ? Object.keys(RECOIL_MOVES) : 
-        ['Flare Blitz', 'Brave Bird', 'Double-Edge', 'Head Smash', 'Wood Hammer', 'Wild Charge', 'Take Down', 'Submission'];
     
-    // 反伤比例表 (招式名 -> 反伤比例)
-    const RECOIL_RATIOS = {
-        'Head Smash': 0.50,      // 50% 反伤
-        'Light of Ruin': 0.50,   // 50% 反伤
-        'Flare Blitz': 0.33,     // 33% 反伤
-        'Brave Bird': 0.33,      // 33% 反伤
-        'Double-Edge': 0.33,     // 33% 反伤
-        'Wood Hammer': 0.33,     // 33% 反伤
-        'Wild Charge': 0.25,     // 25% 反伤
-        'Take Down': 0.25,       // 25% 反伤
-        'Submission': 0.25,      // 25% 反伤
-    };
+    // 从 PS 数据获取反伤信息
+    let recoilRatio = 0;
+    if (fullMoveData.recoil) {
+        // PS 格式: recoil: [分子, 分母]，如 [1, 3] 表示 1/3
+        const [num, den] = fullMoveData.recoil;
+        recoilRatio = num / den;
+    } else if (fullMoveData.mindBlownRecoil || fullMoveData.struggleRecoil) {
+        // 特殊反伤类型（精神击破、挣扎）
+        recoilRatio = 0.50;
+    }
     
-    if (recoilMoveNames.includes(moveName)) {
-        const recoilRatio = RECOIL_RATIOS[moveName] || 0.33;
+    if (recoilRatio > 0) {
         const moveDamage = impact.rawDamage || 0;
         const expectedRecoil = Math.floor(moveDamage * recoilRatio);
         
@@ -2947,7 +2969,7 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     // ========================================
     // v2.0：折返技能战术评分
     // ========================================
-    if (PIVOT_MOVES.includes(moveName)) {
+    if (isPivotMove(move)) {
         // 【关键修复】检查是否还有存活队友可以换入
         // 如果没有队友了，折返毫无意义，应该选择高伤害技能对攻
         let aliveAllies = 0;

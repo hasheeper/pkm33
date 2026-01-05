@@ -12,18 +12,48 @@ function isPinching(poke) {
     return poke.currHp > 0 && poke.currHp <= poke.maxHp / 3;
 }
 
+// ============================================
+// 【软编码】招式 Flag 检查辅助函数
+// 使用 PS moves-data.js 的 flags 替代硬编码招式列表
+// ============================================
+
+/**
+ * 检查招式是否具有指定的 flag
+ * @param {Object} move - 招式对象
+ * @param {string} flag - flag 名称 (punch, bite, slicing, pulse, sound, powder, bullet, wind 等)
+ * @returns {boolean} 是否具有该 flag
+ */
+function moveHasFlag(move, flag) {
+    if (!move) return false;
+    
+    // 优先使用招式对象自带的 flags
+    if (move.flags && move.flags[flag]) return true;
+    
+    // 尝试从全局 Moves 数据获取
+    if (typeof window !== 'undefined' && window.Moves) {
+        // 生成招式 ID (小写，去除非字母字符)
+        const moveId = (move.id || move.name || '').toLowerCase().replace(/[^a-z]/g, '');
+        const moveData = window.Moves[moveId];
+        if (moveData && moveData.flags && moveData.flags[flag]) return true;
+    }
+    
+    return false;
+}
+
 const AbilityHandlers = {
     // ============================================
     // A. 暴力数值修正
     // ============================================
   
     // 【大力士/瑜伽之力】物攻翻倍
-    'Huge Power': { onModifyStat: (stats) => stats.atk *= 2 },
-    'Pure Power': { onModifyStat: (stats) => stats.atk *= 2 },
+    // 【钩子统一】onModifyStat: (stats, poke, battle)
+    'Huge Power': { onModifyStat: (stats, poke, battle) => { stats.atk *= 2; } },
+    'Pure Power': { onModifyStat: (stats, poke, battle) => { stats.atk *= 2; } },
 
     // 【技术高手】低威力(<=60)招式 x1.5
+    // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
     'Technician': {
-        onBasePower: (power, attacker, defender, move) => {
+        onBasePower: (power, attacker, defender, move, battle) => {
             if (power <= 60) return power * 1.5;
             return power;
         }
@@ -46,26 +76,27 @@ const AbilityHandlers = {
     // ============================================
     // B. 御三家专属 - 绝境爆发 (红血变身)
     // ============================================
+    // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
     'Blaze': {
-        onBasePower: (power, attacker, defender, move) => {
+        onBasePower: (power, attacker, defender, move, battle) => {
             if (move.type === 'Fire' && isPinching(attacker)) return power * 1.5;
             return power;
         }
     },
     'Torrent': {
-        onBasePower: (power, attacker, defender, move) => {
+        onBasePower: (power, attacker, defender, move, battle) => {
             if (move.type === 'Water' && isPinching(attacker)) return power * 1.5;
             return power;
         }
     },
     'Overgrow': {
-        onBasePower: (power, attacker, defender, move) => {
+        onBasePower: (power, attacker, defender, move, battle) => {
             if (move.type === 'Grass' && isPinching(attacker)) return power * 1.5;
             return power;
         }
     },
     'Swarm': {
-        onBasePower: (power, attacker, defender, move) => {
+        onBasePower: (power, attacker, defender, move, battle) => {
             if (move.type === 'Bug' && isPinching(attacker)) return power * 1.5;
             return power;
         }
@@ -76,13 +107,15 @@ const AbilityHandlers = {
     // ============================================
 
     // 【漂浮】免疫地面
+    // 【钩子统一】onImmunity: (atkType, move)
     'Levitate': {
-        onImmunity: (atkType) => atkType === 'Ground',
+        onImmunity: (atkType, move) => atkType === 'Ground',
         groundImmune: true
     },
     // 【引火】免疫火系+威力提升50%
+    // 【钩子统一】onImmunity: (atkType, move)
     'Flash Fire': {
-        onImmunity: (atkType) => atkType === 'Fire',
+        onImmunity: (atkType, move) => atkType === 'Fire',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Fire') {
                 pokemon.flashFireBoost = true;
@@ -91,15 +124,16 @@ const AbilityHandlers = {
             }
             return { absorbed: false };
         },
-        // 【修复】参数顺序：(power, attacker, defender, move)
-        onBasePower: (power, attacker, defender, move) => {
+        // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
+        onBasePower: (power, attacker, defender, move, battle) => {
             if (move.type === 'Fire' && attacker.flashFireBoost) return Math.floor(power * 1.5);
             return power;
         }
     },
     // 【蓄水】免疫水系+回复1/4HP
+    // 【钩子统一】onImmunity: (atkType, move)
     'Water Absorb': {
-        onImmunity: (atkType) => atkType === 'Water',
+        onImmunity: (atkType, move) => atkType === 'Water',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Water') {
                 const heal = Math.floor(pokemon.maxHp / 4);
@@ -111,8 +145,9 @@ const AbilityHandlers = {
         }
     },
     // 【避雷针】免疫电系+特攻+1
+    // 【钩子统一】onImmunity: (atkType, move)
     'Lightning Rod': {
-        onImmunity: (atkType) => atkType === 'Electric',
+        onImmunity: (atkType, move) => atkType === 'Electric',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Electric') {
                 if (pokemon.applyBoost) pokemon.applyBoost('spa', 1);
@@ -123,8 +158,9 @@ const AbilityHandlers = {
         }
     },
     // 【蓄电】免疫电系+回复1/4HP
+    // 【钩子统一】onImmunity: (atkType, move)
     'Volt Absorb': {
-        onImmunity: (atkType) => atkType === 'Electric',
+        onImmunity: (atkType, move) => atkType === 'Electric',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Electric') {
                 const heal = Math.floor(pokemon.maxHp / 4);
@@ -136,8 +172,9 @@ const AbilityHandlers = {
         }
     },
     // 【电气引擎】免疫电系+速度+1
+    // 【钩子统一】onImmunity: (atkType, move)
     'Motor Drive': {
-        onImmunity: (atkType) => atkType === 'Electric',
+        onImmunity: (atkType, move) => atkType === 'Electric',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Electric') {
                 if (pokemon.applyBoost) pokemon.applyBoost('spe', 1);
@@ -148,8 +185,9 @@ const AbilityHandlers = {
         }
     },
     // 【食草】免疫草系+攻击+1
+    // 【钩子统一】onImmunity: (atkType, move)
     'Sap Sipper': {
-        onImmunity: (atkType) => atkType === 'Grass',
+        onImmunity: (atkType, move) => atkType === 'Grass',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Grass') {
                 if (pokemon.applyBoost) pokemon.applyBoost('atk', 1);
@@ -160,8 +198,9 @@ const AbilityHandlers = {
         }
     },
     // 【引水】免疫水系+特攻+1
+    // 【钩子统一】onImmunity: (atkType, move)
     'Storm Drain': {
-        onImmunity: (atkType) => atkType === 'Water',
+        onImmunity: (atkType, move) => atkType === 'Water',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Water') {
                 if (pokemon.applyBoost) pokemon.applyBoost('spa', 1);
@@ -172,8 +211,9 @@ const AbilityHandlers = {
         }
     },
     // 【干燥皮肤】免疫水系回复，火系x1.25
+    // 【钩子统一】onImmunity: (atkType, move)
     'Dry Skin': {
-        onImmunity: (atkType) => atkType === 'Water',
+        onImmunity: (atkType, move) => atkType === 'Water',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Water') {
                 const heal = Math.floor(pokemon.maxHp / 4);
@@ -190,8 +230,9 @@ const AbilityHandlers = {
     },
   
     // 【神奇鳞片】异常状态时防御 x1.5 (此处简化为物防)
+    // 【钩子统一】onModifyStat: (stats, poke, battle)
     'Marvel Scale': {
-        onModifyStat: (stats, poke) => { 
+        onModifyStat: (stats, poke, battle) => { 
             if (poke.status) stats.def = Math.floor(stats.def * 1.5); 
         }
     },
@@ -219,8 +260,9 @@ const AbilityHandlers = {
     },
 
     // 【厚脂肪】减半火/冰伤害
+    // 【钩子统一】onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness)
     'Thick Fat': {
-        onDefenderModifyDamage: (damage, attacker, defender, move) => {
+        onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness) => {
             if (move.type === 'Fire' || move.type === 'Ice') {
                 return Math.floor(damage * 0.5);
             }
@@ -229,8 +271,9 @@ const AbilityHandlers = {
     },
 
     // 【毛皮大衣】物防翻倍
+    // 【钩子统一】onModifyStat: (stats, poke, battle)
     'Fur Coat': {
-        onModifyStat: (stats) => stats.def *= 2
+        onModifyStat: (stats, poke, battle) => { stats.def *= 2; }
     },
 
     // 【滤镜/坚硬岩石】克制伤害减少25%
@@ -248,8 +291,9 @@ const AbilityHandlers = {
     },
 
     // 【多重鳞片】满血时伤害减半
+    // 【钩子统一】onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness)
     'Multiscale': {
-        onDefenderModifyDamage: (damage, attacker, defender, move) => {
+        onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness) => {
             if (defender.currHp === defender.maxHp) {
                 return Math.floor(damage * 0.5);
             }
@@ -257,8 +301,9 @@ const AbilityHandlers = {
         }
     },
     // 【暗影盾牌】满血时伤害减半
+    // 【钩子统一】onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness)
     'Shadow Shield': {
-        onDefenderModifyDamage: (damage, attacker, defender, move) => {
+        onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness) => {
             if (defender.currHp === defender.maxHp) {
                 return Math.floor(damage * 0.5);
             }
@@ -329,8 +374,9 @@ const AbilityHandlers = {
     // ============================================
   
     // 【威吓】
+    // 【钩子统一】onStart: (self, enemy, logs, battle)
     'Intimidate': {
-        onStart: (self, enemy, logs) => {
+        onStart: (self, enemy, logs, battle) => {
             if (!enemy || !enemy.isAlive()) return;
             // 检查对方是否有防止下降的特性
             const safe = ['Clear Body', 'White Smoke', 'Full Metal Body', 'Inner Focus', 'Oblivious', 'Hyper Cutter', 'Scrappy', 'Own Tempo'];
@@ -501,7 +547,8 @@ const AbilityHandlers = {
                 if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
             }
         },
-        onModifyStat: (stats, poke) => {
+        // 【钩子统一】onModifyStat: (stats, poke, battle)
+        onModifyStat: (stats, poke, battle) => {
             if (poke.quarkDriveActive && poke.quarkDriveStat) {
                 const stat = poke.quarkDriveStat;
                 const multiplier = (stat === 'spe') ? 1.5 : 1.3;
@@ -549,7 +596,8 @@ const AbilityHandlers = {
                 if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
             }
         },
-        onModifyStat: (stats, poke) => {
+        // 【钩子统一】onModifyStat: (stats, poke, battle)
+        onModifyStat: (stats, poke, battle) => {
             if (poke.protosynthesisActive && poke.protosynthesisstat) {
                 const stat = poke.protosynthesisstat;
                 const multiplier = (stat === 'spe') ? 1.5 : 1.3;
@@ -572,15 +620,17 @@ const AbilityHandlers = {
     },
 
     // 【慢启动】出场5回合内，攻击减半，速度减半 (雷吉奇卡斯专属)
+    // 【钩子统一】onStart: (self, enemy, logs, battle)
     'Slow Start': {
         // 进场时初始化计数器
-        onStart: (self, enemy, logs) => {
+        onStart: (self, enemy, logs, battle) => {
             self.slowStartTurns = 0;
             self.isSlowStarting = true;
             logs.push(`<b style="color:#636e72">${self.cnName} 的慢启动！依然没能拿出真本事！</b>`);
         },
         // 实时修改面板数值
-        onModifyStat: (stats, poke) => {
+        // 【钩子统一】onModifyStat: (stats, poke, battle)
+        onModifyStat: (stats, poke, battle) => {
             if (poke.isSlowStarting) {
                 stats.atk = Math.floor(stats.atk * 0.5);
                 stats.spe = Math.floor(stats.spe * 0.5);
@@ -603,13 +653,17 @@ const AbilityHandlers = {
     },
 
     // 【懒惰】每隔一回合才能行动 (请假王专属)
+    // 【钩子统一】onStart: (self, enemy, logs, battle)
     'Truant': {
-        onStart: (self, enemy, logs) => {
+        onStart: (self, enemy, logs, battle) => {
             // 进场时重置状态，第一回合可以行动
             self.truantNextTurn = false;
         },
         // 行动前检查：如果是休息回合则跳过
-        onBeforeMove: (self, move, logs) => {
+        // 【钩子统一】onBeforeMove: (user, move, logs)
+        onBeforeMove: (user, move, logs) => {
+            // 注意：此处 user 就是 self
+            const self = user;
             if (self.truantNextTurn) {
                 logs.push(`<b style="color:#95a5a6">${self.cnName} 正在偷懒！</b>`);
                 self.truantNextTurn = false; // 下回合可以行动
@@ -641,13 +695,11 @@ const AbilityHandlers = {
     },
 
     // 【铁拳】拳头类招式威力x1.2
+    // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
+    // 【软编码】使用 PS moves-data.js 的 punch flag
     'Iron Fist': {
-        onBasePower: (power, attacker, defender, move) => {
-            const punchMoves = ['Bullet Punch', 'Comet Punch', 'Dizzy Punch', 'Drain Punch', 
-                'Dynamic Punch', 'Fire Punch', 'Focus Punch', 'Hammer Arm', 'Ice Punch', 
-                'Mach Punch', 'Mega Punch', 'Meteor Mash', 'Power-Up Punch', 'Shadow Punch', 
-                'Sky Uppercut', 'Thunder Punch', 'Close Combat'];
-            if (punchMoves.includes(move.name)) {
+        onBasePower: (power, attacker, defender, move, battle) => {
+            if (moveHasFlag(move, 'punch')) {
                 return Math.floor(power * 1.2);
             }
             return power;
@@ -655,11 +707,11 @@ const AbilityHandlers = {
     },
 
     // 【强壮之颚】咬类招式威力x1.5
+    // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
+    // 【软编码】使用 PS moves-data.js 的 bite flag
     'Strong Jaw': {
-        onBasePower: (power, attacker, defender, move) => {
-            const biteMoves = ['Bite', 'Crunch', 'Fire Fang', 'Ice Fang', 'Thunder Fang', 
-                'Poison Fang', 'Psychic Fangs', 'Hyper Fang', 'Jaw Lock', 'Fishious Rend'];
-            if (biteMoves.includes(move.name)) {
+        onBasePower: (power, attacker, defender, move, battle) => {
+            if (moveHasFlag(move, 'bite')) {
                 return Math.floor(power * 1.5);
             }
             return power;
@@ -667,8 +719,9 @@ const AbilityHandlers = {
     },
 
     // 【硬爪】接触类招式威力x1.3
+    // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
     'Tough Claws': {
-        onBasePower: (power, attacker, defender, move) => {
+        onBasePower: (power, attacker, defender, move, battle) => {
             // 简化：物理招式大多是接触类
             if (move.cat === 'phys' || move.category === 'Physical') {
                 return Math.floor(power * 1.3);
@@ -678,9 +731,10 @@ const AbilityHandlers = {
     },
 
     // 【蛮力】攻击后降低自身攻防
+    // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
     'Sheer Force': {
         // 取消副作用但威力x1.3，这里简化处理
-        onBasePower: (power, attacker, defender, move) => {
+        onBasePower: (power, attacker, defender, move, battle) => {
             // 如果招式有副作用，威力x1.3
             if (move.secondary || move.secondaries) {
                 return Math.floor(power * 1.3);
@@ -707,25 +761,347 @@ const AbilityHandlers = {
         onCritDamage: (damage) => Math.floor(damage * 1.5)
     },
 
-    // 【天恩】副作用概率翻倍 (简化：不实现)
-    'Serene Grace': {},
+    // ============================================
+    // 核心攻击组件 (The Powerhouses)
+    // ============================================
+
+    // 【连续攻击 Skill Link】多段攻击固定为最大次数
+    // 代表：刺甲贝、赫拉克罗斯、土龙节节
+    'Skill Link': {
+        onMoveHitCount: (move, user) => {
+            // 如果招式有 multihit 属性，返回最大次数
+            if (move.multihit) {
+                if (Array.isArray(move.multihit)) {
+                    return move.multihit[1]; // 返回最大值
+                }
+                return move.multihit; // 固定次数
+            }
+            return null; // 默认逻辑
+        }
+    },
+
+    // 【穿透 Infiltrator】无视光墙/反射壁/替身
+    // 代表：多龙巴鲁托、叉字蝠、直冲熊
+    'Infiltrator': {
+        ignoreScreens: true,      // 无视光墙/反射壁/极光幕
+        ignoreSubstitute: true    // 无视替身
+    },
+
+    // 【天恩 Serene Grace】副作用概率翻倍
+    // 代表：波克基斯、基拉祈、土龙节节
+    'Serene Grace': {
+        onModifySecondaryChance: (chance, move, user) => {
+            // 副作用概率翻倍，上限100%
+            return Math.min(100, chance * 2);
+        }
+    },
+
+    // 【舍身 Reckless】反伤/撞飞类招式威力x1.2
+    // 代表：姆克鹰、战舞郎
+    'Reckless': {
+        onBasePower: (power, attacker, defender, move, battle) => {
+            // 检查是否有反伤或撞飞伤害
+            if (move.recoil || move.hasCrashDamage || move.mindBlownRecoil) {
+                return Math.floor(power * 1.2);
+            }
+            return power;
+        }
+    },
+
+    // 【轻装 Unburden】失去道具后速度翻倍
+    // 代表：摔角鹰人、随风球、蜥蜴王
+    'Unburden': {
+        onItemLost: (pokemon, item, logs) => {
+            // 标记轻装激活
+            pokemon.unburdenActive = true;
+            logs.push(`<b style="color:#3498db">💨 ${pokemon.cnName} 的轻装特性发动！速度大幅提升！</b>`);
+            if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+        },
+        onModifyStat: (stats, poke, battle) => {
+            if (poke.unburdenActive) {
+                stats.spe = Math.floor(stats.spe * 2);
+            }
+        }
+    },
+
+    // ============================================
+    // 即时信息读取类 (Surveillance & Reaction)
+    // ============================================
+
+    // 【复制 Trace】入场时复制对手特性
+    // 代表：沙奈朵、多边兽2
+    // 黑名单：部分特性禁止复制
+    'Trace': {
+        onStart: (self, enemy, logs, battle) => {
+            if (!enemy || !enemy.ability) return;
+            
+            // 禁止复制的特性黑名单
+            const blacklist = [
+                'Trace', 'Illusion', 'Imposter', 'Flower Gift', 'Forecast', 'Hunger Switch',
+                'Power of Alchemy', 'Receiver', 'Schooling', 'Stance Change', 'Wonder Guard',
+                'Zen Mode', 'Battle Bond', 'Comatose', 'Disguise', 'Multitype', 'RKS System',
+                'Shields Down', 'Power Construct', 'Ice Face', 'Gulp Missile', 'As One',
+                'Neutralizing Gas', 'Commander', 'Zero to Hero'
+            ];
+            
+            if (blacklist.includes(enemy.ability)) {
+                logs.push(`${self.cnName} 无法复制 ${enemy.ability}！`);
+                return;
+            }
+            
+            const oldAbility = self.ability;
+            self.ability = enemy.ability;
+            self.tracedAbility = enemy.ability; // 标记已复制
+            logs.push(`<b style="color:#9b59b6">🔮 ${self.cnName} 复制了 ${enemy.cnName} 的 ${enemy.ability}！</b>`);
+            
+            // 触发新特性的 onStart（如果有）
+            const handler = AbilityHandlers[enemy.ability];
+            if (handler && handler.onStart) {
+                handler.onStart(self, enemy, logs, battle);
+            }
+        }
+    },
+
+    // 【下载 Download】入场时根据对手防御/特防提升攻击/特攻
+    // 代表：多边兽Z、盖诺赛克特
+    'Download': {
+        onStart: (self, enemy, logs, battle) => {
+            if (!enemy) return;
+            
+            // 获取对手的防御和特防
+            const enemyDef = enemy.def || enemy.storedStats?.def || 100;
+            const enemySpd = enemy.spd || enemy.storedStats?.spd || 100;
+            
+            if (enemyDef < enemySpd) {
+                // 对手物耐脆，提升物攻
+                if (typeof self.applyBoost === 'function') {
+                    self.applyBoost('atk', 1);
+                }
+                logs.push(`<b style="color:#e74c3c">📥 ${self.cnName} 的下载特性发动！攻击提升！</b>`);
+            } else {
+                // 对手特耐脆，提升特攻
+                if (typeof self.applyBoost === 'function') {
+                    self.applyBoost('spa', 1);
+                }
+                logs.push(`<b style="color:#3498db">📥 ${self.cnName} 的下载特性发动！特攻提升！</b>`);
+            }
+            if (typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+        }
+    },
+
+    // ============================================
+    // 受队与回复 (Stall & Protection)
+    // ============================================
+
+    // 【自然回复 Natural Cure】换下时治愈异常状态
+    // 代表：吉利蛋/幸福蛋、宝石海星、罗丝雷朵
+    'Natural Cure': {
+        onSwitchOut: (pokemon) => {
+            if (pokemon.status) {
+                const oldStatus = pokemon.status;
+                pokemon.status = null;
+                pokemon.statusTurns = 0;
+                pokemon.sleepTurns = 0;
+                console.log(`[NATURAL CURE] ${pokemon.name} 的异常状态 ${oldStatus} 被治愈了`);
+            }
+        }
+    },
+
+    // ============================================
+    // 极高难度机制 (Complexity Nightmare)
+    // ============================================
+
+    // 【变身者 Imposter】入场时自动变身为对手
+    // 代表：百变怪
+    // 复制：能力值、能力阶级、招式（PP=5）、属性
+    // 保留：HP、道具、特性本身
+    'Imposter': {
+        onStart: (self, enemy, logs, battle) => {
+            if (!enemy || !enemy.isAlive()) return;
+            
+            // 检查对手是否有替身（替身阻止变身）
+            if (enemy.substitute && enemy.substitute > 0) {
+                logs.push(`${self.cnName} 无法变身！对手有替身保护！`);
+                return;
+            }
+            
+            // 检查对手是否也是变身者或已变身
+            if (enemy.transformed || enemy.ability === 'Imposter') {
+                logs.push(`${self.cnName} 无法变身！`);
+                return;
+            }
+            
+            // 保存原始数据
+            self.originalData = {
+                name: self.name,
+                cnName: self.cnName,
+                types: [...self.types],
+                atk: self.atk,
+                def: self.def,
+                spa: self.spa,
+                spd: self.spd,
+                spe: self.spe,
+                moves: self.moves ? [...self.moves] : [],
+                ability: self.ability
+            };
+            
+            // 复制对手数据
+            self.transformed = true;
+            self.transformedInto = enemy.name;
+            
+            // 复制能力值（HP 保持不变）
+            self.atk = enemy.atk;
+            self.def = enemy.def;
+            self.spa = enemy.spa;
+            self.spd = enemy.spd;
+            self.spe = enemy.spe;
+            
+            // 复制属性
+            self.types = enemy.types ? [...enemy.types] : ['Normal'];
+            
+            // 复制能力阶级
+            if (enemy.boosts) {
+                self.boosts = { ...enemy.boosts };
+            }
+            
+            // 复制招式（PP 固定为 5）
+            if (enemy.moves && enemy.moves.length > 0) {
+                self.moves = enemy.moves.map(move => ({
+                    ...move,
+                    pp: 5,
+                    maxPp: 5
+                }));
+            }
+            
+            // 显示名称变化（用于 UI）
+            self.displayName = enemy.name;
+            self.displayCnName = enemy.cnName;
+            
+            // 复制精灵图 URL（用于 UI 显示）
+            if (enemy.spriteUrl) {
+                self.displaySpriteUrl = enemy.spriteUrl;
+            }
+            // 生成精灵图 URL
+            const enemyId = enemy.name.toLowerCase().replace(/[^a-z0-9-]/g, '');
+            self.displaySpriteId = enemyId;
+            
+            logs.push(`<b style="color:#e91e63">🎭 ${self.originalData.cnName} 变身成了 ${enemy.cnName}！</b>`);
+            
+            // 触发精灵图更新
+            if (typeof window.updateBattleSprites === 'function') {
+                window.updateBattleSprites();
+            }
+        },
+        // 换下时恢复原形
+        onSwitchOut: (pokemon) => {
+            if (pokemon.transformed && pokemon.originalData) {
+                pokemon.name = pokemon.originalData.name;
+                pokemon.cnName = pokemon.originalData.cnName;
+                pokemon.types = pokemon.originalData.types;
+                pokemon.atk = pokemon.originalData.atk;
+                pokemon.def = pokemon.originalData.def;
+                pokemon.spa = pokemon.originalData.spa;
+                pokemon.spd = pokemon.originalData.spd;
+                pokemon.spe = pokemon.originalData.spe;
+                pokemon.moves = pokemon.originalData.moves;
+                pokemon.transformed = false;
+                pokemon.transformedInto = null;
+                pokemon.displayName = null;
+                pokemon.displayCnName = null;
+                pokemon.displaySpriteUrl = null;
+                pokemon.displaySpriteId = null;
+                delete pokemon.originalData;
+                console.log(`[IMPOSTER] ${pokemon.name} 恢复了原形`);
+            }
+        }
+    },
+
+    // 【幻觉 Illusion】伪装成队伍最后一只存活的宝可梦
+    // 代表：索罗亚克
+    // 只改变外观（名称、精灵图），不改变实际数据
+    // 受到直接伤害时幻觉破解
+    'Illusion': {
+        // 入场时设置幻觉
+        onStart: (self, enemy, logs, battle) => {
+            // 获取队伍
+            const party = battle?.playerParty?.includes(self) 
+                ? battle.playerParty 
+                : battle?.enemyParty;
+            
+            if (!party || party.length <= 1) return;
+            
+            // 找到队伍最后一只存活且不是自己的宝可梦
+            let disguiseTarget = null;
+            for (let i = party.length - 1; i >= 0; i--) {
+                const pm = party[i];
+                if (pm !== self && pm.currHp > 0) {
+                    disguiseTarget = pm;
+                    break;
+                }
+            }
+            
+            if (!disguiseTarget) return;
+            
+            // 设置幻觉
+            self.illusionActive = true;
+            self.illusionTarget = {
+                name: disguiseTarget.name,
+                cnName: disguiseTarget.cnName,
+                types: disguiseTarget.types ? [...disguiseTarget.types] : null
+            };
+            
+            // 显示用的伪装名称
+            self.displayName = disguiseTarget.name;
+            self.displayCnName = disguiseTarget.cnName;
+            
+            // 复制精灵图 URL（用于 UI 显示）
+            const targetId = disguiseTarget.name.toLowerCase().replace(/[^a-z0-9-]/g, '');
+            self.displaySpriteId = targetId;
+            if (disguiseTarget.spriteUrl) {
+                self.displaySpriteUrl = disguiseTarget.spriteUrl;
+            }
+            
+            console.log(`[ILLUSION] ${self.name} 伪装成了 ${disguiseTarget.name}`);
+        },
+        // 受到伤害时幻觉破解
+        onDamageTaken: (pokemon, damage, source, logs) => {
+            if (pokemon.illusionActive && damage > 0) {
+                pokemon.illusionActive = false;
+                const realName = pokemon.cnName;
+                const fakeName = pokemon.illusionTarget?.cnName || '???';
+                pokemon.displayName = null;
+                pokemon.displayCnName = null;
+                pokemon.displaySpriteUrl = null;
+                pokemon.displaySpriteId = null;
+                pokemon.illusionTarget = null;
+                
+                logs.push(`<b style="color:#8b5cf6">👻 幻觉破解！${fakeName} 的真身是 ${realName}！</b>`);
+                
+                // 触发精灵图更新
+                if (typeof window.updateBattleSprites === 'function') {
+                    window.updateBattleSprites();
+                }
+            }
+        }
+    },
 
     // 【清除之躯】免疫能力下降
+    // 【钩子统一】onTryBoost: (boost, pokemon, source, stat, logs)
     'Clear Body': {
-        onTryBoost: (boost, pokemon, source) => {
+        onTryBoost: (boost, pokemon, source, stat, logs) => {
             // 阻止负面能力变化
             if (boost < 0 && source !== pokemon) return 0;
             return boost;
         }
     },
     'White Smoke': {
-        onTryBoost: (boost, pokemon, source) => {
+        onTryBoost: (boost, pokemon, source, stat, logs) => {
             if (boost < 0 && source !== pokemon) return 0;
             return boost;
         }
     },
     'Full Metal Body': {
-        onTryBoost: (boost, pokemon, source) => {
+        onTryBoost: (boost, pokemon, source, stat, logs) => {
             if (boost < 0 && source !== pokemon) return 0;
             return boost;
         }
@@ -736,13 +1112,11 @@ const AbilityHandlers = {
     // ============================================
 
     // 【锋锐】切割类招式威力x1.5
+    // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
+    // 【软编码】使用 PS moves-data.js 的 slicing flag
     'Sharpness': {
-        onBasePower: (power, attacker, defender, move) => {
-            const slicingMoves = ['Air Cutter', 'Air Slash', 'Aqua Cutter', 'Behemoth Blade', 
-                'Cross Poison', 'Cut', 'Fury Cutter', 'Kowtow Cleave', 'Leaf Blade', 
-                'Night Slash', 'Psycho Cut', 'Razor Leaf', 'Razor Shell', 'Sacred Sword', 
-                'Secret Sword', 'Slash', 'Solar Blade', 'Stone Axe', 'X-Scissor', 'Ceaseless Edge'];
-            if (slicingMoves.includes(move.name)) {
+        onBasePower: (power, attacker, defender, move, battle) => {
+            if (moveHasFlag(move, 'slicing')) {
                 return Math.floor(power * 1.5);
             }
             return power;
@@ -750,11 +1124,11 @@ const AbilityHandlers = {
     },
 
     // 【超级发射器】波导/波动类招式威力x1.5
+    // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
+    // 【软编码】使用 PS moves-data.js 的 pulse flag
     'Mega Launcher': {
-        onBasePower: (power, attacker, defender, move) => {
-            const pulseMoves = ['Aura Sphere', 'Dark Pulse', 'Dragon Pulse', 'Heal Pulse', 
-                'Origin Pulse', 'Terrain Pulse', 'Water Pulse'];
-            if (pulseMoves.includes(move.name)) {
+        onBasePower: (power, attacker, defender, move, battle) => {
+            if (moveHasFlag(move, 'pulse')) {
                 return Math.floor(power * 1.5);
             }
             return power;
@@ -766,22 +1140,17 @@ const AbilityHandlers = {
     // ============================================
 
     // 【隔音】免疫声音招式
+    // 【软编码】使用 PS moves-data.js 的 sound flag
     'Soundproof': {
         onImmunity: (atkType, move) => {
-            const soundMoves = ['Boomburst', 'Bug Buzz', 'Chatter', 'Clanging Scales', 
-                'Clangorous Soul', 'Clangorous Soulblaze', 'Confide', 'Disarming Voice', 
-                'Echoed Voice', 'Eerie Spell', 'Grass Whistle', 'Growl', 'Heal Bell', 
-                'Hyper Voice', 'Metal Sound', 'Noble Roar', 'Overdrive', 'Parting Shot', 
-                'Perish Song', 'Relic Song', 'Roar', 'Round', 'Screech', 'Shadow Panic', 
-                'Sing', 'Snarl', 'Snore', 'Sparkling Aria', 'Supersonic', 'Uproar'];
-            if (move && soundMoves.includes(move.name)) return true;
-            return false;
+            return moveHasFlag(move, 'sound');
         }
     },
 
     // 【毅力】异常状态下物攻x1.5
+    // 【钩子统一】onModifyStat: (stats, poke, battle)
     'Guts': {
-        onModifyStat: (stats, poke) => { 
+        onModifyStat: (stats, poke, battle) => { 
             if (poke.status) stats.atk = Math.floor(stats.atk * 1.5); 
         }
     },
@@ -791,29 +1160,21 @@ const AbilityHandlers = {
     // ============================================
     
     // 【湿润之声】声音招式变为水属性
+    // 【软编码】使用 PS moves-data.js 的 sound flag
     'Liquid Voice': {
         onModifyMove: (move, attacker) => {
-            const soundMoves = ['Boomburst', 'Bug Buzz', 'Chatter', 'Clanging Scales', 
-                'Clangorous Soul', 'Disarming Voice', 'Echoed Voice', 'Eerie Spell', 
-                'Growl', 'Hyper Voice', 'Metal Sound', 'Noble Roar', 'Overdrive', 
-                'Parting Shot', 'Relic Song', 'Round', 'Screech', 'Sing', 'Snarl', 
-                'Snore', 'Sparkling Aria', 'Supersonic', 'Uproar', 'Torch Song'];
-            if (soundMoves.includes(move.name)) {
+            if (moveHasFlag(move, 'sound')) {
                 move.type = 'Water';
             }
         }
     },
     
     // 【湿润之声 Pro】声音招式变为水属性 + 威力x1.3 (RPG 魔改版)
+    // 【软编码】使用 PS moves-data.js 的 sound flag
     // 【修复】使用 _liquidVoiceApplied 标记防止威力累积
     'Liquid Voice Pro': {
         onModifyMove: (move, attacker) => {
-            const soundMoves = ['Boomburst', 'Bug Buzz', 'Chatter', 'Clanging Scales', 
-                'Clangorous Soul', 'Disarming Voice', 'Echoed Voice', 'Eerie Spell', 
-                'Growl', 'Hyper Voice', 'Metal Sound', 'Noble Roar', 'Overdrive', 
-                'Parting Shot', 'Relic Song', 'Round', 'Screech', 'Sing', 'Snarl', 
-                'Snore', 'Sparkling Aria', 'Supersonic', 'Uproar', 'Torch Song'];
-            if (soundMoves.includes(move.name)) {
+            if (moveHasFlag(move, 'sound')) {
                 move.type = 'Water';
                 // 【关键修复】只在首次应用时修改威力，防止累积
                 if (!move._liquidVoiceApplied) {
@@ -828,8 +1189,9 @@ const AbilityHandlers = {
     },
 
     // 【软弱】半血以下攻击/特攻减半
+    // 【钩子统一】onModifyStat: (stats, poke, battle)
     'Defeatist': {
-        onModifyStat: (stats, poke) => {
+        onModifyStat: (stats, poke, battle) => {
             if (poke.currHp <= poke.maxHp / 2) {
                 stats.atk = Math.floor(stats.atk * 0.5);
                 stats.spa = Math.floor(stats.spa * 0.5);
@@ -896,8 +1258,9 @@ const AbilityHandlers = {
     // ============================================
 
     // 【食土】被地面打回血1/4HP（大王铜象）
+    // 【钩子统一】onImmunity: (atkType, move)
     'Earth Eater': {
-        onImmunity: (atkType) => atkType === 'Ground',
+        onImmunity: (atkType, move) => atkType === 'Ground',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Ground') {
                 const heal = Math.floor(pokemon.maxHp / 4);
@@ -910,8 +1273,9 @@ const AbilityHandlers = {
     },
 
     // 【焦香身躯】被火系打防御+2（麻花犬）
+    // 【钩子统一】onImmunity: (atkType, move)
     'Well-Baked Body': {
-        onImmunity: (atkType) => atkType === 'Fire',
+        onImmunity: (atkType, move) => atkType === 'Fire',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Fire') {
                 if (pokemon.applyBoost) pokemon.applyBoost('def', 2);
@@ -998,45 +1362,54 @@ const AbilityHandlers = {
 
     // 【精神力】免疫畏缩
     'Inner Focus': {
-        noFlinch: true
+        noFlinch: true,
+        preventFlinch: true // 兼容两种检查方式
     },
 
     // 【我行我素】免疫混乱
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Own Tempo': {
-        noConfusion: true
+        noConfusion: true,
+        onImmunityStatus: (status, pokemon, battle) => status === 'confusion' // 兼容状态免疫检查
     },
 
     // 【柔软】免疫麻痹
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Limber': {
-        onImmunityStatus: (status) => status === 'par'
+        onImmunityStatus: (status, pokemon, battle) => status === 'par'
     },
 
     // 【免疫】免疫中毒
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Immunity': {
-        onImmunityStatus: (status) => status === 'psn' || status === 'tox'
+        onImmunityStatus: (status, pokemon, battle) => status === 'psn' || status === 'tox'
     },
 
     // 【水之面纱】免疫烧伤
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Water Veil': {
-        onImmunityStatus: (status) => status === 'brn'
+        onImmunityStatus: (status, pokemon, battle) => status === 'brn'
     },
 
     // 【熔岩铠甲】免疫冰冻
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Magma Armor': {
-        onImmunityStatus: (status) => status === 'frz'
+        onImmunityStatus: (status, pokemon, battle) => status === 'frz'
     },
 
     // 【不眠】免疫睡眠
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Insomnia': {
-        onImmunityStatus: (status) => status === 'slp'
+        onImmunityStatus: (status, pokemon, battle) => status === 'slp'
     },
     'Vital Spirit': {
-        onImmunityStatus: (status) => status === 'slp'
+        onImmunityStatus: (status, pokemon, battle) => status === 'slp'
     },
     
     // 【甘幕 Sweet Veil】己方全员免疫睡眠（包括队友）
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Sweet Veil': {
-        onImmunityStatus: (status) => status === 'slp',
+        onImmunityStatus: (status, pokemon, battle) => status === 'slp',
         // 标记：队友也免疫睡眠（双打用）
         teamSleepImmune: true
     },
@@ -1118,9 +1491,13 @@ const AbilityHandlers = {
     },
 
     // 【粉彩护幕】免疫中毒（伽勒尔小火马/烈焰马）
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Pastel Veil': {
-        onImmunityStatus: (status) => status === 'psn' || status === 'tox',
-        onStart: (pokemon, logs) => {
+        onImmunityStatus: (status, pokemon, battle) => status === 'psn' || status === 'tox',
+        // 【钩子统一】onStart: (self, enemy, logs, battle)
+        onStart: (self, enemy, logs, battle) => {
+            // 注意：此处 self 就是 pokemon
+            const pokemon = self;
             // 入场时治愈己方中毒状态
             if (pokemon.status === 'psn' || pokemon.status === 'tox') {
                 pokemon.status = null;
@@ -1130,8 +1507,9 @@ const AbilityHandlers = {
     },
 
     // 【洁净之盐】免疫所有异常状态（盐石巨灵）
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Purifying Salt': {
-        onImmunityStatus: () => true, // 免疫所有异常状态
+        onImmunityStatus: (status, pokemon, battle) => true, // 免疫所有异常状态
         // 【修复】参数顺序：(damage, attacker, defender, move, effectiveness)
         onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness) => {
             // 幽灵系招式伤害减半
@@ -1143,14 +1521,16 @@ const AbilityHandlers = {
     },
 
     // 【绝对睡眠】视为睡眠状态（树枕尾熊）
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Comatose': {
-        onImmunityStatus: () => true, // 无法被覆盖其他状态
+        onImmunityStatus: (status, pokemon, battle) => true, // 无法被覆盖其他状态
         alwaysAsleep: true // 视为睡眠状态
     },
 
     // 【界限盾壳】HP > 50% 时免疫异常状态（小陨星）
+    // 【钩子统一】onImmunityStatus: (status, pokemon, battle)
     'Shields Down': {
-        onImmunityStatus: (status, pokemon) => {
+        onImmunityStatus: (status, pokemon, battle) => {
             return pokemon && pokemon.currHp > pokemon.maxHp / 2;
         }
     },
@@ -1169,26 +1549,19 @@ const AbilityHandlers = {
         canPoisonAny: true // 标记：可以让任何属性中毒
     },
 
-    // 【鳞粉】免疫粉尘类招式
+    // 【鳞粉/防尘】免疫粉尘类招式
+    // 【软编码】使用 PS moves-data.js 的 powder flag
     'Overcoat': {
         onImmunity: (atkType, move) => {
-            const powderMoves = ['Cotton Spore', 'Poison Powder', 'Powder', 'Rage Powder', 
-                'Sleep Powder', 'Spore', 'Stun Spore'];
-            if (move && powderMoves.includes(move.name)) return true;
-            return false;
+            return moveHasFlag(move, 'powder');
         }
     },
 
     // 【防弹】免疫球类招式
+    // 【软编码】使用 PS moves-data.js 的 bullet flag
     'Bulletproof': {
         onImmunity: (atkType, move) => {
-            const ballMoves = ['Acid Spray', 'Aura Sphere', 'Barrage', 'Beak Blast', 
-                'Bullet Seed', 'Egg Bomb', 'Electro Ball', 'Energy Ball', 'Focus Blast', 
-                'Gyro Ball', 'Ice Ball', 'Magnet Bomb', 'Mist Ball', 'Mud Bomb', 
-                'Octazooka', 'Pollen Puff', 'Pyro Ball', 'Rock Blast', 'Rock Wrecker', 
-                'Searing Shot', 'Seed Bomb', 'Shadow Ball', 'Sludge Bomb', 'Weather Ball', 'Zap Cannon'];
-            if (move && ballMoves.includes(move.name)) return true;
-            return false;
+            return moveHasFlag(move, 'bullet');
         }
     },
 
@@ -1197,8 +1570,9 @@ const AbilityHandlers = {
     // ============================================
 
     // 【画皮】第一次受到攻击伤害时免疫，但自身损失 1/8 HP
+    // 【钩子统一】onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness)
     'Disguise': {
-        onDefenderModifyDamage: (damage, attacker, defender, move) => {
+        onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness) => {
             // 如果画皮已经破损，正常受伤
             if (defender.disguiseBroken) return damage;
             
@@ -1312,8 +1686,9 @@ const AbilityHandlers = {
     // ============================================
 
     // 【鲜艳之躯】免疫先制攻击
+    // 【钩子统一】onTryHit: (attacker, defender, move, effectiveness)
     'Dazzling': {
-        onTryHit: (attacker, defender, move) => {
+        onTryHit: (attacker, defender, move, effectiveness) => {
             if (move.priority && move.priority > 0) {
                 return { blocked: true, message: `${defender.cnName} 的特性让先制攻击无效了！` };
             }
@@ -1322,8 +1697,9 @@ const AbilityHandlers = {
     },
 
     // 【女王的威严】免疫先制攻击
+    // 【钩子统一】onTryHit: (attacker, defender, move, effectiveness)
     'Queenly Majesty': {
-        onTryHit: (attacker, defender, move) => {
+        onTryHit: (attacker, defender, move, effectiveness) => {
             if (move.priority && move.priority > 0) {
                 return { blocked: true, message: `${defender.cnName} 的威严让对手无法使出先制招式！` };
             }
@@ -1332,8 +1708,9 @@ const AbilityHandlers = {
     },
 
     // 【尾甲】免疫先制攻击
+    // 【钩子统一】onTryHit: (attacker, defender, move, effectiveness)
     'Armor Tail': {
-        onTryHit: (attacker, defender, move) => {
+        onTryHit: (attacker, defender, move, effectiveness) => {
             if (move.priority && move.priority > 0) {
                 return { blocked: true, message: `${defender.cnName} 的铠甲之尾挡下了先制攻击！` };
             }
@@ -1342,8 +1719,9 @@ const AbilityHandlers = {
     },
 
     // 【黄金之躯】免疫变化招式 (赛富豪专属)
+    // 【钩子统一】onTryHit: (attacker, defender, move, effectiveness)
     'Good as Gold': {
-        onTryHit: (attacker, defender, move) => {
+        onTryHit: (attacker, defender, move, effectiveness) => {
             if (move.cat === 'status' || move.category === 'Status') {
                 return { blocked: true, message: `${defender.cnName} 的黄金之躯免疫了变化招式！` };
             }
@@ -1352,16 +1730,10 @@ const AbilityHandlers = {
     },
 
     // 【乘风】免疫风类招式+攻击+1
+    // 【软编码】使用 PS moves-data.js 的 wind flag
     'Wind Rider': {
         onImmunity: (atkType, move) => {
-            const windMoves = [
-                'Aeroblast', 'Air Cutter', 'Air Slash', 'Bleakwind Storm', 'Blizzard', 
-                'Fairy Wind', 'Gust', 'Heat Wave', 'Hurricane', 'Icy Wind', 
-                'Petal Blizzard', 'Springtide Storm', 'Tailwind', 
-                'Twister', 'Whirlwind', 'Wildbolt Storm'
-            ];
-            if (move && windMoves.includes(move.name)) return true;
-            return false;
+            return moveHasFlag(move, 'wind');
         }
     },
 
@@ -1370,24 +1742,27 @@ const AbilityHandlers = {
     // ============================================
 
     // 【怪力钳】防止攻击降低
+    // 【钩子统一】onTryBoost: (boost, pokemon, source, stat, logs)
     'Hyper Cutter': {
-        onTryBoost: (boost, pokemon, source, stat) => {
+        onTryBoost: (boost, pokemon, source, stat, logs) => {
             if (stat === 'atk' && boost < 0 && source !== pokemon) return 0;
             return boost;
         }
     },
 
     // 【健壮胸肌】防止防御降低
+    // 【钩子统一】onTryBoost: (boost, pokemon, source, stat, logs)
     'Big Pecks': {
-        onTryBoost: (boost, pokemon, source, stat) => {
+        onTryBoost: (boost, pokemon, source, stat, logs) => {
             if (stat === 'def' && boost < 0 && source !== pokemon) return 0;
             return boost;
         }
     },
 
     // 【锐利目光】防止命中率降低 + 忽略对方闪避
+    // 【钩子统一】onTryBoost: (boost, pokemon, source, stat, logs)
     'Keen Eye': {
-        onTryBoost: (boost, pokemon, source, stat) => {
+        onTryBoost: (boost, pokemon, source, stat, logs) => {
             if (stat === 'accuracy' && boost < 0 && source !== pokemon) return 0;
             return boost;
         },
@@ -1427,15 +1802,7 @@ const AbilityHandlers = {
         preventItemTheft: true
     },
 
-    // 【精神力】防止畏缩
-    'Inner Focus': {
-        preventFlinch: true
-    },
-
-    // 【我行我素】防止混乱
-    'Own Tempo': {
-        onImmunityStatus: (status) => status === 'confusion'
-    },
+    // 【注意】Inner Focus 和 Own Tempo 已在第999-1007行定义，此处删除重复
 
     // 【迟钝】防止被挑衅和挑拨
     'Oblivious': {
@@ -1517,4 +1884,5 @@ AbilityHandlers._sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 
 if (typeof window !== 'undefined') {
     window.AbilityHandlers = AbilityHandlers;
     window.checkCanSwitch = checkCanSwitch;
+    window.moveHasFlag = moveHasFlag; // 导出招式 flag 检查函数
 }

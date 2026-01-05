@@ -238,8 +238,9 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     
     if (result.damage > 0) {
         // 检查替身是否吸收伤害
+        // 【Infiltrator】传入 attacker 以检查 ignoreSubstitute
         if (typeof MoveEffects !== 'undefined' && MoveEffects.checkSubstitute) {
-            const subResult = MoveEffects.checkSubstitute(defender, result.damage, move);
+            const subResult = MoveEffects.checkSubstitute(defender, result.damage, move, attacker);
             if (subResult.absorbed) {
                 subResult.logs.forEach(txt => log(txt));
                 result.damage = 0;
@@ -252,6 +253,16 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         const actualDamage = Math.min(result.damage, defender.currHp);
         defender.takeDamage(result.damage, dmgCategory);
         result.displayDamage = actualDamage; // 用于日志显示的实际伤害
+        
+        // 【Illusion 幻觉破解】受到伤害后触发 onDamageTaken 钩子
+        if (typeof AbilityHandlers !== 'undefined' && defender.ability) {
+            const abilityHandler = AbilityHandlers[defender.ability];
+            if (abilityHandler && abilityHandler.onDamageTaken) {
+                let damageLogs = [];
+                abilityHandler.onDamageTaken(defender, actualDamage, attacker, damageLogs);
+                damageLogs.forEach(txt => log(txt));
+            }
+        }
         
         // === 播放打击音效 ===
         if (typeof window.playHitSFX === 'function') {

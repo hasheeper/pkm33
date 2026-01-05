@@ -300,6 +300,15 @@ async function initGame() {
 // =========================================================
 
 /**
+ * 更新战斗精灵图（用于 Imposter/Illusion 特性触发后刷新）
+ * 导出到 window 供 ability-handlers.js 调用
+ */
+function updateBattleSprites() {
+    updateAllVisuals(false);
+}
+window.updateBattleSprites = updateBattleSprites;
+
+/**
  * 界面刷新：渲染文本、血量、图片
  * @param {string|boolean} forceSpriteAnim - false: 不强制动画, 'player': 只有玩家动画, 'enemy': 只有敌方动画, true: 两边都动画
  */
@@ -310,11 +319,12 @@ function updateAllVisuals(forceSpriteAnim = false) {
     if (!p || !e) return;
 
     // 1. 名字 LV (敌方高等级用红色强调)
-    document.getElementById('player-name').innerText = p.cnName;
+    // 【Illusion/Imposter】支持显示伪装名称
+    document.getElementById('player-name').innerText = p.displayCnName || p.cnName;
     document.getElementById('player-lvl').innerText = p.level;
     const enemyNameEl = document.getElementById('enemy-name');
     // 野生战斗时显示当前敌方宝可梦的名字，训练家战斗时显示宝可梦名字
-    enemyNameEl.innerText = e.cnName;
+    enemyNameEl.innerText = e.displayCnName || e.cnName;
     const enemyLvEl = document.getElementById('enemy-lvl');
     enemyLvEl.innerText = e.level;
     enemyLvEl.style.color = (e.level > p.level + 20) ? '#e74c3c' : '';
@@ -331,10 +341,18 @@ function updateAllVisuals(forceSpriteAnim = false) {
     
     // 极巨化状态下不重新加载精灵图（保持 G-Max 图片）
     if (!p.isDynamaxed) {
-        smartLoadSprite('player-sprite', p.getSprite(true), playerAnim);
+        // 【Illusion/Imposter】支持显示伪装精灵图
+        const playerSpriteUrl = p.displaySpriteId 
+            ? `https://play.pokemonshowdown.com/sprites/ani-back/${p.displaySpriteId}.gif`
+            : p.getSprite(true);
+        smartLoadSprite('player-sprite', playerSpriteUrl, playerAnim);
     }
     if (!e.isDynamaxed) {
-        smartLoadSprite('enemy-sprite', e.getSprite(false), enemyAnim);
+        // 【Illusion/Imposter】支持显示伪装精灵图
+        const enemySpriteUrl = e.displaySpriteId 
+            ? `https://play.pokemonshowdown.com/sprites/ani/${e.displaySpriteId}.gif`
+            : e.getSprite(false);
+        smartLoadSprite('enemy-sprite', enemySpriteUrl, enemyAnim);
     }
     const playerSpriteEl = document.getElementById('player-sprite');
     if (playerSpriteEl) {
