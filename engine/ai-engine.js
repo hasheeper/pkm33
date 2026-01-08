@@ -1086,9 +1086,9 @@ function simulateDamage(attacker, defender, move) {
     
     // 如果有全局 calcDamage 函数，使用它
     // 传入 isSimulation: true 防止消耗指令状态
-    if (typeof calcDamage === 'function') {
+    if (typeof window.calcDamage === 'function') {
         try {
-            const result = calcDamage(attacker, defender, move, { isSimulation: true });
+            const result = window.calcDamage(attacker, defender, move, { isSimulation: true });
             return {
                 damage: result.damage || result.singleHitDamage || 0,
                 effectiveness: (result.effectiveness !== undefined) ? result.effectiveness : 1

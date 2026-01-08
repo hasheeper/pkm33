@@ -79,7 +79,7 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
     }
     
     // 使用 battle-engine 的伤害计算
-    const result = calcDamage(attacker, defender, move);
+    const result = window.calcDamage(attacker, defender, move);
     
     // 0. 处理招式失败（如食梦对未睡眠目标）
     if (result.failed) {

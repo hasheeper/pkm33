@@ -6,51 +6,8 @@
     <title>PKM Battle System - Switch Style</title>
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,900&family=Rubik:ital,wght@0,400;0,500;0,700;0,900;1,700&family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./index.css">
-    <!-- 
-        数据层：同时支持传统 script 加载和 ES Module 导入
-        传统加载用于当前页面，ES Module 用于未来框架整合
-    -->
-    <script src="./data/pokedex-data.js"></script>
-    <script src="./data/moves-data.js"></script>
-    <script src="./data/move-constants.js"></script>
-    <script src="./engine/items-data.js"></script>
-    <!-- 战斗机制模块 (必须在 index.js 之前加载) -->
-    <script src="./mechanics/move-styles.js"></script>
-    <script src="./mechanics/z-moves.js"></script>
-    <script src="./mechanics/mechanic-checker.js"></script>
-    <script src="./mechanics/dynamax.js"></script>
-    <script src="./mechanics/mega-evolution.js"></script>
-    <script src="./mechanics/form-change/form-change-system.js"></script>
-    <script src="./mechanics/clash-system.js"></script>
-    <!-- UI 模块 (必须在 index.js 之前加载) -->
-    <script src="./ui/ui-renderer.js"></script>
-    <script src="./ui/ui-sprites.js"></script>
-    <script src="./ui/sprite-duplicate-fix.js"></script>
-    <script src="./ui/ui-trainer-hud.js"></script>
-    <script src="./ui/ui-menus.js"></script>
-    <!-- 系统模块 (必须在 index.js 之前加载) -->
-    <script src="./systems/translations.js"></script>
-    <script src="./systems/data-loader.js"></script>
-    <script src="./systems/catch-system.js"></script>
-    <script src="./systems/bgm-system.js"></script>
-    <script src="./systems/audio-manager.js"></script>
-    <script src="./systems/preloader.js"></script>
-    <!-- 战斗模块 (必须在 index.js 之前加载) -->
-    <script src="./battle/battle-calc.js"></script>
-    <script src="./battle/battle-effects.js"></script>
-    <script src="./battle/battle-damage.js"></script>
-    <script src="./battle/battle-switch.js"></script>
-    <script src="./battle/battle-turns.js"></script>
-    <!-- 招式处理器 - 策略模式 (必须在 battle-engine.js 之前加载) -->
-    <script src="./engine/move-handlers.js"></script>
-    <!-- 特性处理器 (必须在 battle-engine.js 之前加载) -->
-    <script src="./engine/ability-handlers.js"></script>
-    <!-- 战斗引擎 -->
-    <script src="./engine/battle-engine.js"></script>
-    <!-- AI 引擎 -->
-    <script src="./engine/ai-engine.js"></script>
-    <!-- 技能效果扩展模块 -->
-    <script src="./engine/move-effects.js"></script>
+    <!-- Vite ES Module 入口 -->
+    <script type="module" src="./src/main.js"></script>
 </head>
 <body>
 
@@ -482,7 +439,6 @@
         window.requestBattleDataFromParent();
     })();
 </script>
-<script src="./index.js"></script>
 
 </body>
 </html>
