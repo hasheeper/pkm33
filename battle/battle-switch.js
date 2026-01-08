@@ -271,7 +271,14 @@ async function handleEnemyFainted(e) {
     await wait(1000);
     if (battle.nextAliveEnemy()) {
         const newE = battle.getEnemy();
-        log(`敌方派出 <b>${newE.cnName}</b> (Lv.${newE.level})!`);
+        
+        // 【BUG修复】先触发入场特性（Illusion等），再输出日志
+        // 这样 Illusion 的 displayCnName 会在日志输出前设置好
+        triggerEntryAbilities(newE, battle.getPlayer());
+        
+        // 使用 displayCnName（幻觉伪装名）或 cnName（真名）
+        const displayName = newE.displayCnName || newE.cnName;
+        log(`敌方派出 <b>${displayName}</b> (Lv.${newE.level})!`);
         
         // 【标记换人】用于重复精灵图修复
         if (typeof window.markEnemySwitch === 'function') {
@@ -417,7 +424,7 @@ async function handleEnemyFainted(e) {
         }
         
         updateAllVisuals('enemy');
-        triggerEntryAbilities(newE, battle.getPlayer());
+        // 【注意】triggerEntryAbilities 已在日志输出前调用，这里不再重复调用
         
         // 结算敌方场地钉子伤害
         if (typeof MoveEffects !== 'undefined' && MoveEffects.applyEntryHazards) {

@@ -644,6 +644,29 @@ async function handleAttack(moveIndex, options = {}) {
     }
     
     // =========================================================
+    // 【BUG修复】Choice 道具锁招强制检查
+    // 如果玩家持有 Choice 道具且已锁定技能，必须使用锁定的技能
+    // 如果尚未锁定，则在此处锁定（在对冲逻辑之前）
+    // =========================================================
+    const pItem = p.item || '';
+    const pIsChoiceItem = pItem.includes('Choice') || pItem.includes('讲究');
+    if (pIsChoiceItem) {
+        if (p.choiceLockedMove) {
+            // 已锁定：强制使用锁定的技能
+            const lockedMoveObj = p.moves.find(m => m.name === p.choiceLockedMove);
+            if (lockedMoveObj && playerMove.name !== p.choiceLockedMove) {
+                console.log(`[CHOICE ENFORCE] 玩家试图使用 ${playerMove.name}，但被 ${pItem} 锁定在 ${p.choiceLockedMove}`);
+                log(`<span style="color:#e74c3c">${p.cnName} 被 ${pItem} 锁定，只能使用 ${lockedMoveObj.cn || p.choiceLockedMove}！</span>`);
+                playerMove = lockedMoveObj;
+            }
+        } else {
+            // 尚未锁定：在选择招式时立即锁定（不管对冲结果如何）
+            p.choiceLockedMove = playerMove.name;
+            console.log(`[CHOICE LOCK] ${p.name} 被 ${pItem} 锁定在 ${playerMove.name}`);
+        }
+    }
+    
+    // =========================================================
     // Z-Move 转换逻辑：使用自动推导系统
     // 【互斥检查】Mega/极巨化状态下禁止使用 Z 招式
     // 【Ultra Burst】日/月骡子使用 Z 招式时先触发 Ultra Burst

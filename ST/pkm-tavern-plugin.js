@@ -134,109 +134,121 @@ const GLORIA_DATA = {
 };
 /* 
  * 角色: 小照 (Akari)
- * 身份: 银河队调查员 / 时空穿越者 / 镇抚者
- * 核心机制: 刚猛/迅疾 (PLA Styles) + 地板流 (Ceaseless Edge / Stone Axe)
+ * 身份: 银河队调查组 / 神阖之笛的继承者
+ * 特色: 洗翠地区全明星 + 古武流派 (Styles) 战术大师
  */
 const AKARI_DATA = {
-    // 【Tier 4 - 镇抚宝可梦的古法技艺·全盛期】
+    // 【Tier 4 - 神阖之笛的继承者】(Lv.95 ~ 99)
     4: {
-        "trainerProficiency": 230,
-        // ==============================================================
-        // [Tier Specific Unlocks]
-        // ==============================================================
+        "trainerProficiency": 255, // 熟练度拉满：高频触发对冲(Clash)与战术指挥
         "unlocks": {
             "enable_bond": false,
-            "enable_styles": true,       // ✅ 唯一的 Style 使用者：允许切换技能的「刚/迅」形态
-            "enable_insight": false,     // 同样是神奥之前的时代，尚未掌握心眼 (上限155)
-            "enable_mega": false,        // 古代没有 Mega
-            "enable_z_move": false,      // 古代没有 Z
-            "enable_dynamax": false,     // 古代没有 极巨
+            "enable_styles": true,       // 核心特色：频繁切换 刚猛/迅疾
+            "enable_insight": true,      // 见其实：调查员拥有看穿招式的直觉
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
             "enable_tera": false
         },
-
-        // ==============================================================
-        // [Party Data] 满编复古强队
-        // ==============================================================
         "party": [
             {
-                // [王牌] 撒菱核心
+                // [撒前场钉的先锋]
+                "name": "Kleavor", 
+                "lv": 97,
+                "gender": "M",
+                "nature": "Jolly",      // 爽朗 (+速度 -特攻)
+                "ability": "Sharpness", // 锋锐
+                "item": "Focus Sash",   // 气势披带
+                "isLead": true,         
+                "stats_meta": { 
+                    "ev_level": 252,    // 满努力
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V
+                },
+                // 战术: 迅疾岩斧 => 必出钉子 + 蹭血
+                "moves": ["Stone Axe", "X-Scissor", "Close Combat", "Accelerock"],
+                "friendship": { "insight": 200 } // 高闪避
+            },
+            {
+                // [特盾/流转核心]
+                "name": "Goodra-Hisui", 
+                "lv": 96,
+                "gender": "F",
+                "nature": "Calm",       // 沉着 (+特防 -攻击)
+                "ability": "Gooey",     // 黏滑 (接触降速)
+                "item": "Assault Vest", // 突击背心 (特防 x1.5)
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V (龙尾需要物攻IV)
+                },
+                "moves": ["Draco Meteor", "Flash Cannon", "Flamethrower", "Dragon Tail"],
+                "friendship": { "trust": 255, "devotion": 200 } // 高耐受 + 自动回血
+            },
+            {
+                // [高速异常手] 
+                "name": "Sneasler", 
+                "lv": 95,
+                "gender": "F",
+                "nature": "Jolly",      // 爽朗 (+速度 -特攻)
+                "ability": "Poison Touch", // 毒手 (接触30%中毒)
+                "item": "Life Orb",     // 生命宝珠
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V
+                },
+                "moves": ["Dire Claw", "Close Combat", "Shadow Claw", "Fake Out"], 
+                "friendship": { "passion": 230 } // 高暴击率
+            },
+            {
+                // [幻觉干扰/特攻手] 
+                "name": "Zoroark-Hisui",
+                "lv": 95,
+                "nature": "Timid",      // 胆小 (+速度 -攻击)
+                "ability": "Illusion",  // 幻觉
+                "item": "Wise Glasses", // 博识眼镜
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 0攻IV (防欺诈/防混乱自伤)
+                },
+                "moves": ["Shadow Ball", "Hyper Voice", "Sludge Bomb", "Nasty Plot"]
+            },
+            {
+                // [物理核弹 / 空间打手]
+                "name": "Ursaluna",
+                "lv": 98,
+                "nature": "Brave",      // 勇敢 (+攻击 -速度)
+                "ability": "Guts",      // 毅力
+                "item": "Flame Orb",    // 火焰宝珠
+                "stats_meta": { 
+                    "ev_level": 252,
+                    // 速度31或0都可以。31是为了在常规环境不至于太慢，
+                    // 若想完美适配空间队或刚猛后手爆发，可改为 spe: 0
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } 
+                },
+                "moves": ["Facade", "Headlong Rush", "Earthquake", "Fire Punch"],
+                "friendship": { "trust": 200, "passion": 255 }
+            },
+            {
+                // [王牌 - 无双剑豪]
                 "name": "Samurott-Hisui", 
                 "lv": 99,
                 "gender": "F",
-                "nature": "Adamant", // 固执
-                "ability": "Sharpness", // 锋锐 (+50% 切割威力)
-                "item": "Choice Scarf", // 专爱围巾 (在迅疾风格还没开启前，先手撒菱)
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                // 战术: 秘剑·千重浪是必带招式，每次攻击都撒菱。
-                // 配合 style: 迅疾千重浪 = 极速铺场；刚猛本身没意义因为不加特效
-                "moves": ["Ceaseless Edge", "Razor Shell", "X-Scissor", "Sacred Sword"],
-                
-                "isAce": true,
-                "friendship": { "trust": 150, "passion": 200, "insight": 220, "devotion": 100 }
-            },
-            {
-                // [补位/首发] 隐形岩核心
-                "name": "Kleavor", // 劈斧螳螂
-                "lv": 97,
-                "gender": "M",
-                "nature": "Jolly", // 爽朗
+                "nature": "Adamant",    // 固执 (+攻击 -特攻)
                 "ability": "Sharpness", // 锋锐
-                "item": "Focus Sash", // 气势披带 (保证出岩斧)
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Stone Axe", "X-Scissor", "Close Combat", "Quick Attack"] 
-                // 岩斧 (Stone Axe): 攻击同时铺隐形岩。古代人的钉子都是打出来的。
-            },
-            {
-                // [诡计刺客] 免除普通/格斗/幽灵 三系攻击
-                "name": "Zoroark-Hisui", // 洗翠索罗亚克
-                "lv": 95,
-                "gender": "M",
-                "nature": "Timid", // 胆小
-                "ability": "Illusion", // 幻觉：伪装成队伍最后的精灵
-                "item": "Life Orb", 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0,  "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Shadow Ball", "Hyper Voice", "Flamethrower", "Nasty Plot"]
-            },
-            {
-                // [重装坦克] 刚猛风格代表
-                "name": "Ursaluna", // 月月熊
-                "lv": 96,
-                "gender": "M",
-                "nature": "Adamant",
-                "ability": "Guts", // 毅力
-                "item": "Flame Orb", // 火焰宝珠
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                // 战术: 刚猛+硬撑 (Strong Style Facade) = 毁灭级伤害
-                // AI会倾向于在对手半血以下时切这一只收割
-                "moves": ["Facade", "Headlong Rush", "Fire Punch", "Swords Dance"] 
-            },
-            {
-                // [古代伙伴] 
-                "name": "Pikachu",
-                "lv": 100, // 虽然没进化，但是陪伴最久的
-                "gender": "M",
-                "nature": "Naive", // 还原动画/游戏中那种灵活的性格
-                "ability": "Static", 
-                "item": "Light Ball", // 在现代捡到的增幅器
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Volt Tackle", "Iron Tail", "Play Rough", "Swift"] // Swift 是迅疾风格的体现
-            },
-            {
-                // [飞行打击] 舍身鸟
-                "name": "Staraptor", 
-                "lv": 94, 
-                "gender": "F",
-                "nature": "Jolly", 
-                "ability": "Reckless", 
-                "item": "Choice Band", // 专爱头带
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Brave Bird", "Double-Edge", "Close Combat", "U-turn"] 
+                "item": "Scope Lens",   // 焦点镜 (配合Passon打暴击流)
+                "isAce": true,
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V
+                },
+                // 迅疾·千重浪 = 极速铺毒菱/撒菱？ (代码库目前支持撒菱)
+                "moves": ["Ceaseless Edge", "Razor Shell", "Sacred Sword", "Aqua Jet"],
+                // 面板怪：满信赖(硬撑)、满激情(刀刀烈火)、满灵犀(闪避)
+                "friendship": { "trust": 255, "passion": 255, "insight": 255, "devotion": 200 }
             }
         ]
     }
 };
+
 
 /* 
  * 角色: 鸣依 (Rosa)

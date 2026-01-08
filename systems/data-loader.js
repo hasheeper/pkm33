@@ -28,121 +28,209 @@
  */
 function getDefaultBattleData() {
     return {
-  "difficulty": "normal",
+  "difficulty": "expert",
   "settings": {
     "enableAVS": true,
+    "enableCommander": true,
     "enableEVO": true,
-    "enableSFX": true,
     "enableBGM": true,
-    "enableClash": false,
-    "debugMode": true
+    "enableSFX": true,
+    "enableClash": true,
+    "enableStyles": true,
+    "debugMode": false
   },
   "player": {
-    "name": "Mechanic Tester",
-    "trainerProficiency": 255,
+    "name": "Challenger",
+    "trainerProficiency": 230,
     "unlocks": {
       "enable_mega": true,
       "enable_z_move": true,
       "enable_dynamax": true,
-      "enable_tera": true
+      "enable_tera": true,
+      "enable_bond": true,
+      "enable_styles": false
     },
     "party": [
       {
         "slot": 1,
-        "name": "Morpeko",
-        "nickname": "饿饿鼠",
-        "lv": 100,
+        "name": "Dragapult",
+        "nickname": "多龙巴鲁托",
+        "lv": 95,
         "isLead": true,
-        "ability": "Hunger Switch",
-        "item": "Focus Sash",
+        "ability": "Infiltrator",
         "nature": "Jolly",
-        "isAce": true,
-        "moves": ["Aura Wheel", "Protect", "Seed Bomb", "Parting Shot"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "insight": 200 } }
+        "item": "Choice Specs",
+        "teratype": "Ghost",
+        "mechanic": "tera",
+        "moves": ["Shadow Ball", "Draco Meteor", "U-turn", "Flamethrower"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "help": "高速游击手，用于测试首发速度线和对冲机制"
       },
       {
         "slot": 2,
-        "name": "Palafin",
-        "nickname": "想做英雄",
-        "lv": 100,
-        "ability": "Zero to Hero",
-        "item": "Mystic Water",
-        "mechanic": "tera",
-        "teraType": "Water",
-        "moves": ["Flip Turn", "Jet Punch", "Wave Crash", "Protect"],
-        "stats_meta": { "ev_level": 252 }
+        "name": "Lucario",
+        "nickname": "路卡利欧",
+        "lv": 95,
+        "ability": "Justified",
+        "nature": "Naïve",
+        "item": "Lucarionite",
+        "mechanic": "mega",
+        "mega_target": "lucariomega",
+        "moves": ["Close Combat", "Meteor Mash", "Bullet Punch", "Extreme Speed"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "friendship": { "avs": { "passion": 255 } },
+         "help": "通过适应力测试与刚猛月月熊的正面对攻"
       },
       {
         "slot": 3,
-        "name": "Darmanitan-Galar",
-        "nickname": "达摩不倒",
-        "lv": 100,
-        "ability": "Zen Mode",
-        "item": "Salac Berry",
-        "nature": "Jolly",
-        "moves": ["Belly Drum", "Ice Punch", "Earthquake", "Flare Blitz"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 255 } }
+        "name": "Ting-Lu",
+        "nickname": "鼎鹿",
+        "lv": 94,
+        "ability": "Vessel of Ruin",
+        "item": "Leftovers",
+        "nature": "Impish",
+        "moves": ["Earthquake", "Ruination", "Stealth Rock", "Whirlwind"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "help": "极高耐久，用于测试硬解洗翠黏美龙"
       },
       {
         "slot": 4,
-        "name": "Aegislash",
-        "nickname": "圣剑",
-        "lv": 100,
-        "ability": "Stance Change",
-        "item": "Leftovers",
-        "nature": "Quiet",
-        "moves": ["Shadow Ball", "King's Shield", "Flash Cannon", "Close Combat"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 255 } }
+        "name": "Iron Bundle",
+        "nickname": "铁包袱",
+        "lv": 94,
+        "ability": "Quark Drive",
+        "item": "Booster Energy",
+        "nature": "Timid",
+        "moves": ["Freeze-Dry", "Hydro Pump", "Ice Beam", "Flip Turn"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "help": "以快制快，针对劈斧螳螂和大剑鬼"
       },
       {
         "slot": 5,
-        "name": "Eiscue",
-        "nickname": "物理免疫盾",
-        "lv": 100,
-        "ability": "Ice Face",
-        "item": "Sitrus Berry",
+        "name": "Volcarona",
+        "nickname": "火神蛾",
+        "lv": 95,
+        "ability": "Flame Body",
+        "item": "Heavy-Duty Boots",
+        "nature": "Modest",
+        "mechanic": "zmove",
+        "moves": ["Quiver Dance", "Fire Blast", "Bug Buzz", "Giga Drain"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "help": "Z招式爆发点，尝试突破特盾"
+      },
+      {
+        "slot": 6,
+        "name": "Dragonite",
+        "nickname": "快龙",
+        "lv": 96,
+        "isAce": true,
+        "ability": "Multiscale",
+        "item": "Weakness Policy",
         "mechanic": "dynamax",
-        "nature": "Jolly",
-        "moves": ["Belly Drum", "Liquidation", "Icicle Crash", "Reversal"],
-        "stats_meta": { "ev_level": 252 }
+        "nature": "Adamant",
+        "moves": ["Outrage", "Dual Wingbeat", "Extreme Speed", "Dragon Dance"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "friendship": { "avs": { "trust": 250, "devotion": 200 } }
       }
     ]
   },
   "enemy": {
-    "name": "System QA",
-    "type": "TEST_BOT",
-    "difficulty": "expert",
-    "trainerProficiency": 100,
-    "unlocks": { "enable_mega": true },
+    "name": "Akari (Hisui)",
+    "type": "SURVEY_CORPS",
+    "id": "akari", 
+    "trainerProficiency": 255, 
+    "lines": {
+      "start": "这种感觉……就像是面对拿着神阖之笛挑战阿尔宙斯的时候一样！来吧！",
+      "win": "看来现代的宝可梦对战也很有趣呢！",
+      "lose": "多么精彩的配合……你和你的宝可梦之间有着不可思议的纽带。"
+    },
+    "unlocks": {
+      "enable_bond": false,
+      "enable_styles": true,
+      "enable_insight": true,
+      "enable_mega": false,
+      "enable_z_move": false,
+      "enable_dynamax": false,
+      "enable_tera": false
+    },
     "party": [
       {
-        "name": "Abomasnow",
-        "nickname": "雪天测试员",
-        "lv": 100,
+        "name": "Kleavor",
+        "lv": 97,
         "isLead": true,
-        "ability": "Snow Warning",
-        "item": "Icy Rock",
-        "moves": ["Ice Shard", "Wood Hammer", "Aurora Veil", "Blizzard"],
-        "//comment": "Ice Shard 用于测试冰砌鹅的物理破防，Snow Warning 用于测试冰砌鹅的头部恢复"
+        "gender": "M",
+        "nature": "Jolly",
+        "ability": "Sharpness",
+        "item": "Focus Sash",
+        "moves": ["Stone Axe", "X-Scissor", "Close Combat", "Accelerock"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "friendship": { "insight": 200 }
       },
       {
-        "name": "Weavile",
-        "nickname": "高速测试员",
-        "lv": 100,
-        "ability": "Pickpocket",
-        "moves": ["Fake Out", "Knock Off", "Ice Spinner", "Low Kick"]
+        "name": "Zoroark-Hisui",
+        "lv": 95,
+        "nature": "Timid",
+        "ability": "Illusion",
+        "item": "Wise Glasses",
+        "moveStylePreference": "agile",
+        "moves": ["Shadow Ball", "Hyper Voice", "Sludge Bomb", "Nasty Plot"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "help": "幻觉特性测试：首发时应该会伪装这只队伍的第6只宝可梦(大剑鬼)"
+      },
+      {
+        "name": "Goodra-Hisui",
+        "lv": 96,
+        "gender": "F",
+        "nature": "Calm",
+        "ability": "Gooey",
+        "item": "Assault Vest",
+        "moveStylePreference": "strong",
+        "moves": ["Draco Meteor", "Flash Cannon", "Flamethrower", "Dragon Tail"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "friendship": { "trust": 255, "devotion": 200 }
+      },
+      {
+        "name": "Sneasler", 
+        "lv": 95,
+        "gender": "F",
+        "nature": "Jolly", 
+        "ability": "Poison Touch",
+        "item": "Life Orb",    
+        "moveStylePreference": "agile", 
+        "moves": ["Dire Claw", "Close Combat", "Shadow Claw", "Fake Out"], 
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "friendship": { "passion": 230 }
+      },
+      {
+        "name": "Ursaluna",
+        "lv": 98,
+        "nature": "Brave",
+        "ability": "Guts",
+        "item": "Flame Orb",
+        "moveStylePreference": "strong",
+        "moves": ["Facade", "Headlong Rush", "Earthquake", "Fire Punch"],
+        "stats_meta": { 
+          "ev_level": 252, 
+          "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 0 }
+        },
+        "friendship": { "trust": 200, "passion": 255 } 
+      },
+      {
+        "name": "Samurott-Hisui", 
+        "lv": 99,
+        "isAce": true,
+        "gender": "F",
+        "nature": "Adamant",    
+        "ability": "Sharpness", 
+        "item": "Scope Lens",
+        "moves": ["Ceaseless Edge", "Razor Shell", "Sacred Sword", "Aqua Jet"],
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+        "friendship": { "trust": 150, "passion": 255, "insight": 255, "devotion": 120 }
       }
-    ],
-    "lines": {
-      "start": "系统测试模式启动。主要测试目标：状态变化逻辑、特性触发时机。",
-      "win": "功能测试结束。所有逻辑判定均已完成。",
-      "lose": "系统错误？...不，这只是机制被完美利用了。"
-    }
+    ]
   }
 }
+
 
 
 
