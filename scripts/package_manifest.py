@@ -16,9 +16,13 @@ PROJECT_ROOT = Path(__file__).parent.parent  # 回到 pkm12/ 根目录
 OUTPUT_XML_FILE = PROJECT_ROOT / "pkm_summary.xml"
 
 EXCLUDED_ITEMS: set[str] = {
+    # === Git/IDE ===
     ".git",
     ".idea",
     ".vscode",
+    ".DS_Store",
+    
+    # === Node/Python 环境 ===
     "node_modules",
     "dist",
     "build",
@@ -26,16 +30,28 @@ EXCLUDED_ITEMS: set[str] = {
     "venv",
     ".venv",
     "env",
-    "ST",  # 排除实验性内容
-    "其他内容",      # 排除临时内容
-    "docs",
+    
+    # === 项目特定排除 ===
+    "ST",              # 酒馆插件（独立维护）
+    "docs",            # 文档目录
+    "scripts",         # 打包脚本目录
+    ".github",         # GitHub Actions 配置
+    "public",          # Vite public 目录
+    
+    # === 资源目录（二进制文件）===
+    "avatar",          # 训练家头像 PNG
+    "bgm",             # 背景音乐 MP3
+    "sfx",             # 音效 MP3
+    
+    # === 配置文件 ===
+    "package-lock.json",
+    "vite.config.js",
+    ".gitignore",
+    
+    # === 输出文件 ===
     OUTPUT_XML_FILE.name,
     "package_manifest.py",
     "pkm_summary.xml",
-    "avatar",  # 排除头像资源目录
-    "scripts",
-    "bgm",
-    "sfx",
 }
 
 ALLOWED_EXTENSIONS: set[str] = {

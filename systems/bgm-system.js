@@ -17,57 +17,73 @@
 // ============================================
 
 // 获取基础路径 (兼容 GitHub Pages)
-function getBasePath() {
+function getBgmBasePath() {
+    // 优先使用全局 getBasePath（由 index.js 定义）
+    if (typeof window !== 'undefined' && typeof window.getBasePath === 'function') {
+        return window.getBasePath();
+    }
     const path = window.location.pathname;
-    // GitHub Pages: /repo-name/
-    if (path.includes('/pkm12/')) {
-        return path.substring(0, path.indexOf('/pkm12/') + 7);
+    // GitHub Pages: /pkm33/
+    if (path.includes('/pkm33/')) {
+        return path.substring(0, path.indexOf('/pkm33/') + 7);
     }
     return './';
 }
 
-const BASE_PATH = getBasePath();
+// BGM 文件名配置（不包含路径，路径在播放时动态获取）
+const BGM_FILES = {
+    WILD_LOW:     'wild_01_low_unova.mp3',
+    WILD_MID:     'wild_02_mid_sinnoh.mp3',
+    WILD_HIGH:    'wild_03_ex_areazero.mp3',
+    TIER_1:       'battle_01_raw.mp3',
+    TIER_2:       'battle_02_standard.mp3',
+    TIER_3_MAIN:  'battle_03_gym_main.mp3',
+    TIER_3_LAST:  'battle_03_gym_crisis.mp3',
+    TIER_4:       'battle_04_elite.mp3',
+    TIER_5_BOSS:  'battle_05_legend.mp3',
+    WIN_WILD:     'win_01_wild.mp3',
+    WIN_TRAINER:  'win_02_trainer.mp3'
+};
 
+// 动态获取 BGM 完整路径
+function getBgmPath(key) {
+    const basePath = getBgmBasePath();
+    const filename = BGM_FILES[key];
+    return filename ? `${basePath}data/bgm/${filename}` : null;
+}
+
+// BGM_INDEX 现在存储 key 而不是完整 URL，实际路径通过 getBgmPath() 动态获取
 const BGM_INDEX = {
-    // === 野生遭遇战 (Wild Encounters) ===
-    WILD_LOW:     `${BASE_PATH}data/bgm/wild_01_low_unova.mp3`,
-    WILD_MID:     `${BASE_PATH}data/bgm/wild_02_mid_sinnoh.mp3`,
-    WILD_HIGH:    `${BASE_PATH}data/bgm/wild_03_ex_areazero.mp3`,
-
-    // === 训练家战斗 (Trainer Battles) ===
-    TIER_1:       `${BASE_PATH}data/bgm/battle_01_raw.mp3`,
-    TIER_2:       `${BASE_PATH}data/bgm/battle_02_standard.mp3`,
-  
-    // === 动态切歌层 (Gym Leader / Tier 3) ===
-    TIER_3_MAIN:  `${BASE_PATH}data/bgm/battle_03_gym_main.mp3`,
-    TIER_3_LAST:  `${BASE_PATH}data/bgm/battle_03_gym_crisis.mp3`,
-  
-    // === 高难/BOSS战 (High Stakes) ===
-    TIER_4:       `${BASE_PATH}data/bgm/battle_04_elite.mp3`,
-    TIER_5_BOSS:  `${BASE_PATH}data/bgm/battle_05_legend.mp3`,
-  
-    // === 胜利音乐 (Victory Events) ===
-    WIN_WILD:     `${BASE_PATH}data/bgm/win_01_wild.mp3`,
-    WIN_TRAINER:  `${BASE_PATH}data/bgm/win_02_trainer.mp3`
+    WILD_LOW:     'WILD_LOW',
+    WILD_MID:     'WILD_MID',
+    WILD_HIGH:    'WILD_HIGH',
+    TIER_1:       'TIER_1',
+    TIER_2:       'TIER_2',
+    TIER_3_MAIN:  'TIER_3_MAIN',
+    TIER_3_LAST:  'TIER_3_LAST',
+    TIER_4:       'TIER_4',
+    TIER_5_BOSS:  'TIER_5_BOSS',
+    WIN_WILD:     'WIN_WILD',
+    WIN_TRAINER:  'WIN_TRAINER'
 };
 
 // ============================================
-// BGM 音量配置表 (0.0 - 1.0)
+// BGM 音量配置表 (0.0 - 1.0) - 使用 key 作为索引
 // ============================================
 
-// BGM 音量配置 (使用文件名作为 key，兼容不同路径)
-const BGM_VOLUME_CONFIG = {};
-BGM_VOLUME_CONFIG[BGM_INDEX.WILD_LOW] = 0.25;
-BGM_VOLUME_CONFIG[BGM_INDEX.WILD_MID] = 0.28;
-BGM_VOLUME_CONFIG[BGM_INDEX.WILD_HIGH] = 0.20;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_1] = 0.22;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_2] = 0.25;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_3_MAIN] = 0.28;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_3_LAST] = 0.32;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_4] = 0.30;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_5_BOSS] = 0.35;
-BGM_VOLUME_CONFIG[BGM_INDEX.WIN_WILD] = 0.20;
-BGM_VOLUME_CONFIG[BGM_INDEX.WIN_TRAINER] = 0.27;
+const BGM_VOLUME_CONFIG = {
+    'WILD_LOW':     0.25,
+    'WILD_MID':     0.28,
+    'WILD_HIGH':    0.20,
+    'TIER_1':       0.22,
+    'TIER_2':       0.25,
+    'TIER_3_MAIN':  0.28,
+    'TIER_3_LAST':  0.32,
+    'TIER_4':       0.30,
+    'TIER_5_BOSS':  0.35,
+    'WIN_WILD':     0.20,
+    'WIN_TRAINER':  0.27
+};
 
 // ============================================
 // BGM 播放器状态
@@ -78,7 +94,8 @@ const BgmPlayer = {
     currentKey: null,
     defaultVolume: 0.25,
     
-    play(url, loop = true, fadeInDuration = 500) {
+    // key: BGM_INDEX 中的 key (如 'WILD_LOW', 'TIER_1')
+    play(key, loop = true, fadeInDuration = 500) {
         // 【全局开关】BGM 系统关闭时不播放
         if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableBGM) {
             console.log('[BGM] Disabled by GAME_SETTINGS');
@@ -86,19 +103,26 @@ const BgmPlayer = {
         }
         
         // 如果正在播放相同的 BGM 且未暂停，跳过
-        if (this.currentAudio && this.currentKey === url && !this.currentAudio.paused) {
-            console.log('[BGM] Already playing:', url);
+        if (this.currentAudio && this.currentKey === key && !this.currentAudio.paused) {
+            console.log('[BGM] Already playing:', key);
+            return;
+        }
+        
+        // 动态获取完整路径
+        const url = getBgmPath(key);
+        if (!url) {
+            console.warn('[BGM] Unknown key:', key);
             return;
         }
         
         // 停止当前播放的 BGM
         this.stop(0);
         
-        console.log('[BGM] Starting playback:', url);
+        console.log('[BGM] Starting playback:', key, '->', url);
         
         try {
             this.currentAudio = new Audio(url);
-            this.currentKey = url;
+            this.currentKey = key;
             this.currentAudio.loop = loop;
             this.currentAudio.volume = 0;
             
@@ -112,7 +136,7 @@ const BgmPlayer = {
             }
             
             // 使用配置表中的音量，如果没有配置则使用默认值
-            const targetVolume = BGM_VOLUME_CONFIG[url] || this.defaultVolume;
+            const targetVolume = BGM_VOLUME_CONFIG[key] || this.defaultVolume;
             this._fadeIn(fadeInDuration, targetVolume);
         } catch (err) {
             console.error('[BGM] Play error:', err);
@@ -137,8 +161,15 @@ const BgmPlayer = {
         }
     },
     
-    crossFade(url, loop = true) {
-        if (this.currentKey === url) return;
+    // key: BGM_INDEX 中的 key
+    crossFade(key, loop = true) {
+        if (this.currentKey === key) return;
+        
+        const url = getBgmPath(key);
+        if (!url) {
+            console.warn('[BGM] Unknown key for crossFade:', key);
+            return;
+        }
         
         const oldAudio = this.currentAudio;
         
@@ -154,8 +185,8 @@ const BgmPlayer = {
                     });
                 }
                 this.currentAudio = newAudio;
-                this.currentKey = url;
-                const targetVolume = BGM_VOLUME_CONFIG[url] || this.defaultVolume;
+                this.currentKey = key;
+                const targetVolume = BGM_VOLUME_CONFIG[key] || this.defaultVolume;
                 this._fadeIn(800, targetVolume);
             }).catch(err => {
                 console.warn('[BGM] 切换失败:', err.message);
