@@ -3384,7 +3384,7 @@ window.copyFullProcess = function() {
     const wordRequirement = `📊 【字数要求】本次战斗共 ${entryCount} 条日志，推荐正文字数：**${wordRangeMin}~${wordRangeMax} 字**（不少于 ${wordRangeMin} 字）`;
     
     const finalContent = [
-        '%% <CORE_TASK>',
+        '<CORE_TASK>',
         '🛑 [SYSTEM COMMAND // 强制执行] 🛑',
         '🚫 DO NOT ADVANCE THE PLOT! (禁止推进后续剧情)',
         '🚫 DO NOT SKIP BATTLE DETAILS! (禁止跳过战斗细节)',
@@ -3419,8 +3419,7 @@ window.copyFullProcess = function() {
         '',
         '<WRITING_INSTRUCTION>',
         `请立即生成 ${wordRangeMin}~${wordRangeMax} 字的战斗实况文案（最低不少于 ${wordRangeMin} 字）`,
-        '</WRITING_INSTRUCTION>',
-        '%%'
+        '</WRITING_INSTRUCTION>'
     ].join('\n');
     copyToAndClose(finalContent);
 };
