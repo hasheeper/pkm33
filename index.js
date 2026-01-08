@@ -3315,6 +3315,24 @@ function generateBattleReport(result) {
         rows.push(`- 倒下需治疗：${fallen.map(p => p.cnName).join(', ')}`);
     }
 
+    // =========================================================
+    // 【成长建议系统】动漫风格等级建议
+    // =========================================================
+    let growthData = null;
+    if (typeof window.calculateAnimeGrowth === 'function') {
+        growthData = window.calculateAnimeGrowth({
+            rank: rank,
+            hpHealth: pHpHealth,
+            levelDiff: levelDiff,
+            resultLabel: resultTextDisplay
+        }, result);
+        
+        if (typeof window.formatGrowthReport === 'function') {
+            const growthRows = window.formatGrowthReport(growthData);
+            growthRows.forEach(row => rows.push(row));
+        }
+    }
+
     return {
         rank,
         description: desc,
@@ -3325,7 +3343,8 @@ function generateBattleReport(result) {
         fullReport: rows.join('\n'),
         fallenCount: fallen.length,
         survivorCount: survivors.length,
-        hpHealth: pHpHealth
+        hpHealth: pHpHealth,
+        growth: growthData
     };
 }
 

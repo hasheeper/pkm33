@@ -45,6 +45,7 @@ import '../systems/catch-system.js';
 import '../systems/bgm-system.js';
 import '../systems/audio-manager.js';
 import '../systems/preloader.js';
+import '../systems/growth-system.js';
 
 // ============================================
 // 5. 战斗模块
