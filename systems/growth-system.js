@@ -227,7 +227,7 @@ function formatGrowthReport(growth) {
     const rows = [];
     
     rows.push('');
-    rows.push('═══════════════════════════════════════');
+    rows.push('<GROWTH_SUGGESTION>');
     rows.push(`【⚔️ 成长建议 System】: +${growth.val} LEVELS`);
     rows.push(`  > 等级差: 我方 Lv.${growth.avgPlayerLevel} vs 敌方 Lv.${growth.avgEnemyLevel} (差距: ${growth.levelDiff > 0 ? '+' : ''}${growth.levelDiff})`);
     rows.push(`  > 评估逻辑: ${growth.reason}`);
@@ -235,7 +235,7 @@ function formatGrowthReport(growth) {
     if (growth.distribution && growth.distribution.length > 0) {
         rows.push(`  > 队伍分配建议: ${growth.distribution.join('、')}`);
     }
-    rows.push('═══════════════════════════════════════');
+    rows.push('</GROWTH_SUGGESTION>');
     
     return rows;
 }
