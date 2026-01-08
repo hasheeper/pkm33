@@ -3384,7 +3384,7 @@ window.copyFullProcess = function() {
     const wordRequirement = `📊 【字数要求】本次战斗共 ${entryCount} 条日志，推荐正文字数：**${wordRangeMin}~${wordRangeMax} 字**（不少于 ${wordRangeMin} 字）`;
     
     const finalContent = [
-        '%% <CORE TASK>',
+        '<CORE TASK>',
         '🛑 [SYSTEM COMMAND // 强制执行] 🛑',
         '🚫 DO NOT ADVANCE THE PLOT! (禁止推进后续剧情)',
         '🚫 DO NOT SKIP BATTLE DETAILS! (禁止跳过战斗细节)',
@@ -3416,10 +3416,6 @@ window.copyFullProcess = function() {
         '结果统计（作为结局的参考）：',
         summary.replace('[系统提示：宝可梦对战结果结算]\n', ''),
         '</BATTLE_RESULT>',
-        '--------------------------------------------------',
-        '',
-        `【ACTION!】请立即生成 ${wordRangeMin}~${wordRangeMax} 字的战斗实况文案（最低不少于 ${wordRangeMin} 字）：`,
-        '%%'
     ].join('\n');
     copyToAndClose(finalContent);
 };
