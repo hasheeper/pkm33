@@ -1149,7 +1149,7 @@ export class Pokemon {
  * @param {Object} move - 可选，要使用的招式（用于挑衅/再来一次/定身法检查）
  * @returns {{ can: boolean, msg: string, forcedMove: Object|null }}
  */
-function checkCanMove(pokemon, move = null) {
+export function checkCanMove(pokemon, move = null) {
     // 1. 畏缩 (Flinch) - 本回合无法行动，用完即清
     if (pokemon.volatile && pokemon.volatile.flinch) {
         pokemon.volatile.flinch = false;
@@ -1247,7 +1247,7 @@ function checkCanMove(pokemon, move = null) {
 /**
  * 清除回合结束时的临时状态（如畏缩）
  */
-function clearVolatileStatus(pokemon) {
+export function clearVolatileStatus(pokemon) {
     if (pokemon.volatile) {
         pokemon.volatile.flinch = false;
     }
@@ -1294,7 +1294,7 @@ if (typeof window !== 'undefined') {
 /**
  * 战斗状态管理器
  */
-class BattleState {
+export class BattleState {
     constructor() {
         this.playerParty = [];
         this.enemyParty = [];

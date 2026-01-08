@@ -49,6 +49,9 @@ import {
     getMoveData,
     calcStats,
     Pokemon,
+    BattleState,
+    checkCanMove,
+    clearVolatileStatus,
     extractBaseFormId,
     resolveSpriteId,
     getFallbackSpriteId,
@@ -149,6 +152,11 @@ window.canKnockOff = canKnockOff;
 
 // 伤害计算
 window.calcDamage = calcDamage;
+
+// 战斗状态管理 (Phase 3)
+window.BattleState = BattleState;
+window.checkCanMove = checkCanMove;
+window.clearVolatileStatus = clearVolatileStatus;
 
 console.log('[ES Module] 数据层模块加载完成');
 console.log('[ES Module] POKEDEX entries:', Object.keys(POKEDEX).length);
