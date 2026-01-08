@@ -3321,32 +3321,57 @@ window.copyResultOnly = function() {
 window.copyFullProcess = function() {
     const summary = document.getElementById('res-clipboard-text').value;
     const processLog = extractBattleLog();
+    
+    // 根据日志条目数量推荐字数（500-4000字）
+    const logBox = document.getElementById('log-box');
+    const entryCount = logBox ? logBox.querySelectorAll('.log-entry').length : 0;
+    const recommendedWords = Math.min(4000, Math.max(500, Math.round(entryCount * 40)));
+    const wordRangeMin = Math.max(500, recommendedWords - 200);
+    const wordRangeMax = Math.min(4000, recommendedWords + 200);
+    const wordRequirement = `📊 【字数要求】本次战斗共 ${entryCount} 条日志，推荐正文字数：**${wordRangeMin}~${wordRangeMax} 字**（不少于 ${wordRangeMin} 字）`;
+    
     const finalContent = [
-        "<CORE TASK>",
-        "🛑 [SYSTEM COMMAND // 强制执行] 🛑",
-        "🚫 DO NOT ADVANCE THE PLOT! (禁止推进后续剧情)",
-        "🚫 DO NOT SKIP BATTLE DETAILS! (禁止跳过战斗细节)",
-        "⚠️ 核心任务 (CORE TASK):",
-        "你现在的任务是【战斗回放员 (Battle Replayer)】。",
-        "不仅要基于下方的「回合制日志 (Log)」与「最终结算 (Result)」，撰写一场**字数充足**的完整战斗过程。",
-        "📜 REQUIREMENTS:逐回合演绎、战术特写、高光时刻:",
-        "📝 INPUT LOGS START BELOW...",
-        "(以下是系统生成的战斗数据，请即刻开始将其转化为全彩回放)",
-        "</CORE TASK>",
-        "",
-        "<BATTLE LOG>",
-        "=== 战斗回顾 (BATTLE LOG) ===",
+        '%% <CORE TASK>',
+        '🛑 [SYSTEM COMMAND // 强制执行] 🛑',
+        '🚫 DO NOT ADVANCE THE PLOT! (禁止推进后续剧情)',
+        '🚫 DO NOT SKIP BATTLE DETAILS! (禁止跳过战斗细节)',
+        '⚠️ 核心任务 (CORE TASK):',
+        '你现在的任务是【战斗回放员 (Battle Replayer)】。',
+        '不仅要基于下方的「回合制日志 (Log)」与「最终结算 (Result)」，撰写一场**字数充足**的完整战斗过程。',
+        '你是**战斗热血动漫的剧本家/轻小说家**。',
+        '你的任务是将下方提供的【原始战斗数据】重构建模为一场**动作流畅的即时战斗演出**。',
+        '',
+        wordRequirement,
+        '',
+        '【MANDATORY_RULES // 绝对规则】',
+        '1. 禁止流水账：绝对不要以“第一回合”、“第二回合”这种日志形式分段。使用流畅的自然段落过渡，让战斗像宝可梦动漫一样连续。',
+        '2. 视听语言转化：',
+        '   - 不要说“造成了100点伤害”，要描写“重拳轰在腹部，冲击波震碎了地面的岩石”。',
+        '   - 不要说“触发了回避”，要描写“在毫厘之间侧身，利刃仅削断了几缕鬃毛”。',
+        '   - 不要说“触发对冲 (Clash)”，要描写“招式在半空中碰撞，引发了剧烈的能量乱流，双方互相角力”。',
+        '   - 为Mega进化、极巨化、Z招式、太晶化赋予应有的震撼登场特效。',
+        '3. 机制叙事化：将“特性发动”、“道具消耗”完全融入战斗动作中，而不是作为旁白列出。',
+        '4. 禁止出戏：只描写战斗内的场景、训练家的喊话、精灵的嘶吼。禁止对战斗进行事后评论，禁止推测后续无关剧情。',
+        '5. 动态博弈：捕捉LOG中的“属性克制”、“击中要害”、“濒死反击”等关键点，将其渲染为战局的转折点。',
+        '</CORE TASK>',
+        '',
+        '<BATTLE_LOG>',
         processLog,
-        "</BATTLE LOG>",
-        "",
-        "<RESULT>",
-        "=== 统计结算 (RESULT) ===",
-        summary.replace("[系统提示：宝可梦对战结果结算]\n", ""),
-        "</RESULT>"
+        '</BATTLE_LOG>',
+        '',
+        '<BATTLE_RESULT>',
+        '结果统计（作为结局的参考）：',
+        summary.replace('[系统提示：宝可梦对战结果结算]\n', ''),
+        '</BATTLE_RESULT>',
+        '--------------------------------------------------',
+        '',
+        `【ACTION!】请立即生成 ${wordRangeMin}~${wordRangeMax} 字的战斗实况文案（最低不少于 ${wordRangeMin} 字）：`,
+        '%%'
     ].join('\n');
     copyToAndClose(finalContent);
 };
 
+// ...
 function extractBattleLog() {
     const logBox = document.getElementById('log-box');
     if (!logBox) return '';
