@@ -985,13 +985,13 @@ function applyEntryHazards(pokemon, isPlayer, battle) {
     
     // === 毒菱 (Toxic Spikes) ===
     // 毒系宝可梦踩上去会清除，飞行/漂浮免疫
-    // 注意：支持两种命名格式 toxicspikes 和 toxicSpikes
-    const toxicLayers = side.toxicspikes || side.toxicSpikes || 0;
+    // 【规范】统一使用驼峰命名 toxicSpikes，兼容读取小写
+    const toxicLayers = side.toxicSpikes || side.toxicspikes || 0;
     if (toxicLayers > 0 && isGrounded) {
         if (isPoison) {
             // 毒系宝可梦清除毒菱
-            side.toxicspikes = 0;
             side.toxicSpikes = 0;
+            delete side.toxicspikes; // 清理旧格式
             logs.push(`${pokemon.cnName} 吸收了毒菱!`);
         } else if (!isSteel && !pokemon.status) {
             // 钢系免疫中毒
@@ -1041,8 +1041,9 @@ function clearEntryHazards(isPlayer, battle) {
         side.spikes = 0;
         cleared = true;
     }
-    if (side.toxicspikes) {
-        side.toxicspikes = 0;
+    if (side.toxicSpikes || side.toxicspikes) {
+        side.toxicSpikes = 0;
+        delete side.toxicspikes; // 清理旧格式
         cleared = true;
     }
     if (side.stickyWeb) {

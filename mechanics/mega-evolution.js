@@ -142,7 +142,13 @@ function autoDetectFormChangeEligibility(pokemon, explicitFormFlag = null) {
                 if (hasDualMega && validMegaForms.length >= 2) {
                     pokemon.hasDualMega = true;
                     pokemon.megaFormsAvailable = validMegaForms;
-                    pokemon.megaTargetId = validMegaForms.find(f => f.endsWith('x')) || validMegaForms[0];
+                    // 【修复】优先使用 JSON 中指定的 mega_target，否则默认 X 形态
+                    const specifiedTarget = pokemon.mega_target || pokemon.megaTarget;
+                    if (specifiedTarget && validMegaForms.includes(specifiedTarget)) {
+                        pokemon.megaTargetId = specifiedTarget;
+                    } else {
+                        pokemon.megaTargetId = validMegaForms.find(f => f.endsWith('x')) || validMegaForms[0];
+                    }
                 } else {
                     pokemon.megaTargetId = validMegaForms[0];
                 }
@@ -194,9 +200,15 @@ function autoDetectFormChangeEligibility(pokemon, explicitFormFlag = null) {
         });
         
         if (validMegaForms.length > 0) {
-            if (hasDualMega && validMegaForms.length >= 2) {
-                pokemon.hasDualMega = true;
-                pokemon.megaFormsAvailable = validMegaForms;
+            // 【双 Mega 特殊处理】喷火龙/超梦携带任意一个 Mega 石时，都可以选择 X 或 Y
+            if (hasDualMega) {
+                // 获取所有可用的 Mega 形态（不管携带哪个石头）
+                const allMegaForms = avail.mega.filter(f => typeof POKEDEX !== 'undefined' && POKEDEX[f]);
+                if (allMegaForms.length >= 2) {
+                    pokemon.hasDualMega = true;
+                    pokemon.megaFormsAvailable = allMegaForms;
+                    console.log(`[FORM] Dual Mega enabled: ${allMegaForms.join(', ')}`);
+                }
             }
             pokemon.megaTargetId = validMegaForms.find(f => f.endsWith('x')) || validMegaForms[0];
             pokemon.canMegaEvolve = true;

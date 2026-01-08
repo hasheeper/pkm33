@@ -28,80 +28,123 @@
  */
 function getDefaultBattleData() {
     return {
-  "difficulty": "expert",
-  "script": {
-    "module": "weather_status_logic"
+  "difficulty": "normal",
+  "settings": {
+    "enableAVS": true,
+    "enableEVO": true,
+    "enableSFX": true,
+    "enableBGM": true,
+    "enableClash": false,
+    "debugMode": true
   },
   "player": {
-    "name": "YOTA (The Weather Master)",
+    "name": "Mechanic Tester",
+    "trainerProficiency": 255,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_dynamax": true,
+      "enable_tera": true
+    },
     "party": [
       {
         "slot": 1,
-        // 测试核心1：【状态盾 (Status Shield)】
-        "name": "Gliscor",
-        "nickname": "天蝎王",
+        "name": "Morpeko",
+        "nickname": "饿饿鼠",
         "lv": 100,
-        "ability": "Poison Heal", // 毒疗：中毒回血
-        "item": "Toxic Orb",      // 剧毒宝珠：第一回合末让自己剧毒
-        "moves": ["Protect", "Facade", "Earthquake", "Swords Dance"],
-        "//comment": "逻辑点：我甚至不管你有多少催眠技能，我自己先中毒了，你就睡不了我。"
+        "isLead": true,
+        "ability": "Hunger Switch",
+        "item": "Focus Sash",
+        "nature": "Jolly",
+        "isAce": true,
+        "moves": ["Aura Wheel", "Protect", "Seed Bomb", "Parting Shot"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "insight": 200 } }
       },
       {
         "slot": 2,
-        // 测试核心2：【湿润之躯 (Hydration)】
-        "name": "Goodra-Hisui",
-        "nickname": "黏美龙",
+        "name": "Palafin",
+        "nickname": "想做英雄",
         "lv": 100,
-        "ability": "Hydration", 
-        "item": "Damp Rock",
-        "moves": ["Rain Dance", "Rest", "Dragon Pulse", "Flash Cannon"],
-        "//comment": "逻辑点：这是最赖皮的【超级无限睡觉】。雨天开Rest -> 睡着回满 -> 回合结束Hydration触发 -> 秒醒。"
+        "ability": "Zero to Hero",
+        "item": "Mystic Water",
+        "mechanic": "tera",
+        "teraType": "Water",
+        "moves": ["Flip Turn", "Jet Punch", "Wave Crash", "Protect"],
+        "stats_meta": { "ev_level": 252 }
       },
       {
         "slot": 3,
-        // 测试核心3：【叶子防守 (Leaf Guard)】 vs 哈欠
-        "name": "Leafeon",
-        "nickname": "叶伊布",
+        "name": "Darmanitan-Galar",
+        "nickname": "达摩不倒",
         "lv": 100,
-        "ability": "Leaf Guard", 
-        "moves": ["Leaf Blade", "Synthesis", "Sunny Day", "Swords Dance"],
+        "ability": "Zen Mode",
+        "item": "Salac Berry",
+        "nature": "Jolly",
+        "moves": ["Belly Drum", "Ice Punch", "Earthquake", "Flare Blitz"],
         "stats_meta": { "ev_level": 252 },
-        "//comment": "逻辑点：在晴天下，免疫所有异常状态（包括哈欠的后续生效）。"
+        "friendship": { "avs": { "passion": 255 } }
+      },
+      {
+        "slot": 4,
+        "name": "Aegislash",
+        "nickname": "圣剑",
+        "lv": 100,
+        "ability": "Stance Change",
+        "item": "Leftovers",
+        "nature": "Quiet",
+        "moves": ["Shadow Ball", "King's Shield", "Flash Cannon", "Close Combat"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 255 } }
+      },
+      {
+        "slot": 5,
+        "name": "Eiscue",
+        "nickname": "物理免疫盾",
+        "lv": 100,
+        "ability": "Ice Face",
+        "item": "Sitrus Berry",
+        "mechanic": "dynamax",
+        "nature": "Jolly",
+        "moves": ["Belly Drum", "Liquidation", "Icicle Crash", "Reversal"],
+        "stats_meta": { "ev_level": 252 }
       }
     ]
   },
   "enemy": {
-    "name": "Hypno (催眠信徒)",
-    "type": "trainer",
+    "name": "System QA",
+    "type": "TEST_BOT",
+    "difficulty": "expert",
+    "trainerProficiency": 100,
+    "unlocks": { "enable_mega": true },
     "party": [
       {
-        "name": "Breloom",
-        "lv": 60,
-        "ability": "Technician",
-        "item": "Focus Sash",
-        "moves": ["Spore", "Bullet Seed", "Mach Punch", "Rock Tomb"]
+        "name": "Abomasnow",
+        "nickname": "雪天测试员",
+        "lv": 100,
+        "isLead": true,
+        "ability": "Snow Warning",
+        "item": "Icy Rock",
+        "moves": ["Ice Shard", "Wood Hammer", "Aurora Veil", "Blizzard"],
+        "//comment": "Ice Shard 用于测试冰砌鹅的物理破防，Snow Warning 用于测试冰砌鹅的头部恢复"
       },
       {
-        "name": "Torkoal", // 开晴天的人
+        "name": "Weavile",
+        "nickname": "高速测试员",
         "lv": 100,
-        "ability": "Drought",
-        "moves": ["Yawn", "Overheat", "Stealth Rock", "Rapid Spin"]
-      },
-      {
-        "name": "Gengar",
-        "lv": 100,
-        "ability": "Cursed Body",
-        "moves": ["Hypnosis", "Shadow Ball", "Sludge Bomb", "Destiny Bond"]
+        "ability": "Pickpocket",
+        "moves": ["Fake Out", "Knock Off", "Ice Spinner", "Low Kick"]
       }
     ],
     "lines": {
-      "start": "不论天气如何，你们最终都会闭上眼睛。",
-      "win": "在这个世界里，清醒的人最痛苦。",
-      "lose": "好刺眼的...阳光...",
-      "escape": "梦醒时分。"
+      "start": "系统测试模式启动。主要测试目标：状态变化逻辑、特性触发时机。",
+      "win": "功能测试结束。所有逻辑判定均已完成。",
+      "lose": "系统错误？...不，这只是机制被完美利用了。"
     }
   }
 }
+
+
 
 
 

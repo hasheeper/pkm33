@@ -45,7 +45,10 @@ const SFX_CONFIG = {
     'FAINT':      `${SFX_BASE_PATH}data/sfx/battle_faint.mp3`,
     'HEAL':       `${SFX_BASE_PATH}data/sfx/battle_heal.mp3`,
     'THROW':      `${SFX_BASE_PATH}data/sfx/ball_throw.mp3`,
-    'BALL_OPEN':  `${SFX_BASE_PATH}data/sfx/ball_open.mp3`
+    'BALL_OPEN':  `${SFX_BASE_PATH}data/sfx/ball_open.mp3`,
+    
+    // 对冲系统
+    'CLASH':      `${SFX_BASE_PATH}data/sfx/Hit_Super_Effective_XY.mp3`
 };
 
 // ============================================
@@ -63,7 +66,8 @@ const SFX_VOLUME_CONFIG = {
     'FAINT':      0.6,
     'HEAL':       0.5,
     'THROW':      0.6,
-    'BALL_OPEN':  0.6
+    'BALL_OPEN':  0.6,
+    'CLASH':      0.8
 };
 
 // 音频缓存池

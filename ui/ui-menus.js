@@ -22,6 +22,58 @@ function showMovesMenu() {
     const battle = typeof window !== 'undefined' ? window.battle : null;
     
     // =========================================================
+    // 【Insight 预警系统】预测 AI 的"初始意图"
+    // AI 最终决策可能不同（见招拆招），但 Insight 显示的是初始意图
+    // =========================================================
+    if (battle && window.GAME_SETTINGS?.enableClash !== false) {
+        const p = battle.getPlayer();
+        const e = battle.getEnemy();
+        
+        if (p && e && p.isAlive() && e.isAlive()) {
+            // 计算速度判断是否后手
+            let playerSpeed = (typeof p.getStat === 'function') ? p.getStat('spe') : (p.spe || 100);
+            let enemySpeed = (typeof e.getStat === 'function') ? e.getStat('spe') : (e.spe || 100);
+            if (p.status === 'par') playerSpeed = Math.floor(playerSpeed * 0.5);
+            if (e.status === 'par') enemySpeed = Math.floor(enemySpeed * 0.5);
+            const isTrickRoom = battle.field && battle.field.trickRoom > 0;
+            const playerIsSlower = isTrickRoom ? (playerSpeed > enemySpeed) : (playerSpeed < enemySpeed);
+            
+            // 只有玩家后手时才触发 Insight
+            if (playerIsSlower && typeof window.preCalculateIntent === 'function') {
+                // 使用 getHardAiMove 获取 AI 的"初始意图"（最优招式）
+                let predictedMove = null;
+                if (typeof window.getHardAiMove === 'function') {
+                    predictedMove = window.getHardAiMove(e, p, battle.enemyParty);
+                }
+                if (!predictedMove && e.moves && e.moves.length > 0) {
+                    predictedMove = e.moves[0];
+                }
+                
+                if (predictedMove) {
+                    const insightResult = window.preCalculateIntent(e, p, predictedMove);
+                    if (insightResult && insightResult.success) {
+                        console.log(`[INSIGHT] 预警触发: Level ${insightResult.level}, 预测招式: ${predictedMove.cn || predictedMove.name}`);
+                        // 标记本回合 Insight 已触发，供对冲系统使用
+                        battle.insightTriggeredThisTurn = true;
+                        battle.insightPredictedMove = predictedMove;
+                        // 显示预警
+                        if (typeof window.showInsightWarning === 'function') {
+                            window.showInsightWarning(insightResult);
+                        }
+                    } else {
+                        battle.insightTriggeredThisTurn = false;
+                        battle.insightPredictedMove = null;
+                    }
+                }
+            } else {
+                // 玩家先手，不触发 Insight
+                battle.insightTriggeredThisTurn = false;
+                battle.insightPredictedMove = null;
+            }
+        }
+    }
+    
+    // =========================================================
     // 【战术指挥系统】检查是否触发指挥菜单
     // =========================================================
     if (battle && typeof window.shouldShowCommanderMenu === 'function') {

@@ -1434,6 +1434,40 @@ const AbilityHandlers = {
         }
     },
     
+    // 【饱了又饿 Hunger Switch】莫鲁贝可专属，每回合结束时切换满腹/空腹形态
+    'Hunger Switch': {
+        onEndTurn: (pokemon, logs) => {
+            // 获取当前形态 ID
+            const currentId = pokemon.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            
+            // 只对莫鲁贝可生效
+            if (!currentId.includes('morpeko')) return;
+            
+            let targetFormId = '';
+            let formName = '';
+            
+            // 判断当前形态，进行切换
+            if (currentId === 'morpekohangry' || currentId.includes('hangry')) {
+                targetFormId = 'morpeko';
+                formName = '满腹花纹';
+            } else {
+                targetFormId = 'morpekohangry';
+                formName = '空腹花纹';
+            }
+            
+            // 调用形态变化系统
+            if (typeof window.performFormChange === 'function') {
+                const result = window.performFormChange(pokemon, targetFormId, 'hungerswitch');
+                if (result && result.success) {
+                    logs.push(`<span style="color:#f59e0b">🍽️ ${pokemon.cnName} 变成了${formName}！</span>`);
+                    if (typeof window.updateAllVisuals === 'function') {
+                        window.updateAllVisuals();
+                    }
+                }
+            }
+        }
+    },
+    
     // 【梦魇 Bad Dreams】对手睡眠时每回合扣除1/8HP（达克莱伊专属）
     'Bad Dreams': {
         onEndTurn: (pokemon, logs) => {
@@ -1808,6 +1842,162 @@ const AbilityHandlers = {
     'Oblivious': {
         preventTaunt: true,
         preventAttract: true
+    },
+
+    // ============================================
+    // R. 特殊形态变化特性
+    // ============================================
+
+    // 【战斗切换 Stance Change】坚盾剑怪专属 - 攻击时变刀剑，王者盾牌时变盾牌
+    'Stance Change': {
+        onBeforeMove: (user, move, logs) => {
+            const baseId = user.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            
+            // 只对坚盾剑怪生效
+            if (!baseId.includes('aegislash')) return;
+            
+            // 获取招式分类
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+            const category = fullMoveData.category || move.category || (move.cat === 'phys' ? 'Physical' : move.cat === 'spec' ? 'Special' : 'Status');
+            const isAttack = category === 'Physical' || category === 'Special';
+            const isKingsShield = move.name === "King's Shield" || moveId === 'kingsshield';
+            
+            // 攻击招式 -> 刀剑形态
+            if (isAttack && !baseId.includes('blade')) {
+                if (typeof window.performFormChange === 'function') {
+                    const res = window.performFormChange(user, 'aegislashblade', 'stancechange');
+                    if (res && res.success) {
+                        logs.push(`<span style="color:#dc2626">⚔️ ${user.cnName} 变成了刀剑形态！</span>`);
+                        if (typeof window.updateAllVisuals === 'function') {
+                            window.updateAllVisuals();
+                        }
+                    }
+                }
+            }
+            // 王者盾牌 -> 盾牌形态
+            else if (isKingsShield && baseId.includes('blade')) {
+                if (typeof window.performFormChange === 'function') {
+                    const res = window.performFormChange(user, 'aegislash', 'stancechange');
+                    if (res && res.success) {
+                        logs.push(`<span style="color:#3b82f6">🛡️ ${user.cnName} 变成了盾牌形态！</span>`);
+                        if (typeof window.updateAllVisuals === 'function') {
+                            window.updateAllVisuals();
+                        }
+                    }
+                }
+            }
+        }
+    },
+
+    // 【全能变身 Zero to Hero】海豚侠专属 - 退场后再入场变成全能形态
+    'Zero to Hero': {
+        onSwitchOut: (pokemon) => {
+            const baseId = pokemon.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            // 只对海豚侠生效，且只有平凡形态才标记
+            if (baseId.includes('palafin') && !baseId.includes('hero')) {
+                pokemon.zeroToHeroActivated = true;
+                console.log(`[ZERO TO HERO] ${pokemon.cnName} 退场，下次入场将变身！`);
+            }
+        },
+        onStart: (self, enemy, logs, battle) => {
+            const baseId = self.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            // 如果已标记且仍是平凡形态，则变身
+            if (self.zeroToHeroActivated && baseId.includes('palafin') && !baseId.includes('hero')) {
+                if (typeof window.performFormChange === 'function') {
+                    const res = window.performFormChange(self, 'palafinhero', 'zerotohero');
+                    if (res && res.success) {
+                        logs.push(`<span style="color:#06b6d4">🦸 ${self.cnName} 变成了全能形态！</span>`);
+                        if (typeof window.updateAllVisuals === 'function') {
+                            window.updateAllVisuals();
+                        }
+                    }
+                }
+            }
+        }
+    },
+
+    // 【结冻头 Ice Face】冰砌鹅专属 - 物理攻击免疫一次，雪天恢复
+    'Ice Face': {
+        // 物理伤害防御逻辑
+        // 【重要】第6个参数 isSimulation 用于区分 AI 模拟和实际战斗
+        onDefenderModifyDamage: (damage, attacker, defender, move, effectiveness, isSimulation) => {
+            const baseId = defender.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            
+            // 只对冰砌鹅生效
+            if (!baseId.includes('eiscue')) return damage;
+            
+            // 如果已经是解冻头形态，正常受伤
+            if (baseId.includes('noice')) return damage;
+            
+            // 获取招式分类
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+            const category = fullMoveData.category || move.category || (move.cat === 'phys' ? 'Physical' : 'Special');
+            
+            // 物理招式且头还在
+            if (category === 'Physical' && damage > 0) {
+                // 【关键修复】AI 模拟时只返回伤害为0，不触发形态变化
+                if (isSimulation) {
+                    return 0; // 模拟时伤害归零但不变身
+                }
+                
+                // 实际战斗中：变身为解冻头形态
+                if (typeof window.performFormChange === 'function') {
+                    const res = window.performFormChange(defender, 'eiscuenoice', 'iceface');
+                    if (res && res.success) {
+                        defender.iceFaceBroken = true;
+                        console.log(`[ICE FACE] ${defender.cnName} 的结冻头被打碎了！`);
+                        if (typeof window.updateAllVisuals === 'function') {
+                            window.updateAllVisuals();
+                        }
+                    }
+                }
+                return 0; // 伤害归零
+            }
+            return damage;
+        },
+        // 入场时检查雪天恢复
+        onStart: (self, enemy, logs, battle) => {
+            const baseId = self.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const weather = battle?.weather || (typeof window.battle !== 'undefined' ? window.battle.weather : null);
+            const isSnow = weather === 'snow' || weather === 'hail';
+            
+            // 如果是解冻头形态且天气是雪天，恢复
+            if (isSnow && baseId.includes('noice')) {
+                if (typeof window.performFormChange === 'function') {
+                    const res = window.performFormChange(self, 'eiscue', 'iceface');
+                    if (res && res.success) {
+                        self.iceFaceBroken = false;
+                        logs.push(`<span style="color:#60a5fa">❄️ ${self.cnName} 的结冻头恢复了！</span>`);
+                        if (typeof window.updateAllVisuals === 'function') {
+                            window.updateAllVisuals();
+                        }
+                    }
+                }
+            }
+        },
+        // 天气变化时也检查恢复（回合结束时）
+        onEndTurn: (pokemon, logs) => {
+            const baseId = pokemon.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const battle = window.battle;
+            const weather = battle?.weather;
+            const isSnow = weather === 'snow' || weather === 'hail';
+            
+            // 如果是解冻头形态且天气是雪天，恢复
+            if (isSnow && baseId.includes('noice')) {
+                if (typeof window.performFormChange === 'function') {
+                    const res = window.performFormChange(pokemon, 'eiscue', 'iceface');
+                    if (res && res.success) {
+                        pokemon.iceFaceBroken = false;
+                        logs.push(`<span style="color:#60a5fa">❄️ ${pokemon.cnName} 的结冻头恢复了！</span>`);
+                        if (typeof window.updateAllVisuals === 'function') {
+                            window.updateAllVisuals();
+                        }
+                    }
+                }
+            }
+        }
     }
 };
 

@@ -1559,9 +1559,23 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     if (fullMoveData.pseudoWeather) {
         const fieldType = fullMoveData.pseudoWeather;
         
+        // 【修复】字段名映射：pseudoWeather 用小写，但 battle.field 用驼峰
+        // 完整映射所有 pseudoWeather 类型
+        const fieldKeyMap = {
+            'trickroom': 'trickRoom',
+            'magicroom': 'magicRoom',
+            'wonderroom': 'wonderRoom',
+            'gravity': 'gravity',
+            'fairylock': 'fairyLock',
+            'iondeluge': 'ionDeluge',
+            'mudsport': 'mudSport',
+            'watersport': 'waterSport'
+        };
+        const fieldKey = fieldKeyMap[fieldType] || fieldType;
+        
         // 检查场地是否已开启
-        if (typeof battle !== 'undefined' && battle.field && battle.field[fieldType] > 1) {
-            console.log(`[AI TACTIC] ${fieldType} 已开启，不再使用`);
+        if (typeof battle !== 'undefined' && battle.field && battle.field[fieldKey] > 0) {
+            console.log(`[AI TACTIC] ${fieldType} 已开启 (${battle.field[fieldKey]} 回合)，不再使用`);
             return -9999;
         }
         
@@ -1601,7 +1615,7 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
                 console.log(`[AI BAN] Spikes 已满3层，禁止使用`);
                 return -9999;
             }
-            if (sideType === 'toxicspikes' && (targetSide.toxicspikes || targetSide.toxicSpikes || 0) >= 2) {
+            if (sideType === 'toxicspikes' && (targetSide.toxicSpikes || targetSide.toxicspikes || 0) >= 2) {
                 console.log(`[AI BAN] Toxic Spikes 已满2层，禁止使用`);
                 return -9999;
             }

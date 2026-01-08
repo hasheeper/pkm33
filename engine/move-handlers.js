@@ -3837,8 +3837,9 @@ const MoveHandlers = {
         noWeather: true,
         onHit: (user, target, damage, logs, battle) => {
             if (!battle) return {};
-            battle.pseudoWeather = battle.pseudoWeather || {};
-            battle.pseudoWeather.gravity = 5;
+            // 【修复】使用 battle.field 而不是 battle.pseudoWeather
+            if (!battle.field) battle.field = {};
+            battle.field.gravity = 5;
             logs.push(`<b style="color:#a78bfa">🌌 重力场展开了！</b>`);
             return {};
         },
@@ -4274,6 +4275,63 @@ const MoveHandlers = {
     // - Taunt, Encore, Disable -> MoveEffects.applyVolatileStatus
     // - Stealth Rock, Spikes, Toxic Spikes, Sticky Web -> MoveEffects.applySideCondition
     // - Haze -> MoveEffects (已有 onHit 处理器在上方)
+    
+    // ============================================
+    // 【气场轮 Aura Wheel】- 莫鲁贝可专属，属性随形态变化
+    // ============================================
+    'Aura Wheel': {
+        // 动态修改属性：满腹=电系，空腹=恶系
+        onModifyType: (move, attacker, battle) => {
+            const currentId = attacker.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            // 空腹模式(morpekohangry)变为恶系，否则为电系
+            if (currentId.includes('hangry')) {
+                return 'Dark';
+            }
+            return 'Electric';
+        },
+        // 只有莫鲁贝可能使用此招式
+        onUse: (user, target, logs, battle, isPlayer) => {
+            const currentId = user.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!currentId.includes('morpeko')) {
+                logs.push(`但是招式失败了！`);
+                return { failed: true };
+            }
+            return {};
+        },
+        description: '莫鲁贝可专属，属性随形态变化(电/恶)，必定提升速度'
+    },
+    
+    // ============================================
+    // 【三重攻击 Tri Attack】- 20% 几率随机施加麻痹/灼伤/冰冻
+    // ============================================
+    'Tri Attack': {
+        onHit: (user, target, damageDealt, logs, battle) => {
+            // 20% 几率触发状态
+            if (Math.random() * 100 >= 20) return {};
+            
+            // 目标已有状态则不施加
+            if (target.status) return {};
+            
+            // 随机选择状态：麻痹/灼伤/冰冻
+            const statuses = ['par', 'brn', 'frz'];
+            const statusNames = { par: '麻痹', brn: '灼伤', frz: '冰冻' };
+            const randomStatus = statuses[Math.floor(Math.random() * 3)];
+            
+            // 使用 MoveEffects.tryInflictStatus 进行状态免疫检查
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                const result = MoveEffects.tryInflictStatus(target, randomStatus, user, battle);
+                if (result.success) {
+                    logs.push(result.message);
+                }
+            } else {
+                target.status = randomStatus;
+                logs.push(`${target.cnName} ${statusNames[randomStatus]}了!`);
+            }
+            
+            return {};
+        },
+        description: '20% 几率随机施加麻痹/灼伤/冰冻之一'
+    },
     
     // ============================================
     // 【吵闹 Uproar】- 持续3回合，期间全场无法入睡

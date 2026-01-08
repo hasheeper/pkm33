@@ -85,6 +85,15 @@ function calcDamage(attacker, defender, move, options = {}) {
     // === 策略模式：检查是否有特殊处理器 ===
     const handler = (typeof getMoveHandler === 'function') ? getMoveHandler(move.name) : null;
     
+    // === 【招式钩子】onModifyType - 动态修改招式属性 (Aura Wheel, Weather Ball 等) ===
+    if (handler && handler.onModifyType) {
+        const newType = handler.onModifyType(move, attacker, window.battle);
+        if (newType) {
+            move.type = newType;
+            console.log(`[MOVE TYPE] ${move.name} 属性变为 ${newType}`);
+        }
+    }
+    
     // === 固定伤害技能 (damageCallback) ===
     if (handler && handler.damageCallback) {
         const fixedDamage = handler.damageCallback(attacker, defender);
@@ -394,33 +403,35 @@ function calcDamage(attacker, defender, move, options = {}) {
         // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
         if (baseInsight > 0) {
             const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
-            // 线性闪避加成：满值 20%，最低 1%
-            let evasionBonus = Math.max(1, Math.floor((effectiveInsight / 255) * 20));
+            // 线性闪避加成：满值 10%（从 20% 下调），最低 1%
+            let evasionBonus = Math.max(1, Math.floor((Math.min(effectiveInsight, 255) / 255) * 10));
             
-            hitRate = Math.max(20, hitRate - evasionBonus); // 最低命中率降至 20%
+            hitRate = Math.max(50, hitRate - evasionBonus); // 最低命中率提高至 50%
             console.log(`[AVs] Insight 闪避加成: -${evasionBonus}% (Insight: ${baseInsight}${defender.avsEvolutionBoost ? ' x2' : ''})`);
         }
     }
     
-    // 【战术指挥】DODGE! 指令：基础 40% 闪避 + Insight AVS 加成
+    // 【战术指挥】DODGE! 指令：基础 30% 闪避 + Insight AVS 加成
     // 点击后仅当回合生效
+    // 【平衡调整】DODGE 指令与被动 Insight 闪避不叠加，取较高值
     if (defender.commandDodgeActive && !isSureHit) {
-        let dodgeBonus = 40; // 基础 40% 闪避
+        let dodgeBonus = 30; // 基础 30% 闪避（从 40% 下调）
         
-        // Insight AVS 加成：满值 255 时 +50%（总计 90%）
+        // Insight AVS 加成：满值 255 时 +30%（总计 60%）
         // 【全局开关】使用 getEffectiveAVs 检查有效值
         if (defender.isAce && defender.avs && defender.getEffectiveAVs) {
             const baseInsight = defender.getEffectiveAVs('insight');
             if (baseInsight > 0) {
                 const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
-                const insightBonus = (Math.min(effectiveInsight, 255) / 255) * 50;
+                const insightBonus = (Math.min(effectiveInsight, 255) / 255) * 30;
                 dodgeBonus += insightBonus;
                 console.log(`[COMMANDER] DODGE! Insight 加成: +${insightBonus.toFixed(1)}% (Insight: ${baseInsight})`);
             }
         }
         
-        dodgeBonus = Math.min(dodgeBonus, 80); // 上限 80%（保证至少 20% 命中率）
-        hitRate = Math.max(20, hitRate - dodgeBonus);
+        dodgeBonus = Math.min(dodgeBonus, 60); // 上限 60%（保证至少 40% 命中率）
+        // DODGE 指令覆盖被动闪避，不叠加（重置 hitRate 后再减）
+        hitRate = Math.max(40, 100 - dodgeBonus);
         console.log(`[COMMANDER] DODGE! 指令激活！闪避 -${dodgeBonus.toFixed(1)}% (命中率: ${hitRate}%)`);
     }
     
@@ -656,10 +667,11 @@ function calcDamage(attacker, defender, move, options = {}) {
     if (effectiveness === 0) singleHitDamage = 0;
     
     // === 防御方特性伤害修正 ===
+    // 【重要】传递 isSimulation 标记，避免 AI 模拟时触发形态变化等副作用
     if (!ignoresAbilities && typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
         const ahDef = AbilityHandlers[defender.ability];
         if (ahDef.onDefenderModifyDamage) {
-            singleHitDamage = ahDef.onDefenderModifyDamage(singleHitDamage, attacker, defender, move, effectiveness);
+            singleHitDamage = ahDef.onDefenderModifyDamage(singleHitDamage, attacker, defender, move, effectiveness, options.isSimulation);
         }
     }
     
@@ -716,7 +728,14 @@ function calcDamage(attacker, defender, move, options = {}) {
     }
     
     // 总伤害
-    const totalDamage = singleHitDamage * hitCount;
+    let totalDamage = singleHitDamage * hitCount;
+    
+    // 【对冲系统】应用对冲伤害倍率
+    if (move.clashDamageMultiplier !== undefined && move.clashDamageMultiplier < 1) {
+        const originalDamage = totalDamage;
+        totalDamage = Math.floor(totalDamage * move.clashDamageMultiplier);
+        console.log(`[CLASH] 对冲伤害削减: ${originalDamage} × ${move.clashDamageMultiplier} = ${totalDamage}`);
+    }
     
     return { 
         damage: totalDamage, 

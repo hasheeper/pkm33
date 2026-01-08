@@ -198,6 +198,33 @@ function checkHPThresholdTransform(pokemon) {
         }
     }
     
+    // 达摩狒狒 (Darmanitan) - 达摩模式特性
+    // 普通版：darmanitan <-> darmanitanzen
+    // 伽勒尔版：darmanitangalar <-> darmanitangalarzen
+    if (pokemon.ability === 'Zen Mode' && baseId.includes('darmanitan')) {
+        const isZen = baseId.includes('zen');
+        const isGalar = baseId.includes('galar');
+        
+        // HP <= 50% 且不是达摩模式 -> 变成达摩模式
+        if (hpRatio <= 0.5 && !isZen) {
+            const targetId = isGalar ? 'darmanitangalarzen' : 'darmanitanzen';
+            const result = performFormChange(pokemon, targetId, 'zenmode');
+            if (result && result.success) {
+                console.log(`[ZEN MODE] ${pokemon.cnName} 变成了达摩模式！`);
+            }
+            return result;
+        }
+        // HP > 50% 且是达摩模式 -> 变回普通模式
+        else if (hpRatio > 0.5 && isZen) {
+            const targetId = isGalar ? 'darmanitangalar' : 'darmanitan';
+            const result = performFormChange(pokemon, targetId, 'zenmode');
+            if (result && result.success) {
+                console.log(`[ZEN MODE] ${pokemon.cnName} 恢复了普通模式！`);
+            }
+            return result;
+        }
+    }
+    
     return null;
 }
 
@@ -249,13 +276,13 @@ function createDialogContainer(isDark = false) {
     const overlay = document.createElement('div');
     overlay.className = 'fc-overlay';
     overlay.style.cssText = `
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
+        position: absolute;
+        inset: 0;
         background: rgba(0, 0, 0, ${isDark ? '0.55' : '0.45'});
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 12000;
+        z-index: 8000;
     `;
 
     const dialogShape = document.createElement('div');
@@ -463,7 +490,7 @@ function showMegaFormSelectionDialog(pokemon, callback) {
         btn.onclick = () => {
             overlay.style.transition = 'opacity 0.2s';
             overlay.style.opacity = '0';
-            setTimeout(() => document.body.removeChild(overlay), 200);
+            setTimeout(() => overlay.parentNode && overlay.parentNode.removeChild(overlay), 200);
             callback(formId);
         };
 
@@ -474,7 +501,7 @@ function showMegaFormSelectionDialog(pokemon, callback) {
     const cancelBtn = createCancelButton('CANCEL', false, () => {
         overlay.style.transition = 'opacity 0.2s';
         overlay.style.opacity = '0';
-        setTimeout(() => document.body.removeChild(overlay), 200);
+        setTimeout(() => overlay.parentNode && overlay.parentNode.removeChild(overlay), 200);
         callback(null);
     });
 
@@ -485,7 +512,9 @@ function showMegaFormSelectionDialog(pokemon, callback) {
     content.appendChild(cancelBtn);
     dialogShape.appendChild(content);
     overlay.appendChild(dialogShape);
-    document.body.appendChild(overlay);
+    // 添加到 #ui-scale 内部，确保在 .screen-filters 的层叠上下文中
+    const uiScale = document.getElementById('ui-scale') || document.body;
+    uiScale.appendChild(overlay);
 
     overlay.onclick = (e) => {
         if (e.target === overlay) cancelBtn.click();
@@ -588,6 +617,9 @@ function executeNecrozmaFusion(party, fusionType, detection) {
         }
         logs.push(`${newFormCnName} 习得了 光子喷涌！`);
     }
+    
+    // 重新计算种族值
+    if (typeof necrozma.recalculateStats === 'function') necrozma.recalculateStats();
     
     // 标记
     necrozma.isFused = true;
@@ -772,7 +804,7 @@ function showNecrozmaFusionDialog(necrozma, options, callback) {
         btn.onclick = () => {
             overlay.style.transition = 'opacity 0.2s';
             overlay.style.opacity = '0';
-            setTimeout(() => document.body.removeChild(overlay), 200);
+            setTimeout(() => overlay.parentNode && overlay.parentNode.removeChild(overlay), 200);
             callback(opt.id);
         };
 
@@ -821,7 +853,7 @@ function showNecrozmaFusionDialog(necrozma, options, callback) {
     const cancelBtn = createCancelButton('不合体', true, () => {
         overlay.style.transition = 'opacity 0.2s';
         overlay.style.opacity = '0';
-        setTimeout(() => document.body.removeChild(overlay), 200);
+        setTimeout(() => overlay.parentNode && overlay.parentNode.removeChild(overlay), 200);
         callback(null);
     });
 
@@ -832,7 +864,9 @@ function showNecrozmaFusionDialog(necrozma, options, callback) {
     content.appendChild(cancelBtn);
     dialogShape.appendChild(content);
     overlay.appendChild(dialogShape);
-    document.body.appendChild(overlay);
+    // 添加到 #ui-scale 内部，确保在 .screen-filters 的层叠上下文中
+    const uiScale2 = document.getElementById('ui-scale') || document.body;
+    uiScale2.appendChild(overlay);
 
     overlay.onclick = (e) => {
         if (e.target === overlay) cancelBtn.click();
@@ -919,6 +953,61 @@ function updateNecrozmaSprite(pokemon) {
     }
 }
 
+/**
+ * AI 自动处理 Necrozma 合体（无对话框）
+ * 用于敌方 AI 在战斗开始时自动合体
+ * @param {Array} party - 队伍数组
+ * @param {Function} logFn - 日志函数
+ * @returns {Object} - { success, logs }
+ */
+function autoProcessNecrozmaFusion(party, logFn) {
+    const log = logFn || console.log;
+    const detection = detectNecrozmaFusion(party);
+    
+    if (!detection.canFuse) {
+        return { success: false, logs: [] };
+    }
+    
+    const necrozma = party[detection.necrozmaIndex];
+    
+    // 防止重复合体
+    if (necrozma.isFused || necrozma.isUltraBursted) {
+        console.log('[AI NECROZMA] 已经合体过，跳过');
+        return { success: false, logs: [] };
+    }
+    
+    const hasZMechanic = necrozma.mechanic === 'zmove';
+    
+    // AI 优先选择 Solgaleo（黄昏之鬃），因为物攻更高
+    // 如果有 Z 招式机制，直接选择 Ultra Burst 路线
+    let fusionType = detection.hasSolgaleo ? 'dusk' : 'dawn';
+    
+    const result = executeNecrozmaFusion(party, fusionType, detection);
+    const allLogs = [];
+    
+    if (result.success) {
+        result.logs.forEach(msg => {
+            log(msg);
+            allLogs.push(msg);
+        });
+        
+        // 如果有 Z 招式机制，自动触发 Ultra Burst
+        if (hasZMechanic) {
+            const burstResult = executeUltraBurst(necrozma);
+            if (burstResult.success) {
+                burstResult.logs.forEach(msg => {
+                    log(msg);
+                    allLogs.push(msg);
+                });
+            }
+        }
+        
+        console.log(`[AI NECROZMA] 敌方 AI 自动合体完成: ${necrozma.name} (Ultra: ${necrozma.isUltraBursted || false})`);
+    }
+    
+    return { success: result.success, logs: allLogs, fusedPokemon: necrozma };
+}
+
 // ============================================
 // 导出
 // ============================================
@@ -940,6 +1029,7 @@ if (typeof window !== 'undefined') {
     window.executeUltraBurst = executeUltraBurst;
     window.showNecrozmaFusionDialog = showNecrozmaFusionDialog;
     window.checkAndProcessNecrozmaFusion = checkAndProcessNecrozmaFusion;
+    window.autoProcessNecrozmaFusion = autoProcessNecrozmaFusion;
     window.updateNecrozmaSprite = updateNecrozmaSprite;
 }
 
@@ -956,6 +1046,7 @@ if (typeof module !== 'undefined' && module.exports) {
         executeUltraBurst,
         showNecrozmaFusionDialog,
         checkAndProcessNecrozmaFusion,
+        autoProcessNecrozmaFusion,
         updateNecrozmaSprite
     };
 }

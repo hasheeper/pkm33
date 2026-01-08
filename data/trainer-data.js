@@ -5,6 +5,7 @@
 const GLORIA_DATA = {
     // 【Tier 4 - 极巨化全开·冠军模式】
     4: {
+        "trainerProficiency": 255,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -111,9 +112,8 @@ const GLORIA_DATA = {
                 "avs": { "trust": 220, "devotion": 200 }
             },
             {
-                "name": "Skwovet", 
-                "//title": "The Immortal God",
-                "lv": 100, 
+                "name": "Skwovet",
+                "lv": 99, 
                 "gender": "F",
                 "nature": "Relaxed", // 加防，减速
                 "ability": "Cheek Pouch", // 颊囊：吃果子额外回血 1/3 HP
@@ -132,7 +132,6 @@ const GLORIA_DATA = {
         ]
     }
 };
-
 /* 
  * 角色: 小照 (Akari)
  * 身份: 银河队调查员 / 时空穿越者 / 镇抚者
@@ -141,6 +140,7 @@ const GLORIA_DATA = {
 const AKARI_DATA = {
     // 【Tier 4 - 镇抚宝可梦的古法技艺·全盛期】
     4: {
+        "trainerProficiency": 230,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -246,6 +246,7 @@ const AKARI_DATA = {
 const ROSA_DATA = {
     // 【Tier 4 - 合众的奇迹·全员主角】
     4: {
+        "trainerProficiency": 240,
         // ==============================================================
         // [Tier Specific Unlocks: Unova's Peak]
         // ==============================================================
@@ -399,6 +400,7 @@ const ROSA_DATA = {
 const SERENA_DATA = {
     // 【Tier 4 - 华丽与力量的终极舞台】
     4: {
+        "trainerProficiency": 235,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -504,141 +506,121 @@ const SERENA_DATA = {
  * 风格: 华丽与实力的完美结合 (Insight Stream)
  * 核心变化: 全员 Ace + Mega + 极致闪避/命中修正
  */
+/* 
+ * 角色: 小光 (Dawn)
+ * 优化点：
+ * 1. 引入 Togekiss 替换 Froslass (致敬动画/游戏主力，且强度更高)
+ * 2. Infernape 换用大字爆 (Fire Blast)，依赖 Insight 修正命中
+ * 3. Torterra 增加突击背心(Assault Vest)增强对攻能力，或保持剩饭
+ * 4. Empoleon 确认为 Competitive (好胜) + 弱点保险或突击背心
+ */
 const DAWN_DATA = {
     // 【Tier 4 - 神奥的永恒光辉】
     4: {
-        // ==============================================================
-        // [Tier Specific Unlocks]
-        // ==============================================================
+        "trainerProficiency": 235,
         "unlocks": {
             "enable_bond": false, 
             "enable_styles": false, 
-            "enable_insight": true,      // ✅ 核心机制：华丽大赛强调的“目光”与“精准”
-            "enable_mega": true,         // ✅ 拥有钥石
+            "enable_insight": true,      // ✅ 华丽大赛的观察力：大幅修正低命中技能
+            "enable_mega": true,         
             "enable_z_move": false,
             "enable_dynamax": false,
             "enable_tera": false
         },
-
-        // ==============================================================
-        // [Party Data]
-        // ==============================================================
         "party": [
-            {
-                // [Mega 战姬] 
-                // 战术: Fake Out 破气腰 -> High Jump Kick (Insight 修正后必中)
+            {   // [Mega 战姬 - 不变]
                 "name": "Lopunny",
-                "lv": 95, // 提升等级
+                "lv": 98, // 王牌等级微调
                 "gender": "F",
                 "nature": "Jolly", 
-                "ability": "Scrappy", // 胆量：幽灵系随便踢
+                "ability": "Scrappy", // 胆量
                 "item": "Lopunnite",
                 "mechanic": "mega",
-                
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                "moves": ["Fake Out", "Return", "High Jump Kick", "Ice Punch"],
-                
-                "isAce": true, // <--- 王牌标记
-                // 高 Passion (暴击) 高 Insight (命中/闪避) -> 完美的演出者
+                "moves": ["Fake Out", "Return", "High Jump Kick", "Ice Punch"], // Insight 让飞膝踢必中且不撞墙，非常强暴力
+                "isAce": true, 
                 "friendship": { "trust": 150, "passion": 200, "insight": 255, "devotion": 120 }
             },
-            {
-                // [移动堡垒]
-                "name": "Torterra", 
-                "lv": 92,
-                "gender": "M",
-                "nature": "Adamant",
-                "ability": "Shell Armor", // 硬壳盔甲：无法被击中要害，极其稳健
-                "item": "Leftovers",
+            {   // [天恩 + 心眼 = 绝对畏缩] -> 替换掉 Froslass
+                // 波克基斯是小光绝对的主力之一，且是 Insight 机制的最大受益者
+                "name": "Togekiss", 
+                "lv": 94,
+                "gender": "F",
+                "nature": "Timid", // 胆小 +速
+                "ability": "Serene Grace", // 天恩：追加效果翻倍 (空气切 60% 畏缩)
+                "item": "Kings Rock",      // 王者之证 (如果想更加做人，不带也可以；带了就是近 70% 畏缩)
+                                           // 或者带 "Leftovers" / "Babiri Berry" (抗钢果)
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                // 木槌反伤，通过 Synthesis 回血；地震强攻
-                "moves": ["Wood Hammer", "Earthquake", "Stone Edge", "Synthesis"],
-                
-                "isAce": true, // <--- 全员防暴死
-                // Trust 220 给予极高的锁血概率，配合硬壳盔甲，如果不带冰系很难打动
-                "friendship": { "trust": 220, "passion": 80, "insight": 100, "devotion": 150 }
+                // 战术：Air Slash (畏缩) + Insight (保证必中/易暴击)。
+                // 只要速度慢于她，基本上很难动弹。
+                "moves": ["Air Slash", "Dazzling Gleam", "Aura Sphere", "Nasty Plot"]
             },
-            {
-                // [双刀游击]
+            {   // [烈焰猴 - 技能优化]
                 "name": "Infernape",
-                "lv": 92,
+                "lv": 95,
                 "gender": "M",
-                "nature": "Naive", // 天真 (+速)
+                "nature": "Naive", 
                 "ability": "Iron Fist", 
                 "item": "Life Orb", 
-                
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
-                // 广域防守的打击面，U-turn 用于灵活轮转
-                "moves": ["Overheat", "Close Combat", "Mach Punch", "U-turn"],
-                
-                "isAce": true,
-                "friendship": { "trust": 100, "passion": 255, "insight": 120, "devotion": 100 }
+                // 修改：Overheat -> Fire Blast
+                // 原因：Overheat 打一发就废了特攻。有 Insight 加持，大字爆(Fire Blast) 的命中不是问题，持续输出更强。
+                // 增加 Grass Knot (打断自己的水/地弱点) 也是好选择，或者保留 Mach Punch 收残。
+                "moves": ["Fire Blast", "Close Combat", "Mach Punch", "Grass Knot"],
+                "isAce": true
             },
-            {
-                // [皇帝的威严]
+            {   // [帝王拿波 - 特盾强化]
                 "name": "Empoleon",
-                "lv": 92,
+                "lv": 95,
                 "gender": "M",
-                "nature": "Modest", // 内敛 (+特攻)
-                "ability": "Competitive", // 好胜：反制对方的威吓特性 (+2特攻)
-                "item": "Shuca Berry",    // 抗地果：吃一发地震反杀
+                "nature": "Modest", 
+                "ability": "Competitive", // 好胜 (SV版本才有，如果是Gen8之前的环境可能没有，模拟器通常允许)
+                // 如果不能用 Competitive，建议改回 Torrent + Petaya Berry (特攻果)
                 
+                "item": "Assault Vest",   // 修改：突击背心。这给了它极高的特耐，可以和特殊攻击手硬刚。
                 "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
-                // 常见的炮台配置
-                "moves": ["Hydro Pump", "Flash Cannon", "Ice Beam", "Aqua Jet"],
-                
-                "isAce": true,
-                "friendship": { "trust": 150, "passion": 150, "insight": 150, "devotion": 150 }
+                // 水炮在 Insight 下必中
+                "moves": ["Hydro Pump", "Flash Cannon", "Ice Beam", "Jet Punch"], 
+                // Jet Punch 是个玩笑它学不会，但也用 Aqua Jet 凑合；或者 Vacuum Wave
+                "moves": ["Hydro Pump", "Flash Cannon", "Ice Beam", "Aqua Jet"] 
             },
-            {
-                // [雪隐幽灵]
-                "name": "Froslass",
-                "lv": 90,
-                "gender": "F",
-                "nature": "Timid", // 胆小 (极速)
-                "ability": "Snow Cloak", // 雪隐：配合 Insight，如果有冰雹闪避率可以直接拉满
-                "item": "Bright Powder", // 光粉 (闪避率 10%)
+            {   // [土台龟 - 物理堡垒]
+                "name": "Torterra", 
+                "lv": 94,
+                "gender": "M",
+                "nature": "Adamant",
+                "ability": "Shell Armor", // 防CT
+                "item": "Yache Berry",    // 修改：抗冰果。土台龟4倍弱冰，这是唯一的暴毙点。
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                // 极度恶心且拼脸的配置。暴风雪在 Insight 加持下命中很高
-                "moves": ["Blizzard", "Destiny Bond", "Thunder Wave", "Shadow Ball"],
-                
-                "isAce": true,
-                // Insight 255 配合 Light Powder 和可能的天气，让对手很难摸到
-                "friendship": { "trust": 50, "passion": 50, "insight": 255, "devotion": 50 }
+                 // 既然带了木槌，Synthesis 回血节奏可能跟不上 Tier4 的伤害，依然保留吧
+                 // 或者 Rock Polish (岩磨) 强化速度推队
+                "moves": ["Wood Hammer", "Earthquake", "Stone Edge", "Synthesis"]
             },
-            {
-                // [白色恶魔 | SEJUN STYLE]
+            {   // [白色恶魔 - 维持原样]
+                // 这一只是完美的。
                 "name": "Pachirisu",
-                "lv": 95, // 既然都在 Tier 4，等级拉到 95 增强耐久
+                "lv": 98, 
                 "gender": "F",
-                "nature": "Impish", // 淘气 (+防 -特攻)
+                "nature": "Impish", 
                 "ability": "Volt Absorb", 
                 "item": "Sitrus Berry", 
                 
-                // 将努力值全部投入耐久 (HP + Def)
                 "stats_meta": { 
                     "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, 
-                    "ev_level": { "hp": 252, "atk": 0, "def": 252, "spa": 0, "spd": 4, "spe": 0 }
+                    "ev_level": 252
                 },
-                
-                // 愤怒门牙 (Super Fang) 只要摸到就是半血，无视等级防御
-                // 撒娇 (Charm) 废掉对面的物攻手，配合高 Insight 闪避
                 "moves": ["Nuzzle", "Super Fang", "Charm", "Protect"],
-                
                 "isAce": true,
-                // “没问题小姐”的绝对自信体现
                 "friendship": { "trust": 255, "passion": 80, "insight": 200, "devotion": 200 }
             }
         ]
     }
 };
+
 
 /* 
  * 角色: 美月 (Selene)
@@ -648,6 +630,7 @@ const DAWN_DATA = {
 const SELENE_DATA = {
     // 【Tier 4 - 全力姿态·阿罗拉的太阳与月亮】
     4: {
+        "trainerProficiency": 250,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -751,6 +734,7 @@ const SELENE_DATA = {
 const JULIANA_DATA = {
     // 【Tier 4 - 帕底亚的第零区生态灾害】
     4: {
+        "trainerProficiency": 245,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -879,6 +863,7 @@ const JULIANA_DATA = {
 const LUSAMINE_DATA = {
     // 【Tier 4 - 虚无世界的母爱】
     4: {
+        "trainerProficiency": 220,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -984,6 +969,7 @@ const LUSAMINE_DATA = {
 const LILLIE_DATA = {
     // 【Tier 4 - 全力姿态·世界锦标赛配置】
     4: {
+        "trainerProficiency": 180,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1091,6 +1077,7 @@ const LILLIE_DATA = {
 const MALLOW_DATA = {
     // 【Tier 4 - 满汉全席·主厨推荐】
     4: {
+        "trainerProficiency": 200,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -1206,6 +1193,7 @@ const MALLOW_DATA = {
 const LANA_DATA = {
     // 【Tier 4 - 滔天巨浪·海神钓手】
     4: {
+        "trainerProficiency": 200,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -1324,6 +1312,7 @@ const LANA_DATA = {
 const IRIDA_DATA = {
     // 【Tier 4 - 珍珠所照耀的广阔空间】
     4: {
+        "trainerProficiency": 215,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -1433,6 +1422,7 @@ const IRIDA_DATA = {
 const SONIA_DATA = {
     // 【Tier 4 - 博士的论文答辩】
     4: {
+        "trainerProficiency": 190,
         // ==============================================================
         // [Tier Specific Unlocks] 全知全能 (Omnisurvey)
         // 只有身为博士的她，才拥有所有地区现象的研究许可
@@ -1531,6 +1521,7 @@ const ROXIE_DATA = {
     // 【Tier 1 - 车库里的杂音】
     // Lv.25 左右，未进化，基础连招，没有任何特殊系统解锁。
     1: {
+        "trainerProficiency": 50,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1577,6 +1568,7 @@ const ROXIE_DATA = {
     // 【Tier 2 - 地下 Live House 的实力派】
     // Lv.50，辉石防御体系，初步的战术雏形。
     2: {
+        "trainerProficiency": 100,
         "unlocks": {
             "enable_bond": false, // 尚未达到灵魂共鸣
             "enable_styles": false,
@@ -1637,6 +1629,7 @@ const ROXIE_DATA = {
     // Lv.70+，开启 enable_bond。
     // 战术核心：利用 Toxtricity 的声音爆发，以及最后 Garbodor 的“羁绊共鸣”。
     3: {
+        "trainerProficiency": 160,
         "unlocks": {
             "enable_bond": true,         // ✅ 核心差异：点亮绿色 EVO 按钮
             "enable_styles": false,
@@ -1715,6 +1708,7 @@ const ROXIE_DATA = {
     },
     // 【Tier 4 - 为毒而狂·最后的 Live】
     4: {
+        "trainerProficiency": 210,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -1833,6 +1827,7 @@ const IONO_DATA = {
     // 【Tier 1 - 没什么人看的首播】
     // Lv.25 左右，未进化，注重节目效果而非强度
     1: {
+        "trainerProficiency": 45,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1878,6 +1873,7 @@ const IONO_DATA = {
     // 【Tier 2 - 崭露头角的电网偶像】
     // Lv.50，全员进化，开始构筑以“电力转换”为核心的受队雏形。
     2: {
+        "trainerProficiency": 95,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1935,6 +1931,7 @@ const IONO_DATA = {
     // Lv.75，解锁太晶化。
     // 战术核心：第一次向挑战者展示"没有弱点的神奇宝可梦" (Levitate + Tera Electric)。
     3: {
+        "trainerProficiency": 155,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2017,6 +2014,7 @@ const IONO_DATA = {
     },
     // 【Tier 4 - 网络大爆炸·流量巅峰】
     4: {
+        "trainerProficiency": 205,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -2134,6 +2132,7 @@ const ERIKA_DATA = {
     // 【Tier 1 - 茶室里的插花课】
     // Lv.25，未进化，撒粉干扰为主的初级课程。
     1: {
+        "trainerProficiency": 55,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2178,6 +2177,7 @@ const ERIKA_DATA = {
     // 【Tier 2 - 盛开的御苑】
     // Lv.50，进化型，晴天轴初步启动。
     2: {
+        "trainerProficiency": 105,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2234,6 +2234,7 @@ const ERIKA_DATA = {
     // 【Tier 3 - 沉醉的花粉香】
     // Lv.70，全员恶人，催眠粉/蝶舞强化，Mega进化解禁（T3）。
     3: {
+        "trainerProficiency": 165,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2303,6 +2304,7 @@ const ERIKA_DATA = {
     // Lv.85+，顶级恶心配置。Mega 妙蛙花 + 再生力巨蔓藤。
     // 核心特色：开启 enable_insight。
     4: {
+        "trainerProficiency": 215,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -2423,6 +2425,7 @@ const NESSA_DATA = {
     // 【Tier 1 - 泳池水枪战】
     // Lv.25，可爱风格，用来教属性相克
     1: {
+        "trainerProficiency": 50,
         "unlocks": { 
             "enable_bond": false, "enable_styles": false, "enable_insight": false, "enable_mega": false, "enable_z_move": false,
             "enable_dynamax": false, "enable_tera": false 
@@ -2456,6 +2459,7 @@ const NESSA_DATA = {
     // 【Tier 2 - 时尚大片拍摄现场】
     // Lv.50，雨天初现，暴噬龟进化，速度开始提起来了
     2: {
+        "trainerProficiency": 100,
         "unlocks": { 
             "enable_bond": false, "enable_styles": false, "enable_insight": false, "enable_mega": false, "enable_z_move": false,
             "enable_dynamax": true, // T2 初次解锁极巨(道馆战强度)
@@ -2499,6 +2503,7 @@ const NESSA_DATA = {
     // 【Tier 3 - 海洋广告代言】
     // Lv.75，完备雨天队，也是对战塔水准
     3: {
+        "trainerProficiency": 160,
         "unlocks": { false:false, "enable_dynamax":true }, // 省略写法
         "party": [
             {
@@ -2544,9 +2549,10 @@ const NESSA_DATA = {
         ]
     },
 
-    // 【Tier 4 - 惊涛骇浪·冠军杯全开】
+    // 【Tier 4 - 惊涛骸浪·冠军杯全开】
     // Lv.85+，顶级控速强攻受，极巨化全开
     4: {
+        "trainerProficiency": 210,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2645,6 +2651,7 @@ const MARNIE_DATA = {
         // 【Tier 1 - 旷野地带初遭遇】
     // Lv.24-26，刚获得莫鲁贝不久，配招和努力值都很基础
     1: {
+        "trainerProficiency": 55,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2691,6 +2698,7 @@ const MARNIE_DATA = {
     // 【Tier 2 - 尖钉镇的试练】
     // Lv.48-52，队伍除了Grimmsnarl还未进化完全，其他已经基本成型
     2: {
+        "trainerProficiency": 105,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2744,6 +2752,7 @@ const MARNIE_DATA = {
     // 【Tier 3 - 冠军杯准决赛 · 极巨首秀】
     // Lv.75，解锁 `enable_dynamax`，这是她在这一代最经典的配置。
     3: {
+        "trainerProficiency": 165,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2818,6 +2827,7 @@ const MARNIE_DATA = {
     },
     // 【Tier 4 - 为了尖钉镇，赌上一切的安可】
     4: {
+        "trainerProficiency": 220,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -2935,6 +2945,7 @@ const HEX_DATA = {
         // 【Tier 1 - 古宅里的恶作剧】
     // Lv.24-26，未进化，单纯的幽灵系干扰
     1: {
+        "trainerProficiency": 45,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2979,6 +2990,7 @@ const HEX_DATA = {
     // 【Tier 2 - 墓园的守望者】
     // Lv.48-52，进化奇石体系成型，难以突破的耐久
     2: {
+        "trainerProficiency": 95,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3036,6 +3048,7 @@ const HEX_DATA = {
     // Lv.70+，解锁 Mega。
     // 特点：王牌虽然换成了 Mega 诅咒娃娃，但这玩意的 "恶作剧之心 + 同命" 可能是游戏里最脏的 Combo 之一。
     3: {
+        "trainerProficiency": 155,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3116,6 +3129,7 @@ const HEX_DATA = {
     },
     // 【Tier 4 - 欢迎来到我的灵界】
     4: {
+        "trainerProficiency": 210,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -3238,6 +3252,7 @@ const BEA_DATA = {
     // 【Tier 1 - 道场的早间晨练】
     // Lv.25 左右，严谨但尚未成熟
     1: {
+        "trainerProficiency": 55,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3284,6 +3299,7 @@ const BEA_DATA = {
     // 【Tier 2 - 黑带考核段位战】
     // Lv.50，进化完全，战术初现
     2: {
+        "trainerProficiency": 110,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3339,6 +3355,7 @@ const BEA_DATA = {
     // 【Tier 3 - 不败的极诣门槛】
     // Lv.70+，解锁极巨化。这时候她已经是一般人无法战胜的格斗大师。
     3: {
+        "trainerProficiency": 170,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3402,6 +3419,7 @@ const BEA_DATA = {
     // 【Tier 4 - 修罗之道 · Boss 降临】
     // Lv.85+，Second Wind 全面释放，G-Max 破坏力拉满。
     4: {
+        "trainerProficiency": 225,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3502,6 +3520,7 @@ const CYNTHIA_DATA = {
     // 【Tier 2 - 这只是热身运动】
     // Lv.60+，已经可以使用 Mega 进化了。对于其他馆主这是底牌，对她只是起手式。
     2: {
+        "trainerProficiency": 180,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3581,6 +3600,7 @@ const CYNTHIA_DATA = {
     // 【Tier 3 - 世锦赛八大师】
     // Lv.80+，仍然是 Mega 核心，但全员数值大幅强化。
     3: {
+        "trainerProficiency": 220,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3663,6 +3683,7 @@ const CYNTHIA_DATA = {
         ]
     },
     4: {
+        "trainerProficiency": 255,
         "unlocks": {
             "enable_bond": true,         // ✅ 激活王牌的 Second Wind 与属性修正
             "enable_styles": true,       // ✅ 补充：作为接触过神奥神话的人，她必然懂得“刚/迅”

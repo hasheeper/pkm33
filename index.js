@@ -71,7 +71,8 @@ async function initGame() {
         enableCommander: settings.enableCommander !== false, // 战术指挥系统
         enableEVO: settings.enableEVO !== false,           // 进化/羁绊共鸣系统
         enableBGM: settings.enableBGM !== false,           // 背景音乐
-        enableSFX: settings.enableSFX !== false            // 音效
+        enableSFX: settings.enableSFX !== false,           // 音效
+        enableClash: settings.enableClash !== false        // 对冲系统
     };
     console.log('[SETTINGS] 全局系统开关:', window.GAME_SETTINGS);
     
@@ -245,6 +246,39 @@ async function initGame() {
                 const preloader = new Image();
                 preloader.src = newSpriteUrl;
             }
+        }
+    }
+    
+    // === 【敌方首发 Necrozma 合体 + Ultra Burst】===
+    // 检测首发敌方是否是 Necrozma，且队伍中有 Solgaleo/Lunala 可以合体
+    if (typeof window.autoProcessNecrozmaFusion === 'function' && openingEnemy) {
+        const necrozmaName = (openingEnemy.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (necrozmaName === 'necrozma') {
+            // 延迟执行，让玩家先看到普通 Necrozma 出场
+            setTimeout(async () => {
+                updateAllVisuals('enemy');
+                await new Promise(r => setTimeout(r, 800));
+                
+                const fusionResult = window.autoProcessNecrozmaFusion(battle.enemyParty, (msg) => {
+                    log(msg); // 显示合体/变身日志
+                });
+                
+                if (fusionResult.success) {
+                    // 更新精灵图
+                    const newSpriteUrl = openingEnemy.getSprite ? openingEnemy.getSprite(false) : null;
+                    if (newSpriteUrl && typeof window.smartLoadSprite === 'function') {
+                        window.smartLoadSprite('enemy-sprite', newSpriteUrl, false);
+                    }
+                    updateAllVisuals('enemy');
+                    
+                    // 播放变身后的叫声
+                    setTimeout(() => {
+                        if (typeof window.playPokemonCry === 'function') {
+                            window.playPokemonCry(openingEnemy.name);
+                        }
+                    }, 500);
+                }
+            }, 1500);
         }
     }
     
@@ -554,6 +588,18 @@ function updateAllVisuals(forceSpriteAnim = false) {
     // 6. 更新进化按钮可见性
     if (typeof updateEvolutionButtonVisuals === 'function') {
         updateEvolutionButtonVisuals();
+    }
+    
+    // 7. 【对冲系统】更新 Insight Bar
+    if (typeof window.updateInsightBar === 'function' && window.GAME_SETTINGS?.enableClash !== false) {
+        window.updateInsightBar(p);
+        
+        // 如果玩家有 Insight AVs，显示 Insight Bar
+        const insightBar = document.getElementById('insight-bar');
+        if (insightBar) {
+            const hasInsight = p.isAce && p.avs && (p.avs.insight > 0 || (typeof p.getEffectiveAVs === 'function' && p.getEffectiveAVs('insight') > 0));
+            insightBar.classList.toggle('active', hasInsight);
+        }
     }
 }
 
@@ -1541,6 +1587,163 @@ async function handleAttack(moveIndex, options = {}) {
     }
 
     // === 阶段 2b：双方都攻击，按速度/优先级顺序 ===
+    
+    // =====================================================
+    // === 【对冲系统】Phase 1: 杀意感知 (Insight Check) ===
+    
+    // =====================================================
+    // === 【对冲系统】Phase 2: 对冲检测 (Clash Detection) ===
+    // =====================================================
+    // 检查是否满足对冲触发条件（后手对冲：只有速度慢的一方才能发起）
+    let clashTriggered = false;
+    let clashResult = null;
+    
+    if (typeof window.canTriggerClash === 'function' && window.GAME_SETTINGS?.enableClash !== false) {
+        // 计算速度，判断谁是"低速方"
+        let playerSpeed = (typeof p.getStat === 'function') ? p.getStat('spe') : (p.spe || 100);
+        let enemySpeed = (typeof e.getStat === 'function') ? e.getStat('spe') : (e.spe || 100);
+        
+        // 麻痹减速
+        if (p.status === 'par') playerSpeed = Math.floor(playerSpeed * 0.5);
+        if (e.status === 'par') enemySpeed = Math.floor(enemySpeed * 0.5);
+        
+        // 戏法空间判定
+        const isTrickRoom = battle.field && battle.field.trickRoom > 0;
+        
+        // 判断玩家是否是低速方（只有后手才能发起对冲）
+        const playerIsSlower = isTrickRoom ? (playerSpeed > enemySpeed) : (playerSpeed < enemySpeed);
+        
+        // 速度比例检查：只要玩家后手就可以对冲
+        const speedRatio = playerSpeed / enemySpeed;
+        const meetsSpeedThreshold = speedRatio < 1.0; // 只要后手就可以对冲
+        
+        console.log(`[CLASH] 速度检测: 玩家${playerSpeed} vs 敌方${enemySpeed}, 比例=${Math.round(speedRatio * 100)}%, 后手=${playerIsSlower}, 满足阈值=${meetsSpeedThreshold}`);
+        
+        if (playerIsSlower && meetsSpeedThreshold) {
+            const clashCheck = window.canTriggerClash(p, e, playerMove, enemyMove);
+            console.log(`[CLASH] 对冲检测: ${clashCheck.canTrigger ? '可触发' : clashCheck.reason}`);
+            
+            if (clashCheck.canTrigger && typeof window.showClashOption === 'function') {
+                // 【改进】如果 Insight 预警已触发，对冲必定可用；否则走熟练度概率
+                let clashAvailable = false;
+                if (battle.insightTriggeredThisTurn) {
+                    console.log(`[CLASH] Insight 已触发，对冲必定可用`);
+                    clashAvailable = true;
+                } else {
+                    // 没有 Insight 时，基于训练家熟练度概率判定
+                    const proficiency = battle.trainerProficiency ?? 0;
+                    const triggerRoll = window.rollClashTrigger ? window.rollClashTrigger(proficiency) : { success: true };
+                    clashAvailable = triggerRoll.success;
+                    if (!clashAvailable) {
+                        console.log(`[CLASH] 触发失败，跳过对冲选项`);
+                    }
+                }
+                // 重置标记
+                battle.insightTriggeredThisTurn = false;
+                
+                if (!clashAvailable) {
+                    // 触发失败，不显示对冲选项，继续正常回合
+                } else {
+                    // 显示对冲选项 UI
+                    const clashChoice = await window.showClashOption(playerMove, enemyMove);
+                    
+                    if (clashChoice === 'clash' && typeof window.resolveClash === 'function') {
+                        // === 【对冲系统】Phase 3: 对冲结算 ===
+                        clashTriggered = true;
+                        clashResult = window.resolveClash(playerMove, enemyMove, p, e, { applySpeedModifier: true });
+                        
+                        if (clashResult) {
+                            console.log(`[CLASH] 对冲结果: ${clashResult.resultType}`);
+                            
+                            // 【修复】播放对冲音效
+                            if (typeof window.playSFX === 'function') window.playSFX('CLASH');
+                            
+                            // 显示对冲动画和日志
+                            log(`<div style="border: 2px solid #f59e0b; padding: 10px; margin: 10px 0; background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.2), rgba(245,158,11,0.1));">`);
+                            clashResult.logs.forEach(msg => log(msg));
+                            log(`</div>`);
+                            
+                            // 播放碰撞特效：双方精灵震动 + 中央爆炸圈
+                            const battleStage = document.querySelector('.battle-stage');
+                            if (battleStage) {
+                                // 1. 双方精灵震动
+                                const playerSprite = document.getElementById('player-sprite');
+                                const enemySprite = document.getElementById('enemy-sprite');
+                                if (playerSprite) {
+                                    playerSprite.classList.add('clash-shake');
+                                    setTimeout(() => playerSprite.classList.remove('clash-shake'), 500);
+                                }
+                                if (enemySprite) {
+                                    enemySprite.classList.add('clash-shake');
+                                    setTimeout(() => enemySprite.classList.remove('clash-shake'), 500);
+                                }
+                                
+                                // 2. 中央爆炸圈
+                                const impact = document.createElement('div');
+                                impact.className = 'clash-impact';
+                                battleStage.appendChild(impact);
+                                setTimeout(() => impact.remove(), 800);
+                            }
+                            
+                            await wait(1000);
+                            
+                            // 根据对冲结果应用伤害
+                            // 【修正】玩家是后手发起对冲，敌方是先手被对冲
+                            // 对冲后应保持原速度顺序：敌方（先手B）先攻击，玩家（后手A）后攻击
+                            if (clashResult.damageMultiplierB > 0) {
+                                // 敌方招式命中（先手，可能是削减后的）
+                                const modifiedEnemyMove = { ...enemyMove };
+                                modifiedEnemyMove.clashDamageMultiplier = clashResult.damageMultiplierB;
+                                const enemyResult = await executeEnemyTurn(e, p, modifiedEnemyMove);
+                                
+                                if (!p.isAlive()) {
+                                    if (!e.isAlive()) {
+                                        await handleEnemyFainted(e);
+                                    }
+                                    await handlePlayerFainted(p);
+                                    return;
+                                }
+                                
+                                if (!e.isAlive()) {
+                                    await handleEnemyFainted(e);
+                                    return;
+                                }
+                            }
+                            
+                            if (clashResult.damageMultiplierA > 0) {
+                                // 玩家招式命中（后手，可能是削减后的）
+                                const modifiedPlayerMove = { ...playerMove };
+                                modifiedPlayerMove.clashDamageMultiplier = clashResult.damageMultiplierA;
+                                const playerResult = await executePlayerTurn(p, e, modifiedPlayerMove);
+                                
+                                // 【修复】检查玩家是否因反伤倒下（粗糙皮肤/铁刺等）
+                                if (!p.isAlive()) {
+                                    console.log('[CLASH] Player fainted from recoil damage after clash attack');
+                                    if (!e.isAlive()) {
+                                        await handleEnemyFainted(e);
+                                    }
+                                    await handlePlayerFainted(p);
+                                    return;
+                                }
+                                
+                                if (!e.isAlive()) {
+                                    await handleEnemyFainted(e);
+                                    return;
+                                }
+                            }
+                            
+                            // 对冲完成，跳过正常回合执行
+                            const currentP = battle.getPlayer();
+                            const currentE = battle.getEnemy();
+                            await executeEndPhase(currentP, currentE);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     // === 计算行动顺序 (Priority + Speed) ===
     // 注意：Gen7+ 规则，Mega 进化后速度立即生效
     const playerPriority = typeof window.getMovePriority === 'function' 
@@ -1600,6 +1803,153 @@ async function handleAttack(moveIndex, options = {}) {
     if (playerFirst) {
         // ========== 玩家先动 ==========
         console.log('[handleAttack] Player moves first');
+        
+        // =====================================================
+        // === 【对冲系统】敌方后手对冲检测 (在玩家攻击之前) ===
+        // =====================================================
+        let enemyClashTriggered = false;
+        if (typeof window.aiDecideClash === 'function' && window.GAME_SETTINGS?.enableClash !== false) {
+            let pSpeed = (typeof p.getStat === 'function') ? p.getStat('spe') : (p.spe || 100);
+            let eSpeed = (typeof e.getStat === 'function') ? e.getStat('spe') : (e.spe || 100);
+            if (p.status === 'par') pSpeed = Math.floor(pSpeed * 0.5);
+            if (e.status === 'par') eSpeed = Math.floor(eSpeed * 0.5);
+            
+            const speedRatio = eSpeed / pSpeed;
+            // 【修复】放宽敌方 AI 对冲阈值：只要敌方后手（速度比 < 1.0）就可以考虑对冲
+            // 之前是 0.70 太严格，导致敌方几乎不会触发对冲
+            const meetsSpeedThreshold = speedRatio < 1.0;
+            
+            console.log(`[AI CLASH PRE] 敌方速度检测: ${eSpeed} vs ${pSpeed}, 比例=${Math.round(speedRatio * 100)}%, 满足阈值=${meetsSpeedThreshold}`);
+            
+            if (meetsSpeedThreshold) {
+                // =====================================================
+                // 【Expert AI 见招拆招】AI 后手时重新决策最优招式
+                // 只对 expert 难度生效，其他难度不改变招式
+                // =====================================================
+                let finalEnemyMove = enemyMove;
+                if (battle.aiDifficulty === 'expert' && typeof window.getHardAiMove === 'function') {
+                    // AI 知道玩家选了什么招式，重新计算最优对冲招式
+                    const recalcMove = window.getHardAiMove(e, p, battle.enemyParty);
+                    if (recalcMove && recalcMove.name !== enemyMove.name) {
+                        // 【修复】检查敌方新招式是否能对冲玩家招式
+                        // 参数顺序：(敌方, 玩家, 敌方招式, 玩家招式)
+                        const newClashCheck = window.canTriggerClash(e, p, recalcMove, playerMove);
+                        if (newClashCheck && newClashCheck.canTrigger) {
+                            console.log(`[AI COUNTER] Expert AI 见招拆招: ${enemyMove.cn || enemyMove.name} → ${recalcMove.cn || recalcMove.name}`);
+                            // 【修复】继承原招式的 Style 修正到新招式
+                            if (enemyMove.styleUsed) {
+                                const styleMod = enemyMove.styleUsed === 'strong' ? 1.30 : (enemyMove.styleUsed === 'agile' ? 0.50 : 1.0);
+                                recalcMove.basePower = Math.floor((recalcMove.basePower || recalcMove.power || 0) * styleMod);
+                                recalcMove.power = recalcMove.basePower;
+                                recalcMove.styleUsed = enemyMove.styleUsed;
+                                recalcMove.priority = enemyMove.priority;
+                                console.log(`[AI COUNTER] 继承 Style 修正: ${enemyMove.styleUsed}, 威力 → ${recalcMove.basePower}`);
+                            }
+                            finalEnemyMove = recalcMove;
+                            enemyMove = recalcMove; // 更新全局敌方招式
+                        } else {
+                            console.log(`[AI COUNTER] Expert AI 重算招式 ${recalcMove.cn || recalcMove.name} 无法对冲 (${newClashCheck?.reason})，保持原招式`);
+                        }
+                    }
+                }
+                
+                const aiDecision = window.aiDecideClash(e, p, finalEnemyMove, playerMove);
+                console.log(`[AI CLASH PRE] ${aiDecision.reason}`);
+                
+                if (aiDecision.shouldClash && typeof window.resolveClash === 'function') {
+                    // 【修复】从 JSON 读取敌方训练家熟练度，如果未设置则默认 0
+                    const enemyProficiency = battle.enemyTrainerProficiency ?? 0;
+                    const enemyTriggerRoll = window.rollClashTrigger ? window.rollClashTrigger(enemyProficiency) : { success: true };
+                    
+                    if (!enemyTriggerRoll.success) {
+                        console.log(`[AI CLASH PRE] 敌方触发失败，放弃对冲`);
+                        // 触发失败，不进行对冲
+                    } else {
+                        enemyClashTriggered = true;
+                    
+                    // 敌方发起对冲，参数顺序：敌方招式 vs 玩家招式（使用可能被篡改的招式）
+                    const clashResult = window.resolveClash(finalEnemyMove, playerMove, e, p);
+                    
+                    if (clashResult) {
+                        console.log(`[AI CLASH PRE] 对冲结果: ${clashResult.resultType}`);
+                        
+                        // 【修复】播放对冲音效
+                        if (typeof window.playSFX === 'function') window.playSFX('CLASH');
+                        
+                        // 【修复】统一使用 clashResult.logs 格式化日志
+                        log(`<div style="border: 2px solid #f59e0b; padding: 10px; margin: 10px 0; background: linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.2), rgba(245,158,11,0.1));">`);
+                        clashResult.logs.forEach(msg => log(msg));
+                        log(`</div>`);
+                        
+                        // 播放碰撞特效：双方精灵震动 + 中央爆炸圈
+                        const battleStage = document.querySelector('.battle-stage');
+                        if (battleStage) {
+                            const playerSprite = document.getElementById('player-sprite');
+                            const enemySprite = document.getElementById('enemy-sprite');
+                            if (playerSprite) {
+                                playerSprite.classList.add('clash-shake');
+                                setTimeout(() => playerSprite.classList.remove('clash-shake'), 500);
+                            }
+                            if (enemySprite) {
+                                enemySprite.classList.add('clash-shake');
+                                setTimeout(() => enemySprite.classList.remove('clash-shake'), 500);
+                            }
+                            const impact = document.createElement('div');
+                            impact.className = 'clash-impact';
+                            battleStage.appendChild(impact);
+                            setTimeout(() => impact.remove(), 800);
+                        }
+                        
+                        await wait(1000);
+                        
+                        // 根据对冲结果执行攻击（只有 damageMultiplier > 0 才执行）
+                        // 玩家先动，所以玩家先攻击（如果有伤害）
+                        if (clashResult.damageMultiplierB > 0) {
+                            const modifiedPlayerMove = { ...playerMove };
+                            modifiedPlayerMove.clashDamageMultiplier = clashResult.damageMultiplierB;
+                            await executePlayerTurn(p, e, modifiedPlayerMove);
+                            
+                            // 【修复】检查玩家是否因反伤倒下（粗糙皮肤/铁刺等）
+                            if (!p.isAlive()) {
+                                console.log('[CLASH] Player fainted from recoil damage after clash attack');
+                                // 先检查是否双方同时倒下
+                                if (!e.isAlive()) {
+                                    await handleEnemyFainted(e);
+                                }
+                                await handlePlayerFainted(p);
+                                return;
+                            }
+                            
+                            if (!e.isAlive()) {
+                                await handleEnemyFainted(e);
+                                return;
+                            }
+                        }
+                        
+                        // 敌方攻击（如果有伤害）
+                        if (clashResult.damageMultiplierA > 0) {
+                            const modifiedEnemyMove = { ...enemyMove };
+                            modifiedEnemyMove.clashDamageMultiplier = clashResult.damageMultiplierA;
+                            await executeEnemyTurn(e, p, modifiedEnemyMove);
+                            
+                            if (!p.isAlive()) {
+                                await handlePlayerFainted(p);
+                                return;
+                            }
+                        }
+                        
+                        // 对冲完成，执行回合末结算
+                        const currentP = battle.getPlayer();
+                        const currentE = battle.getEnemy();
+                        await executeEndPhase(currentP, currentE);
+                        return;
+                    }
+                    }
+                }
+            }
+        }
+        
+        // === 正常执行玩家攻击（没有对冲时）===
         const playerResult = await executePlayerTurn(p, e, playerMove);
         
         // 【修复】Post-Move Check: 玩家使用自杀招式后立即处理倒下
@@ -1664,6 +2014,7 @@ async function handleAttack(moveIndex, options = {}) {
             return;
         }
         
+        // 【注意】对冲检测已移到玩家攻击之前，这里直接执行敌方攻击
         console.log('[handleAttack] Enemy turn starting, move:', enemyMove?.name || enemyMove?.cn);
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
         console.log('[handleAttack] Enemy turn complete');
@@ -2095,6 +2446,32 @@ async function executeEndPhase(p, e) {
         }
     }
     
+    // =========================================================
+    // HP 阈值形态变化 (Zen Mode, Schooling, Power Construct 等)
+    // =========================================================
+    if (typeof window.checkHPThresholdTransform === 'function') {
+        // 玩家 HP 阈值变身
+        if (p && p.isAlive()) {
+            const pFormResult = window.checkHPThresholdTransform(p);
+            if (pFormResult && pFormResult.success) {
+                const formName = pFormResult.newName || p.cnName;
+                log(`<span style="color:#f59e0b">🔄 ${formName} 的形态发生了变化！</span>`);
+                updateAllVisuals();
+                await wait(500);
+            }
+        }
+        // 敌方 HP 阈值变身
+        if (e && e.isAlive()) {
+            const eFormResult = window.checkHPThresholdTransform(e);
+            if (eFormResult && eFormResult.success) {
+                const formName = eFormResult.newName || e.cnName;
+                log(`<span style="color:#f59e0b">🔄 ${formName} 的形态发生了变化！</span>`);
+                updateAllVisuals();
+                await wait(500);
+            }
+        }
+    }
+    
     // 【古武系统】风格冷却已移至 handleAttack 开始时递减，此处不再处理
     
     // =========================================================
@@ -2444,6 +2821,15 @@ async function performSwitch(newIndex) {
             applyDynamaxState(oldP, false);
         }
         oldP.resetBoosts();
+        
+        // 【特性钩子】触发退场特性 (Regenerator, Natural Cure, Zero to Hero 等)
+        if (typeof AbilityHandlers !== 'undefined' && oldP.ability) {
+            const handler = AbilityHandlers[oldP.ability];
+            if (handler && handler.onSwitchOut) {
+                handler.onSwitchOut(oldP);
+                console.log(`[ABILITY] ${oldP.cnName} 触发退场特性: ${oldP.ability}`);
+            }
+        }
     }
     
     // 【哈欠修复】换人时清除哈欠状态（官方机制：换人可以躲避哈欠）

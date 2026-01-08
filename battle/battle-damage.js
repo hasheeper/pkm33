@@ -264,6 +264,19 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
             }
         }
         
+        // 【受击解冻】火系招式或 thawsTarget 招式会解除目标的冰冻状态
+        if (defender.status === 'frz' && defender.currHp > 0) {
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+            const moveType = fullMoveData.type || move.type || 'Normal';
+            const thawsTarget = fullMoveData.thawsTarget || false;
+            
+            if (moveType === 'Fire' || thawsTarget) {
+                defender.status = null;
+                log(`<b style="color:#f97316">🔥 ${defender.cnName} 被${thawsTarget ? '热气' : '火焰'}融化了冰冻状态!</b>`);
+            }
+        }
+        
         // === 播放打击音效 ===
         if (typeof window.playHitSFX === 'function') {
             window.playHitSFX(result.effectiveness, result.isCrit);

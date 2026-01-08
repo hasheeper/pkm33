@@ -1175,6 +1175,18 @@ function checkCanMove(pokemon, move = null) {
     
     // 4. 冰冻 (Frozen) - 20% 几率解冻，否则无法行动
     if (pokemon.status === 'frz') {
+        // 4a. 自解冻招式检查 (defrost flag)
+        // 使用带有 defrost 标记的招式可以立即解冻并攻击
+        if (move) {
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+            if (fullMoveData.flags && fullMoveData.flags.defrost) {
+                pokemon.status = null;
+                return { can: true, msg: `${pokemon.cnName} 的烈焰融化了身上的冰!` };
+            }
+        }
+        
+        // 4b. 随机解冻 (20% 几率)
         if (Math.random() < 0.2) {
             pokemon.status = null;
             return { can: true, msg: `${pokemon.cnName} 的冰冻解除了!` };
@@ -1310,12 +1322,17 @@ class BattleState {
         
         // =========================================================
         // 全局战场状态 (Field Conditions)
+        // 【规范】所有字段使用驼峰命名，与 moves-data.js 的小写 pseudoWeather 对应
         // =========================================================
         this.field = {
             trickRoom: 0,   // 戏法空间剩余回合 (0=未开启)
             gravity: 0,     // 重力剩余回合
             magicRoom: 0,   // 魔法空间剩余回合
-            wonderRoom: 0   // 奇妙空间剩余回合
+            wonderRoom: 0,  // 奇妙空间剩余回合
+            fairyLock: 0,   // 妖精之锁剩余回合
+            ionDeluge: 0,   // 等离子浴剩余回合
+            mudSport: 0,    // 玩泥巴剩余回合
+            waterSport: 0   // 玩水剩余回合
         };
         
         // 玩家侧状态 (Player Side)
@@ -1347,17 +1364,24 @@ class BattleState {
     tickFieldConditions() {
         const logs = [];
         
-        // 全局场地
-        if (this.field.trickRoom > 0) {
-            this.field.trickRoom--;
-            if (this.field.trickRoom === 0) {
-                logs.push("扭曲的时空恢复了正常！");
-            }
-        }
-        if (this.field.gravity > 0) {
-            this.field.gravity--;
-            if (this.field.gravity === 0) {
-                logs.push("重力恢复了正常！");
+        // 全局场地 - 使用通用递减逻辑
+        const fieldEffects = [
+            { key: 'trickRoom', msg: '扭曲的时空恢复了正常！' },
+            { key: 'gravity', msg: '重力恢复了正常！' },
+            { key: 'magicRoom', msg: '魔法空间消失了！' },
+            { key: 'wonderRoom', msg: '奇妙空间消失了！' },
+            { key: 'fairyLock', msg: '妖精之锁解除了！' },
+            { key: 'ionDeluge', msg: '等离子浴结束了！' },
+            { key: 'mudSport', msg: '玩泥巴的效果消失了！' },
+            { key: 'waterSport', msg: '玩水的效果消失了！' }
+        ];
+        
+        for (const effect of fieldEffects) {
+            if (this.field[effect.key] > 0) {
+                this.field[effect.key]--;
+                if (this.field[effect.key] === 0) {
+                    logs.push(effect.msg);
+                }
             }
         }
         
@@ -1458,6 +1482,15 @@ class BattleState {
         const trainerNameLower = (displayName || '').toLowerCase();
         if (/cynthia|red|steven|champion/.test(trainerNameLower)) {
             this.aiDifficulty = 'hard';
+        }
+        
+        // 【修复】读取敌方训练家熟练度，用于敌方 AI 对冲触发概率
+        // JSON 格式: enemy.trainerProficiency (0-255)
+        if (enemyObj.trainerProficiency !== undefined) {
+            this.enemyTrainerProficiency = Math.min(255, Math.max(0, enemyObj.trainerProficiency));
+            console.log('[ENEMY PROFICIENCY] 敌方训练家熟练度:', this.enemyTrainerProficiency);
+        } else {
+            this.enemyTrainerProficiency = 0;
         }
         
         let rawParty = [];

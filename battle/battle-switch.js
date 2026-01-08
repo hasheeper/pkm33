@@ -153,6 +153,15 @@ async function handleEnemyPivot(passBoosts = false) {
             currentE.resetBoosts();
         }
         
+        // 【特性钩子】触发退场特性 (Regenerator, Natural Cure, Zero to Hero 等)
+        if (typeof AbilityHandlers !== 'undefined' && currentE.ability) {
+            const handler = AbilityHandlers[currentE.ability];
+            if (handler && handler.onSwitchOut) {
+                handler.onSwitchOut(currentE);
+                console.log(`[ABILITY] ${currentE.cnName} 触发退场特性: ${currentE.ability}`);
+            }
+        }
+        
         battle.enemyActive = bestIndex;
         const newE = battle.getEnemy();
         
@@ -272,6 +281,35 @@ async function handleEnemyFainted(e) {
         // === 播放敌方新宝可梦叫声 ===
         if (typeof window.playPokemonCry === 'function') {
             window.playPokemonCry(newE.name);
+        }
+        
+        // === 【敌方 Necrozma 合体 + Ultra Burst】===
+        // 检测换入的是否是 Necrozma，且队伍中有 Solgaleo/Lunala 可以合体
+        if (typeof window.autoProcessNecrozmaFusion === 'function') {
+            const necrozmaName = (newE.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (necrozmaName === 'necrozma') {
+                updateAllVisuals('enemy');
+                await wait(600);
+                
+                const fusionResult = window.autoProcessNecrozmaFusion(battle.enemyParty, (msg) => {
+                    log(msg); // 显示合体/变身日志
+                });
+                
+                if (fusionResult.success) {
+                    // 更新精灵图
+                    const newSpriteUrl = newE.getSprite ? newE.getSprite(false) : null;
+                    if (newSpriteUrl && typeof window.smartLoadSprite === 'function') {
+                        window.smartLoadSprite('enemy-sprite', newSpriteUrl, false);
+                    }
+                    updateAllVisuals('enemy');
+                    await wait(800);
+                    
+                    // 播放变身后的叫声
+                    if (typeof window.playPokemonCry === 'function') {
+                        window.playPokemonCry(newE.name);
+                    }
+                }
+            }
         }
         
         // 检查并执行进场自动变形 (Primal/Crowned)

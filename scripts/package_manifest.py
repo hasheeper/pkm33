@@ -33,6 +33,9 @@ EXCLUDED_ITEMS: set[str] = {
     "package_manifest.py",
     "pkm_summary.xml",
     "avatar",  # 排除头像资源目录
+    "scripts",
+    "bgm",
+    "sfx",
 }
 
 ALLOWED_EXTENSIONS: set[str] = {
@@ -81,6 +84,7 @@ TRUNCATE_HEAD_100: set[str] = {
     "pokedex-data.js",
     "trainer-data.js",
     "translations.js",
+    "items-data.js",
 }
 
 TRUNCATE_HEAD_TAIL: dict[str, tuple[int, int]] = {}

@@ -231,6 +231,53 @@ function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle =
         }
     }
     
+    // 1.3b Secondaries 数组处理（Ice Fang, Fire Fang, Thunder Fang 等多副作用招式）
+    // 【Sheer Force】如果特性激活，跳过所有 secondaries 副作用
+    if (fullMoveData.secondaries && Array.isArray(fullMoveData.secondaries) && !sheerForceActive) {
+        for (const sec of fullMoveData.secondaries) {
+            const chance = sec.chance || 100;
+            if (Math.random() * 100 < chance) {
+                // 状态异常
+                if (sec.status && !target.status) {
+                    if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                        const result = MoveEffects.tryInflictStatus(target, sec.status, user, battle);
+                        if (result.success) {
+                            if (sec.status === 'slp') {
+                                target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                            }
+                            logs.push(result.message);
+                        }
+                    } else {
+                        target.status = sec.status;
+                        if (sec.status === 'slp') {
+                            target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                        }
+                        const statusMap = {
+                            brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
+                            tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
+                        };
+                        const statusText = statusMap[sec.status];
+                        if (statusText) {
+                            logs.push(`${target.cnName} ${statusText}`);
+                        }
+                    }
+                }
+                
+                // 畏缩效果
+                if (sec.volatileStatus === 'flinch') {
+                    target.volatile = target.volatile || {};
+                    target.volatile.flinch = true;
+                    logs.push(`${target.cnName} 畏缩了!`);
+                }
+                
+                // 能力变化
+                if (sec.boosts) {
+                    changeStats(target, sec.boosts);
+                }
+            }
+        }
+    }
+    
     // 1.4 Status 招式直接施加状态
     if (fullMoveData.status) {
         const s = fullMoveData.status;

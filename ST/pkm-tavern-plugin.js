@@ -5,6 +5,7 @@
 const GLORIA_DATA = {
     // 【Tier 4 - 极巨化全开·冠军模式】
     4: {
+        "trainerProficiency": 255,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -139,6 +140,7 @@ const GLORIA_DATA = {
 const AKARI_DATA = {
     // 【Tier 4 - 镇抚宝可梦的古法技艺·全盛期】
     4: {
+        "trainerProficiency": 230,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -244,6 +246,7 @@ const AKARI_DATA = {
 const ROSA_DATA = {
     // 【Tier 4 - 合众的奇迹·全员主角】
     4: {
+        "trainerProficiency": 240,
         // ==============================================================
         // [Tier Specific Unlocks: Unova's Peak]
         // ==============================================================
@@ -397,6 +400,7 @@ const ROSA_DATA = {
 const SERENA_DATA = {
     // 【Tier 4 - 华丽与力量的终极舞台】
     4: {
+        "trainerProficiency": 235,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -513,6 +517,7 @@ const SERENA_DATA = {
 const DAWN_DATA = {
     // 【Tier 4 - 神奥的永恒光辉】
     4: {
+        "trainerProficiency": 235,
         "unlocks": {
             "enable_bond": false, 
             "enable_styles": false, 
@@ -625,6 +630,7 @@ const DAWN_DATA = {
 const SELENE_DATA = {
     // 【Tier 4 - 全力姿态·阿罗拉的太阳与月亮】
     4: {
+        "trainerProficiency": 250,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -728,6 +734,7 @@ const SELENE_DATA = {
 const JULIANA_DATA = {
     // 【Tier 4 - 帕底亚的第零区生态灾害】
     4: {
+        "trainerProficiency": 245,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -856,6 +863,7 @@ const JULIANA_DATA = {
 const LUSAMINE_DATA = {
     // 【Tier 4 - 虚无世界的母爱】
     4: {
+        "trainerProficiency": 220,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -961,6 +969,7 @@ const LUSAMINE_DATA = {
 const LILLIE_DATA = {
     // 【Tier 4 - 全力姿态·世界锦标赛配置】
     4: {
+        "trainerProficiency": 180,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1068,6 +1077,7 @@ const LILLIE_DATA = {
 const MALLOW_DATA = {
     // 【Tier 4 - 满汉全席·主厨推荐】
     4: {
+        "trainerProficiency": 200,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -1183,6 +1193,7 @@ const MALLOW_DATA = {
 const LANA_DATA = {
     // 【Tier 4 - 滔天巨浪·海神钓手】
     4: {
+        "trainerProficiency": 200,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -1301,6 +1312,7 @@ const LANA_DATA = {
 const IRIDA_DATA = {
     // 【Tier 4 - 珍珠所照耀的广阔空间】
     4: {
+        "trainerProficiency": 215,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -1410,6 +1422,7 @@ const IRIDA_DATA = {
 const SONIA_DATA = {
     // 【Tier 4 - 博士的论文答辩】
     4: {
+        "trainerProficiency": 190,
         // ==============================================================
         // [Tier Specific Unlocks] 全知全能 (Omnisurvey)
         // 只有身为博士的她，才拥有所有地区现象的研究许可
@@ -1508,6 +1521,7 @@ const ROXIE_DATA = {
     // 【Tier 1 - 车库里的杂音】
     // Lv.25 左右，未进化，基础连招，没有任何特殊系统解锁。
     1: {
+        "trainerProficiency": 50,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1554,6 +1568,7 @@ const ROXIE_DATA = {
     // 【Tier 2 - 地下 Live House 的实力派】
     // Lv.50，辉石防御体系，初步的战术雏形。
     2: {
+        "trainerProficiency": 100,
         "unlocks": {
             "enable_bond": false, // 尚未达到灵魂共鸣
             "enable_styles": false,
@@ -1614,6 +1629,7 @@ const ROXIE_DATA = {
     // Lv.70+，开启 enable_bond。
     // 战术核心：利用 Toxtricity 的声音爆发，以及最后 Garbodor 的“羁绊共鸣”。
     3: {
+        "trainerProficiency": 160,
         "unlocks": {
             "enable_bond": true,         // ✅ 核心差异：点亮绿色 EVO 按钮
             "enable_styles": false,
@@ -1692,6 +1708,7 @@ const ROXIE_DATA = {
     },
     // 【Tier 4 - 为毒而狂·最后的 Live】
     4: {
+        "trainerProficiency": 210,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -1810,6 +1827,7 @@ const IONO_DATA = {
     // 【Tier 1 - 没什么人看的首播】
     // Lv.25 左右，未进化，注重节目效果而非强度
     1: {
+        "trainerProficiency": 45,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1855,6 +1873,7 @@ const IONO_DATA = {
     // 【Tier 2 - 崭露头角的电网偶像】
     // Lv.50，全员进化，开始构筑以“电力转换”为核心的受队雏形。
     2: {
+        "trainerProficiency": 95,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1912,6 +1931,7 @@ const IONO_DATA = {
     // Lv.75，解锁太晶化。
     // 战术核心：第一次向挑战者展示"没有弱点的神奇宝可梦" (Levitate + Tera Electric)。
     3: {
+        "trainerProficiency": 155,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -1994,6 +2014,7 @@ const IONO_DATA = {
     },
     // 【Tier 4 - 网络大爆炸·流量巅峰】
     4: {
+        "trainerProficiency": 205,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -2111,6 +2132,7 @@ const ERIKA_DATA = {
     // 【Tier 1 - 茶室里的插花课】
     // Lv.25，未进化，撒粉干扰为主的初级课程。
     1: {
+        "trainerProficiency": 55,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2155,6 +2177,7 @@ const ERIKA_DATA = {
     // 【Tier 2 - 盛开的御苑】
     // Lv.50，进化型，晴天轴初步启动。
     2: {
+        "trainerProficiency": 105,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2211,6 +2234,7 @@ const ERIKA_DATA = {
     // 【Tier 3 - 沉醉的花粉香】
     // Lv.70，全员恶人，催眠粉/蝶舞强化，Mega进化解禁（T3）。
     3: {
+        "trainerProficiency": 165,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2280,6 +2304,7 @@ const ERIKA_DATA = {
     // Lv.85+，顶级恶心配置。Mega 妙蛙花 + 再生力巨蔓藤。
     // 核心特色：开启 enable_insight。
     4: {
+        "trainerProficiency": 215,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -2400,6 +2425,7 @@ const NESSA_DATA = {
     // 【Tier 1 - 泳池水枪战】
     // Lv.25，可爱风格，用来教属性相克
     1: {
+        "trainerProficiency": 50,
         "unlocks": { 
             "enable_bond": false, "enable_styles": false, "enable_insight": false, "enable_mega": false, "enable_z_move": false,
             "enable_dynamax": false, "enable_tera": false 
@@ -2433,6 +2459,7 @@ const NESSA_DATA = {
     // 【Tier 2 - 时尚大片拍摄现场】
     // Lv.50，雨天初现，暴噬龟进化，速度开始提起来了
     2: {
+        "trainerProficiency": 100,
         "unlocks": { 
             "enable_bond": false, "enable_styles": false, "enable_insight": false, "enable_mega": false, "enable_z_move": false,
             "enable_dynamax": true, // T2 初次解锁极巨(道馆战强度)
@@ -2476,6 +2503,7 @@ const NESSA_DATA = {
     // 【Tier 3 - 海洋广告代言】
     // Lv.75，完备雨天队，也是对战塔水准
     3: {
+        "trainerProficiency": 160,
         "unlocks": { false:false, "enable_dynamax":true }, // 省略写法
         "party": [
             {
@@ -2521,9 +2549,10 @@ const NESSA_DATA = {
         ]
     },
 
-    // 【Tier 4 - 惊涛骇浪·冠军杯全开】
+    // 【Tier 4 - 惊涛骸浪·冠军杯全开】
     // Lv.85+，顶级控速强攻受，极巨化全开
     4: {
+        "trainerProficiency": 210,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2622,6 +2651,7 @@ const MARNIE_DATA = {
         // 【Tier 1 - 旷野地带初遭遇】
     // Lv.24-26，刚获得莫鲁贝不久，配招和努力值都很基础
     1: {
+        "trainerProficiency": 55,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2668,6 +2698,7 @@ const MARNIE_DATA = {
     // 【Tier 2 - 尖钉镇的试练】
     // Lv.48-52，队伍除了Grimmsnarl还未进化完全，其他已经基本成型
     2: {
+        "trainerProficiency": 105,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2721,6 +2752,7 @@ const MARNIE_DATA = {
     // 【Tier 3 - 冠军杯准决赛 · 极巨首秀】
     // Lv.75，解锁 `enable_dynamax`，这是她在这一代最经典的配置。
     3: {
+        "trainerProficiency": 165,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2795,6 +2827,7 @@ const MARNIE_DATA = {
     },
     // 【Tier 4 - 为了尖钉镇，赌上一切的安可】
     4: {
+        "trainerProficiency": 220,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -2912,6 +2945,7 @@ const HEX_DATA = {
         // 【Tier 1 - 古宅里的恶作剧】
     // Lv.24-26，未进化，单纯的幽灵系干扰
     1: {
+        "trainerProficiency": 45,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2956,6 +2990,7 @@ const HEX_DATA = {
     // 【Tier 2 - 墓园的守望者】
     // Lv.48-52，进化奇石体系成型，难以突破的耐久
     2: {
+        "trainerProficiency": 95,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3013,6 +3048,7 @@ const HEX_DATA = {
     // Lv.70+，解锁 Mega。
     // 特点：王牌虽然换成了 Mega 诅咒娃娃，但这玩意的 "恶作剧之心 + 同命" 可能是游戏里最脏的 Combo 之一。
     3: {
+        "trainerProficiency": 155,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3093,6 +3129,7 @@ const HEX_DATA = {
     },
     // 【Tier 4 - 欢迎来到我的灵界】
     4: {
+        "trainerProficiency": 210,
         // ==============================================================
         // [Tier Specific Unlocks]
         // ==============================================================
@@ -3215,6 +3252,7 @@ const BEA_DATA = {
     // 【Tier 1 - 道场的早间晨练】
     // Lv.25 左右，严谨但尚未成熟
     1: {
+        "trainerProficiency": 55,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3261,6 +3299,7 @@ const BEA_DATA = {
     // 【Tier 2 - 黑带考核段位战】
     // Lv.50，进化完全，战术初现
     2: {
+        "trainerProficiency": 110,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3316,6 +3355,7 @@ const BEA_DATA = {
     // 【Tier 3 - 不败的极诣门槛】
     // Lv.70+，解锁极巨化。这时候她已经是一般人无法战胜的格斗大师。
     3: {
+        "trainerProficiency": 170,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3379,6 +3419,7 @@ const BEA_DATA = {
     // 【Tier 4 - 修罗之道 · Boss 降临】
     // Lv.85+，Second Wind 全面释放，G-Max 破坏力拉满。
     4: {
+        "trainerProficiency": 225,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3479,6 +3520,7 @@ const CYNTHIA_DATA = {
     // 【Tier 2 - 这只是热身运动】
     // Lv.60+，已经可以使用 Mega 进化了。对于其他馆主这是底牌，对她只是起手式。
     2: {
+        "trainerProficiency": 180,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3558,6 +3600,7 @@ const CYNTHIA_DATA = {
     // 【Tier 3 - 世锦赛八大师】
     // Lv.80+，仍然是 Mega 核心，但全员数值大幅强化。
     3: {
+        "trainerProficiency": 220,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -3640,6 +3683,7 @@ const CYNTHIA_DATA = {
         ]
     },
     4: {
+        "trainerProficiency": 255,
         "unlocks": {
             "enable_bond": true,         // ✅ 激活王牌的 Second Wind 与属性修正
             "enable_styles": true,       // ✅ 补充：作为接触过神奥神话的人，她必然懂得“刚/迅”
@@ -6100,8 +6144,17 @@ if (typeof window !== 'undefined') {
       return null;
     };
     
+    // 辅助函数：从 tierData 提取 trainerProficiency
+    const extractProficiency = (data) => {
+      if (!data) return 0;
+      if (Array.isArray(data)) return 0; // 旧格式没有 trainerProficiency
+      if (typeof data.trainerProficiency === 'number') return data.trainerProficiency;
+      return 0;
+    };
+    
     let party = extractParty(tierData);
     let unlocks = extractUnlocks(tierData);
+    let proficiency = extractProficiency(tierData);
     
     if (!party || party.length === 0) {
       // 尝试找到任意可用的 tier
@@ -6129,6 +6182,7 @@ if (typeof window !== 'undefined') {
         tierData = trainerData[usedTier];
         party = extractParty(tierData);
         unlocks = extractUnlocks(tierData);
+        proficiency = extractProficiency(tierData);
       }
       
       if (!party || party.length === 0) {
@@ -6153,6 +6207,7 @@ if (typeof window !== 'undefined') {
     return {
       party: party,
       unlocks: unlocks,
+      trainerProficiency: proficiency,
       difficulty: difficultyMap[usedTier] || 'normal'
     };
   }
@@ -6200,7 +6255,8 @@ if (typeof window !== 'undefined') {
         return {
           name: trainerData.name,
           party: trainerParty,
-          originalCount: trainerParty.length
+          originalCount: trainerParty.length,
+          trainerProficiency: trainerData.trainerProficiency || 0
         };
       });
       
@@ -6248,6 +6304,10 @@ if (typeof window !== 'undefined') {
       const autoDetectedUnlocks = detectUnlocksFromParty(finalParty);
       const finalUnlocks = mergeUnlocks(enemySource.unlocks, autoDetectedUnlocks);
       
+      // 多人合并时选择最高的 trainerProficiency
+      const maxProficiency = Math.max(...trainersWithParty.map(t => t.trainerProficiency || 0));
+      console.log(`${PLUGIN_NAME} [多人合并] 选择最高 trainerProficiency: ${maxProficiency}`);
+      
       return {
         party: finalParty,
         type: enemySource.type || 'trainer',
@@ -6255,6 +6315,7 @@ if (typeof window !== 'undefined') {
         id: enemyId,
         lines: enemyLines,
         unlocks: finalUnlocks,
+        trainerProficiency: maxProficiency,
         difficulty: aiBattleData.difficulty || 'normal'
       };
     }
@@ -6280,6 +6341,9 @@ if (typeof window !== 'undefined') {
       const autoDetectedUnlocks = detectUnlocksFromParty(generatedParty);
       const finalUnlocks = mergeUnlocks(enemySource.unlocks, autoDetectedUnlocks);
       
+      // 自定义 NPC 或野生默认 proficiency 为 0
+      const customProficiency = enemySource.trainerProficiency || 0;
+      
       return {
         party: generatedParty,
         type: isWild ? 'wild' : 'trainer',
@@ -6287,6 +6351,7 @@ if (typeof window !== 'undefined') {
         id: enemyId,
         lines: enemyLines,
         unlocks: finalUnlocks,
+        trainerProficiency: customProficiency,
         difficulty: aiBattleData.difficulty || 'normal'
       };
     }
@@ -6323,6 +6388,7 @@ if (typeof window !== 'undefined') {
           id: enemyId,
           lines: enemyLines,
           unlocks: dbResult.unlocks || null,
+          trainerProficiency: dbResult.trainerProficiency || 0,
           difficulty: aiBattleData.difficulty || dbResult.difficulty
         };
       }
@@ -6342,6 +6408,9 @@ if (typeof window !== 'undefined') {
       const autoDetectedUnlocks = detectUnlocksFromParty(generatedParty);
       const finalUnlocks = mergeUnlocks(enemySource.unlocks, autoDetectedUnlocks);
       
+      // 数据库未命中的自定义 NPC，默认 proficiency 为 0
+      const customProficiency = enemySource.trainerProficiency || 0;
+      
       return {
         party: generatedParty,
         type: isWild ? 'wild' : 'trainer',
@@ -6349,6 +6418,7 @@ if (typeof window !== 'undefined') {
         id: enemyId,
         lines: enemyLines,
         unlocks: finalUnlocks,
+        trainerProficiency: customProficiency,
         difficulty: aiBattleData.difficulty || 'normal'
       };
     }
@@ -6374,6 +6444,7 @@ if (typeof window !== 'undefined') {
       return generateWildPokemon(baseData, pokemonTier, isCustomNpc);
     });
     
+    // 随机生成的敌方默认 proficiency 为 0
     return {
       party: generatedParty,
       type: isWild ? 'wild' : 'trainer',
@@ -6381,6 +6452,7 @@ if (typeof window !== 'undefined') {
       id: enemyId,
       lines: enemyLines,
       unlocks: null,
+      trainerProficiency: enemySource.trainerProficiency || 0,
       difficulty: aiBattleData.difficulty || (isWild ? 'easy' : 'normal')
     };
   }
@@ -6625,7 +6697,8 @@ if (typeof window !== 'undefined') {
         return {
           name: trainerData.name,
           party: trainerParty,
-          originalCount: trainerParty.length
+          originalCount: trainerParty.length,
+          trainerProficiency: trainerData.trainerProficiency || 0
         };
       });
       
@@ -6693,10 +6766,15 @@ if (typeof window !== 'undefined') {
         }
       });
       
+      // 多人合并时选择最高的 trainerProficiency
+      const maxProficiency = Math.max(...trainersWithParty.map(t => t.trainerProficiency || 0));
+      console.log(`${PLUGIN_NAME} [${role}] [多人合并] 选择最高 trainerProficiency: ${maxProficiency}`);
+      
       return {
         name: trainerName,
         unlocks: mergedUnlocks,
-        party: finalParty
+        party: finalParty,
+        trainerProficiency: maxProficiency
       };
     }
     
@@ -6938,7 +7016,8 @@ if (typeof window !== 'undefined') {
       enableCommander: true,
       enableEVO: true,
       enableBGM: true,
-      enableSFX: true
+      enableSFX: true,
+      enableClash: false
     };
     const eraSettings = eraPlayerData?.settings || {};
     const aiSettings = aiBattleData?.settings || {};
@@ -6947,7 +7026,10 @@ if (typeof window !== 'undefined') {
     
     // === 处理 trainerProficiency ===
     // 从 ERA 数据获取（已经在 handleGenerationBeforeInject 中处理了 proficiency_up）
-    const trainerProficiency = eraPlayerData?.trainerProficiency || 0;
+    // 多人合并时，选择 resolvedPlayer.trainerProficiency 和 eraPlayerData.trainerProficiency 中的最大值
+    const eraProficiency = eraPlayerData?.trainerProficiency || 0;
+    const resolvedProficiency = resolvedPlayer.trainerProficiency || 0;
+    const trainerProficiency = Math.max(eraProficiency, resolvedProficiency);
 
     // 构建最终的战斗 JSON（前端 player/enemy 格式）
     const completeBattle = {
@@ -6963,6 +7045,7 @@ if (typeof window !== 'undefined') {
         id: resolvedEnemy.id,
         type: resolvedEnemy.type,
         name: resolvedEnemy.name,
+        trainerProficiency: resolvedEnemy.trainerProficiency || 0,
         lines: resolvedEnemy.lines,
         unlocks: enemyUnlocks
       },
@@ -6972,7 +7055,8 @@ if (typeof window !== 'undefined') {
 
     console.log(`${PLUGIN_NAME} 构建完整战斗JSON:`, completeBattle);
     console.log(`${PLUGIN_NAME} [SETTINGS] 全局系统开关:`, finalSettings);
-    console.log(`${PLUGIN_NAME} [PROFICIENCY] 训练家熟练度:`, trainerProficiency);
+    console.log(`${PLUGIN_NAME} [PROFICIENCY] 玩家熟练度:`, trainerProficiency);
+    console.log(`${PLUGIN_NAME} [PROFICIENCY] 敌方熟练度:`, resolvedEnemy.trainerProficiency || 0);
     console.log(`${PLUGIN_NAME} [UNLOCK] player unlocks:`, playerUnlocks);
     if (enemyUnlocks) {
       console.log(`${PLUGIN_NAME} [UNLOCK] enemy unlocks:`, enemyUnlocks);

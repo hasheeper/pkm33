@@ -20,6 +20,7 @@
     <script src="./mechanics/dynamax.js"></script>
     <script src="./mechanics/mega-evolution.js"></script>
     <script src="./mechanics/form-change/form-change-system.js"></script>
+    <script src="./mechanics/clash-system.js"></script>
     <!-- UI 模块 (必须在 index.js 之前加载) -->
     <script src="./ui/ui-renderer.js"></script>
     <script src="./ui/ui-sprites.js"></script>
@@ -70,6 +71,12 @@
 
             <div id="game-view" class="game-container hidden">
                 <div class="battle-stage">
+                    <!-- 对冲系统：Insight Bar (直觉条) -->
+                    <div id="insight-bar" class="insight-bar">
+                        <div class="insight-bar-fill" style="width: 0%;"></div>
+                        <div class="insight-bar-text">直觉: 0</div>
+                    </div>
+                    
                     <div class="trainer-hud hidden" id="trainer-hud">
                         <div class="trainer-panel">
                             <div class="trainer-panel-content">
