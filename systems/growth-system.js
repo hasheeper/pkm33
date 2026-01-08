@@ -35,14 +35,14 @@ function calculateAnimeGrowth(analysis, result) {
     let levels = 0;
     
     // =========================================================
-    // 1. 结果基础分
+    // 1. 结果基础分（降低基础值）
     // =========================================================
     if (result === 'win') {
-        levels += 1;
+        levels += 0.3; // 降低基础值，避免通货膨胀
     } else if (result === 'loss') {
-        levels += 0.5; // 即使输了，也是很好的教训
+        levels += 0.2; // 即使输了，也是很好的教训
     } else if (result === 'caught') {
-        levels += 0.5; // 捕获战斗通常不是高强度对决
+        levels += 0.2; // 捕获战斗通常不是高强度对决
     } else if (result === 'escape') {
         levels += 0; // 逃跑没有成长
     }
@@ -68,12 +68,13 @@ function calculateAnimeGrowth(analysis, result) {
     }
     
     // =========================================================
-    // 3. 等级跃迁：你越弱，你越强
+    // 3. 等级跃迁：你越弱，你越强（扩展判定）
     // =========================================================
     const avgPLv = pParty.reduce((sum, p) => sum + (p.level || p.lv || 1), 0) / Math.max(1, pParty.length);
     const avgELv = eParty.reduce((sum, p) => sum + (p.level || p.lv || 1), 0) / Math.max(1, eParty.length);
     const levelDiff = avgELv - avgPLv;
     
+    // 敌方等级更高（下克上）
     if (levelDiff >= 30) {
         levels += 7; // 跨越30级的挑战，简直是神话
     } else if (levelDiff >= 20) {
@@ -81,11 +82,23 @@ function calculateAnimeGrowth(analysis, result) {
     } else if (levelDiff >= 10) {
         levels += 3;
     } else if (levelDiff >= 5) {
-        levels += 1;
-    } else if (levelDiff <= -20) {
-        levels -= 2; // 严重虐菜
-    } else if (levelDiff <= -10) {
-        levels -= 1; // 虐菜，经验衰减
+        levels += 1.5;
+    } else if (levelDiff >= 3) {
+        levels += 0.5; // 小幅领先
+    }
+    // 同级别或我方略高（正常成长）
+    else if (levelDiff >= -2 && levelDiff < 3) {
+        levels += 0; // 势均力敌，基础分已给
+    }
+    // 我方等级更高（虐菜惩罚）
+    else if (levelDiff >= -5) {
+        levels -= 0.3; // 轻微虐菜
+    } else if (levelDiff >= -10) {
+        levels -= 0.6; // 虐菜
+    } else if (levelDiff >= -20) {
+        levels -= 1.2; // 严重虐菜
+    } else if (levelDiff < -20) {
+        levels -= 2; // 极端虐菜（-30级以上）
     }
     
     // =========================================================
@@ -95,10 +108,12 @@ function calculateAnimeGrowth(analysis, result) {
     const rank = analysis.rank || '';
     
     // 濒死反杀？(我方很惨且赢了)
-    if (result === 'win' && hpHealth < 20) {
-        levels += 2; // 极度残血反杀，突破极限的证明
+    if (result === 'win' && hpHealth < 10) {
+        levels += 2; // 极度残血反杀（<10%），突破极限的证明
+    } else if (result === 'win' && hpHealth < 20) {
+        levels += 1.5; // 残血反杀（<20%）
     } else if (result === 'win' && hpHealth < 40) {
-        levels += 1; // 残血险胜
+        levels += 0.5; // 残血险胜（<40%）
     }
     
     // 无伤？(Rank S+)
@@ -140,6 +155,14 @@ function calculateAnimeGrowth(analysis, result) {
     }
     
     // =========================================================
+    // 7. 野生战斗削弱（×0.6）
+    // =========================================================
+    if (!isTrainer && result !== 'caught') {
+        levels *= 0.6; // 野生战斗经验削弱40%
+        console.log('[GROWTH] 野生战斗削弱: ×0.6');
+    }
+    
+    // =========================================================
     // 格式化输出
     // =========================================================
     levels = Math.max(0, levels);
@@ -155,7 +178,9 @@ function calculateAnimeGrowth(analysis, result) {
         reason = '甚至连基因序列都得到了升华的死斗成长！';
     } else if (rawGain >= 3) {
         reason = '通过这一战，理解了宝可梦战斗的真谛。';
-    } else if (rawGain >= 1) {
+    } else if (rawGain === 2) {
+        reason = '在实战中获得了显著的成长。';
+    } else if (rawGain === 1) {
         reason = '积累了宝贵的实战经验。';
     } else {
         reason = '这种程度的对手，已经起不到锻炼效果了。';
