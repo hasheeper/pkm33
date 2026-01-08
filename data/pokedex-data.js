@@ -4,11 +4,11 @@
  * 来源: https://github.com/smogon/pokemon-showdown/blob/master/data/pokedex.ts
  * 
  * 使用方法:
- *   <script src="pokedex-data.js"></script>
- *   console.log(POKEDEX.pikachu.baseStats);
+ *   ES Module: import { POKEDEX } from './pokedex-data.js';
+ *   Script:    <script src="pokedex-data.js"></script>
  */
 
-const POKEDEX = {
+export const POKEDEX = {
 	bulbasaur: {
 		num: 1,
 		name: "Bulbasaur",
@@ -20969,3 +20969,8 @@ const POKEDEX = {
 		gen: 5,
 	},
 };
+
+// 向后兼容：挂载到 window
+if (typeof window !== 'undefined') {
+    window.POKEDEX = POKEDEX;
+}

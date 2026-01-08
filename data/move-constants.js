@@ -19,7 +19,7 @@
 // 1. 束缚类技能 (Trapping Moves)
 // ============================================
 // PS 没有直接的 flag，需要保留
-const TRAPPING_MOVES = [
+export const TRAPPING_MOVES = [
     'Fire Spin',
     'Whirlpool',
     'Bind',
@@ -36,7 +36,7 @@ const TRAPPING_MOVES = [
 // 2. AI 评分用 - 守住技能列表 (Protect Moves)
 // ============================================
 // PS 没有直接的 flag，需要保留
-const AI_PROTECT_MOVES = [
+export const AI_PROTECT_MOVES = [
     'Protect',
     'Detect',
     'King\'s Shield',
@@ -51,7 +51,7 @@ const AI_PROTECT_MOVES = [
 // 3. 宝可梦形态后缀 (Form Suffixes)
 // ============================================
 // 用于 extractBaseFormId() 函数
-const FORM_SUFFIXES = [
+export const FORM_SUFFIXES = [
     'starter',      // 搭档形态 (Let's Go)
     'gmax',         // 极巨化
     'megax', 'megay', 'mega',  // Mega进化
@@ -71,7 +71,7 @@ const FORM_SUFFIXES = [
 // ============================================
 // 4. 默认后备招式 (Fallback Moves)
 // ============================================
-const FALLBACK_MOVES = [
+export const FALLBACK_MOVES = [
     'Tackle',
     'Quick Attack',
     'Ember',
@@ -84,7 +84,7 @@ const FALLBACK_MOVES = [
 // ============================================
 // Key: 宝可梦 Species ID (小写无符号)
 // Value: { move: 专属招式名, type: 触发属性, cn: 中文招式名 }
-const GMAX_SPECIES_DATA = {
+export const GMAX_SPECIES_DATA = {
     // ================= 关都地区 (Gen 1) =================
     'venusaur':         { move: 'G-Max Vine Lash',    type: 'Grass',    cn: '超极巨灰飞鞭灭' },   // 妙蛙花
     'charizard':        { move: 'G-Max Wildfire',     type: 'Fire',     cn: '超极巨深渊灭焰' },   // 喷火龙
@@ -134,7 +134,7 @@ const GMAX_SPECIES_DATA = {
 // ============================================
 // 6. 通用极巨招式映射表 (Generic Max Moves by Type)
 // ============================================
-const GENERIC_MAX_BY_TYPE = {
+export const GENERIC_MAX_BY_TYPE = {
     'Normal':   'Max Strike',
     'Fire':     'Max Flare',
     'Water':    'Max Geyser',
@@ -158,7 +158,7 @@ const GENERIC_MAX_BY_TYPE = {
 // ============================================
 // 7. 通用极巨招式中文名映射
 // ============================================
-const GENERIC_MAX_CN = {
+export const GENERIC_MAX_CN = {
     'Max Strike':    '极巨攻击',
     'Max Flare':     '极巨火爆',
     'Max Geyser':    '极巨水流',

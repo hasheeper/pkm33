@@ -6,12 +6,13 @@
     <title>PKM Battle System - Switch Style</title>
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,900&family=Rubik:ital,wght@0,400;0,500;0,700;0,900;1,700&family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./index.css">
-    <!-- Pokemon Showdown 完整数据库 -->
+    <!-- 
+        数据层：同时支持传统 script 加载和 ES Module 导入
+        传统加载用于当前页面，ES Module 用于未来框架整合
+    -->
     <script src="./data/pokedex-data.js"></script>
     <script src="./data/moves-data.js"></script>
-    <!-- 招式硬编码常量 (必须在 battle-engine.js 之前加载) -->
     <script src="./data/move-constants.js"></script>
-    <!-- 道具数据库 (必须在 battle-engine.js 之前加载) -->
     <script src="./engine/items-data.js"></script>
     <!-- 战斗机制模块 (必须在 index.js 之前加载) -->
     <script src="./mechanics/move-styles.js"></script>

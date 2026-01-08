@@ -16,7 +16,7 @@
 // 道具数据库
 // ============================================
 
-const ITEMS = {
+export const ITEMS = {
     // ========== 战斗道具 (Battle Items) ==========
     
     // --- 气势披带 (Focus Sash) ---
@@ -2397,19 +2397,16 @@ if (typeof window !== 'undefined') {
     window.isSwappable = isSwappable;
 }
 
-// Node.js 环境
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        ITEMS,
-        UNSWAPPABLE_ITEMS,
-        ItemEffects,
-        getItem,
-        getItemId,
-        getAllPokeballs,
-        getAllBerries,
-        isChoiceItem,
-        isMegaStone,
-        isZCrystal,
-        isSwappable,
-    };
-}
+// ES Module 导出
+export {
+    UNSWAPPABLE_ITEMS,
+    ItemEffects,
+    getItem,
+    getItemId,
+    getAllPokeballs,
+    getAllBerries,
+    isChoiceItem,
+    isMegaStone,
+    isZCrystal,
+    isSwappable,
+};

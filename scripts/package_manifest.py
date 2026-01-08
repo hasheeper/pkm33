@@ -85,6 +85,9 @@ TRUNCATE_HEAD_100: set[str] = {
     "trainer-data.js",
     "translations.js",
     "items-data.js",
+    "ability-handlers.js",
+    "move-effects.js",
+    "move-handlers.js",
 }
 
 TRUNCATE_HEAD_TAIL: dict[str, tuple[int, int]] = {}

@@ -2,7 +2,7 @@
  * 角色: 小优 (Gloria)
  * 身份: 伽勒尔冠军 / 咖喱大师
  */
-const GLORIA_DATA = {
+export const GLORIA_DATA = {
     // 【Tier 4 - 极巨化全开·冠军模式】
     4: {
         "trainerProficiency": 255,
@@ -133,7 +133,7 @@ const GLORIA_DATA = {
     }
 };
 
-const AKARI_DATA = {
+export const AKARI_DATA = {
     // 【Tier 4 - 神阖之笛的继承者】(Lv.95 ~ 99)
     4: {
         "trainerProficiency": 255, // 熟练度拉满：高频触发对冲(Clash)与战术指挥
@@ -250,7 +250,7 @@ const AKARI_DATA = {
  * 身份: 合众英雄 / 宝可梦好莱坞偶像
  * 核心机制: 羁绊共鸣 (全员 ACE 将)
  */
-const ROSA_DATA = {
+export const ROSA_DATA = {
     // 【Tier 4 - 合众的奇迹·全员主角】
     4: {
         "trainerProficiency": 240,
@@ -404,7 +404,7 @@ const ROSA_DATA = {
  * 身份: 卡洛斯英雄 / 舞台上的女王
  * 核心机制: Mega 进化 (Absolite)
  */
-const SERENA_DATA = {
+export const SERENA_DATA = {
     // 【Tier 4 - 华丽与力量的终极舞台】
     4: {
         "trainerProficiency": 235,
@@ -521,7 +521,7 @@ const SERENA_DATA = {
  * 3. Torterra 增加突击背心(Assault Vest)增强对攻能力，或保持剩饭
  * 4. Empoleon 确认为 Competitive (好胜) + 弱点保险或突击背心
  */
-const DAWN_DATA = {
+export const DAWN_DATA = {
     // 【Tier 4 - 神奥的永恒光辉】
     4: {
         "trainerProficiency": 235,
@@ -634,7 +634,7 @@ const DAWN_DATA = {
  * 身份: 阿罗拉初代冠军 / 从异次元归来的诸岛巡礼者
  * 难度: Expert / Tier 4
  */
-const SELENE_DATA = {
+export const SELENE_DATA = {
     // 【Tier 4 - 全力姿态·阿罗拉的太阳与月亮】
     4: {
         "trainerProficiency": 250,
@@ -738,7 +738,7 @@ const SELENE_DATA = {
  * 身份: 帕底亚转校生 / 零之秘宝探索者 / 悖论种驯服者
  * 难度: Expert / Tier 4 (UBER)
  */
-const JULIANA_DATA = {
+export const JULIANA_DATA = {
     // 【Tier 4 - 帕底亚的第零区生态灾害】
     4: {
         "trainerProficiency": 245,
@@ -867,7 +867,7 @@ const JULIANA_DATA = {
  * 身份: 以太基金会理事长 / 究极异兽狂热者
  * 核心机制: Z招式 (Z-Moves)
  */
-const LUSAMINE_DATA = {
+export const LUSAMINE_DATA = {
     // 【Tier 4 - 虚无世界的母爱】
     4: {
         "trainerProficiency": 220,
@@ -973,7 +973,7 @@ const LUSAMINE_DATA = {
  * 修正: 等级回调至 [世界锦标赛标准] (Lv. 80 ~ 85)
  * 核心: 用最无害的外表，打最扎实的辉石与Z爆发
  */
-const LILLIE_DATA = {
+export const LILLIE_DATA = {
     // 【Tier 4 - 全力姿态·世界锦标赛配置】
     4: {
         "trainerProficiency": 180,
@@ -1081,7 +1081,7 @@ const LILLIE_DATA = {
  * 身份: 阿罗拉草系队长 / 美味之原有人的大厨
  * 核心机制: Z招式 (Grassium Z)
  */
-const MALLOW_DATA = {
+export const MALLOW_DATA = {
     // 【Tier 4 - 满汉全席·主厨推荐】
     4: {
         "trainerProficiency": 200,
@@ -1197,7 +1197,7 @@ const MALLOW_DATA = {
  * 身份: 阿罗拉水系队长 / 传说中的钓鱼大师
  * 核心机制: Z招式 (Waterium Z) + 水泡核弹
  */
-const LANA_DATA = {
+export const LANA_DATA = {
     // 【Tier 4 - 滔天巨浪·海神钓手】
     4: {
         "trainerProficiency": 200,
@@ -1316,7 +1316,7 @@ const LANA_DATA = {
  * 身份: 珍珠队首领 / 帕路奇亚信仰者
  * 核心机制: 刚猛/迅疾 (PLA Styles) + 雪天防御队
  */
-const IRIDA_DATA = {
+export const IRIDA_DATA = {
     // 【Tier 4 - 珍珠所照耀的广阔空间】
     4: {
         "trainerProficiency": 215,
@@ -1426,7 +1426,7 @@ const IRIDA_DATA = {
  * 身份: 伽勒尔地区博士 / 传说的记录者
  * 核心概念: 理论派 (The Theorist) - 机制全解禁，道具完美适配，但等级克制
  */
-const SONIA_DATA = {
+export const SONIA_DATA = {
     // 【Tier 4 - 博士的论文答辩】
     4: {
         "trainerProficiency": 190,
@@ -1524,7 +1524,7 @@ const SONIA_DATA = {
  * 风格: 摇滚乐手 / 猛毒快攻
  * 难度曲线: Level 1 (车库乐队) -> Level 3 (灵魂共鸣) -> Level 4 (世界巡演)
  */
-const ROXIE_DATA = {
+export const ROXIE_DATA = {
     // 【Tier 1 - 车库里的杂音】
     // Lv.25 左右，未进化，基础连招，没有任何特殊系统解锁。
     1: {
@@ -1830,7 +1830,7 @@ const ROXIE_DATA = {
  * 身份: 酿光道馆馆主 / 电网直播主 / 奇树奇述主播
  * 核心机制: 太晶化 (Tera: Electric) + 漂浮战术
  */
-const IONO_DATA = {
+export const IONO_DATA = {
     // 【Tier 1 - 没什么人看的首播】
     // Lv.25 左右，未进化，注重节目效果而非强度
     1: {
@@ -2135,7 +2135,7 @@ const IONO_DATA = {
  * 身份: 玉虹市道馆馆主 / 自负的自然爱好者
  * 核心机制: Mega进化 +心眼 (Insight) — 在花香中迷失方向吧。
  */
-const ERIKA_DATA = {
+export const ERIKA_DATA = {
     // 【Tier 1 - 茶室里的插花课】
     // Lv.25，未进化，撒粉干扰为主的初级课程。
     1: {
@@ -2428,7 +2428,7 @@ const ERIKA_DATA = {
  * 风格: 激流超模 / 雨天猛攻
  * 难度曲线: T1 (业余) -> T4 (超模/极诣)
  */
-const NESSA_DATA = {
+export const NESSA_DATA = {
     // 【Tier 1 - 泳池水枪战】
     // Lv.25，可爱风格，用来教属性相克
     1: {
@@ -2654,7 +2654,7 @@ const NESSA_DATA = {
  * 属性: 恶 (Dark)
  * 风格: 酷妹偶像 / 恶作剧开墙 + 极巨爆发
  */
-const MARNIE_DATA = {
+export const MARNIE_DATA = {
         // 【Tier 1 - 旷野地带初遭遇】
     // Lv.24-26，刚获得莫鲁贝不久，配招和努力值都很基础
     1: {
@@ -2948,7 +2948,7 @@ const MARNIE_DATA = {
  * 身份: 徘徊于各地的对战发烧友 / 诅咒载体
  * 核心机制: Mega 进化 + 极致 Insight (直感诅咒)
  */
-const HEX_DATA = {
+export const HEX_DATA = {
         // 【Tier 1 - 古宅里的恶作剧】
     // Lv.24-26，未进化，单纯的幽灵系干扰
     1: {
@@ -3255,7 +3255,7 @@ const HEX_DATA = {
  * 风格: 极真空手道 / G-Max 暴击队
  * 难度曲线: Level 1 (体验) -> Level 4 (修罗)
  */
-const BEA_DATA = {
+export const BEA_DATA = {
     // 【Tier 1 - 道场的早间晨练】
     // Lv.25 左右，严谨但尚未成熟
     1: {
@@ -3523,7 +3523,7 @@ const BEA_DATA = {
  * 身份: 神奥冠军 / 乃至全世代最强的王者之一
  * 核心机制: Mega进化 + Second Wind (二阶段变身)
  */
-const CYNTHIA_DATA = {
+export const CYNTHIA_DATA = {
     // 【Tier 2 - 这只是热身运动】
     // Lv.60+，已经可以使用 Mega 进化了。对于其他馆主这是底牌，对她只是起手式。
     2: {
@@ -3859,3 +3859,28 @@ if (typeof window !== 'undefined') {
         cynthia: CYNTHIA_DATA
     };
 }
+
+// ES Module 导出
+export const TRAINER_GLOBALS = {
+    gloria: GLORIA_DATA,
+    selene: SELENE_DATA,
+    rosa: ROSA_DATA,
+    dawn: DAWN_DATA,
+    akari: AKARI_DATA,
+    serena: SERENA_DATA,
+    juliana: JULIANA_DATA,
+    lusamine: LUSAMINE_DATA,
+    lillie: LILLIE_DATA,
+    mallow: MALLOW_DATA,
+    lana: LANA_DATA,
+    irida: IRIDA_DATA,
+    sonia: SONIA_DATA,
+    roxie: ROXIE_DATA,
+    iono: IONO_DATA,
+    erika: ERIKA_DATA,
+    nessa: NESSA_DATA,
+    marnie: MARNIE_DATA,
+    hex: HEX_DATA,
+    bea: BEA_DATA,
+    cynthia: CYNTHIA_DATA
+};

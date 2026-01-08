@@ -6,13 +6,11 @@
  * 注意: 函数回调、condition 块已被移除，仅保留静态数据
  * 
  * 使用方法:
- *   <script src="moves-data.js"></script>
- *   console.log(MOVES.thunderbolt.basePower); // 90
+ *   ES Module: import { MOVES } from './moves-data.js';
+ *   Script:    <script src="moves-data.js"></script>
  */
 
-
-
-const MOVES = {
+export const MOVES = {
 	"10000000voltthunderbolt": {
 		num: 719,
 		accuracy: true,
@@ -16293,3 +16291,9 @@ const MOVES = {
 		contestType: "Beautiful",
 	},
 };
+
+// 向后兼容：挂载到 window
+if (typeof window !== 'undefined') {
+    window.MOVES = MOVES;
+    window.Moves = MOVES; // 别名
+}
