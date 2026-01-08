@@ -2,6 +2,11 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
+    // GitHub Pages 部署路径（仓库名）
+    // 如果部署到 https://username.github.io/pkm33/，设置为 '/pkm33/'
+    // 如果部署到根域名，设置为 '/'
+    base: '/pkm33/',
+    
     // 开发服务器配置
     server: {
         port: 3000,
