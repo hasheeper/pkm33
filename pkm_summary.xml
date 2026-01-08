@@ -1,5 +1,21 @@
 <?xml version="1.0" ?>
 <pkm_project>
+    <directory name=".vite">
+        <directory name="deps">
+            <file name="_metadata.json"><![CDATA[{
+  "hash": "9b451d1c",
+  "configHash": "3ab7af57",
+  "lockfileHash": "0db37eff",
+  "browserHash": "eb07abbc",
+  "optimized": {},
+  "chunks": {}
+}]]></file>
+            <file name="package.json"><![CDATA[{
+  "type": "module"
+}
+]]></file>
+        </directory>
+    </directory>
     <directory name="battle">
         <file name="battle-calc.js"><![CDATA[/**
  * ===========================================
@@ -25,7 +41,7 @@
  * @param {object} options - { isSimulation: boolean } 可选参数
  * @returns {object} - { damage, effectiveness, isCrit, miss, hitCount, blocked }
  */
-function calcDamage(attacker, defender, move, options = {}) {
+export function calcDamage(attacker, defender, move, options = {}) {
     // 获取完整技能数据
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
@@ -694,7 +710,7 @@ if (typeof window !== 'undefined') {
  * @param {string} spriteIdRef 目标精灵图 ID ('player-sprite' 或 'enemy-sprite')
  * @returns {Object} 伤害结果
  */
-function applyDamage(attacker, defender, move, spriteIdRef) {
+export function applyDamage(attacker, defender, move, spriteIdRef) {
     const battle = window.battle;
     // === 关键修复：在计算伤害前检查 onUse（如 Fake Out 首回合限制） ===
     const handler = (typeof getMoveHandler === 'function') ? getMoveHandler(move.name) : null;
@@ -738,7 +754,7 @@ function applyDamage(attacker, defender, move, spriteIdRef) {
         preLogs.forEach(txt => log(txt));
     }
     // 使用 battle-engine 的伤害计算
-    const result = calcDamage(attacker, defender, move);
+    const result = window.calcDamage(attacker, defender, move);
     // 0. 处理招式失败（如食梦对未睡眠目标）
     if (result.failed) {
         log(`<b style='color:#e74c3c'>${result.failMessage || '但是招式失败了！'}</b>`);
@@ -1150,7 +1166,7 @@ if (typeof module !== 'undefined' && module.exports) {
  * @param {boolean} isPlayer 是否为玩家
  * @returns {object} { logs: Array, pivot: boolean }
  */
-function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle = null, isPlayer = false) {
+export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle = null, isPlayer = false) {
     let logs = [];
     // 获取完整技能数据
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1603,7 +1619,7 @@ if (typeof window !== 'undefined') {
 /**
  * 检查是否有可换入的存活宝可梦
  */
-function hasAliveSwitch(party, currentIndex) {
+export function hasAliveSwitch(party, currentIndex) {
     return party.some((pm, idx) => 
         idx !== currentIndex && pm && pm.isAlive && pm.isAlive() && pm.currHp > 0
     );
@@ -1639,7 +1655,7 @@ function updateAllVisuals(forceSpriteAnim) {
  * 处理玩家 Pivot 换人（U-turn/Volt Switch 等）
  * 使用 Promise 等待玩家选择
  */
-function handlePlayerPivot() {
+export function handlePlayerPivot() {
     const battle = window.battle;
     console.log('[handlePlayerPivot] Starting pivot switch');
     log(`<span style="color:#3498db">选择要换入的宝可梦!</span>`);
@@ -1657,7 +1673,7 @@ function handlePlayerPivot() {
 /**
  * 处理敌方 Pivot 换人（AI 自动选择）
  */
-async function handleEnemyPivot(passBoosts = false) {
+export async function handleEnemyPivot(passBoosts = false) {
     const battle = window.battle;
     const currentE = battle.getEnemy();
     const p = battle.getPlayer();
@@ -1759,7 +1775,7 @@ async function handleEnemyPivot(passBoosts = false) {
 /**
  * 处理敌方倒下
  */
-async function handleEnemyFainted(e) {
+export async function handleEnemyFainted(e) {
     if (typeof window.playSFX === 'function') window.playSFX('FAINT');
     const battle = window.battle;
     // 如果敌方处于极巨化状态，先清理极巨化视觉效果
@@ -1974,7 +1990,7 @@ async function handleEnemyFainted(e) {
 /**
  * 处理玩家倒下
  */
-async function handlePlayerFainted(p) {
+export async function handlePlayerFainted(p) {
     if (typeof window.playSFX === 'function') window.playSFX('FAINT');
     const battle = window.battle;
     // 如果处于极巨化状态，先清理极巨化视觉效果
@@ -2061,7 +2077,7 @@ async function handlePlayerFainted(p) {
 /**
  * 触发入场特性 (威吓、天气等)
  */
-function triggerEntryAbilities(pokemon, opponent) {
+export function triggerEntryAbilities(pokemon, opponent) {
     const battle = window.battle;
     if (!pokemon || !opponent) return;
     if (typeof AbilityHandlers === 'undefined') return;
@@ -2080,7 +2096,7 @@ function triggerEntryAbilities(pokemon, opponent) {
  * 检查玩家是否可以换人（考虑抓人特性和状态）
  * @returns {Object} { canSwitch: boolean, reason?: string }
  */
-function canPlayerSwitch() {
+export function canPlayerSwitch() {
     const battle = window.battle;
     if (!battle) return { canSwitch: true };
     const p = battle.getPlayer();
@@ -2096,7 +2112,7 @@ function canPlayerSwitch() {
  * 检查敌方是否可以换人（考虑抓人特性和状态）
  * @returns {Object} { canSwitch: boolean, reason?: string }
  */
-function canEnemySwitch() {
+export function canEnemySwitch() {
     const battle = window.battle;
     if (!battle) return { canSwitch: true };
     const p = battle.getPlayer();
@@ -2180,7 +2196,7 @@ function updateAllVisuals(forceSpriteAnim) {
  * - 递减风格冷却
  * - 其他回合开始钩子
  */
-function onTurnStart() {
+export function onTurnStart() {
     const battle = window.battle;
     if (!battle) return;
     // 【古武系统】回合开始时递减冷却
@@ -2206,7 +2222,7 @@ function onTurnStart() {
  * @param {Object} move 招式
  * @returns {Object} 包含 pivot 标记的结果
  */
-async function executePlayerTurn(p, e, move) {
+export async function executePlayerTurn(p, e, move) {
     const battle = window.battle;
     // 状态阻断检测
     if (typeof window.checkCanMove === 'function') {
@@ -2309,7 +2325,7 @@ async function executePlayerTurn(p, e, move) {
  * @param {Object} move 招式
  * @returns {Object} 包含 pivot 标记的结果
  */
-async function executeEnemyTurn(e, p, move) {
+export async function executeEnemyTurn(e, p, move) {
     const battle = window.battle;
     console.log('[executeEnemyTurn] Starting:', { 
         enemy: e?.cnName, 
@@ -2409,7 +2425,7 @@ async function executeEnemyTurn(e, p, move) {
 /**
  * 独立敌方回合 (用于换人后敌方攻击)
  */
-async function enemyTurn() {
+export async function enemyTurn() {
     const battle = window.battle;
     const p = battle.getPlayer();
     const e = battle.getEnemy();
@@ -2509,7 +2525,7 @@ async function enemyTurn() {
  * @param {boolean} isPlayerPoke 是否为玩家方的宝可梦（AVs 效果只对玩家方生效）
  * @returns {Array} logs
  */
-function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
+export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     let logs = [];
     if (!poke || !poke.isAlive()) return logs;
     // ----------------------------------------
@@ -2812,7 +2828,7 @@ if (typeof module !== 'undefined' && module.exports) {
 // 1. 束缚类技能 (Trapping Moves)
 // ============================================
 // PS 没有直接的 flag，需要保留
-const TRAPPING_MOVES = [
+export const TRAPPING_MOVES = [
     'Fire Spin',
     'Whirlpool',
     'Bind',
@@ -2828,7 +2844,7 @@ const TRAPPING_MOVES = [
 // 2. AI 评分用 - 守住技能列表 (Protect Moves)
 // ============================================
 // PS 没有直接的 flag，需要保留
-const AI_PROTECT_MOVES = [
+export const AI_PROTECT_MOVES = [
     'Protect',
     'Detect',
     'King\'s Shield',
@@ -2842,7 +2858,7 @@ const AI_PROTECT_MOVES = [
 // 3. 宝可梦形态后缀 (Form Suffixes)
 // ============================================
 // 用于 extractBaseFormId() 函数
-const FORM_SUFFIXES = [
+export const FORM_SUFFIXES = [
     'starter',      // 搭档形态 (Let's Go)
     'gmax',         // 极巨化
     'megax', 'megay', 'mega',  // Mega进化
@@ -2861,7 +2877,7 @@ const FORM_SUFFIXES = [
 // ============================================
 // 4. 默认后备招式 (Fallback Moves)
 // ============================================
-const FALLBACK_MOVES = [
+export const FALLBACK_MOVES = [
     'Tackle',
     'Quick Attack',
     'Ember',
@@ -2873,7 +2889,7 @@ const FALLBACK_MOVES = [
 // ============================================
 // Key: 宝可梦 Species ID (小写无符号)
 // Value: { move: 专属招式名, type: 触发属性, cn: 中文招式名 }
-const GMAX_SPECIES_DATA = {
+export const GMAX_SPECIES_DATA = {
     // ================= 关都地区 (Gen 1) =================
     'venusaur':         { move: 'G-Max Vine Lash',    type: 'Grass',    cn: '超极巨灰飞鞭灭' },   // 妙蛙花
     'charizard':        { move: 'G-Max Wildfire',     type: 'Fire',     cn: '超极巨深渊灭焰' },   // 喷火龙
@@ -2918,7 +2934,7 @@ const GMAX_SPECIES_DATA = {
 // ============================================
 // 6. 通用极巨招式映射表 (Generic Max Moves by Type)
 // ============================================
-const GENERIC_MAX_BY_TYPE = {
+export const GENERIC_MAX_BY_TYPE = {
     'Normal':   'Max Strike',
     'Fire':     'Max Flare',
     'Water':    'Max Geyser',
@@ -2941,7 +2957,7 @@ const GENERIC_MAX_BY_TYPE = {
 // ============================================
 // 7. 通用极巨招式中文名映射
 // ============================================
-const GENERIC_MAX_CN = {
+export const GENERIC_MAX_CN = {
     'Max Strike':    '极巨攻击',
     'Max Flare':     '极巨火爆',
     'Max Geyser':    '极巨水流',
@@ -2993,10 +3009,10 @@ if (typeof window !== 'undefined') {
  * 注意: 函数回调、condition 块已被移除，仅保留静态数据
  * 
  * 使用方法:
- *   <script src="moves-data.js"></script>
- *   console.log(MOVES.thunderbolt.basePower); // 90
+ *   ES Module: import { MOVES } from './moves-data.js';
+ *   Script:    <script src="moves-data.js"></script>
  */
-const MOVES = {
+export const MOVES = {
 	"10000000voltthunderbolt": {
 		num: 719,
 		accuracy: true,
@@ -3082,6 +3098,8 @@ const MOVES = {
 	},
 	aciddownpour: {
 		num: 628,
+		accuracy: true,
+		basePower: 1,
 [... truncated: only first 100 lines included ...]
 ]]></file>
         <file name="pokedex-data.js"><![CDATA[/**
@@ -3090,10 +3108,10 @@ const MOVES = {
  * 来源: https://github.com/smogon/pokemon-showdown/blob/master/data/pokedex.ts
  * 
  * 使用方法:
- *   <script src="pokedex-data.js"></script>
- *   console.log(POKEDEX.pikachu.baseStats);
+ *   ES Module: import { POKEDEX } from './pokedex-data.js';
+ *   Script:    <script src="pokedex-data.js"></script>
  */
-const POKEDEX = {
+export const POKEDEX = {
 	bulbasaur: {
 		num: 1,
 		name: "Bulbasaur",
@@ -3189,7 +3207,7 @@ const POKEDEX = {
  * 角色: 小优 (Gloria)
  * 身份: 伽勒尔冠军 / 咖喱大师
  */
-const GLORIA_DATA = {
+export const GLORIA_DATA = {
     // 【Tier 4 - 极巨化全开·冠军模式】
     4: {
         "trainerProficiency": 255,
@@ -3298,7 +3316,7 @@ const GLORIA_DATA = {
  * 使用 Hook 系统注入到 battle-engine.js 的各个环节。
  */
 // 简单的辅助工具
-function isPinching(poke) {
+export function isPinching(poke) {
     return poke.currHp > 0 && poke.currHp <= poke.maxHp / 3;
 }
 // ============================================
@@ -3311,7 +3329,7 @@ function isPinching(poke) {
  * @param {string} flag - flag 名称 (punch, bite, slicing, pulse, sound, powder, bullet, wind 等)
  * @returns {boolean} 是否具有该 flag
  */
-function moveHasFlag(move, flag) {
+export function moveHasFlag(move, flag) {
     if (!move) return false;
     // 优先使用招式对象自带的 flags
     if (move.flags && move.flags[flag]) return true;
@@ -3324,7 +3342,7 @@ function moveHasFlag(move, flag) {
     }
     return false;
 }
-const AbilityHandlers = {
+export const AbilityHandlers = {
     // ============================================
     // A. 暴力数值修正
     // ============================================
@@ -3447,7 +3465,7 @@ const AI_COUNTER_MOVES = ['Haze', 'Clear Smog', 'Roar', 'Whirlwind', 'Dragon Tai
  * @param {object} battleContext - 战斗上下文（回合数、已用 Mega 等）
  * @returns {object} { type: 'move'|'switch', move?: Move, index?: number, reasoning?: string }
  */
-function getAiAction(aiPoke, playerPoke, difficulty = 'hard', aiParty = [], battleContext = {}) {
+export function getAiAction(aiPoke, playerPoke, difficulty = 'hard', aiParty = [], battleContext = {}) {
     if (!aiPoke || !playerPoke) return null;
     const normalizedDiff = (difficulty || 'hard').toLowerCase();
     switch (normalizedDiff) {
@@ -3482,7 +3500,7 @@ function getAiAction(aiPoke, playerPoke, difficulty = 'hard', aiParty = [], batt
  *  基础 AI：Easy 难度
  *  80% 随机选择，20% 选最优
  * ============================================================= */
-function getEasyAiMove(attacker, defender, aiParty = null) {
+export function getEasyAiMove(attacker, defender, aiParty = null) {
     if (!attacker?.moves || attacker.moves.length === 0) return null;
     // 80% 概率随机选
     if (Math.random() < 0.8) {
@@ -3501,7 +3519,7 @@ function getEasyAiMove(attacker, defender, aiParty = null) {
  *  普通 AI：Normal 难度
  *  60% 最优，30% 次优，10% 第三优或随机
  * ============================================================= */
-function getNormalAiMove(attacker, defender, aiParty = null) {
+export function getNormalAiMove(attacker, defender, aiParty = null) {
     if (!attacker?.moves || attacker.moves.length === 0) return null;
     const rankedMoves = rankMovesByScore(attacker, defender, aiParty);
     if (rankedMoves.length === 0) return attacker.moves[0];
@@ -3518,7 +3536,7 @@ function getNormalAiMove(attacker, defender, aiParty = null) {
  *  困难 AI：Hard 难度
  *  总是选择当前评分最高的技能
  * ============================================================= */
-function getHardAiMove(attacker, defender, aiParty = null) {
+export function getHardAiMove(attacker, defender, aiParty = null) {
     if (!attacker?.moves || attacker.moves.length === 0) return null;
     const rankedMoves = rankMovesByScore(attacker, defender, aiParty);
     if (rankedMoves.length === 0) return attacker.moves[0];
@@ -3648,7 +3666,7 @@ function tryOptimizeStyle(aiPoke, playerPoke, baseMove) {
  *  专家 AI：Expert 难度
  *  大局观决策：斩杀计算 + 换人判断 + 状态博弈 + 高级轮转
  * ============================================================= */
-function getExpertAiAction(aiPoke, playerPoke, aiParty = [], battleContext = {}) {
+export function getExpertAiAction(aiPoke, playerPoke, aiParty = [], battleContext = {}) {
     if (!aiPoke || !playerPoke) return null;
     if (!aiPoke.moves || aiPoke.moves.length === 0) return null;
     const turnCount = battleContext.turnCount || 1;
@@ -4322,9 +4340,9 @@ function simulateDamage(attacker, defender, move) {
     }
     // 如果有全局 calcDamage 函数，使用它
     // 传入 isSimulation: true 防止消耗指令状态
-    if (typeof calcDamage === 'function') {
+    if (typeof window.calcDamage === 'function') {
         try {
-            const result = calcDamage(attacker, defender, move, { isSimulation: true });
+            const result = window.calcDamage(attacker, defender, move, { isSimulation: true });
             return {
                 damage: result.damage || result.singleHitDamage || 0,
                 effectiveness: (result.effectiveness !== undefined) ? result.effectiveness : 1
@@ -6061,7 +6079,7 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
  * @param {number} currentActive - 当前（已倒下的）宝可梦索引
  * @returns {number} - 最佳队员的 index，-1 表示没有可用的
  */
-function getBestRevengeKiller(party, opp, currentActive = -1) {
+export function getBestRevengeKiller(party, opp, currentActive = -1) {
     if (!party || !opp) return -1;
     let bestIdx = -1;
     let bestScore = -Infinity;
@@ -6176,7 +6194,7 @@ if (typeof module !== 'undefined' && module.exports) {
  * @param {string} name 原始名称
  * @returns {string} 基础形态ID
  */
-function extractBaseFormId(name = '') {
+export function extractBaseFormId(name = '') {
     let id = name.toLowerCase().replace(/[^a-z0-9-]/g, '');
     // 从 move-constants.js 获取后缀列表，如果不存在则使用内置后备
     const suffixes = (typeof FORM_SUFFIXES !== 'undefined') ? FORM_SUFFIXES : [
@@ -6201,7 +6219,7 @@ function extractBaseFormId(name = '') {
  * 例如: "Vulpix-Alola" -> "vulpix-alola", "Ho-Oh" -> "ho-oh"
  * Mega 形态特殊处理: "Charizard-Mega-X" -> "charizardmegax" (紧凑格式)
  */
-function resolveSpriteId(name = '') {
+export function resolveSpriteId(name = '') {
     const normalized = name.toLowerCase().replace(/[^a-z0-9-]/g, '');
     // 【修复】Mega 形态：保留横杠（Showdown 格式）
     // Metagross-Mega -> metagross-mega
@@ -6213,7 +6231,7 @@ function resolveSpriteId(name = '') {
 /**
  * 获取回退精灵图ID（提取基础形态）
  */
-function getFallbackSpriteId(name = '') {
+export function getFallbackSpriteId(name = '') {
     return extractBaseFormId(name);
 }
 if (typeof window !== 'undefined') {
@@ -6224,7 +6242,7 @@ if (typeof window !== 'undefined') {
 // === 性格修正表 ===
 // 性格 -> { 增益属性: 1.1, 减益属性: 0.9 }
 // 无修正性格（认真、努力等）不在此表中
-const NATURE_MODIFIERS = {
+export const NATURE_MODIFIERS = {
     // 加攻击
     'Lonely':   { atk: 1.1, def: 0.9 },
     'Adamant':  { atk: 1.1, spa: 0.9 },
@@ -6253,7 +6271,7 @@ const NATURE_MODIFIERS = {
 };
 // === 属性克制表 ===
 // 攻击方属性 -> { 被克制属性: 2, 抵抗属性: 0.5, 免疫属性: 0 }
-const TYPE_CHART = {
+export const TYPE_CHART = {
     'Normal':   { weak: [],                          resist: ['Rock', 'Steel'],      immune: ['Ghost'] },
     'Fire':     { weak: ['Grass', 'Ice', 'Bug', 'Steel'], resist: ['Fire', 'Water', 'Rock', 'Dragon'], immune: [] },
     'Water':    { weak: ['Fire', 'Ground', 'Rock'],  resist: ['Water', 'Grass', 'Dragon'], immune: [] },
@@ -6280,7 +6298,7 @@ const TYPE_CHART = {
  * @param {string} moveName - 技能名称（用于特殊克制规则）
  * @returns {number} - 倍率 (0, 0.25, 0.5, 1, 2, 4)
  */
-function getTypeEffectiveness(atkType, defTypes, moveName = '') {
+export function getTypeEffectiveness(atkType, defTypes, moveName = '') {
     const chart = TYPE_CHART[atkType];
     if (!chart) return 1;
     // 防护：确保 defTypes 是有效数组
@@ -6316,7 +6334,7 @@ function getTypeEffectiveness(atkType, defTypes, moveName = '') {
  * @param {string} rawName - 原始名称
  * @returns {string} 规范化后的名称
  */
-function normalizePokemonName(rawName) {
+export function normalizePokemonName(rawName) {
     if (!rawName) return '';
     let name = String(rawName).trim();
     // 处理形容词后缀 (Alolan -> Alola, Galarian -> Galar, etc.)
@@ -6345,7 +6363,7 @@ function normalizePokemonName(rawName) {
  * @param {string} name - 英文名 (如 'Pikachu')
  * @returns {object|null}
  */
-function getPokemonData(name) {
+export function getPokemonData(name) {
     if (typeof POKEDEX === 'undefined') return null;
     // === 第一步: 规范化名称 (宽进) ===
     const normalizedName = normalizePokemonName(name);
@@ -6408,7 +6426,7 @@ function getPokemonData(name) {
  * @param {string} name - 英文名 (如 'Thunderbolt')
  * @returns {object} 包含所有原始数据 + 标准化字段
  */
-function getMoveData(name) {
+export function getMoveData(name) {
     const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     const data = typeof MOVES !== 'undefined' ? MOVES[id] : null;
     if (!data) {
@@ -6469,7 +6487,7 @@ function getMoveData(name) {
  * @param {string} options.nature - 性格名称，用于修正能力值
  * @returns {object} 计算后的能力值 { hp, atk, def, spa, spd, spe }
  */
-function calcStats(baseStats, level, options = {}) {
+export function calcStats(baseStats, level, options = {}) {
     // 兼容旧版调用: calcStats(baseStats, level, iv, ev)
     let ivs, evs, nature;
     if (typeof options === 'number') {
@@ -6539,7 +6557,7 @@ function calcStats(baseStats, level, options = {}) {
  * 1. 旧版：new Pokemon(name, level, moves)
  * 2. 新版：new Pokemon(config) 其中 config 包含完整的 stats_meta
  */
-class Pokemon {
+export class Pokemon {
     constructor(nameOrConfig, level, moveNames = []) {
         // 检测是否为新版配置对象格式
         if (typeof nameOrConfig === 'object' && nameOrConfig !== null && nameOrConfig.name) {
@@ -7173,7 +7191,7 @@ class Pokemon {
  * @param {Object} move - 可选，要使用的招式（用于挑衅/再来一次/定身法检查）
  * @returns {{ can: boolean, msg: string, forcedMove: Object|null }}
  */
-function checkCanMove(pokemon, move = null) {
+export function checkCanMove(pokemon, move = null) {
     // 1. 畏缩 (Flinch) - 本回合无法行动，用完即清
     if (pokemon.volatile && pokemon.volatile.flinch) {
         pokemon.volatile.flinch = false;
@@ -7260,7 +7278,7 @@ function checkCanMove(pokemon, move = null) {
 /**
  * 清除回合结束时的临时状态（如畏缩）
  */
-function clearVolatileStatus(pokemon) {
+export function clearVolatileStatus(pokemon) {
     if (pokemon.volatile) {
         pokemon.volatile.flinch = false;
     }
@@ -7301,7 +7319,7 @@ if (typeof window !== 'undefined') {
 /**
  * 战斗状态管理器
  */
-class BattleState {
+export class BattleState {
     constructor() {
         this.playerParty = [];
         this.enemyParty = [];
@@ -7665,8 +7683,8 @@ window.getPokemonData = getPokemonData;
 window.getMoveData = getMoveData;
 window.calcStats = calcStats;
 window.Pokemon = Pokemon;
-window.calcDamage = calcDamage;
-window.applyMoveSecondaryEffects = applyMoveSecondaryEffects;
+// calcDamage 已迁移到 battle/battle-calc.js，由 src/globals.js 挂载
+// applyMoveSecondaryEffects 已迁移到 battle/battle-effects.js，由该文件自行挂载
 window.BattleState = BattleState;
 window.checkCanMove = checkCanMove;
 window.clearVolatileStatus = clearVolatileStatus;
@@ -7689,7 +7707,7 @@ window.clearVolatileStatus = clearVolatileStatus;
 // ============================================
 // 道具数据库
 // ============================================
-const ITEMS = {
+export const ITEMS = {
     // ========== 战斗道具 (Battle Items) ==========
     // --- 气势披带 (Focus Sash) ---
     focussash: {
@@ -7887,7 +7905,7 @@ function getMovePriority(move, user = null, target = null) {
  * 检查道具是否可以被 Knock Off 打落
  * 不能打落：Mega 石、Z 纯晶、专属道具（朱红色宝珠等）
  */
-function canKnockOff(pokemon) {
+export function canKnockOff(pokemon) {
     if (!pokemon.item) return false;
     const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
     // Mega 石不能打落
@@ -7923,7 +7941,7 @@ function canKnockOff(pokemon) {
     }
     return true;
 }
-const MoveHandlers = {
+export const MoveHandlers = {
     // ============================================
     // 1. 固定伤害技能 (Fixed Damage Moves)
     // ============================================
@@ -11302,6 +11320,256 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 ]]></file>
     </directory>
+    <directory name="src">
+        <file name="globals.js"><![CDATA[/**
+ * ===========================================
+ * GLOBALS.JS - 全局变量挂载
+ * ===========================================
+ * 
+ * 此文件必须最先导入，确保所有全局变量在其他模块使用前已挂载
+ */
+// ============================================
+// 数据层导入
+// ============================================
+import { POKEDEX } from '../data/pokedex-data.js';
+import { MOVES } from '../data/moves-data.js';
+import {
+    TRAPPING_MOVES,
+    AI_PROTECT_MOVES,
+    FORM_SUFFIXES,
+    FALLBACK_MOVES,
+    GMAX_SPECIES_DATA,
+    GENERIC_MAX_BY_TYPE,
+    GENERIC_MAX_CN
+} from '../data/move-constants.js';
+import {
+    ITEMS,
+    UNSWAPPABLE_ITEMS,
+    ItemEffects,
+    getItem,
+    getItemId,
+    getAllPokeballs,
+    getAllBerries,
+    isChoiceItem,
+    isMegaStone,
+    isZCrystal,
+    isSwappable
+} from '../engine/items-data.js';
+import { TRAINER_GLOBALS } from '../data/trainer-data.js';
+// ============================================
+// 引擎层导入
+// ============================================
+import {
+    TYPE_CHART,
+    NATURE_MODIFIERS,
+    getTypeEffectiveness,
+    getPokemonData,
+    getMoveData,
+    calcStats,
+    Pokemon,
+    BattleState,
+    checkCanMove,
+    clearVolatileStatus,
+    extractBaseFormId,
+    resolveSpriteId,
+    getFallbackSpriteId,
+    normalizePokemonName
+} from '../engine/battle-engine.js';
+import {
+    AbilityHandlers,
+    isPinching,
+    moveHasFlag,
+    checkCanSwitch
+} from '../engine/ability-handlers.js';
+import {
+    MoveHandlers,
+    getMoveHandler,
+    hasMoveHandler,
+    canKnockOff
+} from '../engine/move-handlers.js';
+import { calcDamage } from '../battle/battle-calc.js';
+import { applyMoveSecondaryEffects } from '../battle/battle-effects.js';
+import { applyDamage } from '../battle/battle-damage.js';
+import {
+    hasAliveSwitch,
+    handlePlayerPivot,
+    handleEnemyPivot,
+    handleEnemyFainted,
+    handlePlayerFainted,
+    triggerEntryAbilities,
+    canPlayerSwitch,
+    canEnemySwitch
+} from '../battle/battle-switch.js';
+import {
+    onTurnStart,
+    executePlayerTurn,
+    executeEnemyTurn,
+    enemyTurn,
+    getEndTurnStatusLogs
+} from '../battle/battle-turns.js';
+import {
+    getAiAction,
+    getExpertAiAction,
+    getHardAiMove,
+    getNormalAiMove,
+    getEasyAiMove,
+    getBestRevengeKiller
+} from '../engine/ai-engine.js';
+// ============================================
+// 立即挂载到 window
+// ============================================
+// 数据常量
+window.POKEDEX = POKEDEX;
+window.MOVES = MOVES;
+window.Moves = MOVES;
+// 招式常量
+window.TRAPPING_MOVES = TRAPPING_MOVES;
+window.AI_PROTECT_MOVES = AI_PROTECT_MOVES;
+window.FORM_SUFFIXES = FORM_SUFFIXES;
+window.FALLBACK_MOVES = FALLBACK_MOVES;
+window.GMAX_SPECIES_DATA = GMAX_SPECIES_DATA;
+window.GENERIC_MAX_BY_TYPE = GENERIC_MAX_BY_TYPE;
+window.GENERIC_MAX_CN = GENERIC_MAX_CN;
+// 道具
+window.ITEMS = ITEMS;
+window.UNSWAPPABLE_ITEMS = UNSWAPPABLE_ITEMS;
+window.ItemEffects = ItemEffects;
+window.getItem = getItem;
+window.getItemId = getItemId;
+window.getAllPokeballs = getAllPokeballs;
+window.getAllBerries = getAllBerries;
+window.isChoiceItem = isChoiceItem;
+window.isMegaStone = isMegaStone;
+window.isZCrystal = isZCrystal;
+window.isSwappable = isSwappable;
+// 训练家数据
+window.TRAINER_GLOBALS = TRAINER_GLOBALS;
+// 属性克制
+window.TYPE_CHART = TYPE_CHART;
+window.NATURE_MODIFIERS = NATURE_MODIFIERS;
+window.getTypeEffectiveness = getTypeEffectiveness;
+// 数据查询
+window.getPokemonData = getPokemonData;
+window.getMoveData = getMoveData;
+window.calcStats = calcStats;
+window.Pokemon = Pokemon;
+// 精灵图辅助
+window.extractBaseFormId = extractBaseFormId;
+window.resolveSpriteId = resolveSpriteId;
+window.getFallbackSpriteId = getFallbackSpriteId;
+window.normalizePokemonName = normalizePokemonName;
+// 特性处理器
+window.AbilityHandlers = AbilityHandlers;
+window.isPinching = isPinching;
+window.moveHasFlag = moveHasFlag;
+window.checkCanSwitch = checkCanSwitch;
+// 招式处理器
+window.MoveHandlers = MoveHandlers;
+window.getMoveHandler = getMoveHandler;
+window.hasMoveHandler = hasMoveHandler;
+window.canKnockOff = canKnockOff;
+// 伤害计算
+window.calcDamage = calcDamage;
+// 副作用处理
+window.applyMoveSecondaryEffects = applyMoveSecondaryEffects;
+// 战斗状态管理
+window.BattleState = BattleState;
+window.checkCanMove = checkCanMove;
+window.clearVolatileStatus = clearVolatileStatus;
+// 伤害应用
+window.applyDamage = applyDamage;
+// 换人系统
+window.hasAliveSwitch = hasAliveSwitch;
+window.handlePlayerPivot = handlePlayerPivot;
+window.handleEnemyPivot = handleEnemyPivot;
+window.handleEnemyFainted = handleEnemyFainted;
+window.handlePlayerFainted = handlePlayerFainted;
+window.triggerEntryAbilities = triggerEntryAbilities;
+window.canPlayerSwitch = canPlayerSwitch;
+window.canEnemySwitch = canEnemySwitch;
+// 回合系统
+window.onTurnStart = onTurnStart;
+window.executePlayerTurn = executePlayerTurn;
+window.executeEnemyTurn = executeEnemyTurn;
+window.enemyTurn = enemyTurn;
+window.getEndTurnStatusLogs = getEndTurnStatusLogs;
+// AI 系统
+window.getAiAction = getAiAction;
+window.getExpertAiAction = getExpertAiAction;
+window.getHardAiMove = getHardAiMove;
+window.getNormalAiMove = getNormalAiMove;
+window.getEasyAiMove = getEasyAiMove;
+window.getBestRevengeKiller = getBestRevengeKiller;
+console.log('[Vite] 核心全局变量已挂载');
+console.log('[Vite] POKEDEX entries:', Object.keys(POKEDEX).length);
+console.log('[Vite] MOVES entries:', Object.keys(MOVES).length);
+console.log('[Vite] ITEMS entries:', Object.keys(ITEMS).length);
+]]></file>
+        <file name="main.js"><![CDATA[/**
+ * ===========================================
+ * MAIN.JS - Vite ES Module 入口文件
+ * ===========================================
+ * 
+ * 聚合所有模块，Vite 会自动处理依赖和打包
+ * 
+ * 加载顺序：
+ * 1. globals.js - 挂载核心全局变量
+ * 2. 其他模块 - 依赖全局变量
+ * 3. index.js - 主入口
+ */
+// ============================================
+// 1. 首先加载全局变量（必须第一个）
+// ============================================
+import './globals.js';
+// ============================================
+// 2. 战斗机制模块
+// ============================================
+import '../mechanics/move-styles.js';
+import '../mechanics/z-moves.js';
+import '../mechanics/mechanic-checker.js';
+import '../mechanics/dynamax.js';
+import '../mechanics/mega-evolution.js';
+import '../mechanics/form-change/form-change-system.js';
+import '../mechanics/clash-system.js';
+// ============================================
+// 3. UI 模块
+// ============================================
+import '../ui/ui-renderer.js';
+import '../ui/ui-sprites.js';
+import '../ui/sprite-duplicate-fix.js';
+import '../ui/ui-trainer-hud.js';
+import '../ui/ui-menus.js';
+// ============================================
+// 4. 系统模块
+// ============================================
+import '../systems/translations.js';
+import '../systems/data-loader.js';
+import '../systems/catch-system.js';
+import '../systems/bgm-system.js';
+import '../systems/audio-manager.js';
+import '../systems/preloader.js';
+// ============================================
+// 5. 战斗模块
+// ============================================
+import '../battle/battle-effects.js';
+import '../battle/battle-damage.js';
+import '../battle/battle-switch.js';
+import '../battle/battle-turns.js';
+// ============================================
+// 6. AI 引擎
+// ============================================
+import '../engine/ai-engine.js';
+// ============================================
+// 7. 技能效果扩展
+// ============================================
+import '../engine/move-effects.js';
+// ============================================
+// 8. 主入口
+// ============================================
+import '../index.js';
+console.log('[Vite] 所有模块加载完成');
+]]></file>
+    </directory>
     <directory name="systems">
         <file name="audio-manager.js"><![CDATA[/**
  * ===========================================
@@ -11317,35 +11585,39 @@ if (typeof module !== 'undefined' && module.exports) {
 // 路径兼容 (GitHub Pages)
 // ============================================
 function getSfxBasePath() {
+    // 优先使用全局 getBasePath（由 index.js 定义）
+    if (typeof window !== 'undefined' && typeof window.getBasePath === 'function') {
+        return window.getBasePath();
+    }
     const path = window.location.pathname;
-    if (path.includes('/pkm12/')) {
-        return path.substring(0, path.indexOf('/pkm12/') + 7);
+    // GitHub Pages: /pkm33/
+    if (path.includes('/pkm33/')) {
+        return path.substring(0, path.indexOf('/pkm33/') + 7);
     }
     return './';
 }
-const SFX_BASE_PATH = getSfxBasePath();
-// ============================================
-// SFX 配置表
-// ============================================
-const SFX_CONFIG = {
-    // UI 类
-    'CONFIRM':    `${SFX_BASE_PATH}data/sfx/ui_01_confirm.mp3`,
-    'CANCEL':     `${SFX_BASE_PATH}data/sfx/ui_01_confirm.mp3`,
-    // 战斗反馈类
-    'HIT_NORMAL': `${SFX_BASE_PATH}data/sfx/hit_00_normal.mp3`,
-    'HIT_SUPER':  `${SFX_BASE_PATH}data/sfx/Hit_Super_Effective_XY.mp3`,
-    'HIT_WEAK':   `${SFX_BASE_PATH}data/sfx/hit_02_weak.mp3`,
-    // 能力变化类
-    'STAT_UP':    `${SFX_BASE_PATH}data/sfx/stat_up.mp3`,
-    'STAT_DOWN':  `${SFX_BASE_PATH}data/sfx/stat_down.mp3`,
-    // 事件类
-    'FAINT':      `${SFX_BASE_PATH}data/sfx/battle_faint.mp3`,
-    'HEAL':       `${SFX_BASE_PATH}data/sfx/battle_heal.mp3`,
-    'THROW':      `${SFX_BASE_PATH}data/sfx/ball_throw.mp3`,
-    'BALL_OPEN':  `${SFX_BASE_PATH}data/sfx/ball_open.mp3`,
-    // 对冲系统
-    'CLASH':      `${SFX_BASE_PATH}data/sfx/Hit_Super_Effective_XY.mp3`
+// SFX 文件名配置（不包含路径，路径在播放时动态获取）
+const SFX_FILES = {
+    'CONFIRM':    'ui_01_confirm.mp3',
+    'CANCEL':     'ui_01_confirm.mp3',
+    'HIT_NORMAL': 'hit_00_normal.mp3',
+    'HIT_SUPER':  'Hit_Super_Effective_XY.mp3',
+    'HIT_WEAK':   'hit_02_weak.mp3',
+    'STAT_UP':    'stat_up.mp3',
+    'STAT_DOWN':  'stat_down.mp3',
+    'FAINT':      'battle_faint.mp3',
+    'HEAL':       'battle_heal.mp3',
+    'THROW':      'ball_throw.mp3',
+    'BALL_OPEN':  'ball_open.mp3',
+    'CLASH':      'Hit_Super_Effective_XY.mp3'
 };
+// 动态获取 SFX 完整路径
+function getSfxPath(filename) {
+    const basePath = getSfxBasePath();
+    return `${basePath}data/sfx/${filename}`;
+}
+// 兼容旧代码：动态生成 SFX_CONFIG
+const SFX_CONFIG = {};
 // ============================================
 // SFX 音量配置表 (0.0 - 1.0)
 // ============================================
@@ -11366,17 +11638,23 @@ const SFX_VOLUME_CONFIG = {
 // 音频缓存池
 const sfxCache = {};
 // ============================================
-// 预加载 SFX
+// 预加载 SFX（延迟执行，等待 DOM 和路径就绪）
 // ============================================
-(function preloadSFX() {
+let sfxPreloaded = false;
+function initSfxPreload() {
+    if (sfxPreloaded) return;
+    sfxPreloaded = true;
     console.log('[SFX] Starting preload...');
     let loadedCount = 0;
-    const totalCount = Object.keys(SFX_CONFIG).length;
-    for (const [key, path] of Object.entries(SFX_CONFIG)) {
+    const totalCount = Object.keys(SFX_FILES).length;
+    for (const [key, filename] of Object.entries(SFX_FILES)) {
+        const path = getSfxPath(filename);
         const audio = new Audio();
         audio.src = path;
         audio.preload = 'auto';
         audio.volume = SFX_VOLUME_CONFIG[key] || 0.6;
+        // 同时填充 SFX_CONFIG 以兼容旧代码
+        SFX_CONFIG[key] = path;
         audio.addEventListener('canplaythrough', () => {
             loadedCount++;
             if (loadedCount === totalCount) {
@@ -11385,14 +11663,20 @@ const sfxCache = {};
         }, { once: true });
         audio.addEventListener('error', () => {
             console.warn(`[SFX] Failed to load: ${key} (${path})`);
-            loadedCount++; // 计入失败的也算完成
+            loadedCount++;
         }, { once: true });
         sfxCache[key] = audio;
-        // 【强制预加载】调用 load() 确保浏览器开始加载
         audio.load();
     }
     console.log(`[SFX] Queued ${Object.keys(sfxCache).length} files for preload.`);
-})();
+}
+// 立即尝试预加载，如果路径还没准备好，等 DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSfxPreload);
+} else {
+    // DOM 已就绪，延迟一点确保其他脚本加载完成
+    setTimeout(initSfxPreload, 100);
+}
 // ============================================
 // 播放 SFX (支持并发)
 // ============================================
@@ -11406,8 +11690,17 @@ function playSFX(key, volumeOverride = null) {
     if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableSFX) {
         return;
     }
-    const original = sfxCache[key];
+    let original = sfxCache[key];
+    // 缓存未命中时动态加载
+    if (!original && SFX_FILES[key]) {
+        const path = getSfxPath(SFX_FILES[key]);
+        original = new Audio(path);
+        original.volume = SFX_VOLUME_CONFIG[key] || 0.6;
+        sfxCache[key] = original;
+        console.log(`[SFX] Dynamic load: ${key} -> ${path}`);
+    }
     if (!original) {
+        console.warn(`[SFX] Unknown key: ${key}`);
         return;
     }
     try {
@@ -11441,7 +11734,9 @@ function playHitSFX(effectiveness, isCrit = false) {
 // ============================================
 window.playSFX = playSFX;
 window.playHitSFX = playHitSFX;
+window.initSfxPreload = initSfxPreload;
 window.SFX_CONFIG = SFX_CONFIG;
+window.SFX_FILES = SFX_FILES;
 // ============================================
 // 宝可梦叫声系统
 // ============================================
@@ -11499,49 +11794,68 @@ window.playPokemonCry = function(speciesName) {
 // BGM 资源索引表
 // ============================================
 // 获取基础路径 (兼容 GitHub Pages)
-function getBasePath() {
+function getBgmBasePath() {
+    // 优先使用全局 getBasePath（由 index.js 定义）
+    if (typeof window !== 'undefined' && typeof window.getBasePath === 'function') {
+        return window.getBasePath();
+    }
     const path = window.location.pathname;
-    // GitHub Pages: /repo-name/
-    if (path.includes('/pkm12/')) {
-        return path.substring(0, path.indexOf('/pkm12/') + 7);
+    // GitHub Pages: /pkm33/
+    if (path.includes('/pkm33/')) {
+        return path.substring(0, path.indexOf('/pkm33/') + 7);
     }
     return './';
 }
-const BASE_PATH = getBasePath();
+// BGM 文件名配置（不包含路径，路径在播放时动态获取）
+const BGM_FILES = {
+    WILD_LOW:     'wild_01_low_unova.mp3',
+    WILD_MID:     'wild_02_mid_sinnoh.mp3',
+    WILD_HIGH:    'wild_03_ex_areazero.mp3',
+    TIER_1:       'battle_01_raw.mp3',
+    TIER_2:       'battle_02_standard.mp3',
+    TIER_3_MAIN:  'battle_03_gym_main.mp3',
+    TIER_3_LAST:  'battle_03_gym_crisis.mp3',
+    TIER_4:       'battle_04_elite.mp3',
+    TIER_5_BOSS:  'battle_05_legend.mp3',
+    WIN_WILD:     'win_01_wild.mp3',
+    WIN_TRAINER:  'win_02_trainer.mp3'
+};
+// 动态获取 BGM 完整路径
+function getBgmPath(key) {
+    const basePath = getBgmBasePath();
+    const filename = BGM_FILES[key];
+    return filename ? `${basePath}data/bgm/${filename}` : null;
+}
+// BGM_INDEX 现在存储 key 而不是完整 URL，实际路径通过 getBgmPath() 动态获取
 const BGM_INDEX = {
-    // === 野生遭遇战 (Wild Encounters) ===
-    WILD_LOW:     `${BASE_PATH}data/bgm/wild_01_low_unova.mp3`,
-    WILD_MID:     `${BASE_PATH}data/bgm/wild_02_mid_sinnoh.mp3`,
-    WILD_HIGH:    `${BASE_PATH}data/bgm/wild_03_ex_areazero.mp3`,
-    // === 训练家战斗 (Trainer Battles) ===
-    TIER_1:       `${BASE_PATH}data/bgm/battle_01_raw.mp3`,
-    TIER_2:       `${BASE_PATH}data/bgm/battle_02_standard.mp3`,
-    // === 动态切歌层 (Gym Leader / Tier 3) ===
-    TIER_3_MAIN:  `${BASE_PATH}data/bgm/battle_03_gym_main.mp3`,
-    TIER_3_LAST:  `${BASE_PATH}data/bgm/battle_03_gym_crisis.mp3`,
-    // === 高难/BOSS战 (High Stakes) ===
-    TIER_4:       `${BASE_PATH}data/bgm/battle_04_elite.mp3`,
-    TIER_5_BOSS:  `${BASE_PATH}data/bgm/battle_05_legend.mp3`,
-    // === 胜利音乐 (Victory Events) ===
-    WIN_WILD:     `${BASE_PATH}data/bgm/win_01_wild.mp3`,
-    WIN_TRAINER:  `${BASE_PATH}data/bgm/win_02_trainer.mp3`
+    WILD_LOW:     'WILD_LOW',
+    WILD_MID:     'WILD_MID',
+    WILD_HIGH:    'WILD_HIGH',
+    TIER_1:       'TIER_1',
+    TIER_2:       'TIER_2',
+    TIER_3_MAIN:  'TIER_3_MAIN',
+    TIER_3_LAST:  'TIER_3_LAST',
+    TIER_4:       'TIER_4',
+    TIER_5_BOSS:  'TIER_5_BOSS',
+    WIN_WILD:     'WIN_WILD',
+    WIN_TRAINER:  'WIN_TRAINER'
 };
 // ============================================
-// BGM 音量配置表 (0.0 - 1.0)
+// BGM 音量配置表 (0.0 - 1.0) - 使用 key 作为索引
 // ============================================
-// BGM 音量配置 (使用文件名作为 key，兼容不同路径)
-const BGM_VOLUME_CONFIG = {};
-BGM_VOLUME_CONFIG[BGM_INDEX.WILD_LOW] = 0.25;
-BGM_VOLUME_CONFIG[BGM_INDEX.WILD_MID] = 0.28;
-BGM_VOLUME_CONFIG[BGM_INDEX.WILD_HIGH] = 0.20;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_1] = 0.22;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_2] = 0.25;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_3_MAIN] = 0.28;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_3_LAST] = 0.32;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_4] = 0.30;
-BGM_VOLUME_CONFIG[BGM_INDEX.TIER_5_BOSS] = 0.35;
-BGM_VOLUME_CONFIG[BGM_INDEX.WIN_WILD] = 0.20;
-BGM_VOLUME_CONFIG[BGM_INDEX.WIN_TRAINER] = 0.27;
+const BGM_VOLUME_CONFIG = {
+    'WILD_LOW':     0.25,
+    'WILD_MID':     0.28,
+    'WILD_HIGH':    0.20,
+    'TIER_1':       0.22,
+    'TIER_2':       0.25,
+    'TIER_3_MAIN':  0.28,
+    'TIER_3_LAST':  0.32,
+    'TIER_4':       0.30,
+    'TIER_5_BOSS':  0.35,
+    'WIN_WILD':     0.20,
+    'WIN_TRAINER':  0.27
+};
 // ============================================
 // BGM 播放器状态
 // ============================================
@@ -11549,23 +11863,30 @@ const BgmPlayer = {
     currentAudio: null,
     currentKey: null,
     defaultVolume: 0.25,
-    play(url, loop = true, fadeInDuration = 500) {
+    // key: BGM_INDEX 中的 key (如 'WILD_LOW', 'TIER_1')
+    play(key, loop = true, fadeInDuration = 500) {
         // 【全局开关】BGM 系统关闭时不播放
         if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableBGM) {
             console.log('[BGM] Disabled by GAME_SETTINGS');
             return;
         }
         // 如果正在播放相同的 BGM 且未暂停，跳过
-        if (this.currentAudio && this.currentKey === url && !this.currentAudio.paused) {
-            console.log('[BGM] Already playing:', url);
+        if (this.currentAudio && this.currentKey === key && !this.currentAudio.paused) {
+            console.log('[BGM] Already playing:', key);
+            return;
+        }
+        // 动态获取完整路径
+        const url = getBgmPath(key);
+        if (!url) {
+            console.warn('[BGM] Unknown key:', key);
             return;
         }
         // 停止当前播放的 BGM
         this.stop(0);
-        console.log('[BGM] Starting playback:', url);
+        console.log('[BGM] Starting playback:', key, '->', url);
         try {
             this.currentAudio = new Audio(url);
-            this.currentKey = url;
+            this.currentKey = key;
             this.currentAudio.loop = loop;
             this.currentAudio.volume = 0;
             const playPromise = this.currentAudio.play();
@@ -11577,7 +11898,7 @@ const BgmPlayer = {
                 });
             }
             // 使用配置表中的音量，如果没有配置则使用默认值
-            const targetVolume = BGM_VOLUME_CONFIG[url] || this.defaultVolume;
+            const targetVolume = BGM_VOLUME_CONFIG[key] || this.defaultVolume;
             this._fadeIn(fadeInDuration, targetVolume);
         } catch (err) {
             console.error('[BGM] Play error:', err);
@@ -11599,8 +11920,14 @@ const BgmPlayer = {
             this.currentKey = null;
         }
     },
-    crossFade(url, loop = true) {
-        if (this.currentKey === url) return;
+    // key: BGM_INDEX 中的 key
+    crossFade(key, loop = true) {
+        if (this.currentKey === key) return;
+        const url = getBgmPath(key);
+        if (!url) {
+            console.warn('[BGM] Unknown key for crossFade:', key);
+            return;
+        }
         const oldAudio = this.currentAudio;
         try {
             const newAudio = new Audio(url);
@@ -11613,8 +11940,8 @@ const BgmPlayer = {
                     });
                 }
                 this.currentAudio = newAudio;
-                this.currentKey = url;
-                const targetVolume = BGM_VOLUME_CONFIG[url] || this.defaultVolume;
+                this.currentKey = key;
+                const targetVolume = BGM_VOLUME_CONFIG[key] || this.defaultVolume;
                 this._fadeIn(800, targetVolume);
             }).catch(err => {
                 console.warn('[BGM] 切换失败:', err.message);
@@ -18697,50 +19024,8 @@ body {
     <title>PKM Battle System - Switch Style</title>
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,900&family=Rubik:ital,wght@0,400;0,500;0,700;0,900;1,700&family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./index.css">
-    <!-- Pokemon Showdown 完整数据库 -->
-    <script src="./data/pokedex-data.js"></script>
-    <script src="./data/moves-data.js"></script>
-    <!-- 招式硬编码常量 (必须在 battle-engine.js 之前加载) -->
-    <script src="./data/move-constants.js"></script>
-    <!-- 道具数据库 (必须在 battle-engine.js 之前加载) -->
-    <script src="./engine/items-data.js"></script>
-    <!-- 战斗机制模块 (必须在 index.js 之前加载) -->
-    <script src="./mechanics/move-styles.js"></script>
-    <script src="./mechanics/z-moves.js"></script>
-    <script src="./mechanics/mechanic-checker.js"></script>
-    <script src="./mechanics/dynamax.js"></script>
-    <script src="./mechanics/mega-evolution.js"></script>
-    <script src="./mechanics/form-change/form-change-system.js"></script>
-    <script src="./mechanics/clash-system.js"></script>
-    <!-- UI 模块 (必须在 index.js 之前加载) -->
-    <script src="./ui/ui-renderer.js"></script>
-    <script src="./ui/ui-sprites.js"></script>
-    <script src="./ui/sprite-duplicate-fix.js"></script>
-    <script src="./ui/ui-trainer-hud.js"></script>
-    <script src="./ui/ui-menus.js"></script>
-    <!-- 系统模块 (必须在 index.js 之前加载) -->
-    <script src="./systems/translations.js"></script>
-    <script src="./systems/data-loader.js"></script>
-    <script src="./systems/catch-system.js"></script>
-    <script src="./systems/bgm-system.js"></script>
-    <script src="./systems/audio-manager.js"></script>
-    <script src="./systems/preloader.js"></script>
-    <!-- 战斗模块 (必须在 index.js 之前加载) -->
-    <script src="./battle/battle-calc.js"></script>
-    <script src="./battle/battle-effects.js"></script>
-    <script src="./battle/battle-damage.js"></script>
-    <script src="./battle/battle-switch.js"></script>
-    <script src="./battle/battle-turns.js"></script>
-    <!-- 招式处理器 - 策略模式 (必须在 battle-engine.js 之前加载) -->
-    <script src="./engine/move-handlers.js"></script>
-    <!-- 特性处理器 (必须在 battle-engine.js 之前加载) -->
-    <script src="./engine/ability-handlers.js"></script>
-    <!-- 战斗引擎 -->
-    <script src="./engine/battle-engine.js"></script>
-    <!-- AI 引擎 -->
-    <script src="./engine/ai-engine.js"></script>
-    <!-- 技能效果扩展模块 -->
-    <script src="./engine/move-effects.js"></script>
+    <!-- Vite ES Module 入口 -->
+    <script type="module" src="./src/main.js"></script>
 </head>
 <body>
     <div class="ui-root" id="ui-root">
@@ -19136,7 +19421,6 @@ body {
         window.requestBattleDataFromParent();
     })();
 </script>
-<script src="./index.js"></script>
 </body>
 </html>]]></file>
     <file name="index.js"><![CDATA[/**
@@ -21775,6 +22059,17 @@ window.initGame = initGame;
 window.handleAttack = handleAttack;
 window.renderSwitchMenu = renderSwitchMenu;
 window.tryRun = tryRun;
+window.log = log;
+window.updateAllVisuals = updateAllVisuals;
+window.executeEndPhase = executeEndPhase;
+window.checkPlayerDefeatOrForceSwitch = checkPlayerDefeatOrForceSwitch;
+window.performSwitch = performSwitch;
+window.battleEndSequence = battleEndSequence;
+window.showCommanderMenu = showCommanderMenu;
+window.closeCommanderMenu = closeCommanderMenu;
+window.updateCommanderButtons = updateCommanderButtons;
+window.applyCommandEffect = applyCommandEffect;
+window.clearCommandEffects = clearCommandEffects;
 /* ===========================================
    新增功能：战斗结算与总结生成
 =========================================== */
@@ -22837,6 +23132,183 @@ window.shouldShowCommanderMenu = shouldShowCommanderMenu;
 window.showCommanderMenu = showCommanderMenu;
 window.closeCommanderMenu = closeCommanderMenu;
 window.clearCommandEffects = clearCommandEffects;
+]]></file>
+    <file name="main.js"><![CDATA[/**
+ * ===========================================
+ * MAIN.JS - ES Module 入口文件
+ * ===========================================
+ * 
+ * 聚合所有模块并挂载到 window 以保持向后兼容
+ * 
+ * 使用方法:
+ *   <script type="module" src="./main.js"></script>
+ */
+// ============================================
+// 数据层导入
+// ============================================
+import { POKEDEX } from './data/pokedex-data.js';
+import { MOVES } from './data/moves-data.js';
+import {
+    TRAPPING_MOVES,
+    AI_PROTECT_MOVES,
+    FORM_SUFFIXES,
+    FALLBACK_MOVES,
+    GMAX_SPECIES_DATA,
+    GENERIC_MAX_BY_TYPE,
+    GENERIC_MAX_CN
+} from './data/move-constants.js';
+import {
+    ITEMS,
+    UNSWAPPABLE_ITEMS,
+    ItemEffects,
+    getItem,
+    getItemId,
+    getAllPokeballs,
+    getAllBerries,
+    isChoiceItem,
+    isMegaStone,
+    isZCrystal,
+    isSwappable
+} from './engine/items-data.js';
+import { TRAINER_GLOBALS } from './data/trainer-data.js';
+// ============================================
+// 引擎层导入 (Phase 2: 纯函数)
+// ============================================
+import {
+    TYPE_CHART,
+    NATURE_MODIFIERS,
+    getTypeEffectiveness,
+    getPokemonData,
+    getMoveData,
+    calcStats,
+    Pokemon,
+    BattleState,
+    checkCanMove,
+    clearVolatileStatus,
+    extractBaseFormId,
+    resolveSpriteId,
+    getFallbackSpriteId,
+    normalizePokemonName
+} from './engine/battle-engine.js';
+import {
+    AbilityHandlers,
+    isPinching,
+    moveHasFlag,
+    checkCanSwitch
+} from './engine/ability-handlers.js';
+import {
+    MoveHandlers,
+    getMoveHandler,
+    hasMoveHandler,
+    canKnockOff
+} from './engine/move-handlers.js';
+import { calcDamage } from './battle/battle-calc.js';
+// ============================================
+// 挂载到 window (向后兼容)
+// ============================================
+// 数据常量
+window.POKEDEX = POKEDEX;
+window.MOVES = MOVES;
+window.Moves = MOVES; // 别名，部分代码使用 window.Moves
+// 招式常量
+window.TRAPPING_MOVES = TRAPPING_MOVES;
+window.AI_PROTECT_MOVES = AI_PROTECT_MOVES;
+window.FORM_SUFFIXES = FORM_SUFFIXES;
+window.FALLBACK_MOVES = FALLBACK_MOVES;
+window.GMAX_SPECIES_DATA = GMAX_SPECIES_DATA;
+window.GENERIC_MAX_BY_TYPE = GENERIC_MAX_BY_TYPE;
+window.GENERIC_MAX_CN = GENERIC_MAX_CN;
+window.MOVE_CONSTANTS = {
+    TRAPPING_MOVES,
+    AI_PROTECT_MOVES,
+    FORM_SUFFIXES,
+    FALLBACK_MOVES,
+    GMAX_SPECIES_DATA,
+    GENERIC_MAX_BY_TYPE,
+    GENERIC_MAX_CN
+};
+// 道具
+window.ITEMS = ITEMS;
+window.UNSWAPPABLE_ITEMS = UNSWAPPABLE_ITEMS;
+window.ItemEffects = ItemEffects;
+window.getItem = getItem;
+window.getItemId = getItemId;
+window.getAllPokeballs = getAllPokeballs;
+window.getAllBerries = getAllBerries;
+window.isChoiceItem = isChoiceItem;
+window.isMegaStone = isMegaStone;
+window.isZCrystal = isZCrystal;
+window.isSwappable = isSwappable;
+// 训练家数据
+window.TRAINER_GLOBALS = TRAINER_GLOBALS;
+// ============================================
+// 引擎层挂载 (Phase 2)
+// ============================================
+// 属性克制
+window.TYPE_CHART = TYPE_CHART;
+window.NATURE_MODIFIERS = NATURE_MODIFIERS;
+window.getTypeEffectiveness = getTypeEffectiveness;
+// 数据查询
+window.getPokemonData = getPokemonData;
+window.getMoveData = getMoveData;
+window.calcStats = calcStats;
+window.Pokemon = Pokemon;
+// 精灵图辅助
+window.extractBaseFormId = extractBaseFormId;
+window.resolveSpriteId = resolveSpriteId;
+window.getFallbackSpriteId = getFallbackSpriteId;
+window.normalizePokemonName = normalizePokemonName;
+// 特性处理器
+window.AbilityHandlers = AbilityHandlers;
+window.isPinching = isPinching;
+window.moveHasFlag = moveHasFlag;
+window.checkCanSwitch = checkCanSwitch;
+// 招式处理器
+window.MoveHandlers = MoveHandlers;
+window.getMoveHandler = getMoveHandler;
+window.hasMoveHandler = hasMoveHandler;
+window.canKnockOff = canKnockOff;
+// 伤害计算
+window.calcDamage = calcDamage;
+// 战斗状态管理 (Phase 3)
+window.BattleState = BattleState;
+window.checkCanMove = checkCanMove;
+window.clearVolatileStatus = clearVolatileStatus;
+console.log('[ES Module] 数据层模块加载完成');
+console.log('[ES Module] POKEDEX entries:', Object.keys(POKEDEX).length);
+console.log('[ES Module] MOVES entries:', Object.keys(MOVES).length);
+console.log('[ES Module] ITEMS entries:', Object.keys(ITEMS).length);
+]]></file>
+    <file name="package.json"><![CDATA[{
+  "name": "pkm12",
+  "version": "1.0.0",
+  "description": "本项目 是一个基于 Web 技术的宝可梦对战模拟引擎。本项目的实现离不开开源社区的无私贡献、优秀的资源整理者以及原始版权所有者的创作。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && cp -r data dist/",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hasheeper/pkm33.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hasheeper/pkm33/issues"
+  },
+  "homepage": "https://github.com/hasheeper/pkm33#readme",
+  "devDependencies": {
+    "vite": "^7.3.1"
+  }
+}
 ]]></file>
     <file name="README.md"><![CDATA[
 # 致谢名单 (Credits & Acknowledgments)

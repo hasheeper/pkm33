@@ -42,9 +42,10 @@ const WAVE_OVERRIDE = [
 // 需要强制标记为 SOLID 的招式（投射实体物，不是能量光束）
 // 这些招式虽然是远程，但投射的是实体物质
 const SOLID_OVERRIDE = [
-    // 岩石投射类
+    // 岩石投射类（包括有 slicing flag 但实际是投掷岩石的招式）
     'stoneedge', 'rockslide', 'rockthrow', 'ancientpower', 'powergem',
     'smackdown', 'accelerock', 'headsmash', 'rockblast', 'rollout',
+    'stoneaxe',  // 岩斧：虽然有 slicing flag，但本质是投掷石斧
     // 金属投射类
     'flashcannon', 'steelbeam', 'ironhead', 'gyroball', 'heavyslam',
     'magnetbomb', 'mirrorshot', 'smartstrike',
