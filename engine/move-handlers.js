@@ -25,7 +25,7 @@
  * 检查道具是否可以被 Knock Off 打落
  * 不能打落：Mega 石、Z 纯晶、专属道具（朱红色宝珠等）
  */
-function canKnockOff(pokemon) {
+export function canKnockOff(pokemon) {
     if (!pokemon.item) return false;
     
     const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -68,7 +68,7 @@ function canKnockOff(pokemon) {
     return true;
 }
 
-const MoveHandlers = {
+export const MoveHandlers = {
     
     // ============================================
     // 1. 固定伤害技能 (Fixed Damage Moves)
@@ -4387,11 +4387,11 @@ const MoveHandlers = {
 // 辅助函数：获取技能处理器
 // ============================================
 
-function getMoveHandler(moveName) {
+export function getMoveHandler(moveName) {
     return MoveHandlers[moveName] || null;
 }
 
-function hasMoveHandler(moveName) {
+export function hasMoveHandler(moveName) {
     return moveName in MoveHandlers;
 }
 

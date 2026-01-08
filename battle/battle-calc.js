@@ -23,7 +23,7 @@
  * @param {object} options - { isSimulation: boolean } 可选参数
  * @returns {object} - { damage, effectiveness, isCrit, miss, hitCount, blocked }
  */
-function calcDamage(attacker, defender, move, options = {}) {
+export function calcDamage(attacker, defender, move, options = {}) {
     // 获取完整技能数据
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};

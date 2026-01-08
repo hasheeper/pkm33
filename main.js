@@ -39,6 +39,39 @@ import {
 import { TRAINER_GLOBALS } from './data/trainer-data.js';
 
 // ============================================
+// 引擎层导入 (Phase 2: 纯函数)
+// ============================================
+import {
+    TYPE_CHART,
+    NATURE_MODIFIERS,
+    getTypeEffectiveness,
+    getPokemonData,
+    getMoveData,
+    calcStats,
+    Pokemon,
+    extractBaseFormId,
+    resolveSpriteId,
+    getFallbackSpriteId,
+    normalizePokemonName
+} from './engine/battle-engine.js';
+
+import {
+    AbilityHandlers,
+    isPinching,
+    moveHasFlag,
+    checkCanSwitch
+} from './engine/ability-handlers.js';
+
+import {
+    MoveHandlers,
+    getMoveHandler,
+    hasMoveHandler,
+    canKnockOff
+} from './engine/move-handlers.js';
+
+import { calcDamage } from './battle/battle-calc.js';
+
+// ============================================
 // 挂载到 window (向后兼容)
 // ============================================
 
@@ -80,6 +113,42 @@ window.isSwappable = isSwappable;
 
 // 训练家数据
 window.TRAINER_GLOBALS = TRAINER_GLOBALS;
+
+// ============================================
+// 引擎层挂载 (Phase 2)
+// ============================================
+
+// 属性克制
+window.TYPE_CHART = TYPE_CHART;
+window.NATURE_MODIFIERS = NATURE_MODIFIERS;
+window.getTypeEffectiveness = getTypeEffectiveness;
+
+// 数据查询
+window.getPokemonData = getPokemonData;
+window.getMoveData = getMoveData;
+window.calcStats = calcStats;
+window.Pokemon = Pokemon;
+
+// 精灵图辅助
+window.extractBaseFormId = extractBaseFormId;
+window.resolveSpriteId = resolveSpriteId;
+window.getFallbackSpriteId = getFallbackSpriteId;
+window.normalizePokemonName = normalizePokemonName;
+
+// 特性处理器
+window.AbilityHandlers = AbilityHandlers;
+window.isPinching = isPinching;
+window.moveHasFlag = moveHasFlag;
+window.checkCanSwitch = checkCanSwitch;
+
+// 招式处理器
+window.MoveHandlers = MoveHandlers;
+window.getMoveHandler = getMoveHandler;
+window.hasMoveHandler = hasMoveHandler;
+window.canKnockOff = canKnockOff;
+
+// 伤害计算
+window.calcDamage = calcDamage;
 
 console.log('[ES Module] 数据层模块加载完成');
 console.log('[ES Module] POKEDEX entries:', Object.keys(POKEDEX).length);

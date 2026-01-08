@@ -8,7 +8,7 @@
  */
 
 // 简单的辅助工具
-function isPinching(poke) {
+export function isPinching(poke) {
     return poke.currHp > 0 && poke.currHp <= poke.maxHp / 3;
 }
 
@@ -23,7 +23,7 @@ function isPinching(poke) {
  * @param {string} flag - flag 名称 (punch, bite, slicing, pulse, sound, powder, bullet, wind 等)
  * @returns {boolean} 是否具有该 flag
  */
-function moveHasFlag(move, flag) {
+export function moveHasFlag(move, flag) {
     if (!move) return false;
     
     // 优先使用招式对象自带的 flags
@@ -40,7 +40,7 @@ function moveHasFlag(move, flag) {
     return false;
 }
 
-const AbilityHandlers = {
+export const AbilityHandlers = {
     // ============================================
     // A. 暴力数值修正
     // ============================================
@@ -2012,7 +2012,7 @@ const AbilityHandlers = {
  * @param {Object} battle - 战斗对象
  * @returns {Object} { canSwitch: boolean, reason?: string }
  */
-function checkCanSwitch(pokemon, opponent, battle) {
+export function checkCanSwitch(pokemon, opponent, battle) {
     // 0. 特殊状态直接放行
     // 如果使用了 U-turn 等 Pivot 招式，或者携带漂亮外壳，无视一切锁定
     if (pokemon.isPivoting) return { canSwitch: true };

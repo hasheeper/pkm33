@@ -17,7 +17,7 @@
  * @param {string} name 原始名称
  * @returns {string} 基础形态ID
  */
-function extractBaseFormId(name = '') {
+export function extractBaseFormId(name = '') {
     let id = name.toLowerCase().replace(/[^a-z0-9-]/g, '');
     
     // 从 move-constants.js 获取后缀列表，如果不存在则使用内置后备
@@ -46,7 +46,7 @@ function extractBaseFormId(name = '') {
  * 例如: "Vulpix-Alola" -> "vulpix-alola", "Ho-Oh" -> "ho-oh"
  * Mega 形态特殊处理: "Charizard-Mega-X" -> "charizardmegax" (紧凑格式)
  */
-function resolveSpriteId(name = '') {
+export function resolveSpriteId(name = '') {
     const normalized = name.toLowerCase().replace(/[^a-z0-9-]/g, '');
     
     // 【修复】Mega 形态：保留横杠（Showdown 格式）
@@ -61,7 +61,7 @@ function resolveSpriteId(name = '') {
 /**
  * 获取回退精灵图ID（提取基础形态）
  */
-function getFallbackSpriteId(name = '') {
+export function getFallbackSpriteId(name = '') {
     return extractBaseFormId(name);
 }
 
@@ -74,7 +74,7 @@ if (typeof window !== 'undefined') {
 // === 性格修正表 ===
 // 性格 -> { 增益属性: 1.1, 减益属性: 0.9 }
 // 无修正性格（认真、努力等）不在此表中
-const NATURE_MODIFIERS = {
+export const NATURE_MODIFIERS = {
     // 加攻击
     'Lonely':   { atk: 1.1, def: 0.9 },
     'Adamant':  { atk: 1.1, spa: 0.9 },
@@ -104,7 +104,7 @@ const NATURE_MODIFIERS = {
 
 // === 属性克制表 ===
 // 攻击方属性 -> { 被克制属性: 2, 抵抗属性: 0.5, 免疫属性: 0 }
-const TYPE_CHART = {
+export const TYPE_CHART = {
     'Normal':   { weak: [],                          resist: ['Rock', 'Steel'],      immune: ['Ghost'] },
     'Fire':     { weak: ['Grass', 'Ice', 'Bug', 'Steel'], resist: ['Fire', 'Water', 'Rock', 'Dragon'], immune: [] },
     'Water':    { weak: ['Fire', 'Ground', 'Rock'],  resist: ['Water', 'Grass', 'Dragon'], immune: [] },
@@ -132,7 +132,7 @@ const TYPE_CHART = {
  * @param {string} moveName - 技能名称（用于特殊克制规则）
  * @returns {number} - 倍率 (0, 0.25, 0.5, 1, 2, 4)
  */
-function getTypeEffectiveness(atkType, defTypes, moveName = '') {
+export function getTypeEffectiveness(atkType, defTypes, moveName = '') {
     const chart = TYPE_CHART[atkType];
     if (!chart) return 1;
     
@@ -173,7 +173,7 @@ function getTypeEffectiveness(atkType, defTypes, moveName = '') {
  * @param {string} rawName - 原始名称
  * @returns {string} 规范化后的名称
  */
-function normalizePokemonName(rawName) {
+export function normalizePokemonName(rawName) {
     if (!rawName) return '';
     let name = String(rawName).trim();
     
@@ -206,7 +206,7 @@ function normalizePokemonName(rawName) {
  * @param {string} name - 英文名 (如 'Pikachu')
  * @returns {object|null}
  */
-function getPokemonData(name) {
+export function getPokemonData(name) {
     if (typeof POKEDEX === 'undefined') return null;
     
     // === 第一步: 规范化名称 (宽进) ===
@@ -276,7 +276,7 @@ function getPokemonData(name) {
  * @param {string} name - 英文名 (如 'Thunderbolt')
  * @returns {object} 包含所有原始数据 + 标准化字段
  */
-function getMoveData(name) {
+export function getMoveData(name) {
     const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     const data = typeof MOVES !== 'undefined' ? MOVES[id] : null;
     
@@ -344,7 +344,7 @@ function getMoveData(name) {
  * @param {string} options.nature - 性格名称，用于修正能力值
  * @returns {object} 计算后的能力值 { hp, atk, def, spa, spd, spe }
  */
-function calcStats(baseStats, level, options = {}) {
+export function calcStats(baseStats, level, options = {}) {
     // 兼容旧版调用: calcStats(baseStats, level, iv, ev)
     let ivs, evs, nature;
     if (typeof options === 'number') {
@@ -421,7 +421,7 @@ function calcStats(baseStats, level, options = {}) {
  * 1. 旧版：new Pokemon(name, level, moves)
  * 2. 新版：new Pokemon(config) 其中 config 包含完整的 stats_meta
  */
-class Pokemon {
+export class Pokemon {
     constructor(nameOrConfig, level, moveNames = []) {
         // 检测是否为新版配置对象格式
         if (typeof nameOrConfig === 'object' && nameOrConfig !== null && nameOrConfig.name) {
