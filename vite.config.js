@@ -13,13 +13,15 @@ export default defineConfig({
         outDir: 'dist',
         // 生成传统浏览器兼容的代码
         target: 'es2015',
-        // 资源内联阈值
-        assetsInlineLimit: 4096,
+        // 资源内联阈值 - 设为 0 禁止内联，保持外部引用
+        assetsInlineLimit: 0,
         rollupOptions: {
             input: {
                 main: resolve(__dirname, 'index.html')
             }
-        }
+        },
+        // 复制 data 目录到 dist
+        copyPublicDir: true
     },
     
     // 解析配置
@@ -35,8 +37,9 @@ export default defineConfig({
         }
     },
     
-    // 静态资源处理 - 使用 public 目录（如果需要）
-    // publicDir: 'public',
+    // 静态资源目录 - data 目录包含 sfx, bgm, avatar 等运行时资源
+    // 这些文件会被复制到 dist 根目录
+    publicDir: 'public',
     
     // 排除 ST 目录（酒馆插件独立）
     // ST 目录不参与 Vite 构建

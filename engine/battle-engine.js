@@ -1706,8 +1706,8 @@ window.getPokemonData = getPokemonData;
 window.getMoveData = getMoveData;
 window.calcStats = calcStats;
 window.Pokemon = Pokemon;
-window.calcDamage = calcDamage;
-window.applyMoveSecondaryEffects = applyMoveSecondaryEffects;
+// calcDamage 已迁移到 battle/battle-calc.js，由 src/globals.js 挂载
+// applyMoveSecondaryEffects 已迁移到 battle/battle-effects.js，由该文件自行挂载
 window.BattleState = BattleState;
 window.checkCanMove = checkCanMove;
 window.clearVolatileStatus = clearVolatileStatus;

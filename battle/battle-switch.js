@@ -17,7 +17,7 @@
 /**
  * 检查是否有可换入的存活宝可梦
  */
-function hasAliveSwitch(party, currentIndex) {
+export function hasAliveSwitch(party, currentIndex) {
     return party.some((pm, idx) => 
         idx !== currentIndex && pm && pm.isAlive && pm.isAlive() && pm.currHp > 0
     );
@@ -58,7 +58,7 @@ function updateAllVisuals(forceSpriteAnim) {
  * 处理玩家 Pivot 换人（U-turn/Volt Switch 等）
  * 使用 Promise 等待玩家选择
  */
-function handlePlayerPivot() {
+export function handlePlayerPivot() {
     const battle = window.battle;
     console.log('[handlePlayerPivot] Starting pivot switch');
     log(`<span style="color:#3498db">选择要换入的宝可梦!</span>`);
@@ -80,7 +80,7 @@ function handlePlayerPivot() {
 /**
  * 处理敌方 Pivot 换人（AI 自动选择）
  */
-async function handleEnemyPivot(passBoosts = false) {
+export async function handleEnemyPivot(passBoosts = false) {
     const battle = window.battle;
     const currentE = battle.getEnemy();
     const p = battle.getPlayer();
@@ -202,7 +202,7 @@ async function handleEnemyPivot(passBoosts = false) {
 /**
  * 处理敌方倒下
  */
-async function handleEnemyFainted(e) {
+export async function handleEnemyFainted(e) {
     if (typeof window.playSFX === 'function') window.playSFX('FAINT');
     const battle = window.battle;
     
@@ -452,7 +452,7 @@ async function handleEnemyFainted(e) {
 /**
  * 处理玩家倒下
  */
-async function handlePlayerFainted(p) {
+export async function handlePlayerFainted(p) {
     if (typeof window.playSFX === 'function') window.playSFX('FAINT');
     const battle = window.battle;
     
@@ -556,7 +556,7 @@ async function handlePlayerFainted(p) {
 /**
  * 触发入场特性 (威吓、天气等)
  */
-function triggerEntryAbilities(pokemon, opponent) {
+export function triggerEntryAbilities(pokemon, opponent) {
     const battle = window.battle;
     if (!pokemon || !opponent) return;
     if (typeof AbilityHandlers === 'undefined') return;
@@ -578,7 +578,7 @@ function triggerEntryAbilities(pokemon, opponent) {
  * 检查玩家是否可以换人（考虑抓人特性和状态）
  * @returns {Object} { canSwitch: boolean, reason?: string }
  */
-function canPlayerSwitch() {
+export function canPlayerSwitch() {
     const battle = window.battle;
     if (!battle) return { canSwitch: true };
     
@@ -599,7 +599,7 @@ function canPlayerSwitch() {
  * 检查敌方是否可以换人（考虑抓人特性和状态）
  * @returns {Object} { canSwitch: boolean, reason?: string }
  */
-function canEnemySwitch() {
+export function canEnemySwitch() {
     const battle = window.battle;
     if (!battle) return { canSwitch: true };
     

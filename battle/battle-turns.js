@@ -50,7 +50,7 @@ function updateAllVisuals(forceSpriteAnim) {
  * - 递减风格冷却
  * - 其他回合开始钩子
  */
-function onTurnStart() {
+export function onTurnStart() {
     const battle = window.battle;
     if (!battle) return;
     
@@ -79,7 +79,7 @@ function onTurnStart() {
  * @param {Object} move 招式
  * @returns {Object} 包含 pivot 标记的结果
  */
-async function executePlayerTurn(p, e, move) {
+export async function executePlayerTurn(p, e, move) {
     const battle = window.battle;
     
     // 状态阻断检测
@@ -201,7 +201,7 @@ async function executePlayerTurn(p, e, move) {
  * @param {Object} move 招式
  * @returns {Object} 包含 pivot 标记的结果
  */
-async function executeEnemyTurn(e, p, move) {
+export async function executeEnemyTurn(e, p, move) {
     const battle = window.battle;
     
     console.log('[executeEnemyTurn] Starting:', { 
@@ -320,7 +320,7 @@ async function executeEnemyTurn(e, p, move) {
 /**
  * 独立敌方回合 (用于换人后敌方攻击)
  */
-async function enemyTurn() {
+export async function enemyTurn() {
     const battle = window.battle;
     const p = battle.getPlayer();
     const e = battle.getEnemy();
@@ -441,7 +441,7 @@ async function enemyTurn() {
  * @param {boolean} isPlayerPoke 是否为玩家方的宝可梦（AVs 效果只对玩家方生效）
  * @returns {Array} logs
  */
-function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
+export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     let logs = [];
     if (!poke || !poke.isAlive()) return logs;
 

@@ -3037,6 +3037,17 @@ window.initGame = initGame;
 window.handleAttack = handleAttack;
 window.renderSwitchMenu = renderSwitchMenu;
 window.tryRun = tryRun;
+window.log = log;
+window.updateAllVisuals = updateAllVisuals;
+window.executeEndPhase = executeEndPhase;
+window.checkPlayerDefeatOrForceSwitch = checkPlayerDefeatOrForceSwitch;
+window.performSwitch = performSwitch;
+window.battleEndSequence = battleEndSequence;
+window.showCommanderMenu = showCommanderMenu;
+window.closeCommanderMenu = closeCommanderMenu;
+window.updateCommanderButtons = updateCommanderButtons;
+window.applyCommandEffect = applyCommandEffect;
+window.clearCommandEffects = clearCommandEffects;
 
 /* ===========================================
    新增功能：战斗结算与总结生成

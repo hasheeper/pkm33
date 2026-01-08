@@ -24,7 +24,7 @@
  * @param {string} spriteIdRef 目标精灵图 ID ('player-sprite' 或 'enemy-sprite')
  * @returns {Object} 伤害结果
  */
-function applyDamage(attacker, defender, move, spriteIdRef) {
+export function applyDamage(attacker, defender, move, spriteIdRef) {
     const battle = window.battle;
     
     // === 关键修复：在计算伤害前检查 onUse（如 Fake Out 首回合限制） ===

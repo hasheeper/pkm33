@@ -70,6 +70,33 @@ import {
 } from '../engine/move-handlers.js';
 
 import { calcDamage } from '../battle/battle-calc.js';
+import { applyMoveSecondaryEffects } from '../battle/battle-effects.js';
+import { applyDamage } from '../battle/battle-damage.js';
+import {
+    hasAliveSwitch,
+    handlePlayerPivot,
+    handleEnemyPivot,
+    handleEnemyFainted,
+    handlePlayerFainted,
+    triggerEntryAbilities,
+    canPlayerSwitch,
+    canEnemySwitch
+} from '../battle/battle-switch.js';
+import {
+    onTurnStart,
+    executePlayerTurn,
+    executeEnemyTurn,
+    enemyTurn,
+    getEndTurnStatusLogs
+} from '../battle/battle-turns.js';
+import {
+    getAiAction,
+    getExpertAiAction,
+    getHardAiMove,
+    getNormalAiMove,
+    getEasyAiMove,
+    getBestRevengeKiller
+} from '../engine/ai-engine.js';
 
 // ============================================
 // 立即挂载到 window
@@ -137,10 +164,41 @@ window.canKnockOff = canKnockOff;
 // 伤害计算
 window.calcDamage = calcDamage;
 
+// 副作用处理
+window.applyMoveSecondaryEffects = applyMoveSecondaryEffects;
+
 // 战斗状态管理
 window.BattleState = BattleState;
 window.checkCanMove = checkCanMove;
 window.clearVolatileStatus = clearVolatileStatus;
+
+// 伤害应用
+window.applyDamage = applyDamage;
+
+// 换人系统
+window.hasAliveSwitch = hasAliveSwitch;
+window.handlePlayerPivot = handlePlayerPivot;
+window.handleEnemyPivot = handleEnemyPivot;
+window.handleEnemyFainted = handleEnemyFainted;
+window.handlePlayerFainted = handlePlayerFainted;
+window.triggerEntryAbilities = triggerEntryAbilities;
+window.canPlayerSwitch = canPlayerSwitch;
+window.canEnemySwitch = canEnemySwitch;
+
+// 回合系统
+window.onTurnStart = onTurnStart;
+window.executePlayerTurn = executePlayerTurn;
+window.executeEnemyTurn = executeEnemyTurn;
+window.enemyTurn = enemyTurn;
+window.getEndTurnStatusLogs = getEndTurnStatusLogs;
+
+// AI 系统
+window.getAiAction = getAiAction;
+window.getExpertAiAction = getExpertAiAction;
+window.getHardAiMove = getHardAiMove;
+window.getNormalAiMove = getNormalAiMove;
+window.getEasyAiMove = getEasyAiMove;
+window.getBestRevengeKiller = getBestRevengeKiller;
 
 console.log('[Vite] 核心全局变量已挂载');
 console.log('[Vite] POKEDEX entries:', Object.keys(POKEDEX).length);

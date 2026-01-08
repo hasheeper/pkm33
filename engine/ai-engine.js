@@ -74,7 +74,7 @@ const AI_COUNTER_MOVES = ['Haze', 'Clear Smog', 'Roar', 'Whirlwind', 'Dragon Tai
  * @param {object} battleContext - 战斗上下文（回合数、已用 Mega 等）
  * @returns {object} { type: 'move'|'switch', move?: Move, index?: number, reasoning?: string }
  */
-function getAiAction(aiPoke, playerPoke, difficulty = 'hard', aiParty = [], battleContext = {}) {
+export function getAiAction(aiPoke, playerPoke, difficulty = 'hard', aiParty = [], battleContext = {}) {
     if (!aiPoke || !playerPoke) return null;
     
     const normalizedDiff = (difficulty || 'hard').toLowerCase();
@@ -112,7 +112,7 @@ function getAiAction(aiPoke, playerPoke, difficulty = 'hard', aiParty = [], batt
  *  基础 AI：Easy 难度
  *  80% 随机选择，20% 选最优
  * ============================================================= */
-function getEasyAiMove(attacker, defender, aiParty = null) {
+export function getEasyAiMove(attacker, defender, aiParty = null) {
     if (!attacker?.moves || attacker.moves.length === 0) return null;
     
     // 80% 概率随机选
@@ -135,7 +135,7 @@ function getEasyAiMove(attacker, defender, aiParty = null) {
  *  普通 AI：Normal 难度
  *  60% 最优，30% 次优，10% 第三优或随机
  * ============================================================= */
-function getNormalAiMove(attacker, defender, aiParty = null) {
+export function getNormalAiMove(attacker, defender, aiParty = null) {
     if (!attacker?.moves || attacker.moves.length === 0) return null;
     
     const rankedMoves = rankMovesByScore(attacker, defender, aiParty);
@@ -155,7 +155,7 @@ function getNormalAiMove(attacker, defender, aiParty = null) {
  *  困难 AI：Hard 难度
  *  总是选择当前评分最高的技能
  * ============================================================= */
-function getHardAiMove(attacker, defender, aiParty = null) {
+export function getHardAiMove(attacker, defender, aiParty = null) {
     if (!attacker?.moves || attacker.moves.length === 0) return null;
     
     const rankedMoves = rankMovesByScore(attacker, defender, aiParty);
@@ -307,7 +307,7 @@ function tryOptimizeStyle(aiPoke, playerPoke, baseMove) {
  *  专家 AI：Expert 难度
  *  大局观决策：斩杀计算 + 换人判断 + 状态博弈 + 高级轮转
  * ============================================================= */
-function getExpertAiAction(aiPoke, playerPoke, aiParty = [], battleContext = {}) {
+export function getExpertAiAction(aiPoke, playerPoke, aiParty = [], battleContext = {}) {
     if (!aiPoke || !playerPoke) return null;
     if (!aiPoke.moves || aiPoke.moves.length === 0) return null;
     
@@ -3048,7 +3048,7 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
  * @param {number} currentActive - 当前（已倒下的）宝可梦索引
  * @returns {number} - 最佳队员的 index，-1 表示没有可用的
  */
-function getBestRevengeKiller(party, opp, currentActive = -1) {
+export function getBestRevengeKiller(party, opp, currentActive = -1) {
     if (!party || !opp) return -1;
     
     let bestIdx = -1;

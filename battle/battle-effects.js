@@ -26,7 +26,7 @@
  * @param {boolean} isPlayer 是否为玩家
  * @returns {object} { logs: Array, pivot: boolean }
  */
-function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle = null, isPlayer = false) {
+export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, battle = null, isPlayer = false) {
     let logs = [];
     
     // 获取完整技能数据
