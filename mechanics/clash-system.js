@@ -66,7 +66,7 @@ const CLASH_MATRIX = {
         'BEAM':   { interaction: 'cpCheck', advantage: 0, critBonus: 0 },
         'SOLID':  { interaction: 'beamAdvantage', advantage: 0.5, critBonus: 0 },
         'WAVE':   { interaction: 'pierce', advantage: 1.0, critBonus: 0 },
-        'PIERCE': { interaction: 'sliced', advantage: -1.0, critBonus: 0 }
+        'PIERCE': { interaction: 'sliced', advantage: -0.5, critBonus: 0 }
     },
     'SOLID': {
         'BEAM':   { interaction: 'tankOrDodge', advantage: -0.3, critBonus: 0 },
@@ -81,7 +81,7 @@ const CLASH_MATRIX = {
         'PIERCE': { interaction: 'dissipate', advantage: -0.5, critBonus: 0 }
     },
     'PIERCE': {
-        'BEAM':   { interaction: 'slice', advantage: 1.0, critBonus: 0 },
+        'BEAM':   { interaction: 'slice', advantage: 0.5, critBonus: 0 },
         'SOLID':  { interaction: 'parry', advantage: 0, critBonus: 0.3 },
         'WAVE':   { interaction: 'passThrough', advantage: 0.5, critBonus: 0 },
         'PIERCE': { interaction: 'crossSlash', advantage: 0, critBonus: 0.5 }
