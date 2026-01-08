@@ -3384,7 +3384,7 @@ window.copyFullProcess = function() {
     const wordRequirement = `📊 【字数要求】本次战斗共 ${entryCount} 条日志，推荐正文字数：**${wordRangeMin}~${wordRangeMax} 字**（不少于 ${wordRangeMin} 字）`;
     
     const finalContent = [
-        '%% <CORE TASK>',
+        '%% <CORE_TASK>',
         '🛑 [SYSTEM COMMAND // 强制执行] 🛑',
         '🚫 DO NOT ADVANCE THE PLOT! (禁止推进后续剧情)',
         '🚫 DO NOT SKIP BATTLE DETAILS! (禁止跳过战斗细节)',
@@ -3406,7 +3406,7 @@ window.copyFullProcess = function() {
         '3. 机制叙事化：将“特性发动”、“道具消耗”完全融入战斗动作中，而不是作为旁白列出。',
         '4. 禁止出戏：只描写战斗内的场景、训练家的喊话、精灵的嘶吼。禁止对战斗进行事后评论，禁止推测后续无关剧情。',
         '5. 动态博弈：捕捉LOG中的“属性克制”、“击中要害”、“濒死反击”等关键点，将其渲染为战局的转折点。',
-        '</CORE TASK>',
+        '</CORE_TASK>',
         '',
         '<BATTLE_LOG>',
         processLog,
