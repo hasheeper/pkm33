@@ -156,6 +156,14 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             attacker.takeDamage(crashDmg);
             log(`<b style='color:#e74c3c'>${attacker.cnName} 失去了平衡，摔倒受到了 ${crashDmg} 点伤害!</b>`);
         }
+        
+        // 【路痴保险 Blunder Policy】Miss后速度+2
+        if (result.triggerBlunderPolicy && typeof ItemEffects !== 'undefined' && ItemEffects.checkBlunderPolicy) {
+            let blunderLogs = [];
+            ItemEffects.checkBlunderPolicy(attacker, blunderLogs);
+            blunderLogs.forEach(txt => log(txt));
+        }
+        
         return result;
     }
     
@@ -253,6 +261,14 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         const actualDamage = Math.min(result.damage, defender.currHp);
         defender.takeDamage(result.damage, dmgCategory);
         result.displayDamage = actualDamage; // 用于日志显示的实际伤害
+        
+        // 【Gen 9 Rage Fist】记录被攻击次数（用于愤怒之拳威力计算）
+        // 只有实际造成伤害才计数，多段攻击每段都算一次
+        if (actualDamage > 0) {
+            const hitCount = result.hitCount || 1;
+            defender.timesAttacked = (defender.timesAttacked || 0) + hitCount;
+            console.log(`[Rage Fist Counter] ${defender.cnName} 被攻击次数: ${defender.timesAttacked}`);
+        }
         
         // 【Illusion 幻觉破解】受到伤害后触发 onDamageTaken 钩子
         if (typeof AbilityHandlers !== 'undefined' && defender.ability) {
@@ -388,6 +404,13 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             log(`造成了 <span style="color:#95a5a6">${shownDamage}</span> 伤害... (仿佛是在给对手挠痒痒) ${infoStr}`);
         } else {
             log(`造成了 ${shownDamage} 伤害 ${infoStr}`);
+        }
+        
+        // 【贝壳之铃 Shell Bell】造成伤害后回复 1/8 HP
+        if (actualDamage > 0 && attacker.isAlive() && typeof ItemEffects !== 'undefined' && ItemEffects.checkShellBell) {
+            let shellBellLogs = [];
+            ItemEffects.checkShellBell(attacker, actualDamage, shellBellLogs);
+            shellBellLogs.forEach(txt => log(txt));
         }
         
         // 【修复】在伤害日志之后输出树果触发日志

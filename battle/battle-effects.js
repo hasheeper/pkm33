@@ -499,6 +499,18 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         }
     }
     
+    // ========== 8. onAfterMove 钩子 (招式执行后效果) ==========
+    // 【Gigaton Hammer / Glaive Rush 等】招式执行后的副作用
+    if (handler && handler.onAfterMove) {
+        handler.onAfterMove(user, target, move, logs, battle);
+    }
+    
+    // 【Gigaton Hammer】更新 lastMoveUsed（用于不能连发的判定）
+    // 如果使用的不是巨力锤，清除之前的记录
+    if (move.name !== 'Gigaton Hammer' && user.lastMoveUsed === 'Gigaton Hammer') {
+        user.lastMoveUsed = null;
+    }
+    
     // 返回日志和 pivot 状态
     return { logs, pivot: pivotTriggered };
 }

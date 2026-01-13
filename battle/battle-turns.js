@@ -512,6 +512,23 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     }
 
     // ----------------------------------------
+    // 5.5 盐腌 (Salt Cure): 每回合扣 1/8 HP，水/钢系扣 1/4
+    // 【Gen 9】盐石巨灵核心招式
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile['saltcure']) {
+        // 检查是否为水系或钢系
+        const isWaterOrSteel = poke.types && (poke.types.includes('Water') || poke.types.includes('Steel'));
+        const dmgRatio = isWaterOrSteel ? 4 : 8; // 水/钢系 1/4，其他 1/8
+        const dmg = Math.max(1, Math.floor(poke.maxHp / dmgRatio));
+        poke.takeDamage(dmg);
+        if (isWaterOrSteel) {
+            logs.push(`<span style="color:#9b59b6">🧂 ${poke.cnName} 因盐腌受到了严重伤害! (-${dmg})</span>`);
+        } else {
+            logs.push(`<span style="color:#9b59b6">🧂 ${poke.cnName} 因盐腌受到伤害! (-${dmg})</span>`);
+        }
+    }
+
+    // ----------------------------------------
     // 6. 哈欠 (Yawn): 倒计时，时间到睡着
     // 【修复】使用 tryInflictStatus 进行特性/场地免疫检查
     // ----------------------------------------

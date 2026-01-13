@@ -94,6 +94,22 @@ export function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
+    // === 【特性钩子】onModifyType - 皮肤系特性属性转换 (Pixilate, Aerilate 等) ===
+    if (typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability]) {
+        const ah = AbilityHandlers[attacker.ability];
+        if (ah.onModifyType) {
+            const typeResult = ah.onModifyType(move, attacker, window.battle);
+            if (typeResult && typeResult.newType) {
+                move.type = typeResult.newType;
+                // 皮肤系特性的威力加成标记
+                if (typeResult.powerBoost) {
+                    move._ateBoost = typeResult.powerBoost;
+                }
+                console.log(`[ABILITY TYPE] ${attacker.ability} 将 ${move.name} 属性变为 ${typeResult.newType}`);
+            }
+        }
+    }
+    
     // === 固定伤害技能 (damageCallback) ===
     if (handler && handler.damageCallback) {
         const fixedDamage = handler.damageCallback(attacker, defender);
@@ -118,6 +134,12 @@ export function calcDamage(attacker, defender, move, options = {}) {
         if (ah.onBasePower) {
             basePower = ah.onBasePower(basePower, attacker, defender, move);
         }
+    }
+    
+    // === 【皮肤系特性】属性转换后的威力加成 (x1.2) ===
+    if (move._ateBoost) {
+        basePower = Math.floor(basePower * move._ateBoost);
+        console.log(`[ATE BOOST] 皮肤系特性威力加成 x${move._ateBoost}`);
     }
     
     // === 【充电 Charge】电系招式威力翻倍 ===
@@ -359,7 +381,13 @@ export function calcDamage(attacker, defender, move, options = {}) {
     const accMult = getAccuracyMultiplier(accStage);
     const evaMult = getAccuracyMultiplier(-evaStage);
     
-    let hitRate = moveAcc * accMult / evaMult;
+    // 【广角镜 Wide Lens】命中率x1.1
+    let itemAccMod = 1;
+    if (typeof ItemEffects !== 'undefined' && ItemEffects.getAccuracyMod) {
+        itemAccMod = ItemEffects.getAccuracyMod(attacker);
+    }
+    
+    let hitRate = moveAcc * accMult / evaMult * itemAccMod;
     
     if (alwaysHit || isNeverMiss) {
         hitRate = 100;
@@ -438,7 +466,9 @@ export function calcDamage(attacker, defender, move, options = {}) {
     // Miss 检测
     if (typeof accuracy === 'number' && !isSureHit) {
         if (Math.random() * 100 > hitRate) {
-            return { damage: 0, effectiveness: 0, isCrit: false, miss: true, hitCount: 0, insightDodge: defender.avs?.insight >= 100 };
+            // 【路痴保险 Blunder Policy】Miss后速度+2
+            // 注意：这里只返回 miss 标记，实际触发在 battle-damage.js 中处理
+            return { damage: 0, effectiveness: 0, isCrit: false, miss: true, hitCount: 0, insightDodge: defender.avs?.insight >= 100, triggerBlunderPolicy: true };
         }
     }
     
@@ -452,7 +482,12 @@ export function calcDamage(attacker, defender, move, options = {}) {
                 hitCount = max;
                 console.log(`[SKILL LINK] ${attacker.cnName} 的连续攻击特性发动！强制命中 ${max} 次！`);
             } else {
-                hitCount = Math.floor(Math.random() * (max - min + 1)) + min;
+                // 【均等之骰 Loaded Dice】保底4-5次
+                if (typeof ItemEffects !== 'undefined' && ItemEffects.getMultiHitCount) {
+                    hitCount = ItemEffects.getMultiHitCount(attacker, min, max);
+                } else {
+                    hitCount = Math.floor(Math.random() * (max - min + 1)) + min;
+                }
             }
         } else {
             hitCount = multihit;

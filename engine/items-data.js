@@ -1863,6 +1863,125 @@ export const ITEMS = {
         requiresUntransformed: true,
         description: '百变怪（未变身时）持有时速度翻倍',
     },
+    
+    // ========== Gen 9 机制修缮道具 (Gen 9 Staples) ==========
+    
+    // --- 均等之骰 (Loaded Dice) ---
+    loadeddice: {
+        id: 'loadeddice',
+        name: 'Loaded Dice',
+        cnName: '均等之骰',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 30 },
+        effect: 'multiHitBoost',
+        description: '多段攻击招式保底命中4-5次',
+    },
+    
+    // --- 清净坠饰 (Clear Amulet) ---
+    clearamulet: {
+        id: 'clearamulet',
+        name: 'Clear Amulet',
+        cnName: '清净坠饰',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 30 },
+        effect: 'preventStatDrop',
+        description: '能力等级不会被对手降低',
+    },
+    
+    // --- 隐密斗篷 (Covert Cloak) ---
+    covertcloak: {
+        id: 'covertcloak',
+        name: 'Covert Cloak',
+        cnName: '隐密斗篷',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 30 },
+        effect: 'ignoreSecondary',
+        description: '免疫对手招式的追加效果',
+    },
+    
+    // ========== 经典功能性道具 (Classic Utility Items) ==========
+    
+    // --- 广角镜 (Wide Lens) ---
+    widelens: {
+        id: 'widelens',
+        name: 'Wide Lens',
+        cnName: '广角镜',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 10 },
+        effect: 'accuracyBoost',
+        accuracyMod: 1.1,
+        description: '命中率x1.1',
+    },
+    
+    // --- 贝壳之铃 (Shell Bell) ---
+    shellbell: {
+        id: 'shellbell',
+        name: 'Shell Bell',
+        cnName: '贝壳之铃',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 30 },
+        effect: 'drainOnHit',
+        drainRatio: 8, // 1/8
+        description: '造成伤害时恢复该伤害值1/8的HP',
+    },
+    
+    // --- 防护垫 (Protective Pads) ---
+    protectivepads: {
+        id: 'protectivepads',
+        name: 'Protective Pads',
+        cnName: '防护垫',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 30 },
+        effect: 'ignoreContact',
+        description: '使用接触类招式时不会触发接触反制效果',
+    },
+    
+    // --- 拳击手套 (Punching Glove) ---
+    punchingglove: {
+        id: 'punchingglove',
+        name: 'Punching Glove',
+        cnName: '拳击手套',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 30 },
+        effect: 'punchBoost',
+        powerMod: 1.1,
+        description: '拳头类招式威力x1.1，且不触发接触反制',
+    },
+    
+    // ========== 战术触发道具 (Tactical Triggers) ==========
+    
+    // --- 爽喉喷雾 (Throat Spray) ---
+    throatspray: {
+        id: 'throatspray',
+        name: 'Throat Spray',
+        cnName: '爽喉喷雾',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 30 },
+        effect: 'soundBoost',
+        boostOnSound: { spa: 1 },
+        description: '使用声音类招式后特攻+1（一次性）',
+    },
+    
+    // --- 路痴保险 (Blunder Policy) ---
+    blunderpolicy: {
+        id: 'blunderpolicy',
+        name: 'Blunder Policy',
+        cnName: '路痴保险',
+        category: 'held',
+        consumable: true,
+        fling: { basePower: 80 },
+        effect: 'missBoost',
+        boostOnMiss: { spe: 2 },
+        description: '招式Miss后速度+2（一次性）',
+    },
 };
 
 // ============================================
@@ -2357,6 +2476,187 @@ const ItemEffects = {
         if (itemData.plateType !== moveType) return 1;
         
         return itemData.boost || 1.2;
+    },
+    
+    // ============================================
+    // Gen 9 机制修缮道具效果
+    // ============================================
+    
+    /**
+     * 【均等之骰】获取多段攻击次数
+     * @param {Object} pokemon - 宝可梦
+     * @param {number} minHits - 最小次数
+     * @param {number} maxHits - 最大次数
+     * @returns {number} 实际命中次数
+     */
+    getMultiHitCount(pokemon, minHits = 2, maxHits = 5) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        
+        if (itemId === 'loadeddice') {
+            // 均等之骰：保底4-5次
+            return Math.random() < 0.5 ? 4 : 5;
+        }
+        
+        // 默认多段攻击概率分布 (2-5次)
+        // 2次: 35%, 3次: 35%, 4次: 15%, 5次: 15%
+        const roll = Math.random();
+        if (roll < 0.35) return 2;
+        if (roll < 0.70) return 3;
+        if (roll < 0.85) return 4;
+        return 5;
+    },
+    
+    /**
+     * 【清净坠饰】检查是否阻止能力下降
+     * @param {Object} pokemon - 防御方
+     * @param {Object} source - 来源（攻击方）
+     * @param {number} change - 能力变化值
+     * @returns {boolean} 是否阻止
+     */
+    checkClearAmulet(pokemon, source, change) {
+        if (change >= 0) return false; // 只阻止下降
+        
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId !== 'clearamulet') return false;
+        
+        // 检查是否来自对手
+        if (source && source !== pokemon) {
+            return true; // 阻止对手造成的能力下降
+        }
+        return false;
+    },
+    
+    /**
+     * 【隐密斗篷】检查是否免疫追加效果
+     * @param {Object} pokemon - 防御方
+     * @returns {boolean} 是否免疫
+     */
+    hasCovertCloak(pokemon) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return itemId === 'covertcloak';
+    },
+    
+    /**
+     * 【广角镜】获取命中率修正
+     * @param {Object} pokemon - 攻击方
+     * @returns {number} 命中率倍率
+     */
+    getAccuracyMod(pokemon) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId === 'widelens') return 1.1;
+        if (itemId === 'zoomlens') return 1.2; // 对焦镜（后手时）
+        return 1;
+    },
+    
+    /**
+     * 【贝壳之铃】造成伤害后回血
+     * @param {Object} pokemon - 攻击方
+     * @param {number} damage - 造成的伤害
+     * @param {Array} logs - 日志数组
+     * @returns {number} 回复的HP
+     */
+    checkShellBell(pokemon, damage, logs = []) {
+        if (damage <= 0) return 0;
+        
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId !== 'shellbell') return 0;
+        
+        const heal = Math.max(1, Math.floor(damage / 8));
+        const actualHeal = Math.min(heal, pokemon.maxHp - pokemon.currHp);
+        
+        if (actualHeal > 0) {
+            pokemon.currHp += actualHeal;
+            logs.push(`🔔 ${pokemon.cnName} 的贝壳之铃恢复了 ${actualHeal} HP!`);
+        }
+        
+        return actualHeal;
+    },
+    
+    /**
+     * 【防护垫/拳击手套】检查是否免疫接触反制
+     * @param {Object} pokemon - 攻击方
+     * @returns {boolean} 是否免疫
+     */
+    hasContactImmunity(pokemon) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return itemId === 'protectivepads' || itemId === 'punchingglove';
+    },
+    
+    /**
+     * 【拳击手套】获取拳头类招式威力加成
+     * @param {Object} pokemon - 攻击方
+     * @param {Object} move - 招式
+     * @returns {number} 威力倍率
+     */
+    getPunchingGloveBoost(pokemon, move) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId !== 'punchingglove') return 1;
+        
+        // 检查是否为拳头类招式
+        if (move.flags && move.flags.punch) return 1.1;
+        
+        // 备用：检查招式名称
+        const punchMoves = ['megapunch', 'firepunch', 'icepunch', 'thunderpunch', 
+            'machpunch', 'focuspunch', 'cometpunch', 'drainpunch', 'dynamicpunch',
+            'hammerarm', 'poweruppunch', 'shadowpunch', 'skyuppercut', 'bulletpunch',
+            'meteormash', 'dizzypunch', 'ragefist', 'surgingstrikes', 'wickedblow'];
+        const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (punchMoves.includes(moveId)) return 1.1;
+        
+        return 1;
+    },
+    
+    /**
+     * 【爽喉喷雾】使用声音招式后触发
+     * @param {Object} pokemon - 攻击方
+     * @param {Object} move - 招式
+     * @param {Array} logs - 日志数组
+     * @returns {boolean} 是否触发
+     */
+    checkThroatSpray(pokemon, move, logs = []) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId !== 'throatspray') return false;
+        
+        // 检查是否为声音类招式
+        const isSound = move.flags && move.flags.sound;
+        if (!isSound) return false;
+        
+        // 触发效果
+        if (!pokemon.boosts) pokemon.boosts = {};
+        const oldSpa = pokemon.boosts.spa || 0;
+        pokemon.boosts.spa = Math.min(6, oldSpa + 1);
+        
+        if (pokemon.boosts.spa > oldSpa) {
+            pokemon.item = null; // 消耗道具
+            logs.push(`<span style="color:#9b59b6">🎤 ${pokemon.cnName} 的爽喉喷雾发动! 特攻提升了!</span>`);
+            return true;
+        }
+        
+        return false;
+    },
+    
+    /**
+     * 【路痴保险】招式Miss后触发
+     * @param {Object} pokemon - 攻击方
+     * @param {Array} logs - 日志数组
+     * @returns {boolean} 是否触发
+     */
+    checkBlunderPolicy(pokemon, logs = []) {
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (itemId !== 'blunderpolicy') return false;
+        
+        // 触发效果
+        if (!pokemon.boosts) pokemon.boosts = {};
+        const oldSpe = pokemon.boosts.spe || 0;
+        pokemon.boosts.spe = Math.min(6, oldSpe + 2);
+        
+        if (pokemon.boosts.spe > oldSpe) {
+            pokemon.item = null; // 消耗道具
+            logs.push(`<span style="color:#e67e22">📋 ${pokemon.cnName} 的路痴保险发动! 速度大幅提升!</span>`);
+            return true;
+        }
+        
+        return false;
     },
 };
 

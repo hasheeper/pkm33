@@ -206,6 +206,13 @@ export async function handleEnemyFainted(e) {
     if (typeof window.playSFX === 'function') window.playSFX('FAINT');
     const battle = window.battle;
     
+    // 【Gen 9 Last Respects】增加敌方濒死计数（用于最后礼谢威力计算）
+    battle.enemyFaintCount = (battle.enemyFaintCount || 0) + 1;
+    console.log(`[Last Respects Counter] 敌方濒死次数: ${battle.enemyFaintCount}`);
+    
+    // 【Gen 9 Rage Fist】濒死时清零被攻击计数
+    e.timesAttacked = 0;
+    
     // 如果敌方处于极巨化状态，先清理极巨化视觉效果
     if (e.isDynamaxed) {
         if (e.originalName) {
@@ -455,6 +462,13 @@ export async function handleEnemyFainted(e) {
 export async function handlePlayerFainted(p) {
     if (typeof window.playSFX === 'function') window.playSFX('FAINT');
     const battle = window.battle;
+    
+    // 【Gen 9 Last Respects】增加玩家方濒死计数（用于最后礼谢威力计算）
+    battle.playerFaintCount = (battle.playerFaintCount || 0) + 1;
+    console.log(`[Last Respects Counter] 玩家方濒死次数: ${battle.playerFaintCount}`);
+    
+    // 【Gen 9 Rage Fist】濒死时清零被攻击计数
+    p.timesAttacked = 0;
     
     // 如果处于极巨化状态，先清理极巨化视觉效果
     if (p.isDynamaxed) {

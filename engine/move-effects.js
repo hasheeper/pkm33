@@ -1176,39 +1176,8 @@ function applyVolatileStatus(user, target, move) {
             return { success: true, logs };
             
         // ===================== 持续伤害/干扰类 =====================
+        // 注意：Leech Seed, Curse 已移至 move-handlers.js 统一处理
         
-        case 'Leech Seed':
-            // 寄生种子：每回合吸取 1/8 HP
-            if (target.types && target.types.includes('Grass')) {
-                logs.push(`对草属性宝可梦无效!`);
-                return { success: false, logs };
-            }
-            if (target.volatile.leechseed) {
-                logs.push(`但是失败了! (${target.cnName} 已经被种下种子了)`);
-                return { success: false, logs };
-            }
-            target.volatile.leechseed = true;
-            logs.push(`寄生种子种在了 ${target.cnName} 身上!`);
-            return { success: true, logs };
-            
-        case 'Curse':
-            // 诅咒：区分幽灵系和非幽灵系
-            if (user.types && user.types.includes('Ghost')) {
-                // 幽灵系：扣 50% HP，对方每回合掉 1/4
-                const curseCost = Math.floor(user.maxHp / 2);
-                if (user.currHp <= curseCost) {
-                    logs.push(`但是失败了! (HP 不足以施展诅咒)`);
-                    return { success: false, logs };
-                }
-                user.currHp -= curseCost;
-                target.volatile.curse = true;
-                logs.push(`${user.cnName} 削减了自己的体力，对 ${target.cnName} 施加了诅咒!`);
-                return { success: true, logs };
-            } else {
-                // 非幽灵系：速度-1，攻防+1（由 boosts 处理，这里只返回成功）
-                return { success: false, logs }; // 让默认的 boosts 处理
-            }
-            
         case 'Yawn':
             // 哈欠：下回合结束时睡着
             if (target.status) {
@@ -1223,22 +1192,7 @@ function applyVolatileStatus(user, target, move) {
             logs.push(`${target.cnName} 打了个哈欠...`);
             return { success: true, logs };
             
-        case 'Perish Song':
-            // 灭亡之歌：3回合后双方倒下
-            if (user.volatile.perishsong || target.volatile.perishsong) {
-                logs.push(`但是失败了!`);
-                return { success: false, logs };
-            }
-            user.volatile.perishsong = 3;
-            target.volatile.perishsong = 3;
-            logs.push(`所有听到歌声的宝可梦将在 3 回合后倒下!`);
-            return { success: true, logs };
-            
-        case 'Destiny Bond':
-            // 同命：如果自己倒下，对方也倒下
-            user.volatile.destinybond = true;
-            logs.push(`${user.cnName} 想要和对手同归于尽!`);
-            return { success: true, logs };
+        // 注意：Perish Song, Destiny Bond 已移至 move-handlers.js 统一处理
             
         // ===================== 束缚类 =====================
         

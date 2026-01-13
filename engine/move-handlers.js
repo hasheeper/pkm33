@@ -813,20 +813,6 @@ export const MoveHandlers = {
         description: '极巨化时的守住，与普通守住共享计数器'
     },
     
-    'Destiny Bond': {
-        onUse: (attacker, defender, logs) => {
-            // Gen 7+：连续使用必失败
-            if (attacker.lastMoveUsed === 'Destiny Bond') {
-                logs.push(`但是失败了! (同命不能连续使用)`);
-                return { failed: true };
-            }
-            logs.push(`${attacker.cnName} 想要和对手同归于尽!`);
-            if (attacker.volatile) attacker.volatile.destinyBond = true;
-            return {};
-        },
-        description: '本回合被击倒时对手也会倒下，不能连续使用'
-    },
-    
     // ============================================
     // 僵直类技能 (Recharge Moves)
     // ============================================
@@ -1261,32 +1247,7 @@ export const MoveHandlers = {
         description: '设置黏黏网'
     },
     
-    'Rapid Spin': {
-        onHit: (attacker, defender, damage, logs, battle) => {
-            logs.push(`${attacker.cnName} 急速旋转，扫除了场上的障碍!`);
-            if (battle && battle.hazards) {
-                battle.hazards = {};
-            }
-            // 清除自身的束缚状态
-            if (attacker.volatile) {
-                delete attacker.volatile.partiallytrapped;
-                delete attacker.volatile.leechseed;
-            }
-            return { clearHazards: true };
-        },
-        description: '清除己方场地障碍'
-    },
-    
-    'Defog': {
-        onHit: (attacker, defender, damage, logs, battle) => {
-            logs.push('场地上的障碍物被吹散了!');
-            if (battle) {
-                battle.hazards = {};
-            }
-            return { clearHazards: true };
-        },
-        description: '清除双方场地障碍'
-    },
+    // Rapid Spin, Defog 已在第3157行附近定义（完整版本，支持 side 和速度+1）
     
     // ============================================
     // 8. 蓄力技能 (Two-Turn Moves) - 简化为单回合
@@ -1319,22 +1280,7 @@ export const MoveHandlers = {
         description: '晴天下无需蓄力'
     },
     
-    'Hyper Beam': {
-        onHit: (attacker, defender, damage, logs) => {
-            logs.push(`<span style="color:#e74c3c">${attacker.cnName} 需要休息恢复!</span>`);
-            // 简化：不实际跳过回合，只是提示
-            return { recharge: true };
-        },
-        description: '使用后需要休息'
-    },
-    
-    'Giga Impact': {
-        onHit: (attacker, defender, damage, logs) => {
-            logs.push(`<span style="color:#e74c3c">${attacker.cnName} 需要休息恢复!</span>`);
-            return { recharge: true };
-        },
-        description: '使用后需要休息'
-    },
+    // Hyper Beam, Giga Impact 已在第820行附近定义（完整版本）
     
     // ============================================
     // 8.5 半无敌状态技能 (Semi-Invulnerable Moves)
@@ -1490,14 +1436,7 @@ export const MoveHandlers = {
         description: '使用者倒下'
     },
     
-    'Final Gambit': {
-        damageCallback: (attacker, defender) => {
-            const damage = attacker.currHp;
-            attacker.currHp = 0; // 使用者倒下
-            return damage;
-        },
-        description: '造成等于自身剩余 HP 的伤害，使用者倒下'
-    },
+    // Final Gambit 已在第3001行定义（完整版本）
     
     'Endeavor': {
         damageCallback: (attacker, defender) => {
@@ -1521,36 +1460,7 @@ export const MoveHandlers = {
         description: '平分双方 HP'
     },
     
-    'Destiny Bond': {
-        onUse: (attacker, defender, logs) => {
-            attacker.volatile = attacker.volatile || {};
-            attacker.volatile.destinyBond = true;
-            logs.push(`${attacker.cnName} 想要同归于尽!`);
-            return { destinyBond: true };
-        },
-        description: '如果倒下则带走对手'
-    },
-    
-    'Perish Song': {
-        onUse: (attacker, defender, logs) => {
-            logs.push('灭亡之歌响起了! 3 回合后场上的宝可梦都会倒下!');
-            // 简化：只是提示，不实际实现计数器
-            return { perishSong: true };
-        },
-        description: '3 回合后双方倒下'
-    },
-    
-    'Metronome': {
-        onUse: (attacker, defender, logs) => {
-            // 简化：随机选择一个常见攻击技能
-            const randomMoves = ['Flamethrower', 'Thunderbolt', 'Ice Beam', 'Psychic', 
-                                'Shadow Ball', 'Energy Ball', 'Earthquake', 'Surf'];
-            const chosen = randomMoves[Math.floor(Math.random() * randomMoves.length)];
-            logs.push(`${attacker.cnName} 挥动手指... 使出了 ${chosen}!`);
-            return { metronome: chosen };
-        },
-        description: '随机使用一个技能'
-    },
+    // Destiny Bond, Perish Song, Metronome 已移至第2876行附近的完整实现
     
     // ============================================
     // 10. 属性变化类技能 (Type Changing Moves)
@@ -2145,67 +2055,7 @@ export const MoveHandlers = {
     // 状态治疗技能 (Status Healing Moves)
     // ============================================
     
-    'Aromatherapy': {
-        onHit: (attacker, defender, damage, logs, battle) => {
-            // 治愈己方全队的异常状态（简化：只治愈自己）
-            let cured = false;
-            if (attacker.status) {
-                attacker.status = null;
-                attacker.statusTurns = 0;
-                cured = true;
-            }
-            
-            // 尝试治愈队友（如果有 battle 对象）
-            if (battle && battle.playerParty) {
-                battle.playerParty.forEach(pm => {
-                    if (pm && pm.status && pm.isAlive && pm.isAlive()) {
-                        pm.status = null;
-                        pm.statusTurns = 0;
-                        cured = true;
-                    }
-                });
-            }
-            
-            if (cured) {
-                logs.push(`芳香治疗的香气治愈了异常状态!`);
-            } else {
-                logs.push(`芳香四溢... 但好像没什么效果。`);
-            }
-            return { aromatherapy: true };
-        },
-        description: '治愈己方全队的异常状态'
-    },
-    
-    'Heal Bell': {
-        onHit: (attacker, defender, damage, logs, battle) => {
-            // 治愈己方全队的异常状态（简化：只治愈自己）
-            let cured = false;
-            if (attacker.status) {
-                attacker.status = null;
-                attacker.statusTurns = 0;
-                cured = true;
-            }
-            
-            // 尝试治愈队友
-            if (battle && battle.playerParty) {
-                battle.playerParty.forEach(pm => {
-                    if (pm && pm.status && pm.isAlive && pm.isAlive()) {
-                        pm.status = null;
-                        pm.statusTurns = 0;
-                        cured = true;
-                    }
-                });
-            }
-            
-            if (cured) {
-                logs.push(`治愈铃声回荡，异常状态被治愈了!`);
-            } else {
-                logs.push(`铃声回荡... 但好像没什么效果。`);
-            }
-            return { healBell: true };
-        },
-        description: '治愈己方全队的异常状态'
-    },
+    // Aromatherapy, Heal Bell 已在第3093行附近定义（简化版本）
     
     'Refresh': {
         onHit: (attacker, defender, damage, logs) => {
@@ -2298,31 +2148,7 @@ export const MoveHandlers = {
         description: '下回合结束时回复50%HP'
     },
     
-    'Healing Wish': {
-        onHit: (attacker, defender, damage, logs, battle) => {
-            // 自己倒下，完全治愈下一只出场的宝可梦
-            attacker.currHp = 0;
-            if (battle) {
-                battle.healingWishPending = true;
-            }
-            logs.push(`${attacker.cnName} 牺牲自己许下了治愈之愿!`);
-            return { healingWish: true, selfKO: true };
-        },
-        description: '自己倒下，完全治愈下一只出场的宝可梦'
-    },
-    
-    'Lunar Dance': {
-        onHit: (attacker, defender, damage, logs, battle) => {
-            // 自己倒下，完全治愈下一只出场的宝可梦（包括PP）
-            attacker.currHp = 0;
-            if (battle) {
-                battle.lunarDancePending = true;
-            }
-            logs.push(`${attacker.cnName} 跳起了新月之舞!`);
-            return { lunarDance: true, selfKO: true };
-        },
-        description: '自己倒下，完全治愈下一只出场的宝可梦'
-    },
+    // Healing Wish, Lunar Dance 已在第3016行附近定义（完整版本）
     
     'Shore Up': {
         onHit: (attacker, defender, damage, logs, battle) => {
@@ -2383,20 +2209,7 @@ export const MoveHandlers = {
         description: '每回合吸取对手1/8HP'
     },
     
-    'Pain Split': {
-        onHit: (attacker, defender, damage, logs) => {
-            // 平分双方HP
-            const totalHp = attacker.currHp + defender.currHp;
-            const splitHp = Math.floor(totalHp / 2);
-            
-            attacker.currHp = Math.min(splitHp, attacker.maxHp);
-            defender.currHp = Math.min(splitHp, defender.maxHp);
-            
-            logs.push(`双方平分了痛苦!`);
-            return { painSplit: true };
-        },
-        description: '平分双方当前HP'
-    },
+    // Pain Split 已在第1459行定义
     
     // ============================================
     // 吸血/反伤技能补充 (Drain/Recoil Moves)
@@ -3137,6 +2950,23 @@ export const MoveHandlers = {
             return { success: true };
         },
         description: '如果这回合被击倒，击倒自己的对手也会倒下'
+    },
+
+    // 【灭亡之歌】3回合后双方倒下
+    'Perish Song': {
+        onUse: (user, target, logs) => {
+            if (!user.volatile) user.volatile = {};
+            if (!target.volatile) target.volatile = {};
+            if (user.volatile.perishsong || target.volatile.perishsong) {
+                logs.push(`但是失败了!`);
+                return { failed: true };
+            }
+            user.volatile.perishsong = 3;
+            target.volatile.perishsong = 3;
+            logs.push(`<b style="color:#7c3aed">🎵 灭亡之歌响起！所有听到歌声的宝可梦将在 3 回合后倒下！</b>`);
+            return { success: true };
+        },
+        description: '3回合后场上所有宝可梦倒下'
     },
 
     // 【挣扎】PP耗尽时的最后手段
@@ -4380,6 +4210,388 @@ export const MoveHandlers = {
             }
         },
         description: '持续3回合大吵大闹，期间全场无法入睡，已睡着的会被吵醒'
+    },
+    
+    // ============================================
+    // 【Gen 9 核心招式】
+    // ============================================
+    
+    // ============================================
+    // 【愤怒之拳 Rage Fist】- 弃世猴核心招式
+    // 威力 = 50 + 50 × 被攻击次数，上限 350
+    // 计数器绑定在宝可梦个体上，换人不重置，濒死才清零
+    // ============================================
+    'Rage Fist': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // timesAttacked 是持久化属性，在宝可梦受到攻击时累加
+            const timesHit = attacker.timesAttacked || 0;
+            // 威力 = 50 + 50 × 被攻击次数，最高 350 (被打6次)
+            const power = Math.min(350, 50 + 50 * timesHit);
+            console.log(`[Rage Fist] ${attacker.cnName} 被攻击 ${timesHit} 次，威力 = ${power}`);
+            return power;
+        },
+        description: '威力随被攻击次数增加 (50 + 50×次数)，上限350，换人不重置'
+    },
+    
+    // ============================================
+    // 【最后礼谢 Last Respects】- 扫墓犬核心招式
+    // 威力 = 50 + 50 × 己方队伍濒死次数
+    // 注意：是"濒死次数"而非"濒死数量"，复活再死算2次
+    // ============================================
+    'Last Respects': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 从 battle 对象获取己方濒死计数
+            const isPlayer = battle && (attacker === battle.playerParty?.[battle.playerActive]);
+            let faintCount = 0;
+            
+            if (battle) {
+                if (isPlayer) {
+                    faintCount = battle.playerFaintCount || 0;
+                } else {
+                    faintCount = battle.enemyFaintCount || 0;
+                }
+            }
+            
+            // 威力 = 50 + 50 × 濒死次数，上限 5050 (100次)，实战中通常 300-350
+            const power = Math.min(5050, 50 + 50 * faintCount);
+            console.log(`[Last Respects] 己方濒死 ${faintCount} 次，威力 = ${power}`);
+            return power;
+        },
+        description: '威力随己方队伍濒死次数增加 (50 + 50×次数)'
+    },
+    
+    // ============================================
+    // 【盐腌 Salt Cure】- 盐石巨灵核心招式
+    // 命中后施加 saltcure 状态，每回合扣 1/8 HP (水/钢系 1/4)
+    // 状态由 moves-data.js 的 secondary.volatileStatus 施加
+    // 回合结束伤害在 battle-turns.js 处理
+    // ============================================
+    'Salt Cure': {
+        onHit: (user, target, damageDealt, logs, battle) => {
+            // 检查隐密斗篷 (Covert Cloak) 免疫追加效果
+            const targetItem = (target.item || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (targetItem === 'covertcloak') {
+                logs.push(`${target.cnName} 的隐密斗篷阻止了盐腌效果!`);
+                return {};
+            }
+            
+            // 状态施加由 secondary.volatileStatus 处理
+            // 这里只输出提示信息
+            if (!target.volatile) target.volatile = {};
+            if (!target.volatile.saltcure) {
+                target.volatile.saltcure = true;
+                logs.push(`<span style="color:#9b59b6">🧂 ${target.cnName} 被盐腌了!</span>`);
+            }
+            return {};
+        },
+        description: '命中后施加盐腌状态，每回合扣 1/8 HP (水/钢系 1/4)'
+    },
+    
+    // ============================================
+    // 【大整理 Tidy Up】- 一家鼠核心招式
+    // 清理己方场地钉子 + 双方替身，然后攻击+1、速度+1
+    // ============================================
+    'Tidy Up': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            let clearedAnything = false;
+            
+            // 1. 清理己方场地钉子
+            const mySide = isPlayer ? battle?.playerSide : battle?.enemySide;
+            const sideNameCN = isPlayer ? "我方" : "敌方";
+            
+            if (mySide) {
+                if (mySide.stealthRock) {
+                    mySide.stealthRock = false;
+                    logs.push(`${sideNameCN}场地的隐形岩消失了!`);
+                    clearedAnything = true;
+                }
+                if (mySide.spikes > 0) {
+                    mySide.spikes = 0;
+                    logs.push(`${sideNameCN}场地的撒菱消失了!`);
+                    clearedAnything = true;
+                }
+                if (mySide.toxicSpikes > 0) {
+                    mySide.toxicSpikes = 0;
+                    logs.push(`${sideNameCN}场地的毒菱消失了!`);
+                    clearedAnything = true;
+                }
+                if (mySide.stickyWeb) {
+                    mySide.stickyWeb = false;
+                    logs.push(`${sideNameCN}场地的黏黏网消失了!`);
+                    clearedAnything = true;
+                }
+            }
+            
+            // 2. 清理双方替身
+            if (battle) {
+                const playerPoke = battle.playerParty?.[battle.playerActive];
+                const enemyPoke = battle.enemyParty?.[battle.enemyActive];
+                
+                if (playerPoke?.volatile?.substitute) {
+                    delete playerPoke.volatile.substitute;
+                    logs.push(`${playerPoke.cnName} 的替身被收走了!`);
+                    clearedAnything = true;
+                }
+                if (enemyPoke?.volatile?.substitute) {
+                    delete enemyPoke.volatile.substitute;
+                    logs.push(`${enemyPoke.cnName} 的替身被收走了!`);
+                    clearedAnything = true;
+                }
+            }
+            
+            // 3. 无论是否清理了东西，都进行能力提升
+            logs.push(`<span style="color:#3498db">🧹 ${user.cnName} 进行了大整理!</span>`);
+            
+            // 攻击+1，速度+1
+            if (!user.boosts) user.boosts = {};
+            const oldAtk = user.boosts.atk || 0;
+            const oldSpe = user.boosts.spe || 0;
+            user.boosts.atk = Math.min(6, oldAtk + 1);
+            user.boosts.spe = Math.min(6, oldSpe + 1);
+            
+            const atkMsg = user.boosts.atk > oldAtk ? `攻击提升了!` : `攻击已经无法再提升了!`;
+            const speMsg = user.boosts.spe > oldSpe ? `速度提升了!` : `速度已经无法再提升了!`;
+            logs.push(`${user.cnName} 的${atkMsg}`);
+            logs.push(`${user.cnName} 的${speMsg}`);
+            
+            return {};
+        },
+        description: '清理己方钉子和双方替身，攻击+1、速度+1'
+    },
+    
+    // ============================================
+    // 【冷笑话 Chilly Reception】- 呆呆王(伽勒尔)核心招式
+    // 先将天气改为下雪，然后换人
+    // 数据驱动: weather: 'snowscape', selfSwitch: true
+    // ============================================
+    'Chilly Reception': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 1. 设置天气为下雪
+            const oldWeather = battle?.weather;
+            
+            // 检查是否被极端天气阻止
+            if (oldWeather === 'harshsun' || oldWeather === 'heavyrain' || oldWeather === 'strongwinds') {
+                logs.push(`但是天气没有变化...`);
+            } else if (oldWeather === 'snow' || oldWeather === 'snowscape') {
+                logs.push(`天气已经是下雪了。`);
+            } else {
+                if (battle) {
+                    battle.weather = 'snow';
+                    battle.weatherTurns = 5;
+                }
+                logs.push(`<span style="color:#3498db">❄️ ${user.cnName} 讲了个冷笑话! 下起雪来了!</span>`);
+            }
+            
+            // 2. 换人效果由 selfSwitch: true 数据驱动处理
+            // 这里返回 pivot 标记
+            return { pivot: true };
+        },
+        description: '将天气改为下雪，然后换人'
+    },
+    
+    // ============================================
+    // 【复生祈祷 Revival Blessing】- 复活一只濒死的队友
+    // PP 只有 1，复活后回复 50% HP
+    // 需要 UI 支持选择濒死队友
+    // ============================================
+    'Revival Blessing': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 检查是否有濒死的队友
+            const party = isPlayer ? battle?.playerParty : battle?.enemyParty;
+            if (!party) {
+                logs.push(`但是失败了!`);
+                return { failed: true };
+            }
+            
+            const faintedMembers = party.filter((p, idx) => {
+                const activeIdx = isPlayer ? battle.playerActive : battle.enemyActive;
+                return p && !p.isAlive() && idx !== activeIdx;
+            });
+            
+            if (faintedMembers.length === 0) {
+                logs.push(`但是没有可以复活的队友!`);
+                return { failed: true };
+            }
+            
+            // 标记需要选择复活目标
+            // 实际复活逻辑需要 UI 配合，这里先处理 AI 的情况
+            if (!isPlayer) {
+                // AI: 随机选择一只濒死的队友复活
+                const toRevive = faintedMembers[Math.floor(Math.random() * faintedMembers.length)];
+                const reviveHp = Math.floor(toRevive.maxHp / 2);
+                toRevive.currHp = reviveHp;
+                // 清除异常状态（虽然濒死时应该已经清了）
+                toRevive.status = null;
+                toRevive.statusTurns = 0;
+                logs.push(`<span style="color:#2ecc71">✨ ${user.cnName} 使用了复生祈祷!</span>`);
+                logs.push(`<span style="color:#2ecc71">🙏 ${toRevive.cnName} 复活了! (HP: ${reviveHp}/${toRevive.maxHp})</span>`);
+                return {};
+            }
+            
+            // 玩家: 需要 UI 选择，这里标记需要选择
+            logs.push(`<span style="color:#2ecc71">✨ ${user.cnName} 使用了复生祈祷!</span>`);
+            return { 
+                needRevivalChoice: true,
+                faintedMembers: faintedMembers
+            };
+        },
+        description: '复活一只濒死的队友，回复 50% HP (PP: 1)'
+    },
+    
+    // ============================================
+    // 【调用类招式 - 简化版】
+    // ============================================
+    
+    // ============================================
+    // 【仿效 Copycat】- 简化版：从对手4技能中随机抽一个使用
+    // ============================================
+    'Copycat': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 简化版：从对手当前的技能池中随机抽一个
+            const opponent = isPlayer ? battle?.getEnemy() : battle?.getPlayer();
+            if (!opponent || !opponent.moves || opponent.moves.length === 0) {
+                logs.push(`但是失败了!`);
+                return { failed: true };
+            }
+            
+            // 过滤掉不能被复制的技能
+            const copyableMoves = opponent.moves.filter(m => {
+                const moveId = (m.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                // 黑名单：不能复制的技能
+                const blacklist = ['copycat', 'metronome', 'mimic', 'sketch', 'transform', 'assist'];
+                return !blacklist.includes(moveId);
+            });
+            
+            if (copyableMoves.length === 0) {
+                logs.push(`但是没有可以仿效的招式!`);
+                return { failed: true };
+            }
+            
+            // 随机选择一个技能
+            const copiedMove = copyableMoves[Math.floor(Math.random() * copyableMoves.length)];
+            logs.push(`<span style="color:#9b59b6">🎭 ${user.cnName} 仿效了 ${copiedMove.cn || copiedMove.name}!</span>`);
+            
+            // 返回要执行的招式
+            return { 
+                callMove: copiedMove,
+                copycat: true
+            };
+        },
+        description: '从对手的技能中随机选择一个使用'
+    },
+    
+    // ============================================
+    // 【自然之力 Nature Power】- 根据场地变换招式
+    // ============================================
+    'Nature Power': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 根据当前场地决定使用什么招式
+            const terrain = battle?.terrain || null;
+            
+            let moveName, moveCn;
+            switch (terrain) {
+                case 'electricterrain':
+                    moveName = 'Thunderbolt';
+                    moveCn = '十万伏特';
+                    break;
+                case 'grassyterrain':
+                    moveName = 'Energy Ball';
+                    moveCn = '能量球';
+                    break;
+                case 'mistyterrain':
+                    moveName = 'Moonblast';
+                    moveCn = '月亮之力';
+                    break;
+                case 'psychicterrain':
+                    moveName = 'Psychic';
+                    moveCn = '精神强念';
+                    break;
+                default:
+                    // 无场地时使用三重攻击
+                    moveName = 'Tri Attack';
+                    moveCn = '三重攻击';
+            }
+            
+            logs.push(`<span style="color:#27ae60">🌿 自然之力变成了 ${moveCn}!</span>`);
+            
+            // 构造要调用的招式
+            const calledMove = {
+                name: moveName,
+                cn: moveCn
+            };
+            
+            return { 
+                callMove: calledMove,
+                naturePower: true
+            };
+        },
+        description: '根据场地变换招式：电气→十万伏特，青草→能量球，薄雾→月亮之力，精神→精神强念，无→三重攻击'
+    },
+    
+    // ============================================
+    // 【限制类招式】
+    // ============================================
+    
+    // ============================================
+    // 【巨力锤 Gigaton Hammer】- 不能连续使用两次
+    // ============================================
+    'Gigaton Hammer': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 检查上一次使用的招式是否是巨力锤
+            if (user.lastMoveUsed === 'Gigaton Hammer') {
+                logs.push(`<span style="color:#e74c3c">巨力锤还在冷却中，无法连续使用!</span>`);
+                return { failed: true };
+            }
+            return {};
+        },
+        onAfterMove: (user, target, move, logs, battle) => {
+            // 记录使用了巨力锤
+            user.lastMoveUsed = 'Gigaton Hammer';
+        },
+        description: '威力160的钢系物理技，不能连续使用两次'
+    },
+    
+    // ============================================
+    // 【戟脊龙突 Glaive Rush】- 简化版：使用后双防-1
+    // ============================================
+    'Glaive Rush': {
+        onAfterMove: (user, target, move, logs, battle) => {
+            // 简化版：使用后双防下降1级
+            if (!user.boosts) user.boosts = {};
+            const oldDef = user.boosts.def || 0;
+            const oldSpd = user.boosts.spd || 0;
+            
+            user.boosts.def = Math.max(-6, oldDef - 1);
+            user.boosts.spd = Math.max(-6, oldSpd - 1);
+            
+            logs.push(`<span style="color:#e74c3c">⚔️ ${user.cnName} 因猛攻而露出破绽!</span>`);
+            if (user.boosts.def < oldDef) {
+                logs.push(`${user.cnName} 的防御下降了!`);
+            }
+            if (user.boosts.spd < oldSpd) {
+                logs.push(`${user.cnName} 的特防下降了!`);
+            }
+        },
+        description: '威力120的龙系物理技，使用后双防-1'
+    },
+    
+    // ============================================
+    // 【灵骚 Poltergeist】- 对手没有道具则失败
+    // ============================================
+    'Poltergeist': {
+        onUse: (user, target, logs, battle, isPlayer) => {
+            // 检查对手是否持有道具
+            const opponent = isPlayer ? battle?.getEnemy() : battle?.getPlayer();
+            if (!opponent || !opponent.item) {
+                logs.push(`<span style="color:#e74c3c">但是 ${opponent?.cnName || '对手'} 没有携带道具!</span>`);
+                return { failed: true };
+            }
+            
+            // 简化版：不显示具体道具名称，只提示有道具
+            logs.push(`<span style="color:#9b59b6">👻 ${user.cnName} 操纵了 ${opponent.cnName} 的道具进行攻击!</span>`);
+            return {};
+        },
+        description: '威力110的幽灵物理技，对手没有道具则失败'
     }
 };
 

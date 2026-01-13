@@ -2028,7 +2028,214 @@ export const AbilityHandlers = {
                 }
             }
         }
+    },
+    
+    // ============================================
+    // H. 皮肤系特性 (The "-ate" Abilities)
+    // 普通系招式转换为其他属性，威力x1.2
+    // ============================================
+
+    // 【妖精皮肤】普通系招式变为妖精系，威力x1.2
+    'Pixilate': {
+        onModifyType: (move, attacker, battle) => {
+            const moveType = move.type || 'Normal';
+            if (moveType === 'Normal') {
+                return { newType: 'Fairy', powerBoost: 1.2 };
+            }
+            return null;
+        }
+    },
+
+    // 【飞行皮肤】普通系招式变为飞行系，威力x1.2
+    'Aerilate': {
+        onModifyType: (move, attacker, battle) => {
+            const moveType = move.type || 'Normal';
+            if (moveType === 'Normal') {
+                return { newType: 'Flying', powerBoost: 1.2 };
+            }
+            return null;
+        }
+    },
+
+    // 【冰冻皮肤】普通系招式变为冰系，威力x1.2
+    'Refrigerate': {
+        onModifyType: (move, attacker, battle) => {
+            const moveType = move.type || 'Normal';
+            if (moveType === 'Normal') {
+                return { newType: 'Ice', powerBoost: 1.2 };
+            }
+            return null;
+        }
+    },
+
+    // 【电气皮肤】普通系招式变为电系，威力x1.2
+    'Galvanize': {
+        onModifyType: (move, attacker, battle) => {
+            const moveType = move.type || 'Normal';
+            if (moveType === 'Normal') {
+                return { newType: 'Electric', powerBoost: 1.2 };
+            }
+            return null;
+        }
+    },
+
+    // ============================================
+    // I. 灾祸系列 (The "Ruins" - Gen 9)
+    // 简化版：直接修改自身造成的伤害
+    // ============================================
+
+    // 【灾祸之剑】自己造成的物理伤害x1.33 (简化版)
+    'Sword of Ruin': {
+        onAttackerModifyDamage: (damage, attacker, defender, move, battle) => {
+            const isPhysical = move.cat === 'phys' || move.category === 'Physical';
+            if (isPhysical) {
+                return Math.floor(damage * 1.33);
+            }
+            return damage;
+        },
+        onSwitchIn: (pokemon, logs) => {
+            logs.push(`<span style="color:#e74c3c">⚔️ ${pokemon.cnName} 的灾祸之剑散发着不祥的气息!</span>`);
+        }
+    },
+
+    // 【灾祸之玉】自己造成的特殊伤害x1.33 (简化版)
+    'Beads of Ruin': {
+        onAttackerModifyDamage: (damage, attacker, defender, move, battle) => {
+            const isSpecial = move.cat === 'spec' || move.category === 'Special';
+            if (isSpecial) {
+                return Math.floor(damage * 1.33);
+            }
+            return damage;
+        },
+        onSwitchIn: (pokemon, logs) => {
+            logs.push(`<span style="color:#9b59b6">💎 ${pokemon.cnName} 的灾祸之玉散发着不祥的气息!</span>`);
+        }
+    },
+
+    // 【灾祸之简】受到的物理伤害x0.75 (简化版)
+    'Tablets of Ruin': {
+        onDefenderModifyDamage: (damage, attacker, defender, move, battle) => {
+            const isPhysical = move.cat === 'phys' || move.category === 'Physical';
+            if (isPhysical) {
+                return Math.floor(damage * 0.75);
+            }
+            return damage;
+        },
+        onSwitchIn: (pokemon, logs) => {
+            logs.push(`<span style="color:#f39c12">📜 ${pokemon.cnName} 的灾祸之简散发着不祥的气息!</span>`);
+        }
+    },
+
+    // 【灾祸之鼎】受到的特殊伤害x0.75 (简化版)
+    'Vessel of Ruin': {
+        onDefenderModifyDamage: (damage, attacker, defender, move, battle) => {
+            const isSpecial = move.cat === 'spec' || move.category === 'Special';
+            if (isSpecial) {
+                return Math.floor(damage * 0.75);
+            }
+            return damage;
+        },
+        onSwitchIn: (pokemon, logs) => {
+            logs.push(`<span style="color:#1abc9c">🏺 ${pokemon.cnName} 的灾祸之鼎散发着不祥的气息!</span>`);
+        }
+    },
+
+    // ============================================
+    // J. 风险回报类 (Risk & Reward)
+    // ============================================
+
+    // 【活力】物攻x1.5，命中率x0.8
+    'Hustle': {
+        onModifyStat: (stats, poke, battle) => {
+            stats.atk = Math.floor(stats.atk * 1.5);
+        },
+        onModifyAccuracy: (accuracy, attacker, defender, move, battle) => {
+            const isPhysical = move.cat === 'phys' || move.category === 'Physical';
+            if (isPhysical && typeof accuracy === 'number') {
+                return Math.floor(accuracy * 0.8);
+            }
+            return accuracy;
+        }
+    },
+
+    // 【分析】后手攻击威力x1.3
+    'Analytic': {
+        onBasePower: (power, attacker, defender, move, battle) => {
+            // 简化判定：如果对手本回合已经行动过，则视为后手
+            if (defender.hasActedThisTurn) {
+                return Math.floor(power * 1.3);
+            }
+            return power;
+        }
+    },
+
+    // ============================================
+    // K. 被动触发类 (Reactive)
+    // ============================================
+
+    // 【正义之心】受到恶系伤害后攻击+1
+    'Justified': {
+        onDamageTaken: (pokemon, damage, source, logs, move) => {
+            if (damage > 0 && move && move.type === 'Dark') {
+                if (!pokemon.boosts) pokemon.boosts = {};
+                const oldAtk = pokemon.boosts.atk || 0;
+                pokemon.boosts.atk = Math.min(6, oldAtk + 1);
+                if (pokemon.boosts.atk > oldAtk) {
+                    logs.push(`<span style="color:#3498db">⚔️ ${pokemon.cnName} 的正义之心发动! 攻击提升了!</span>`);
+                }
+            }
+        }
+    },
+
+    // 【蒸汽机】受到水/火系伤害后速度+6
+    'Steam Engine': {
+        onDamageTaken: (pokemon, damage, source, logs, move) => {
+            if (damage > 0 && move && (move.type === 'Water' || move.type === 'Fire')) {
+                if (!pokemon.boosts) pokemon.boosts = {};
+                const oldSpe = pokemon.boosts.spe || 0;
+                pokemon.boosts.spe = 6; // 直接拉满
+                if (pokemon.boosts.spe > oldSpe) {
+                    logs.push(`<span style="color:#e67e22">🚂 ${pokemon.cnName} 的蒸汽机全力运转! 速度极大幅提升!</span>`);
+                }
+            }
+        }
+    },
+
+    // 【诅咒之躯】受到伤害后30%概率定身对手招式
+    'Cursed Body': {
+        onDamageTaken: (pokemon, damage, source, logs, move) => {
+            if (damage > 0 && source && move && Math.random() < 0.3) {
+                if (!source.volatile) source.volatile = {};
+                source.volatile.disable = move.name;
+                source.volatile.disableTurns = 4;
+                logs.push(`<span style="color:#9b59b6">👻 ${pokemon.cnName} 的诅咒之躯发动! ${source.cnName} 的 ${move.cn || move.name} 被封印了!</span>`);
+            }
+        }
+    },
+
+    // ============================================
+    // L. 简单数值类 (Simple Stat Modifiers)
+    // ============================================
+
+    // 【耐热】受到火系伤害减半
+    'Heatproof': {
+        onDefenderModifyDamage: (damage, attacker, defender, move, battle) => {
+            if (move.type === 'Fire') {
+                return Math.floor(damage * 0.5);
+            }
+            return damage;
+        }
+    },
+
+    // 【单纯】能力变化翻倍
+    'Simple': {
+        onBoostChange: (pokemon, stat, change) => {
+            return change * 2; // 翻倍
+        }
     }
+    
+    // 【唱反调 Contrary】已在 battle-engine.js 的 applyBoost 中实现
+    // 不在此重复定义
 };
 
 // ============================================
@@ -2099,6 +2306,9 @@ AbilityHandlers._moldBreakerAbilities = ['moldbreaker', 'teravolt', 'turboblaze'
 
 // 睡眠免疫特性
 AbilityHandlers._sleepImmuneAbilities = ['insomnia', 'vitalspirit', 'comatose', 'purifyingsalt', 'sweetveil'];
+
+// 皮肤系特性
+AbilityHandlers._ateAbilities = ['pixilate', 'aerilate', 'refrigerate', 'galvanize'];
 
 // 导出到全局
 if (typeof window !== 'undefined') {
