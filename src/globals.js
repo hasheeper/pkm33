@@ -128,9 +128,6 @@ window.isMegaStone = isMegaStone;
 window.isZCrystal = isZCrystal;
 window.isSwappable = isSwappable;
 
-// 训练家数据
-window.TRAINER_GLOBALS = TRAINER_GLOBALS;
-
 // 属性克制
 window.TYPE_CHART = TYPE_CHART;
 window.NATURE_MODIFIERS = NATURE_MODIFIERS;
