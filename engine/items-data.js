@@ -1810,6 +1810,33 @@ export const ITEMS = {
         critBoost: 2,
         description: '吉利蛋持有时容易击中要害',
     },
+    
+    // ============================================
+    // 暴击强化道具 (Crit-Boosting Items)
+    // ============================================
+    scopelens: {
+        id: 'scopelens',
+        name: 'Scope Lens',
+        cnName: '焦点镜',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 30 },
+        effect: 'critBoost',
+        critBoost: 1,
+        description: '持有时容易击中要害（暴击等级+1）',
+    },
+    razorclaw: {
+        id: 'razorclaw',
+        name: 'Razor Claw',
+        cnName: '锐利之爪',
+        category: 'held',
+        consumable: false,
+        fling: { basePower: 80 },
+        effect: 'critBoost',
+        critBoost: 1,
+        description: '持有时容易击中要害（暴击等级+1）',
+    },
+    
     metalpowder: {
         id: 'metalpowder',
         name: 'Metal Powder',

@@ -590,66 +590,131 @@ export function calcDamage(attacker, defender, move, options = {}) {
     let isCrit = false;
     let commandCritTriggered = false;
     
-    // 【磨砺 Laser Focus】必定暴击
-    if (attacker.volatile && attacker.volatile.laserfocus) {
+    // =====================================================
+    // 【防暴击判定】优先级最高
+    // =====================================================
+    const defenderAbility = defender.ability || '';
+    const defenderAh = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers[defenderAbility]) || {};
+    const preventCrit = defenderAh.preventCrit === true; // Battle Armor / Shell Armor
+    
+    if (preventCrit) {
+        isCrit = false;
+        console.log(`[CRIT BLOCKED] ${defender.cnName} 的 ${defenderAbility} 阻止了暴击！`);
+    }
+    // =====================================================
+    // 【强制暴击判定】
+    // =====================================================
+    else if (attacker.volatile && attacker.volatile.laserfocus) {
+        // 【磨砺 Laser Focus】必定暴击
         isCrit = true;
         console.log(`[LASER FOCUS] ${attacker.cnName} 的磨砺使攻击必定暴击！`);
         delete attacker.volatile.laserfocus;
     } else if (fullMoveData.willCrit) {
+        // 【必暴招式】冰息、山岚摔、暗冥强击、水流连打、千变万花
         isCrit = true;
+        console.log(`[WILL CRIT] ${fullMoveData.name} 必定暴击！`);
     } else {
-        // =====================================================
-        // === 暴击率计算（基于正版宝可梦机制） ===
-        // =====================================================
-        // 正版暴击阶段：+0 = 1/24 (~4.17%), +1 = 1/8 (12.5%), +2 = 1/2 (50%), +3+ = 100%
-        // 本系统简化为：基础 4.17%，高暴击招式 +12.5%，超高暴击招式再 +25%
-        let baseCritChance = 1 / 24; // ~4.17%，正版基础暴击率
-        
-        // AVs: Passion 暴击加成（仅限 isAce 宝可梦）
-        // 【线性机制】暴击概率加成 = (effectivePassion / 255) * 0.20
-        // 满值 255 时 +20% 暴击率
-        let passionBonus = 0;
-        if (attacker.isAce && attacker.avs) {
-            const basePassion = attacker.getEffectiveAVs('passion');
-            // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
-            if (basePassion > 0) {
-                const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
-                // 线性暴击概率加成：满值 +20%
-                passionBonus = (Math.min(effectivePassion, 255) / 255) * 0.20;
-                console.log(`[AVs] Passion 暴击加成: +${(passionBonus * 100).toFixed(1)}% (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
+        // 【不仁不义 Merciless】攻击中毒目标必暴
+        const attackerAbility = attacker.ability || '';
+        const attackerAh = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers[attackerAbility]) || {};
+        if (attackerAh.onCheckCrit) {
+            const forceCrit = attackerAh.onCheckCrit(attacker, defender);
+            if (forceCrit === true) {
+                isCrit = true;
             }
         }
         
-        let critChance = baseCritChance + passionBonus;
-        
-        // 【战术指挥】FOCUS! 指令：当回合提供 40% 基础暴击率（独立于普通暴击）
-        // 点击后仅当回合生效，与普通暴击率叠加
-        if (attacker.commandCritActive) {
-            const focusBonus = 0.40; // FOCUS! 提供 40% 暴击率
-            critChance += focusBonus;
-            critChance = Math.min(critChance, 1.0); // 上限 100%
-            commandCritTriggered = true;
-            console.log(`[COMMANDER] FOCUS! 指令激活！+40% 暴击率！(总计: ${(critChance * 100).toFixed(1)}%)`);
-            // 只在非模拟模式下消耗（isSimulation 参数由调用方传入）
-            if (!options.isSimulation) {
-                attacker.commandCritActive = false; // 使用后消耗
+        if (!isCrit) {
+            // =====================================================
+            // === 暴击等级计算（正版机制） ===
+            // Stage 0: 1/24 (~4.17%), 1: 1/8 (12.5%), 2: 1/2 (50%), 3+: 100%
+            // =====================================================
+            let critStage = 0;
+            
+            // 1. 招式自带暴击等级 (critRatio - 1)
+            const moveCritRatio = fullMoveData.critRatio || 1;
+            critStage += (moveCritRatio - 1);
+            
+            // 2. 聚气状态 (+2)
+            if (attacker.volatile && attacker.volatile.focusenergy) {
+                critStage += 2;
+                console.log(`[Focus Energy] ${attacker.cnName} 处于聚气状态，暴击等级 +2`);
             }
+            
+            // 3. 特性加成 (Super Luck +1)
+            if (attackerAh.critStageBoost) {
+                critStage += attackerAh.critStageBoost;
+                console.log(`[${attackerAbility}] 暴击等级 +${attackerAh.critStageBoost}`);
+            }
+            
+            // 4. 道具加成 (Scope Lens/Razor Claw +1, Leek/Lucky Punch +2)
+            const itemId = (attacker.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const itemData = (typeof ITEMS !== 'undefined' && ITEMS[itemId]) || {};
+            if (itemData.critBoost) {
+                // 检查专属道具限制
+                let canUseCritBoost = true;
+                if (itemData.itemUser && itemData.itemUser.length > 0) {
+                    const pokemonName = (attacker.name || '').replace(/-/g, '');
+                    canUseCritBoost = itemData.itemUser.some(user => 
+                        pokemonName.toLowerCase().includes(user.toLowerCase().replace(/-/g, ''))
+                    );
+                }
+                if (canUseCritBoost) {
+                    critStage += itemData.critBoost;
+                    console.log(`[${itemData.name}] 暴击等级 +${itemData.critBoost}`);
+                }
+            }
+            
+            // 5. 暴击等级上限为 3
+            critStage = Math.min(3, critStage);
+            
+            // 6. 根据暴击等级计算概率
+            // Stage 0: 1/24, 1: 1/8, 2: 1/2, 3+: 1/1
+            const critRates = [1/24, 1/8, 1/2, 1];
+            let critChance = critRates[critStage] || critRates[0];
+            
+            // 7. AVs: Passion 暴击加成（仅限 isAce 宝可梦，额外叠加）
+            if (attacker.isAce && attacker.avs) {
+                const basePassion = attacker.getEffectiveAVs('passion');
+                if (basePassion > 0) {
+                    const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
+                    const passionBonus = (Math.min(effectivePassion, 255) / 255) * 0.20;
+                    critChance += passionBonus;
+                    console.log(`[AVs] Passion 暴击加成: +${(passionBonus * 100).toFixed(1)}% (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
+                }
+            }
+            
+            // 8. 【战术指挥】FOCUS! 指令：当回合 +40% 暴击率
+            if (attacker.commandCritActive) {
+                critChance += 0.40;
+                commandCritTriggered = true;
+                console.log(`[COMMANDER] FOCUS! 指令激活！+40% 暴击率！`);
+                if (!options.isSimulation) {
+                    attacker.commandCritActive = false;
+                }
+            }
+            
+            critChance = Math.min(critChance, 1.0);
+            console.log(`[CRIT CHECK] 暴击等级=${critStage}, 最终概率=${(critChance * 100).toFixed(1)}%`);
+            
+            if (Math.random() < critChance) isCrit = true;
         }
-        
-        // 招式自带高暴击率加成（critRatio 对应正版暴击阶段）
-        const moveCritRatio = fullMoveData.critRatio || 1;
-        if (moveCritRatio >= 2) {
-            critChance += 0.125; // +12.5%（相当于 +1 阶段）
-        }
-        if (moveCritRatio >= 3) {
-            critChance += 0.25; // 再 +25%（相当于 +2 阶段）
-        }
-        
-        critChance = Math.min(critChance, 1.0); // 上限 100%
-        
-        if (Math.random() < critChance) isCrit = true;
     }
-    const critMod = isCrit ? 1.5 : 1;
+    
+    // === 暴击伤害倍率 ===
+    let critMod = isCrit ? 1.5 : 1;
+    
+    // 【狙击手 Sniper】暴击伤害 x1.5 (总计 2.25x)
+    if (isCrit) {
+        const attackerAbility = attacker.ability || '';
+        const attackerAh = (typeof AbilityHandlers !== 'undefined' && AbilityHandlers[attackerAbility]) || {};
+        if (attackerAh.onCritDamage) {
+            const baseCritDamage = 100; // 用于计算倍率
+            const modifiedDamage = attackerAh.onCritDamage(baseCritDamage);
+            critMod = critMod * (modifiedDamage / baseCritDamage);
+            console.log(`[${attackerAbility}] 暴击伤害修正: ${critMod.toFixed(2)}x`);
+        }
+    }
     
     // 乱数
     const random = 0.85 + Math.random() * 0.15;

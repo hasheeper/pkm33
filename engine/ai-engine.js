@@ -115,20 +115,34 @@ export function getAiAction(aiPoke, playerPoke, difficulty = 'hard', aiParty = [
 export function getEasyAiMove(attacker, defender, aiParty = null) {
     if (!attacker?.moves || attacker.moves.length === 0) return null;
     
+    // 【修复】过滤掉首回合限制招式（非首回合时）
+    const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
+    const isFirstTurn = (attacker.turnsOnField || 0) === 0;
+    const availableMoves = isFirstTurn 
+        ? attacker.moves 
+        : attacker.moves.filter(m => !firstTurnOnlyMoves.includes(m.name));
+    
+    // 如果过滤后没有招式了，回退到原始招式列表
+    const movesToUse = availableMoves.length > 0 ? availableMoves : attacker.moves;
+    
     // 80% 概率随机选
     if (Math.random() < 0.8) {
-        return attacker.moves[Math.floor(Math.random() * attacker.moves.length)];
+        return movesToUse[Math.floor(Math.random() * movesToUse.length)];
     }
     
     // 20% 概率选最优
     const rankedMoves = rankMovesByScore(attacker, defender, aiParty);
-    if (rankedMoves.length === 0) return attacker.moves[0];
+    if (rankedMoves.length === 0) return movesToUse[0];
+    
+    // 过滤掉必定失败的招式
+    const viableMoves = rankedMoves.filter(m => m.score > -9000);
+    if (viableMoves.length === 0) return movesToUse[0];
     
     // 但即使选最优，也可能选次优
-    if (rankedMoves.length > 1 && Math.random() < 0.5) {
-        return rankedMoves[1].move;
+    if (viableMoves.length > 1 && Math.random() < 0.5) {
+        return viableMoves[1].move;
     }
-    return rankedMoves[0].move;
+    return viableMoves[0].move;
 }
 
 /* =============================================================
@@ -141,14 +155,28 @@ export function getNormalAiMove(attacker, defender, aiParty = null) {
     const rankedMoves = rankMovesByScore(attacker, defender, aiParty);
     if (rankedMoves.length === 0) return attacker.moves[0];
     
+    // 【修复】过滤掉必定失败的招式（得分 <= -9000）
+    const viableMoves = rankedMoves.filter(m => m.score > -9000);
+    
+    // 如果所有招式都被禁用，选择一个非首回合限制的招式
+    if (viableMoves.length === 0) {
+        const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
+        const fallbackMoves = attacker.moves.filter(m => !firstTurnOnlyMoves.includes(m.name));
+        if (fallbackMoves.length > 0) {
+            return fallbackMoves[Math.floor(Math.random() * fallbackMoves.length)];
+        }
+        // 真的没有其他招式了，只能硬着头皮用
+        return attacker.moves[0];
+    }
+    
     const roll = Math.random();
-    if (roll < 0.6 || rankedMoves.length === 1) {
-        return rankedMoves[0].move;
+    if (roll < 0.6 || viableMoves.length === 1) {
+        return viableMoves[0].move;
     }
-    if (roll < 0.9 && rankedMoves.length > 1) {
-        return rankedMoves[1].move;
+    if (roll < 0.9 && viableMoves.length > 1) {
+        return viableMoves[1].move;
     }
-    return rankedMoves[Math.min(2, rankedMoves.length - 1)].move;
+    return viableMoves[Math.min(2, viableMoves.length - 1)].move;
 }
 
 /* =============================================================
@@ -160,6 +188,19 @@ export function getHardAiMove(attacker, defender, aiParty = null) {
     
     const rankedMoves = rankMovesByScore(attacker, defender, aiParty);
     if (rankedMoves.length === 0) return attacker.moves[0];
+    
+    // 【修复】过滤掉必定失败的招式（得分 <= -9000）
+    const viableMoves = rankedMoves.filter(m => m.score > -9000);
+    
+    // 如果所有招式都被禁用，选择一个非首回合限制的招式
+    if (viableMoves.length === 0) {
+        const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
+        const fallbackMoves = attacker.moves.filter(m => !firstTurnOnlyMoves.includes(m.name));
+        if (fallbackMoves.length > 0) {
+            return fallbackMoves[0]; // Hard 难度选第一个
+        }
+        return attacker.moves[0];
+    }
     
     // 【修复】极巨化时，如果最高分招式是免疫的攻击招式（-9999），优先选择 Max Guard
     // Max Guard 是变化技转换的极巨招式，至少能保护自己

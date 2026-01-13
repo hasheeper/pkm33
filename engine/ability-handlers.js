@@ -761,6 +761,36 @@ export const AbilityHandlers = {
         onCritDamage: (damage) => Math.floor(damage * 1.5)
     },
 
+    // 【超幸运 Super Luck】所有招式暴击等级 +1
+    // 代表：高傲雉鸡、阿勃梭鲁、乌鸦头头
+    'Super Luck': {
+        critStageBoost: 1
+    },
+
+    // 【不仁不义 Merciless】攻击中毒目标时必定暴击
+    // 代表：超坏星
+    'Merciless': {
+        onCheckCrit: (attacker, defender) => {
+            if (defender.status === 'psn' || defender.status === 'tox') {
+                console.log(`[Merciless] ${attacker.cnName} 的不仁不义：攻击中毒目标必定暴击！`);
+                return true; // 强制暴击
+            }
+            return null; // 正常判定
+        }
+    },
+
+    // 【战斗盔甲 Battle Armor】不会被暴击
+    // 代表：大钳蟹、巨钳蟹、盔甲鸟
+    'Battle Armor': {
+        preventCrit: true
+    },
+
+    // 【硬壳盔甲 Shell Armor】不会被暴击
+    // 代表：大舌贝、刺甲贝、拉普拉斯
+    'Shell Armor': {
+        preventCrit: true
+    },
+
     // ============================================
     // 核心攻击组件 (The Powerhouses)
     // ============================================
