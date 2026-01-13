@@ -116,15 +116,18 @@ async function initGame() {
                 enable_mega: unlocks.enable_mega !== false,        // Mega进化
                 enable_z_move: unlocks.enable_z_move !== false,    // Z招式
                 enable_dynamax: unlocks.enable_dynamax !== false,  // 极巨化
-                enable_tera: unlocks.enable_tera !== false         // 太晶化
+                enable_tera: unlocks.enable_tera !== false,        // 太晶化
+                enable_proficiency_cap: unlocks.enable_proficiency_cap === true  // 训练度突破155上限 (默认关闭)
             };
             console.log('[UNLOCK] 玩家解锁状态:', battle.playerUnlocks);
             
             // 【战术指挥系统】读取训练家熟练度
             // JSON 格式: player.trainerProficiency (0-255)
+            // 根据 enable_proficiency_cap 解锁状态限制上限：false=155, true=255
             if (json.player.trainerProficiency !== undefined) {
-                battle.trainerProficiency = Math.min(255, Math.max(0, json.player.trainerProficiency));
-                console.log('[COMMANDER] 从 JSON 读取训练家熟练度:', battle.trainerProficiency);
+                const proficiencyCap = battle.playerUnlocks.enable_proficiency_cap ? 255 : 155;
+                battle.trainerProficiency = Math.min(proficiencyCap, Math.max(0, json.player.trainerProficiency));
+                console.log(`[COMMANDER] 从 JSON 读取训练家熟练度: ${battle.trainerProficiency} (上限: ${proficiencyCap})`);
             }
             
             // 【战术指挥系统】初始化

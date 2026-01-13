@@ -2,7 +2,7 @@
  * 角色: 小优 (Gloria)
  * 身份: 伽勒尔冠军 / 咖喱大师
  */
-export const GLORIA_DATA = {
+const GLORIA_DATA = {
     // 【Tier 4 - 极巨化全开·冠军模式】
     4: {
         "trainerProficiency": 255,
@@ -13,7 +13,8 @@ export const GLORIA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": true, // Galar 核心机制
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             {
@@ -132,8 +133,12 @@ export const GLORIA_DATA = {
         ]
     }
 };
-
-export const AKARI_DATA = {
+/* 
+ * 角色: 小照 (Akari)
+ * 身份: 银河队调查组 / 神阖之笛的继承者
+ * 特色: 洗翠地区全明星 + 古武流派 (Styles) 战术大师
+ */
+const AKARI_DATA = {
     // 【Tier 4 - 神阖之笛的继承者】(Lv.95 ~ 99)
     4: {
         "trainerProficiency": 255, // 熟练度拉满：高频触发对冲(Clash)与战术指挥
@@ -144,7 +149,8 @@ export const AKARI_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             {
@@ -245,12 +251,13 @@ export const AKARI_DATA = {
     }
 };
 
+
 /* 
  * 角色: 鸣依 (Rosa)
  * 身份: 合众英雄 / 宝可梦好莱坞偶像
  * 核心机制: 羁绊共鸣 (全员 ACE 将)
  */
-export const ROSA_DATA = {
+const ROSA_DATA = {
     // 【Tier 4 - 合众的奇迹·全员主角】
     4: {
         "trainerProficiency": 240,
@@ -264,7 +271,8 @@ export const ROSA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -404,7 +412,7 @@ export const ROSA_DATA = {
  * 身份: 卡洛斯英雄 / 舞台上的女王
  * 核心机制: Mega 进化 (Absolite)
  */
-export const SERENA_DATA = {
+const SERENA_DATA = {
     // 【Tier 4 - 华丽与力量的终极舞台】
     4: {
         "trainerProficiency": 235,
@@ -418,7 +426,8 @@ export const SERENA_DATA = {
             "enable_mega": true,         // ✅ 唯一的钥匙：开启 Mega 进化按钮
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -508,6 +517,145 @@ export const SERENA_DATA = {
 };
 
 /* 
+ * 角色: 小遥 (May)
+ * 身份: 丰缘顶级协调家 / 特区美食探险队队长
+ * 核心机制: Mega 进化 (Blazikenite) + 接力起飞 + 暴力美学
+ * 特色: 小巧的身体里蕴含着恐怖的破坏力 (Hoenn Powerhouse)
+ */
+const MAY_DATA = {
+    // 【Tier 4 - 丰缘之风·元气全开】
+    4: {
+        "trainerProficiency": 230,
+        // ==============================================================
+        // [Tier Specific Unlocks]
+        // ==============================================================
+        "unlocks": {
+            "enable_bond": true,         // ✅ 羁绊：和火焰鸡的默契
+            "enable_styles": false,
+            "enable_insight": true,      // ✅ 协调家的洞察力 (用于抓破绽)
+            "enable_mega": true,         // ✅ 核心：Mega 进化
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+
+        // ==============================================================
+        // [Party Data]
+        // ==============================================================
+        "party": [
+            {
+                // [绝对王牌 / 接力推土机]
+                "name": "Blaziken", // 火焰鸡
+                "lv": 99,
+                "gender": "F",      // 小遥的火焰鸡设定偏雌性（虽然游戏里是7:1）
+                "nature": "Adamant", // 固执：输出最大化，速度交给加速特性
+                "ability": "Speed Boost", // 加速：每回合速度+1，真正的滚雪球神器
+                
+                // === 机制核心 ===
+                "item": "Blazikenite",
+                "mechanic": "mega",
+                
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } 
+                },
+                
+                "isAce": true, 
+                // 关于 Passion (热情) 和 Trust (信赖) 极高
+                "friendship": { "trust": 255, "passion": 255, "insight": 150, "devotion": 120 },
+                
+                // 战术: Protect (守住) 蹭一回合加速 -> Swords Dance (如果贪到就结束游戏) -> Flare Blitz 轰炸
+                // 典型的 "只要让我动一次你就输了"
+                "moves": ["Protect", "Flare Blitz", "Close Combat", "Stone Edge"] 
+                // 替补技能: Swords Dance / Baton Pass (接棒给巨沼怪?)
+            },
+            {
+                // [沼泽守护者 / 联防核心]
+                "name": "Swampert", // 巨沼怪
+                "lv": 96,
+                "gender": "M",
+                "nature": "Relaxed", // 悠闲 (+防 -速)
+                "ability": "Damp",   // 湿气 (也许是因为她想搞研究抓宠，不想让对面爆炸)
+                "item": "Leftovers", // 剩饭
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 战术: 反手 Flip Turn (快速折返) 调度
+                "moves": ["Flip Turn", "Earthquake", "Scald", "Stealth Rock"] 
+            },
+            {
+                // [蘑菇捕获手 / 异常状态]
+                "name": "Breloom", // 斗笠菇 (实地调查必带)
+                "lv": 95,
+                "gender": "M",
+                "nature": "Jolly", 
+                "ability": "Technician", // 技术高手
+                "item": "Focus Sash",    // 气腰 (必睡一人)
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 哪怕是在Lv.95的环境，必中的 Spore 依然是噩梦
+                // Mach Punch 先制技收残血
+                "moves": ["Spore", "Bullet Seed", "Mach Punch", "Rock Tomb"] 
+            },
+            {
+                // [真正的“饭桶” / 辉石战神]
+                // 对应她“吃货”的设定，小卡比兽比卡比兽更能吃（进化辉石）
+                "name": "Munchlax", // 小卡比兽
+                "lv": 99, // 甚至比其他队员等级都高，因为吃得多
+                "gender": "M",
+                "nature": "Adamant",
+                "ability": "Thick Fat", // 厚脂肪 (冰火抗性)
+                "item": "Eviolite",     // 进化奇石：Def/SpD x1.5 -> 硬度非常离谱
+                
+                "stats_meta": { 
+                    // 特意拉满耐久的分配
+                    "ev_level": { "hp": 252, "atk": 100, "def": 158, "spa": 0, "spd": 0, "spe": 0 },
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 0 }
+                },
+                
+                // 诅咒强化流：脸接伤害 -> 睡觉 -> 然后一举毁灭世界
+                "moves": ["Curse", "Body Slam", "Rest", "Sleep Talk"]
+            },
+            {
+                // [优雅的冰雪 / 华丽大赛之星]
+                "name": "Glaceon", // 冰伊布 (致敬动画以及补充冰系打击面)
+                "lv": 94,
+                "gender": "F",
+                "nature": "Modest", 
+                "ability": "Snow Cloak", 
+                "item": "Choice Specs", // 讲究眼镜
+                
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
+                },
+                // 一发暴风雪/冰冻光束打过去，协调家的技能也是要看火力的
+                "moves": ["Ice Beam", "Shadow Ball", "Freeze-Dry", "Hyper Voice"]
+            },
+            {
+                // [空中的压制力 / 调查队护卫]
+                "name": "Metagross", // 巨金怪 (可能是大吾送的? 或者是丰缘强力代表)
+                "lv": 95,
+                "gender": "N",
+                "nature": "Adamant",
+                "ability": "Clear Body", // 恒净之躯 (不会被降能力)
+                "item": "Assault Vest",  // 突击背心 (弥补特防)
+                
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
+                },
+                
+                "moves": ["Meteor Mash", "Zen Headbutt", "Bullet Punch", "Earthquake"]
+            }
+        ]
+    }
+};
+
+
+/* 
  * 角色: 小光 (Dawn)
  * 身份: 神奥协调大师 / 华丽大赛庆典冠军
  * 风格: 华丽与实力的完美结合 (Insight Stream)
@@ -521,7 +669,7 @@ export const SERENA_DATA = {
  * 3. Torterra 增加突击背心(Assault Vest)增强对攻能力，或保持剩饭
  * 4. Empoleon 确认为 Competitive (好胜) + 弱点保险或突击背心
  */
-export const DAWN_DATA = {
+const DAWN_DATA = {
     // 【Tier 4 - 神奥的永恒光辉】
     4: {
         "trainerProficiency": 235,
@@ -532,7 +680,8 @@ export const DAWN_DATA = {
             "enable_mega": true,         
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             {   // [Mega 战姬 - 不变]
@@ -634,7 +783,7 @@ export const DAWN_DATA = {
  * 身份: 阿罗拉初代冠军 / 从异次元归来的诸岛巡礼者
  * 难度: Expert / Tier 4
  */
-export const SELENE_DATA = {
+const SELENE_DATA = {
     // 【Tier 4 - 全力姿态·阿罗拉的太阳与月亮】
     4: {
         "trainerProficiency": 250,
@@ -645,7 +794,8 @@ export const SELENE_DATA = {
             "enable_mega": false,
             "enable_z_move": true,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             {
@@ -738,7 +888,7 @@ export const SELENE_DATA = {
  * 身份: 帕底亚转校生 / 零之秘宝探索者 / 悖论种驯服者
  * 难度: Expert / Tier 4 (UBER)
  */
-export const JULIANA_DATA = {
+const JULIANA_DATA = {
     // 【Tier 4 - 帕底亚的第零区生态灾害】
     4: {
         "trainerProficiency": 245,
@@ -749,7 +899,8 @@ export const JULIANA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": true    // ✅ 解锁 太晶化 (核心机制: 亮晶晶的收藏癖)
+            "enable_tera": true,   // ✅ 解锁 太晶化 (核心机制: 亮晶晶的收藏癖)
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             // 1. [坐骑/真·神兽] 
@@ -867,7 +1018,7 @@ export const JULIANA_DATA = {
  * 身份: 以太基金会理事长 / 究极异兽狂热者
  * 核心机制: Z招式 (Z-Moves)
  */
-export const LUSAMINE_DATA = {
+const LUSAMINE_DATA = {
     // 【Tier 4 - 虚无世界的母爱】
     4: {
         "trainerProficiency": 220,
@@ -881,7 +1032,8 @@ export const LUSAMINE_DATA = {
             "enable_mega": false,
             "enable_z_move": true,       // ✅ 核心：解锁 Z 手环权限
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -973,7 +1125,7 @@ export const LUSAMINE_DATA = {
  * 修正: 等级回调至 [世界锦标赛标准] (Lv. 80 ~ 85)
  * 核心: 用最无害的外表，打最扎实的辉石与Z爆发
  */
-export const LILLIE_DATA = {
+const LILLIE_DATA = {
     // 【Tier 4 - 全力姿态·世界锦标赛配置】
     4: {
         "trainerProficiency": 180,
@@ -984,7 +1136,8 @@ export const LILLIE_DATA = {
             "enable_mega": false,
             "enable_z_move": true,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         "party": [
@@ -1081,7 +1234,7 @@ export const LILLIE_DATA = {
  * 身份: 阿罗拉草系队长 / 美味之原有人的大厨
  * 核心机制: Z招式 (Grassium Z)
  */
-export const MALLOW_DATA = {
+const MALLOW_DATA = {
     // 【Tier 4 - 满汉全席·主厨推荐】
     4: {
         "trainerProficiency": 200,
@@ -1095,7 +1248,8 @@ export const MALLOW_DATA = {
             "enable_mega": false,
             "enable_z_move": true,       // ✅ 队长即是 Z 力量的引导者
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -1197,7 +1351,7 @@ export const MALLOW_DATA = {
  * 身份: 阿罗拉水系队长 / 传说中的钓鱼大师
  * 核心机制: Z招式 (Waterium Z) + 水泡核弹
  */
-export const LANA_DATA = {
+const LANA_DATA = {
     // 【Tier 4 - 滔天巨浪·海神钓手】
     4: {
         "trainerProficiency": 200,
@@ -1211,7 +1365,8 @@ export const LANA_DATA = {
             "enable_mega": false,
             "enable_z_move": true,       // ✅ 你的队伍就是我的鱼塘
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -1316,7 +1471,7 @@ export const LANA_DATA = {
  * 身份: 珍珠队首领 / 帕路奇亚信仰者
  * 核心机制: 刚猛/迅疾 (PLA Styles) + 雪天防御队
  */
-export const IRIDA_DATA = {
+const IRIDA_DATA = {
     // 【Tier 4 - 珍珠所照耀的广阔空间】
     4: {
         "trainerProficiency": 215,
@@ -1330,7 +1485,8 @@ export const IRIDA_DATA = {
             "enable_mega": false, 
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -1421,12 +1577,347 @@ export const IRIDA_DATA = {
         ]
     }
 };
+
+/* 
+ * 角色: 紫竽 (Lacey)
+ * 身份: 蓝莓学园四天王 / 风纪委员长 / 规则至上主义者
+ * 核心机制: 太晶化 (Tera: Stellar) + 恶作剧控速 + 概率管理
+ * "凡是不仅正确的事情，就是不正当的（X）！"
+ */
+const LACEY_DATA = {
+    // 【Tier 4 - 绝对正确的“花”之风纪】
+    4: {
+        "trainerProficiency": 230, // 学院派的高精准度
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true,    // ✅ 身为风纪委员，能在乱局中看清破绽 (命中修正)
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": true,       // ✅ 帕底亚/蓝莓学园留学生的核心技术
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [执法先锋 / 控速]
+                "name": "Whimsicott", // 风妖精
+                "lv": 92,
+                "gender": "F",
+                "nature": "Timid",   // 胆小 (+速)
+                "ability": "Prankster", // 恶作剧之心
+                "item": "Focus Sash",   // 气势披带：保证开出顺风
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 战术: 顺风(加速) -> 再来一次(锁对面强化/保护) -> 月亮之力
+                // 在这个都是Lv.90+怪物的环境，先按下“再来一次”常能逼疯那些准备剑舞的猛男
+                "moves": ["Tailwind", "Encore", "Moonblast", "Energy Ball"]
+            },
+            {
+                // [物理管教 / 威吓]
+                "name": "Granbull", // 布鲁皇
+                "lv": 90,
+                "gender": "F",
+                "nature": "Adamant", // 固执
+                "ability": "Intimidate", // 威吓：物理手的克星
+                "item": "Choice Band",   // 专爱头带：将输出最大化
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 即使没有妖精皮，Play Rough + 专头 的力度也足以粉碎龙系
+                // 补盲：地震 + 火焰拳
+                "moves": ["Play Rough", "Earthquake", "Fire Punch", "Close Combat"]
+            },
+            {
+                // [歌唱社团 / 音爆穿透]
+                "name": "Primarina", // 西狮海壬
+                "lv": 92,
+                "gender": "F",
+                "nature": "Modest", // 内敛
+                "ability": "Liquid Voice", // 湿润之声：声音技变水系
+                "item": "Throat Spray",    // 爽喉喷雾：用完巨声顺便+1特攻
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                // 典型的越打越痛。除了巨声，还需防范冰/仙盲点。
+                "moves": ["Hyper Voice", "Moonblast", "Ice Beam", "Psychic"]
+            },
+            {
+                // [甜蜜陷阱 / 强化要塞]
+                "name": "Alcremie", // 霜奶仙 (红钻综合)
+                "lv": 90,
+                "gender": "F",
+                "nature": "Bold",   // 大胆 (+防 -攻)
+                "ability": "Sweet Veil", // 甜幕：全队防睡眠（针对 T3+ 的睡杀流极佳）
+                "item": "Leftovers",     // 剩饭
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 改版：如果你单打碰到这只，会发现她使用了 "溶化(Acid Armor)" + "冥想(Calm Mind)"
+                // 然后 "辅助力量(Stored Power)" 一发入魂
+                "moves": ["Acid Armor", "Calm Mind", "Recover", "Stored Power"]
+            },
+            {
+                // [不确定性因素 / 赌狗之毒]
+                "name": "Slowbro-Galar", // 伽勒尔呆壳兽
+                "lv": 91,
+                "gender": "F",
+                "nature": "Modest",
+                "ability": "Quick Draw", // 速击：30% 概率先制度+1
+                "item": "Quick Claw",    // 先制之爪：20% 概率先制度+1
+                
+                // 双重判定：每一回合都有约 44% 的概率无视速度强行先手
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 0 }, "ev_level": 252 },
+                
+                // Shell Side Arm (臂贝武器): 自动选物理/特殊端造成更大伤害，必带
+                "moves": ["Shell Side Arm", "Psychic", "Flamethrower", "Nasty Plot"] 
+                // Nasty Plot(诡计)一旦强化成功，这只概率怪会变成推队王
+            },
+            {
+                // [风纪委员长 / 规则执行者 ACE]
+                "name": "Excadrill", // 龙头地鼠
+                "lv": 95,            // 王牌等级
+                "gender": "M",
+                "nature": "Adamant", // 固执
+                "ability": "Mold Breaker", // 破格：由于她的个性——"打破一切不正确防御（飘浮/结实）"
+                "item": "Assault Vest",    // 突击背心：硬切特攻手的资本
+                
+                // === 机制核心 ===
+                "mechanic": "tera",
+                "teraType": "Stellar", // 太晶：星晶。保留了她在 蓝莓学园 的标志性特征 (全属性打击面增强)
+                // 如果引擎不支持 Stellar，visually 可 fallback 至 Ground/Steel
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "isAce": true, 
+                
+                // 配招：
+                // Tera Blast (太晶爆发): 配合星晶，克制所有这只地鼠当前微弱的太晶对手。
+                // High Horsepower (十万马力): 不会误伤双打队友的本系，威力95。
+                // Iron Head (铁头): 稳定本系。
+                // Rock Slide (岩崩): 弥补打击面，加上破格可以打飞/虫。
+                "moves": ["High Horsepower", "Tera Blast", "Iron Head", "Rock Slide"],
+                
+                // [AVs - 情感倾向]
+                // 她的 Trust 和 Insight 很高，代表对规则的信赖和洞察力；
+                // Passion 虽然外表得体（不像奇树那么疯），但在关键时刻（太晶化）会爆发
+                "friendship": { "trust": 220, "passion": 180, "insight": 255, "devotion": 120 }
+            }
+        ]
+    }
+};
+
+
+/* 
+ * 角色: 小霞 (Misty)
+ * 身份: 华蓝道馆馆主 / 自封"世界第一美少女" / 严厉的泳池保全
+ * 核心机制: 纯朴联防 + 洞察心眼 (绝对零度) + 隐藏的呆霸王
+ * "我的策略用水来形容? ……那就是无论你怎么挣扎都会把你这一头闷进水里的压迫感！"
+ */
+const MISTY_DATA = {
+    // 【Tier 4 - 华蓝海角的严厉大姐姐】
+    4: {
+        "trainerProficiency": 230, // 关都老牌馆主的底力
+        "unlocks": {
+            "enable_bond": true,         // ✅ 羁绊解禁 (给可达鸭) 
+            "enable_styles": false,
+            "enable_insight": true,      // ✅ 洞察力开启：修正 '绝对零度' 和 '水炮' 命中
+            "enable_mega": false,        // 她在这一代依然坚持非Mega的一击制胜 (?) 或者可以考虑给 Mega 暴更... 但这里没带暴鲤龙
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [反强化的叹息之壁]
+                "name": "Quagsire", // 沼王
+                "lv": 84,
+                "gender": "F",
+                "nature": "Relaxed", // 悠闲 (+防 -速)
+                "ability": "Unaware", // 纯朴：无视对手一切攻/防能力变化
+                "item": "Leftovers",  // 剩饭
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 哈欠逼换，剧毒磨血，攀瀑本系
+                // 专门用来处理试图在小霞面前“跳龙舞”的家伙
+                "moves": ["Yawn", "Earthquake", "Waterfall", "Recover"]
+            },
+            {
+                // [蓄电发电机]
+                "name": "Lanturn", // 电灯怪
+                "lv": 84,
+                "gender": "F",
+                "nature": "Calm",   // 温和 (+特防)
+                "ability": "Volt Absorb", // 蓄电：完全免疫电系
+                "item": "Sitrus Berry", 
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
+                
+                // 水+电 双本盲点极少
+                "moves": ["Volt Switch", "Scald", "Ice Beam", "Thunder Wave"]
+            },
+            {
+                // [移动炮台/破壳流]
+                "name": "Blastoise", // 水箭龟  
+                "lv": 85,
+                "gender": "M",
+                "nature": "Adamant", // 固执
+                "ability": "Torrent", 
+                "item": "White Herb", // 白色香草：抵消破壳后的防御下降
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 战术：找机会 Shell Smash (及攻/速 +2)
+                // 然后逆鳞/水兵推队
+                "moves": ["Shell Smash", "Waterfall", "Outrage", "Earthquake"] // 替换了原本的雪崩/铁壁，更具进攻性
+            },
+            {
+                // [心眼战神 / 泳池BOSS]
+                "name": "Lapras", // 拉普拉斯
+                "lv": 86,
+                "gender": "F",
+                "nature": "Modest", // 内敛
+                "ability": "Water Absorb", // 储水
+                "item": "Assault Vest",    // 突击背心（特防 x1.5）-> 肉到令人绝望
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Sheer Cold (绝对零度): 
+                // T4 + enable_insight = 会让命中修正到一个"极其危险"的程度（例如50%甚至更高预判）
+                // 加上 突击背心 的硬度，她能试射很多发
+                "moves": ["Sheer Cold", "Freeze-Dry", "Hydro Pump", "Ice Shard"]
+            },
+            {   
+                // [ACE 1 - 鸭神的觉醒]
+                // 替代了原本的 Jellicent (胖嘟嘟)
+                "name": "Psyduck", // 可达鸭 (未进化)
+                "lv": 95,          // 等级拉高以示特别
+                "gender": "M",
+                "nature": "Modest", // 内敛 (+特攻)
+                "ability": "Cloud Nine", // 无关天气：什么雨天晴天，我的头疼最大
+                "item": "Eviolite",     // 进化奇石：Def/SpD x1.5
+                
+                // 标记为 Ace 之一，享受 Trainer 喊话
+                "isAce": true,
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 配招思路：呆头呆脑的超能力爆发
+                // Psychic (精神强念)
+                // Hydro Pump (水炮) - 相信 Insight，这发水炮必中
+                // Disable (定身法) - "哎呀头好痛，你别动了" 封锁对手上一技能
+                // Future Sight (预知未来) - 压场神技
+                "moves": ["Psychic", "Hydro Pump", "Disable", "Future Sight"],
+                
+                // [全岛最强的头痛羁绊]
+                // 玩家可以理解为这是小霞最初的那只可达鸭，Trust 和 Passion 都是满的
+                "friendship": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 } 
+            },
+            {
+                // [ACE 2 - 海南的双石]
+                "name": "Starmie", // 宝石海星
+                "lv": 92,
+                "gender": "N",
+                "nature": "Timid", // 胆小 (极速)
+                "ability": "Natural Cure", // 自然回复 (换人对策)
+                "item": "Life Orb",        // 命玉 (追求确一的斩杀线)
+                "isAce": true,             // 定位的真正Ace
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "friendship": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 },
+                "moves": ["Hydro Pump", "Thunderbolt", "Psychic", "Ice Beam"]
+            }
+        ]
+    }
+};
+
+const HEX_DATA = {
+
+    4: {
+        "trainerProficiency": 155,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": true, 
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [不死的空间手]
+                "name": "Dusclops", 
+                "lv": 74,
+                "gender": "F",
+                "nature": "Sassy", // 狂妄
+                "ability": "Pressure",
+                "item": "Eviolite", 
+                "stats_meta": { "ivs": { "hp": 31, "atk": 25, "def": 31, "spa": 25, "spd": 31, "spe": 0 }, "ev_level": 252 },
+                "moves": ["Night Shade", "Will-O-Wisp", "Trick Room", "Memento"] // 开完空间临别礼物退场，甚至不加敌方击杀数
+            },
+            {
+                // [重炮手]
+                "name": "Chandelure", // 水晶灯火灵
+                "lv": 75,
+                "gender": "F",
+                "nature": "Modest",
+                "ability": "Infiltrator", // 穿透
+                "item": "Choice Specs", // 讲究眼镜火抗极高
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Overheat", "Shadow Ball", "Energy Ball", "Trick"]
+            },
+            {
+                // [物理防御组]
+                "name": "Cofagrigus", // 只有合众/伽勒尔的 迭失棺
+                "lv": 72,
+                "gender": "M",
+                "nature": "Bold", 
+                "ability": "Mummy", // 木乃伊 (接触这只怪会让对方特性失效，专门克制物理手)
+                "item": "Leftovers",
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
+                "moves": ["Hex", "Toxic Spikes", "Protect", "Body Press"] 
+            },
+            {
+                // [超能爆破 / 控速]
+                "name": "Gothitelle", // 哥德小姐
+                "lv": 73,
+                "gender": "F",
+                "nature": "Calm",
+                "ability": "Competitive", // 蹭威吓可以加特攻
+                "item": "Sitrus Berry", 
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
+                "moves": ["Psychic", "Thunder Wave", "Fake Out", "Heal Pulse"]
+            },
+            {
+                // [怨念的化身 / Prankster Ace]
+                "name": "Banette", 
+                "lv": 78,
+                "gender": "F",
+                "nature": "Adamant", // 固执 (+攻 -特)
+                "ability": "Frisk", // 进化前看道具
+                
+                // === 机制核心 ===
+                "mechanic": "mega",     // 锁定：Mega 诅咒娃娃
+                "item": "Banettite", 
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                "isAce": true,
+                "friendship": { "trust": 100, "passion": 80, "insight": 220, "devotion": 120 }, // 她的玩偶
+                
+                // 战术核心: Prankster (进化后恶作剧之心) 带来的先制 
+                // Destiny Bond (同命) 先手施放：我不死你死，我还手你就死
+                // Gunk Shot 打妖精
+                "moves": ["Destiny Bond", "Gunk Shot", "Phantom Force", "Knock Off"]
+            }
+        ]
+    }
+};
 /* 
  * 角色: 索妮亚 (Sonia)
  * 身份: 伽勒尔地区博士 / 传说的记录者
  * 核心概念: 理论派 (The Theorist) - 机制全解禁，道具完美适配，但等级克制
  */
-export const SONIA_DATA = {
+const SONIA_DATA = {
     // 【Tier 4 - 博士的论文答辩】
     4: {
         "trainerProficiency": 190,
@@ -1441,7 +1932,8 @@ export const SONIA_DATA = {
             "enable_mega": true,         // 卡洛斯留学的纪念
             "enable_z_move": true,       // 阿罗拉交流的成果
             "enable_dynamax": true,      // 本土伽勒尔的能量
-            "enable_tera": true          // 最新的帕底亚论文课题
+            "enable_tera": true,         // 最新的帕底亚论文课题
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -1524,7 +2016,7 @@ export const SONIA_DATA = {
  * 风格: 摇滚乐手 / 猛毒快攻
  * 难度曲线: Level 1 (车库乐队) -> Level 3 (灵魂共鸣) -> Level 4 (世界巡演)
  */
-export const ROXIE_DATA = {
+const ROXIE_DATA = {
     // 【Tier 1 - 车库里的杂音】
     // Lv.25 左右，未进化，基础连招，没有任何特殊系统解锁。
     1: {
@@ -1536,7 +2028,8 @@ export const ROXIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1583,7 +2076,8 @@ export const ROXIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1644,7 +2138,8 @@ export const ROXIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,     // T3 还没有去伽勒尔，不会极巨化
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1726,7 +2221,8 @@ export const ROXIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": true,      // ✅ 超极巨灰尘山 & 颤弦蝾螈的舞台
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
 
         // ==============================================================
@@ -1830,7 +2326,7 @@ export const ROXIE_DATA = {
  * 身份: 酿光道馆馆主 / 电网直播主 / 奇树奇述主播
  * 核心机制: 太晶化 (Tera: Electric) + 漂浮战术
  */
-export const IONO_DATA = {
+const IONO_DATA = {
     // 【Tier 1 - 没什么人看的首播】
     // Lv.25 左右，未进化，注重节目效果而非强度
     1: {
@@ -1842,7 +2338,8 @@ export const IONO_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1888,7 +2385,8 @@ export const IONO_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false // 此阶段还未获得太晶珠
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1946,7 +2444,8 @@ export const IONO_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": true          // ✅ 粉丝回馈：闪闪发光的太晶化解锁！
+            "enable_tera": true,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -2032,7 +2531,8 @@ export const IONO_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": true,         // ✅ 奇树的招牌：亮晶晶的太晶化！
+            "enable_tera": true,
+            "enable_proficiency_cap": true
         },
 
         // ==============================================================
@@ -2135,7 +2635,7 @@ export const IONO_DATA = {
  * 身份: 玉虹市道馆馆主 / 自负的自然爱好者
  * 核心机制: Mega进化 +心眼 (Insight) — 在花香中迷失方向吧。
  */
-export const ERIKA_DATA = {
+const ERIKA_DATA = {
     // 【Tier 1 - 茶室里的插花课】
     // Lv.25，未进化，撒粉干扰为主的初级课程。
     1: {
@@ -2147,7 +2647,8 @@ export const ERIKA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2192,7 +2693,8 @@ export const ERIKA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2249,7 +2751,8 @@ export const ERIKA_DATA = {
             "enable_mega": true,     // ✅ T3 解锁 Mega，作为过渡
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -2322,7 +2825,8 @@ export const ERIKA_DATA = {
             "enable_mega": true,         // ✅ 保留 Mega
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
 
         // ==============================================================
@@ -2428,14 +2932,20 @@ export const ERIKA_DATA = {
  * 风格: 激流超模 / 雨天猛攻
  * 难度曲线: T1 (业余) -> T4 (超模/极诣)
  */
-export const NESSA_DATA = {
+const NESSA_DATA = {
     // 【Tier 1 - 泳池水枪战】
     // Lv.25，可爱风格，用来教属性相克
     1: {
         "trainerProficiency": 50,
         "unlocks": { 
-            "enable_bond": false, "enable_styles": false, "enable_insight": false, "enable_mega": false, "enable_z_move": false,
-            "enable_dynamax": false, "enable_tera": false 
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2468,9 +2978,14 @@ export const NESSA_DATA = {
     2: {
         "trainerProficiency": 100,
         "unlocks": { 
-            "enable_bond": false, "enable_styles": false, "enable_insight": false, "enable_mega": false, "enable_z_move": false,
-            "enable_dynamax": true, // T2 初次解锁极巨(道馆战强度)
-            "enable_tera": false 
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2511,7 +3026,16 @@ export const NESSA_DATA = {
     // Lv.75，完备雨天队，也是对战塔水准
     3: {
         "trainerProficiency": 160,
-        "unlocks": { false:false, "enable_dynamax":true }, // 省略写法
+        "unlocks": { 
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
         "party": [
             {
                 "name": "Pelipper",
@@ -2560,14 +3084,15 @@ export const NESSA_DATA = {
     // Lv.85+，顶级控速强攻受，极巨化全开
     4: {
         "trainerProficiency": 210,
-        "unlocks": {
+        "unlocks": { 
             "enable_bond": false,
             "enable_styles": false,
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": true,      // ✅ 露璃娜的T台！
-            "enable_tera": false
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -2654,7 +3179,7 @@ export const NESSA_DATA = {
  * 属性: 恶 (Dark)
  * 风格: 酷妹偶像 / 恶作剧开墙 + 极巨爆发
  */
-export const MARNIE_DATA = {
+const MARNIE_DATA = {
         // 【Tier 1 - 旷野地带初遭遇】
     // Lv.24-26，刚获得莫鲁贝不久，配招和努力值都很基础
     1: {
@@ -2666,7 +3191,8 @@ export const MARNIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2712,8 +3238,9 @@ export const MARNIE_DATA = {
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": false, // T2 的场地通常是在地下街道，无法极巨化
-            "enable_tera": false
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2766,8 +3293,9 @@ export const MARNIE_DATA = {
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": true,      // ✅ 冠军杯：在这里不留遗憾！
-            "enable_tera": false
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -2844,8 +3372,9 @@ export const MARNIE_DATA = {
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": true,      // ✅ 尖钉镇的骄傲，超极巨化！
-            "enable_tera": false
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
 
         // ==============================================================
@@ -2944,15 +3473,16 @@ export const MARNIE_DATA = {
     }
 };
 /* 
- * 角色: 灵异迷 (Hex Maniac / Alice?)
- * 身份: 徘徊于各地的对战发烧友 / 诅咒载体
- * 核心机制: Mega 进化 + 极致 Insight (直感诅咒)
+ * 角色: 阿塞萝拉 (Acerola)
+ * 身份: 阿罗拉四天王 / S区旧街区的老大 / 古代王室末裔
+ * 核心机制: Z招式 (幽灵Z) + 画皮 (Disguise) + 诅咒消耗
+ * "来我的图书馆玩吧？大家（幽灵们）都说饿了……"
  */
-export const HEX_DATA = {
-        // 【Tier 1 - 古宅里的恶作剧】
-    // Lv.24-26，未进化，单纯的幽灵系干扰
+const ACEROLA_DATA = {
+    // 【Tier 1 - 深夜的捉迷藏】
+    // Lv.24-26，由未进化的可爱幽灵组成，主打异常状态干扰。
     1: {
-        "trainerProficiency": 45,
+        "trainerProficiency": 60,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2960,290 +3490,279 @@ export const HEX_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
-                "name": "Duskull", // 夜巡灵
-                "lv": 24,
-                "gender": "F",
-                "nature": "Sassy", // 狂妄 (+特防)
-                "ability": "Levitate",
-                "stats_meta": { "ivs": { "hp": 20, "atk": 15, "def": 25, "spa": 15, "spd": 25, "spe": 10 }, "ev_level": 10 },
-                "moves": ["Night Shade", "Disable", "Will-O-Wisp", "Shadow Sneak"] // 经典的定身法+鬼火
-            },
-            {
-                "name": "Litwick", // 烛光灵
-                "lv": 24,
-                "gender": "F",
+                "name": "Drifloon", // 飘飘球
+                "lv": 24, 
+                "gender": "F", 
                 "nature": "Modest",
-                "ability": "Flash Fire", // 引火
-                "stats_meta": { "ivs": { "hp": 20, "atk": 15, "def": 15, "spa": 25, "spd": 15, "spe": 20 }, "ev_level": 20 },
-                "moves": ["Ember", "Hex", "Minimize", "Smog"] // 变小恶心人
+                "ability": "Unburden", // 轻装：这是个变速点
+                "item": "Oran Berry",  // 吃掉果子速度翻倍
+                "stats_meta": { "ivs": { "hp":20,"atk":0,"def":20,"spa":20,"spd":20,"spe":20 }, "ev_level": 10 },
+                "moves": ["Gust", "Astonish", "Payback", "Focus Energy"]
             },
             {
-                "name": "Shuppet", // 怨影娃娃 (娃娃控)
-                "lv": 26,
-                "gender": "F",
-                "nature": "Adamant", // 固执
-                "ability": "Insomnia",
-                "isAce": true, 
-                "item": "Spell Tag", // 诅咒之符
-                "stats_meta": { "ivs": { "hp": 25, "atk": 25, "def": 20, "spa": 15, "spd": 20, "spe": 25 }, "ev_level": 40 },
-                "moves": ["Shadow Sneak", "Knock Off", "Curse", "Screech"] // 先制技收割
-            }
-        ]
-    },
-    // 【Tier 2 - 墓园的守望者】
-    // Lv.48-52，进化奇石体系成型，难以突破的耐久
-    2: {
-        "trainerProficiency": 95,
-        "unlocks": {
-            "enable_bond": false,
-            "enable_styles": false,
-            "enable_insight": false,
-            "enable_mega": false, // 这个阶段还没有拿到 Key Stone
-            "enable_z_move": false,
-            "enable_dynamax": false,
-            "enable_tera": false
-        },
-        "party": [
-            {
-                "name": "Dusclops", // 彷徨夜灵
-                "lv": 49,
-                "gender": "F",
-                "nature": "Relaxed", // 悠闲
-                "ability": "Pressure",
-                "item": "Eviolite", // 辉石出现，硬度质变
-                "stats_meta": { "ivs": { "hp": 31, "atk": 25, "def": 31, "spa": 20, "spd": 31, "spe": 0 }, "ev_level": 120 },
-                // 空间开局 -> 诅咒 -> 痛平分
-                "moves": ["Trick Room", "Curse", "Pain Split", "Ice Punch"]
-            },
-            {
-                "name": "Lampent", // 灯火幽灵
-                "lv": 48,
-                "gender": "F",
-                "nature": "Modest",
-                "ability": "Flame Body", // 没什么物防，靠火焰躯体碰瓷
-                "stats_meta": { "ivs": { "hp": 25, "atk": 0, "def": 25, "spa": 31, "spd": 25, "spe": 31 }, "ev_level": 85 },
-                "moves": ["Shadow Ball", "Flamethrower", "Confuse Ray", "Energy Ball"]
-            },
-            {
-                "name": "Doublade", // 双剑鞘 (另一位物防大神)
-                "lv": 48,
-                "gender": "F",
-                "nature": "Brave",
-                "ability": "No Guard", // 无防守
-                "item": "Eviolite", // 如果规则允许双辉石(同人规则)最好，不然带气势披带
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 25, "spe": 0 }, "ev_level": 85 },
-                "moves": ["Swords Dance", "Shadow Sneak", "Sacred Sword", "Gyro Ball"] // 配合空间打输出
-            },
-            {
-                "name": "Banette", // 诅咒娃娃 (转为强攻)
-                "lv": 51,
-                "gender": "F",
+                "name": "Shuppet", // 怨影娃娃
+                "lv": 24, 
+                "gender": "F", 
                 "nature": "Adamant",
-                "ability": "Frisk", // 察觉
-                "item": "Colbur Berry", // 杭斑果 (抗恶)
+                "ability": "Insomnia", // 不眠
+                "stats_meta": { "ivs": { "hp":20,"atk":25,"def":20,"spa":10,"spd":20,"spe":20 }, "ev_level": 10 },
+                "moves": ["Shadow Sneak", "Will-O-Wisp", "Knock Off", "Screech"] // 鬼火是一种折磨
+            },
+            {
+                "name": "Sandygast", // 沙丘娃 (ACE 雏形)
+                "lv": 26, 
+                "gender": "F", 
+                "nature": "Quiet",
+                "ability": "Water Compaction", // 遇水凝固是一开始就有的
                 "isAce": true,
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 25, "spa": 10, "spd": 25, "spe": 31 }, "ev_level": 180 },
-                "moves": ["Phantom Force", "Sucker Punch", "Will-O-Wisp", "Destiny Bond"]
+                "stats_meta": { "ivs": { "hp":25,"atk":25,"def":25,"spa":25,"spd":25,"spe":20 }, "ev_level": 30 },
+                "moves": ["Mega Drain", "Sand Tomb", "Bulldoze", "Astonish"]
             }
         ]
     },
-    // 【Tier 3 - 不该被打开的封印 · Mega 降临】
-    // Lv.70+，解锁 Mega。
-    // 特点：王牌虽然换成了 Mega 诅咒娃娃，但这玩意的 "恶作剧之心 + 同命" 可能是游戏里最脏的 Combo 之一。
-    3: {
-        "trainerProficiency": 155,
+    // 【Tier 2 - 废弃大厦的传闻】
+    // Lv.48-52，4只队伍，开始出现诅咒娃娃和随风球的完全体能力。
+    2: {
+        "trainerProficiency": 110,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
             "enable_insight": false,
-            "enable_mega": true,         // ✅ 核心：Mega 诅咒娃娃登场
+            "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
-                // [不死的空间手]
-                "name": "Dusclops", 
-                "lv": 74,
-                "gender": "F",
-                "nature": "Sassy", // 狂妄
-                "ability": "Pressure",
-                "item": "Eviolite", 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 25, "def": 31, "spa": 25, "spd": 31, "spe": 0 }, "ev_level": 252 },
-                "moves": ["Night Shade", "Will-O-Wisp", "Trick Room", "Memento"] // 开完空间临别礼物退场，甚至不加敌方击杀数
+                "name": "Froslass", // 雪妖女 (在T2是非常快的一速干扰)
+                "lv": 48, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Snow Cloak",
+                "item": "Never-Melt Ice", // 不融冰
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":31 }, "ev_level": 85 },
+                "moves": ["Ice Beam", "Shadow Ball", "Confuse Ray", "Ominous Wind"]
             },
             {
-                // [重炮手]
-                "name": "Chandelure", // 水晶灯火灵
-                "lv": 75,
+                "name": "Banette", // 诅咒娃娃 (物理端)
+                "lv": 49, 
+                "gender": "M", 
+                "nature": "Adamant",
+                "ability": "Insomnia",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":25,"spa":10,"spd":25,"spe":31 }, "ev_level": 85 },
+                "moves": ["Shadow Claw", "Sucker Punch", "Will-O-Wisp", "Curse"]
+            },
+            {
+                "name": "Drifblim", // 随风球 (高HP特攻)
+                "lv": 49, 
+                "gender": "F", 
+                "nature": "Calm",
+                "ability": "Aftermath", // 引爆：被打倒会炸伤对手
+                "item": "Sitrus Berry", 
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":25 }, "ev_level": 120 },
+                "moves": ["Shadow Ball", "Gust", "Hex", "Stockpile"]
+            },
+            {
+                "name": "Palossand", // 噬沙堡爷 (ACE)
+                "lv": 52, 
                 "gender": "F",
                 "nature": "Modest",
-                "ability": "Infiltrator", // 穿透
-                "item": "Choice Specs", // 讲究眼镜火抗极高
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Overheat", "Shadow Ball", "Energy Ball", "Trick"]
-            },
-            {
-                // [物理防御组]
-                "name": "Cofagrigus", // 只有合众/伽勒尔的 迭失棺
-                "lv": 72,
-                "gender": "M",
-                "nature": "Bold", 
-                "ability": "Mummy", // 木乃伊 (接触这只怪会让对方特性失效，专门克制物理手)
-                "item": "Leftovers",
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
-                "moves": ["Hex", "Toxic Spikes", "Protect", "Body Press"] 
-            },
-            {
-                // [超能爆破 / 控速]
-                "name": "Gothitelle", // 哥德小姐
-                "lv": 73,
-                "gender": "F",
-                "nature": "Calm",
-                "ability": "Competitive", // 蹭威吓可以加特攻
-                "item": "Sitrus Berry", 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
-                "moves": ["Psychic", "Thunder Wave", "Fake Out", "Heal Pulse"]
-            },
-            {
-                // [怨念的化身 / Prankster Ace]
-                "name": "Banette", 
-                "lv": 78,
-                "gender": "F",
-                "nature": "Adamant", // 固执 (+攻 -特)
-                "ability": "Frisk", // 进化前看道具
-                
-                // === 机制核心 ===
-                "mechanic": "mega",     // 锁定：Mega 诅咒娃娃
-                "item": "Banettite", 
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                "isAce": true,
-                "friendship": { "trust": 100, "passion": 80, "insight": 220, "devotion": 120 }, // 她的玩偶
-                
-                // 战术核心: Prankster (进化后恶作剧之心) 带来的先制 
-                // Destiny Bond (同命) 先手施放：我不死你死，我还手你就死
-                // Gunk Shot 打妖精
-                "moves": ["Destiny Bond", "Gunk Shot", "Phantom Force", "Knock Off"]
+                "ability": "Water Compaction",
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":20 }, "ev_level": 120 },
+                "moves": ["Shadow Ball", "Earth Power", "Giga Drain", "Iron Defense"]
             }
         ]
     },
-    // 【Tier 4 - 欢迎来到我的灵界】
-    4: {
-        "trainerProficiency": 210,
-        // ==============================================================
-        // [Tier Specific Unlocks]
-        // ==============================================================
+    // 【Tier 3 - 四天王的真正实力】
+    // Lv.70+，5只队伍，新增 破破舵轮，解锁 Z 招式。风格开始变得诡异和坚硬。
+    3: {
+        "trainerProficiency": 170,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
-            "enable_insight": true,      // ✅ 灵媒的第六感全开！
-            "enable_mega": true,         // ✅ 她的 Mega 石来自墓地...
-            "enable_z_move": false,
+            "enable_insight": true,
+            "enable_mega": false,
+            "enable_z_move": true,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
-
-        // ==============================================================
-        // [Party Data]
-        // ==============================================================
         "party": [
             {
-                // [绝对核心 / 魔法镜要塞]
-                "name": "Sableye", // 勾魂眼
-                // 虽然她是 Mega 核心，但上场时是普通状态，通过 mechanic:'mega' 触发变身
-                "lv": 90,
-                "gender": "F",
-                "nature": "Bold", // 大胆（极限物耐）
-                "ability": "Prankster", // 进化前恶作剧之心：先手鬼火/冥想
-                // 进化后 Magic Bounce：反弹一切变化技
+                // [炸弹开局]
+                "name": "Drifblim", 
+                "lv": 73, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Unburden", // 改为轻装
+                "item": "Weakness Policy", // 只有AI敢这么玩，吃一发克制->特攻+2&速度x2
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 180 },
+                "moves": ["Shadow Ball", "Thunderbolt", "Will-O-Wisp", "Destiny Bond"]
+            },
+            {
+                // [极速干扰]
+                "name": "Froslass",
+                "lv": 74, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Cursed Body", // 穿透/诅咒之躯, 让对方技能被封印
+                "item": "Focus Sash", // 气腰同命
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 200 },
+                "moves": ["Spikes", "Ice Beam", "Shadow Ball", "Destiny Bond"]
+            },
+            {
+                // [物理重炮]
+                "name": "Dhelmise", // 破破舵轮
+                "lv": 74, "gender": "N", "nature": "Adamant",
+                "ability": "Steelworker", // 钢能力者 - 等于有三个本系
+                "item": "Assault Vest",   // 突击背心（因为它很硬）
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":20 }, "ev_level": 252 },
+                // 威力巨大的独有技
+                "moves": ["Anchor Shot", "Power Whip", "Phantom Force", "Heavy Slam"]
+            },
+            {
+                "name": "Banette",
+                "lv": 74, "gender": "F", "nature": "Adamant",
+                "ability": "Frisk", // 察觉
+                "item": "Life Orb", 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 180 },
+                "moves": ["Shadow Claw", "Sucker Punch", "Knock Off", "Will-O-Wisp"]
+            },
+            {
+                // [Z招式王牌]
+                "name": "Palossand",
+                "lv": 76, 
+                "gender": "F", 
+                "nature": "Modest",
+                "ability": "Water Compaction", // 遇水防御+2
+                
+                "mechanic": "zmove", // 激活 Z 招式
+                "item": "Ghostium Z", // 幽灵 Z
+                "isAce": true, 
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Giga Drain / Shore Up (集沙) 回血
+                "moves": ["Shadow Ball", "Earth Power", "Shore Up", "Teeter Dance"]
+            }
+        ]
+    },
+    // 【Tier 4 - 此世与彼世的边界】
+    // Lv.85+，6只队伍，谜拟Q 入队作为绝对的救场杀手。
+    // Insight 极高，闪避让人抓狂。
+    4: {
+        "trainerProficiency": 240,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, 
+            "enable_mega": false,
+            "enable_z_move": true,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [起点与献祭] 
+                "name": "Drifblim", // 随风球
+                "lv": 90, "gender": "F", "nature": "Timid",
+                "ability": "Unburden", // 轻装
+                "item": "Electric Seed", // 假设洛迪亚环境或队友配合，或者 Psychic Seed
+                "item": "Focus Sash", // 保底气腰轻装
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 战术: 顺风(Tailwind) -> 鬼火(Will-O-Wisp) -> 强风(Gust)/影球
+                // 高 HP，不容易被一击秒
+                "moves": ["Tailwind", "Shadow Ball", "Will-O-Wisp", "Self-Destruct"]
+            },
+            {
+                // [绝对的画皮 / 第六人机制怪]
+                "name": "Mimikyu", // 谜拟Q
+                "lv": 90, 
+                "gender": "F", 
+                "nature": "Jolly", // 爽朗 (+速)
+                "ability": "Disguise", // 画皮：免费抵挡一次伤害 (即使现在扣1/8也很强)
+                "item": "Life Orb",    // 命玉：增强剑舞后的斩杀力
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 战术：Disguise 吃伤害 -> Swords Dance (剑舞) -> 嬉闹/影袭清场
+                // 这只其实是队伍里的 隐藏ACE，非常契合 S 区那种破败布偶的氛围
+                "moves": ["Swords Dance", "Play Rough", "Shadow Sneak", "Shadow Claw"]
+            },
+            {
+                // [第三本系重坦]
+                "name": "Dhelmise", // 破破舵轮
+                "lv": 90, "gender": "N", "nature": "Brave", // 勇敢 (+攻 -速, 追求力度)
+                "ability": "Steelworker", // 钢能力者：钢系招式威力 x1.5
+                "item": "Expert Belt",    // 达人带，因为它打击面很广
+                // 或者突击背心 Assualt Vest
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":0 }, "ev_level": 252 },
+                
+                // Power Whip (120草) + Anchor Shot (封锁换人) + Gyro Ball (陀螺球，因为它哪怕Lv90也很慢)
+				// 新增 Poltergeist (灵骚) : 110威力幽灵本系，非常痛
+                "moves": ["Poltergeist", "Anchor Shot", "Power Whip", "Synthesi s"]
+            },
+            {
+                // [极速干扰]
+                "name": "Froslass", // 雪妖女
+                "lv": 90, "gender": "F", "nature": "Timid",
+                "ability": "Cursed Body", // 30% 封印对手
+                "item": "Colbur Berry",   // 抗恶果，防止被先制秒
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Aurora Veil (极光幕)? 如果有雪天。
+                // 默认选择 Spikes (撒菱) + Destiny Bond (同命) 的恶心流
+                "moves": ["Ice Beam", "Shadow Ball", "Spikes", "Destiny Bond"]
+            },
+            {
+                // [高攻刺客]
+                "name": "Banette", // 诅咒娃娃 (如果不能MEGA，就用命玉强攻)
+                "lv": 88, 
+                "gender": "F", 
+                "nature": "Adamant",
+                "ability": "Cursed Body", 
+                "item": "Focus Sash", // 再次强行续命
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Poltergeist", "Gunk Shot", "Sucker Punch", "Knock Off"]
+                // Gunk Shot 垃圾射击：针对妖精系的毒系大招，配合 Insight 可以修正命中
+            },
+            {
+                // [沙堡领主 / 永恒噩梦 ACE]
+                "name": "Palossand", // 噬沙堡爷
+                "lv": 92, 
+                "gender": "F", 
+                "nature": "Modest", // 内敛，追求特攻爆发
+                "ability": "Water Compaction", // 遇水防御激增
                 
                 // === 机制核心 ===
-                "item": "Sablenite",    // 勾魂眼进化石
-                "mechanic": "mega",     // 锁定：本场 Mega 手
+                "mechanic": "zmove", // 幽灵Z
+                "item": "Ghostium Z", 
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "isAce": true,
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
                 
-                // 常见的恶心人配置: 冥想强化，自我再生续航。
-                // 攻击主要靠其实不低的暗影球或者欺诈 (Foul Play)。
-                "moves": ["Calm Mind", "Recover", "Will-O-Wisp", "Shadow Ball"],
+                // Shore Up (集沙): 沙暴下回复2/3，平时1/2，超强续航
+                // Shadow Ball (影球) -> NEVER-ENDING NIGHTMARE
+                // Earth Power (大地之力): 强力地本
+                // Giga Drain (终极吸取) or Sludge Bomb (污泥炸弹): 补盲战打击水/草
+                "moves": ["Shadow Ball", "Earth Power", "Shore Up", "Sludge Bomb"],
                 
-                "isAce": true, 
-                // 顶级的 Insight (255) + Trust (120) → 对训练家绝对服从，且能看穿所有替身/闪避
-                "friendship": { "trust": 120, "passion": 80, "insight": 255, "devotion": 120 }
-            },
-            {
-                // [不死的灰夜灵]
-                "name": "Dusclops", // 彷徨夜灵
-                "lv": 88,
-                "gender": "F",
-                "nature": "Relaxed", // 悠闲 (空间底速)
-                "ability": "Pressure", // 压迫感 (消耗PP)
-                "item": "Eviolite", // 辉石 (双防1.5倍，不可摧毁)
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 0 }, "ev_level": 252 },
-                
-                // 黑夜魔影(固定伤害) + 痛平分(强制修血) + 空间
-                "moves": ["Night Shade", "Pain Split", "Will-O-Wisp", "Trick Room"] 
-            },
-            {
-                // [强力破盾 / 补盲]
-                "name": "Chandelure", // 水晶灯火灵
-                "lv": 88,
-                "gender": "F",
-                "nature": "Timid", // 胆小 (+速)
-                "ability": "Infiltrator", // 穿透替身和光墙
-                "item": "Choice Scarf", // 围巾 (速度修正是关键，不然容易被秒)
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Fire Blast", "Shadow Ball", "Energy Ball", "Trick"] // 这里其实也有戏法干扰
-            },
-            {
-                // [诅咒死士]
-                "name": "Banette", // 诅咒娃娃 (虽然不Mega，但也配恶作剧相关)
-                "lv": 87,
-                "gender": "F",
-                "nature": "Adamant", // 固执
-                "ability": "Insomnia", // 不眠 (防止被催眠对策)
-                "item": "Focus Sash", // 气腰 (即使不Mega，也要保证必出一招诅咒或同命)
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                // 垃圾射击补盲打妖精，同命硬换，魅影奇袭破保护
-                "moves": ["Gunk Shot", "Destiny Bond", "Knock Off", "Phantom Force"]
-            },
-            {
-                // [物理防御组]
-                "name": "Gourgeist-Super", // 特大南瓜怪人
-                "lv": 86,
-                "gender": "F",
-                "nature": "Impish", // 淘气 (+防)
-                "ability": "Frisk", // 察觉 (看道具方便做Trick)
-                "item": "Leftovers",
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                // 寄生种子+保护+潜灵奇袭 (经典的消耗连)
-                "moves": ["Leech Seed", "Protect", "Poltergeist", "Shadow Sneak"]
-            },
-            {
-                // [精神干扰]
-                "name": "Meowstic-F", // 超能妙喵 (雌性 - 好胜) 
-                "name": "Gothitelle", // 哥德小姐
-                "lv": 86,
-                "gender": "F",
-                "nature": "Calm", // 温和
-                "ability": "Competitive", // 好胜 (反威吓)
-                // 原设定有 Shadow Tag (踩影)，如果允许用那就是神。这里用好胜保守一点。
-                "item": "Sitrus Berry",
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Psychic", "Thunder Wave", "Cosmic Power", "Stored Power"] // 辅助力量流
+                // [AVs - 鬼族的共鸣]
+                // 极高的 Insight (阿塞萝拉的特质) 让她和幽灵们能完美闪避
+                "friendship": { "trust": 160, "passion": 140, "insight": 255, "devotion": 120 }
             }
         ]
     }
@@ -3255,7 +3774,7 @@ export const HEX_DATA = {
  * 风格: 极真空手道 / G-Max 暴击队
  * 难度曲线: Level 1 (体验) -> Level 4 (修罗)
  */
-export const BEA_DATA = {
+const BEA_DATA = {
     // 【Tier 1 - 道场的早间晨练】
     // Lv.25 左右，严谨但尚未成熟
     1: {
@@ -3267,7 +3786,8 @@ export const BEA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -3314,7 +3834,8 @@ export const BEA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false, // T2 的普通道馆赛不极巨化
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -3369,8 +3890,9 @@ export const BEA_DATA = {
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": true,      // ✅ 为冠军杯赛做准备
-            "enable_tera": false
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3434,7 +3956,8 @@ export const BEA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": true,      // ✅ 力量的极致体验
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3519,11 +4042,312 @@ export const BEA_DATA = {
 };
 
 /* 
+ * 角色: 风露 (Skyla)
+ * 身份: 合众吹寄道馆馆主 / A区空中物流网总指挥
+ * 核心机制: 极巨化 (Max Airstream) + 精密制导 (Insight: Hurricane) + 神风攻势
+ * "在3000英尺的高空，没有人能逃过我的眼睛！全速爬升！"
+ */
+const SKYLA_DATA = {
+    // 【Tier 1 - 航校新手的初飞】
+    // Lv.24-26，各种飞行幼崽，主打基础的速度压制。
+    1: {
+        "trainerProficiency": 65,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
+        },
+        "party": [
+            {
+                "name": "Pidove", // 豆豆鸽
+                "lv": 24, 
+                "gender": "F", 
+                "nature": "Jolly", // 爽朗
+                "ability": "Super Luck", // 虽然是幼崽，运气不错
+                "stats_meta": { "ivs": { "hp":20,"atk":25,"def":20,"spa":10,"spd":20,"spe":25 }, "ev_level": 10 },
+                "moves": ["Air Cutter", "Quick Attack", "Roost", "Detect"]
+            },
+            {
+                "name": "Woobat", // 滚滚蝙蝠
+                "lv": 24, 
+                "gender": "M", 
+                "nature": "Timid",
+                "ability": "Unaware", // 纯朴：无视对方防御变化
+                "stats_meta": { "ivs": { "hp":20,"atk":10,"def":20,"spa":25,"spd":20,"spe":25 }, "ev_level": 10 },
+                "moves": ["Gust", "Confusion", "Heart Stamp", "Assurance"]
+            },
+            {
+                "name": "Ducklett", // 鸭宝宝
+                "lv": 26, 
+                "gender": "F", 
+                "nature": "Modest",
+                "ability": "Hydration", // 在雨天解状态
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":25,"atk":10,"def":20,"spa":25,"spd":25,"spe":25 }, "ev_level": 30 },
+                "moves": ["Water Pulse", "Aerial Ace", "Bubble Beam", "Aqua Ring"]
+            }
+        ]
+    },
+    // 【Tier 2 - A区红土风暴的洗礼】
+    // Lv.48-52，队伍开始成型，虽然脆弱但速度极快。
+    2: {
+        "trainerProficiency": 120,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, 
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
+        },
+        "party": [
+            {
+                "name": "Swoobat", // 心蝙蝠 (简单强化流)
+                "lv": 48, 
+                "gender": "M", 
+                "nature": "Timid",
+                "ability": "Simple", // 单纯：能力变化翻倍
+                "item": "Colbur Berry", // 抗恶果
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":31 }, "ev_level": 100 },
+                "moves": ["Calm Mind", "stored Power", "Air Slash", "Roost"] // 冥想一次特攻特防+2
+            },
+            {
+                "name": "Unfezant", // 高傲雉鸡 (暴击流)
+                "lv": 49, 
+                "gender": "F", 
+                "nature": "Jolly",
+                "ability": "Super Luck",
+                "item": "Razor Claw", // 焦点镜
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":25,"spa":10,"spd":25,"spe":31 }, "ev_level": 120 },
+                "moves": ["Air Cutter", "Night Slash", "Steel Wing", "Roost"]
+            },
+            {
+                "name": "Sigilyph", // 象征鸟 (魔法防御)
+                "lv": 49, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Magic Guard",
+                "item": "Flame Orb", // 烧伤自己防睡眠并转移
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":31 }, "ev_level": 120 },
+                "moves": ["Psycho Shift", "Roost", "Air Slash", "Cosmic Power"]
+            },
+            {
+                "name": "Swanna", // 舞天鹅 (ACE)
+                "lv": 52, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Big Pecks", // 健壮胸肌 (防降防)
+                "item": "Sharp Beak", 
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":20,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 200 },
+                "moves": ["Hurricane", "Surf", "Tailwind", "Roost"] // 虽然没雨天，但 T2 开始尝试裸打暴风
+            }
+        ]
+    },
+    // 【Tier 3 - 超音速货运航线】
+    // Lv.73-76，强力打手始祖大鸟入队，开始不讲道理的空袭。
+    3: {
+        "trainerProficiency": 175,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, // ✅ 暴风命中补正
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true, // ✅ 极巨飞冲 (Speed Control)
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                "name": "Archeops", // 始祖大鸟 (自杀式先锋)
+                "lv": 75, 
+                "gender": "M", 
+                "nature": "Jolly",
+                "ability": "Defeatist", // 软弱：半血以下就要命
+                "item": "Flying Gem",   // 或者是飞行石板/无道具Acrobatics策略
+                // 此处用各种手段模拟杂技：如果不带道具，Acrobatics 威力110
+                "item": null, 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                // 开局直接杂技+地震/岩崩，打死一个是一个
+                "moves": ["Acrobatics", "Stone Edge", "Earthquake", "U-turn"]
+            },
+            {
+                // [肉盾轰炸机]
+                "name": "Mandibuzz", // 秃鹰娜
+                "lv": 74, 
+                "gender": "F", 
+                "nature": "Impish", // 淘气 (+防)
+                "ability": "Overcoat", // 防尘：无视A区沙暴
+                "item": "Leftovers", 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Foul Play", "Roost", "Defog", "Toxic"]
+            },
+            {
+                // [强行破盾]
+                "name": "Braviary", // 勇士雄鹰
+                "lv": 74,  
+                "gender": "M", 
+                "nature": "Adamant",
+                "ability": "Sheer Force", // 强行：不发动特效但增伤
+                "item": "Life Orb",       // 命玉不扣血
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Brave Bird", "Close Combat", "Crush Claw", "Rock Slide"]
+            },
+            {
+                // [双重性格]
+                "name": "Unfezant", // 高傲雉鸡
+                "lv": 73, 
+                "gender": "F", 
+                "nature": "Jolly",
+                "ability": "Super Luck",
+                "item": "Scope Lens",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                "friendship": { "trust": 50, "passion": 100, "insight": 200, "devotion": 50 },
+                "moves": ["Night Slash", "Air Cutter", "Drill Run", "Quick Attack"]
+            },
+            {
+                // [极巨王牌]
+                "name": "Swanna",
+                "lv": 76, 
+                "gender": "F", 
+                "nature": "Timid",
+                "mechanic": "dynamax", // MAX AIRSTREAM = SPEED +1
+                "ability": "Hydration",
+                "item": "Expert Belt",
+                "isAce": true,
+                "stats_meta": { "ivs": { "hp":31,"atk":20,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                // Insight 让 Hurricane (110威力) 必中
+                "moves": ["Hurricane", "Hydro Pump", "Ice Beam", "Roost"]
+            }
+        ]
+    },
+    // 【Tier 4 - 万里长空的王牌飞行员】
+    // Lv.88-92，即使是脆皮在她的手里也能依靠极高的速度先发制人。
+    // 风露的“视力”在这里达到极致，几乎所有大威力低命中技能皆为必定命中。
+    4: {
+        "trainerProficiency": 225,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, // ✅ 核心：视力6.0的精准空袭
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true, // ✅ 全员提速推队
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [神谷特攻 / 一击脱离]
+                "name": "Archeops", // 始祖大鸟
+                "lv": 90, 
+                "gender": "M", 
+                "nature": "Jolly", // 爽朗 (极速)
+                "ability": "Defeatist",
+                // 无道具杂技 (Acrobatics) 威力 110，配合本系 = 165 威力
+                // 且因为无道具，第一击绝对比有道具强
+                "item": null, 
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 必中尖石攻击 (Insight修正) + 满威力杂技 + 地震 + 急速折返
+                "moves": ["Acrobatics", "Stone Edge", "Earthquake", "U-turn"]
+            },
+            {
+                // [特攻强化刺客]
+                "name": "Swoobat", // 心蝙蝠
+                "lv": 88, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Simple", // 单纯：冥想一次 = 特攻特防+2
+                "item": "Focus Sash", // 气腰：保证冥想成功
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":31 }, "ev_level": 252 },
+                
+                // 战术：抗一发-冥想-辅助力量(此时威力很大)
+                "moves": ["Calm Mind", "Stored Power", "Air Slash", "Heat Wave"]
+            },
+            {
+                // [空中装甲堡垒]
+                "name": "Mandibuzz", // 秃鹰娜
+                "lv": 90, 
+                "gender": "F", 
+                "nature": "Impish", // +防
+                "ability": "Overcoat", // 防尘：无视各种粉末和天气效果
+                "item": "Heavy-Duty Boots", // 厚底靴：无视隐形岩，这是飞行系内战的关键
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":20,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 欺诈(利用对手高物攻) + 扫除钉子 + 剧毒
+                "moves": ["Foul Play", "Defog", "Toxic", "Roost"]
+            },
+            {
+                // [对地攻击机]
+                "name": "Braviary", // 勇士雄鹰
+                "lv": 89, 
+                "gender": "M", 
+                "nature": "Adamant", // 固执
+                "ability": "Sheer Force", // 强行
+                "item": "Life Orb", // 命玉
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 暴力拆解一切。Brave Bird 无反伤 (因强行Bug) 但威力巨大
+                // 不对，Sheer Force只对带追加效果的技能生效，BB鸟不生效。
+                // 修正：Crush Claw(撕裂爪) / Rock Slide(岩崩) / Zen Headbutt
+                // 但 Brave Bird 依然是本系最高爆发
+                "moves": ["Brave Bird", "Rock Slide", "Close Combat", "Crush Claw"]
+            },
+            {
+                // [会心之风]
+                "name": "Unfezant", // 高傲雉鸡
+                "lv": 88, 
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Super Luck", 
+                "item": "Scope Lens", 
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":0,"spd":31,"spe":31 }, "ev_level": 252 },
+                // 刀刀烈火 + 高速神鸟激突 (Sky Attack) [配合道具香草? No, need scope lens]
+                // 相信她的 Night Slash 和 Air Cutter 必暴
+                "moves": ["Sky Attack", "Night Slash", "Steel Wing", "Quick Attack"]
+            },
+            {
+                // [极巨化王牌 / 白鸟]
+                "name": "Swanna", // 舞天鹅
+                "lv": 92, 
+                "gender": "F", 
+                "nature": "Timid", // 胆小 +速
+                
+                "mechanic": "dynamax", // G-MAX 开启
+                "item": "Life Orb",    // 命玉爆发
+                
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                "moves": ["Hurricane", "Hydro Pump", "Ice Beam", "Roost"],
+                
+                // [AVs - A区的女皇]
+                "friendship": { "trust": 160, "passion": 200, "insight": 255, "devotion": 120 }
+            }
+        ]
+    }
+};
+
+/* 
  * 角色: 竹兰 (Cynthia)
  * 身份: 神奥冠军 / 乃至全世代最强的王者之一
  * 核心机制: Mega进化 + Second Wind (二阶段变身)
  */
-export const CYNTHIA_DATA = {
+const CYNTHIA_DATA = {
     // 【Tier 2 - 这只是热身运动】
     // Lv.60+，已经可以使用 Mega 进化了。对于其他馆主这是底牌，对她只是起手式。
     2: {
@@ -3535,7 +4359,8 @@ export const CYNTHIA_DATA = {
             "enable_mega": true,         // ✅ T2 就可以 Mega
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3615,7 +4440,8 @@ export const CYNTHIA_DATA = {
             "enable_mega": true,         // ✅ 依然是 Mega
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3698,7 +4524,8 @@ export const CYNTHIA_DATA = {
             "enable_mega": true,         // ✅ 破坏神降临
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3808,6 +4635,617 @@ export const CYNTHIA_DATA = {
     }
 };
 
+/* 
+ * 角色: 艾莉丝 (Iris)
+ * 身份: 合众冠军 / 极诣三皇 (野性) / 龙之民
+ * 核心机制: Z招式 (Dragonium Z) + 野性直觉 (修正大威力技能命中) + 双王牌压制
+ * "不论什么精密的算计，在压倒性的力量面前都会粉碎！我们要上了，双斧战龙！"
+ */
+const IRIS_DATA = {
+    // 【Tier 2 - “只是来打个招呼啦”】
+    // Lv.60+，冠军强度的起手，单王牌双斧战龙。
+    2: {
+        "trainerProficiency": 175,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": true,       // 龙系不需要优雅，只需要迅疾/刚猛的节奏
+            "enable_insight": true,      // ✅ 直觉开启：大字爆/水炮开始更加准了
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [特攻炮台]
+                "name": "Hydreigon", // 三首恶龙
+                "lv": 61,
+                "gender": "F",
+                "nature": "Modest", // 内敛
+                "ability": "Levitate", 
+                "item": "Wise Glasses", // 博识眼镜
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 120 },
+                "moves": ["Dragon Pulse", "Dark Pulse", "Flamethrower", "Surf"]
+            },
+            {
+                // [强力物理手]
+                "name": "Druddigon", // 赤面龙
+                "lv": 60,
+                "gender": "F",
+                "nature": "Adamant",
+                "ability": "Sheer Force", // 强行
+                "item": "Life Orb",       // 命玉 (经典的强行命玉流)
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 20 }, "ev_level": 85 },
+                "moves": ["Dragon Claw", "Fire Punch", "Thunder Punch", "Superpower"]
+            },
+            {
+                // [高速飞行员]
+                "name": "Archeops", // 始祖大鸟
+                "lv": 60,
+                "gender": "M",
+                "nature": "Jolly",
+                "ability": "Defeatist",
+                "item": "Flying Gem",   // 或者是无道具
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 25, "spa": 10, "spd": 25, "spe": 31 }, "ev_level": 120 },
+                "moves": ["Acrobatics", "Rock Slide", "Earthquake", "U-turn"]
+            },
+            {
+                // [物理壁垒]
+                "name": "Aggron", // 波士可多拉
+                "lv": 60,
+                "gender": "F",
+                "nature": "Impish",
+                "ability": "Rock Head", // 石头脑袋
+                "item": "Hard Stone",
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 20 }, "ev_level": 85 },
+                "moves": ["Head Smash", "Iron Head", "Earthquake", "Autotomize"]
+            },
+            {
+                // [特殊的龙(?)]
+                "name": "Lapras", // 拉普拉斯
+                "lv": 60,
+                "gender": "F",
+                "nature": "Modest",
+                "ability": "Water Absorb",
+                "item": "Leftovers",
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 85 },
+                "moves": ["Ice Beam", "Hydro Pump", "Thunderbolt", "Sing"]
+            },
+            {
+                // [王牌 ACE]
+                "name": "Haxorus", // 双斧战龙
+                "lv": 63,
+                "gender": "F",
+                "nature": "Adamant", // 固执
+                "ability": "Mold Breaker", // 破格 (无视结实/漂浮)
+                "item": "Focus Sash",      // 气腰保龙舞
+                "isAce": true,
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 120 },
+                "moves": ["Dragon Dance", "Dragon Claw", "Earthquake", "Poison Jab"],
+                "friendship": { "trust": 100, "passion": 150, "insight": 150, "devotion": 100 }
+            }
+        ]
+    },
+
+    // 【Tier 3 - “稍微拿出一点真本事咯！”】
+    // Lv.80+，双王牌体系确立。三首恶龙与双斧战龙同时拥有 Ace 标识。
+    3: {
+        "trainerProficiency": 210,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": true,
+            "enable_insight": true,      // 直觉修正大幅提升
+            "enable_mega": false,
+            "enable_z_move": false,      // T3暂不交Z招式
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [ACE 1 - 毁灭的特攻]
+                "name": "Hydreigon",
+                "lv": 82, 
+                "gender": "F", 
+                "nature": "Timid", // 胆小 (+速)
+                "ability": "Levitate",
+                "item": "Life Orb", 
+                "isAce": true, // 双ACE之一
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 180 },
+                // 野性直觉流: 高威力，无视命中缺陷
+                "moves": ["Draco Meteor", "Fire Blast", "Flash Cannon", "Surf"],
+                "friendship": { "trust": 100, "passion": 150, "insight": 150, "devotion": 100 }
+            },
+            {
+                "name": "Archeops",
+                "lv": 80, "gender": "M", "nature": "Jolly",
+                "item": null, // 无道具杂技
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Acrobatics", "Stone Edge", "Earthquake", "Endeavor"]
+            },
+            {
+                "name": "Aggron", 
+                "lv": 80, "gender": "F", "nature": "Adamant",
+                "ability": "Rock Head", // 无伤双刃头槌
+                "item": "Expert Belt",
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Head Smash", "Iron Tail", "Ice Punch", "Low Kick"] // Iron Tail 命中靠 direct
+            },
+            {
+                "name": "Lapras",
+                "lv": 80, "gender": "F", "nature": "Modest",
+                "item": "Wide Lens", // 辅助一唱，或者靠Insight
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 180 },
+                "moves": ["Hydro Pump", "Blizzard", "Thunder", "Sing"] // 全是大招，Insight修正
+            },
+            {
+                "name": "Druddigon",
+                "lv": 80, "gender": "F", "nature": "Adamant",
+                "ability": "Rough Skin", // 蹭血
+                "item": "Rocky Helmet",  // 经典的双重反伤
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Outrage", "Gunk Shot", "Superpower", "Sucker Punch"]
+            },
+            {
+                // [ACE 2 - 龙牙斩杀]
+                "name": "Haxorus", 
+                "lv": 84, // 等级略高
+                "gender": "F",
+                "nature": "Jolly", 
+                "ability": "Mold Breaker", 
+                "item": "Lum Berry", // 木子果防混乱解状态
+                "isAce": true,
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Dragon Dance", "Outrage", "Earthquake", "Iron Tail"],
+                "friendship": { "trust": 100, "passion": 200, "insight": 200, "devotion": 100 }
+            }
+        ]
+    },
+
+    // 【Tier 4 - 此即为“原始的本能”！】
+    // Lv.95+，全能力解禁，Z招式确认为 Haxorus 使用。
+    // Insight +255，大招基本必中，暴力美学。
+    4: {
+        "trainerProficiency": 255, // Instinct Limit Break
+        "unlocks": {
+            "enable_bond": true,
+            "enable_styles": true,
+            "enable_insight": true,      // ✅ 直觉：所有大威力低命中技能 (流星群/大字爆/水炮/贴身冲撞) 命中率极大修正
+            "enable_mega": false,
+            "enable_z_move": true,       // ✅ Haxorus: Devastating Drake
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [高火力特攻王牌]
+                "name": "Hydreigon", // 三首恶龙
+                "lv": 97, 
+                "gender": "F", 
+                "nature": "Timid", // 胆小 (+速)
+                "ability": "Levitate",
+                "item": "Life Orb", 
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                "isAce": true,
+                // Insight 使得 Draco Meteor (流星群) 和 Fire Blast (大字爆炎) 必中
+                // 不计后果的狂轰滥炸
+                "moves": ["Draco Meteor", "Fire Blast", "Hydro Pump", "Earth Power"],
+                "friendship": { "trust": 155, "passion": 255, "insight": 200, "devotion": 120 }
+            },
+            {
+                // [敢死队先锋]
+                "name": "Archeops", // 始祖大鸟
+                "lv": 95, 
+                "gender": "M", 
+                "nature": "Jolly", 
+                
+                // 气势披带 + 莽撞 (Endeavor) 针对高血量敌人
+                "item": "Focus Sash", 
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Head Smash (双刃头槌) 150威力，配合 Insight 必中
+                "moves": ["Head Smash", "Acrobatics", "Earthquake", "Endeavor"]
+            },
+            {
+                // [反伤坦克]
+                "name": "Druddigon", // 赤面龙
+                "lv": 95, 
+                "gender": "F", 
+                "nature": "Adamant", 
+                "ability": "Rough Skin", // 粗糙皮肤
+                "item": "Rocky Helmet",  // 凸凸头盔
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                // Glare (大蛇瞪眼) 控速，Sucker Punch (突袭) 收割
+                "moves": ["Glare", "Gunk Shot", "Superpower", "Sucker Punch"]
+            },
+            {
+                // [重装巨兽]
+                "name": "Aggron", // 波士可多拉
+                "lv": 96, 
+                "gender": "F", 
+                "nature": "Adamant",
+                "ability": "Rock Head", // 舍身
+                "item": "Assault Vest", // 突击背心 (弥补特防短板)
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Head Smash (150岩 无反伤) 简单就是力量
+                "moves": ["Head Smash", "Heavy Slam", "Earthquake", "Avalanche"]
+            },
+            {
+                // [全广角打击]
+                "name": "Lapras", // 拉普拉斯
+                "lv": 96, 
+                "gender": "F", 
+                "nature": "Modest",
+                "ability": "Water Absorb",
+                "item": "Expert Belt", // 达人带
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 全屏 110-120 威力的大招，这就是“野性”
+                "moves": ["Hydro Pump", "Blizzard", "Thunder", "Sing"]
+            },
+            {
+                // [究极王牌 - 你的败北无可避免]
+                "name": "Haxorus", // 双斧战龙
+                "lv": 98, 
+                "gender": "F", 
+                "nature": "Jolly", // 爽朗 (+速)
+                "ability": "Mold Breaker", // 破格 (无视多鳞/漂浮/结实)
+                
+                // === 机制核心 ===
+                "mechanic": "zmove",    // 使用Z招式
+                "item": "Dragonium Z",  // 龙 Z -> 究极巨龙震天地 (Devastating Drake)
+                
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 战术: Dragon Dance (龙舞) 一次 -> 游戏结束
+                // Poison Jab (毒击) 杀妖精
+                // Iron Tail (铁尾) 杀仙/岩, Insight 修正后必中
+                // Outrage (逆鳞) -> 转化为 Z 招式 190 威力，不可阻挡
+                "moves": ["Dragon Dance", "Outrage", "Poison Jab", "Iron Tail"],
+                
+                // [AVs - 龙之心的共鸣]
+                "friendship": { "trust": 220, "passion": 255, "insight": 255, "devotion": 120 }
+            }
+        ]
+    }
+};
+
+/* 
+ * 角色: 妮莫 (Nemona)
+ * 身份: 帕底亚冠军级 / 学生会长 / 战斗狂人
+ * 核心机制: 太晶化 (Tera) + 复活战术 (Revival Blessing) + 无限连击
+ * "好厉害！那就是全力吗？那我也要不受限制地上了哦！"
+ */
+const NEMONA_DATA = {
+    // 【Tier 1 - “我也是才挑了宝可梦哦” (谎言)】
+    // Lv.15，用来进行教学局的队伍，但努力值已经悄悄开始分配了。
+    1: {
+        "trainerProficiency": 100,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false, 
+            "enable_proficiency_cap": false
+        },
+        "party": [
+            {
+                "name": "Rockruff", // 岩狗狗
+                "lv": 14,
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Vital Spirit",
+                "stats_meta": { "ivs": { "hp":25,"atk":25,"def":25,"spa":10,"spd":25,"spe":31 }, "ev_level": 50 },
+                "moves": ["Rock Throw", "Bite", "Tackle", "Leer"]
+            },
+            {
+                "name": "Pawmi", // 布拨
+                "lv": 14, 
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Static",
+                "stats_meta": { "ivs": { "hp":25,"atk":25,"def":20,"spa":25,"spd":20,"spe":31 }, "ev_level": 50 },
+                "moves": ["Nuzzle", "Thunder Shock", "Scratch", "Quick Attack"]
+            },
+            {
+                "name": "Smoliv", // 迷你芙
+                "lv": 14, 
+                "gender": "F", 
+                "nature": "Modest",
+                "stats_meta": { "ivs": { "hp":25,"atk":10,"def":20,"spa":31,"spd":25,"spe":20 }, "ev_level": 50 },
+                "moves": ["Razor Leaf", "Tackle", "Absorb", "Sweet Scent"]
+            },
+            {
+                "name": "Sprigatito",
+                "lv": 16, 
+                "gender": "F", 
+                "nature": "Jolly",
+                "ability": "Overgrow", 
+                "item": "Oran Berry",
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 100 },
+                "moves": ["Leafage", "Scratch", "Bite", "Hone Claws"],
+                "friendship": { "trust": 100, "passion": 100, "insight": 120, "devotion": 120 }
+            }
+        ]
+    },
+
+    // 【Tier 2 - 道馆巡回中的偶遇】
+    // Lv.30，队伍进化，开始根据属性太晶化，压迫感增强。
+    2: {
+        "trainerProficiency": 150,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, 
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": true,
+            "enable_proficiency_cap": false
+        },
+        "party": [
+            {
+                "name": "Lycanroc", // 鬃岩狼人-白昼 (高速岩钉/冲岩)
+                "lv": 29, 
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Sand Rush",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":25,"spa":10,"spd":25,"spe":31 }, "ev_level": 150 },
+                "moves": ["Accelrock", "Rock Tomb", "Stealth Rock", "Bite"]
+            },
+            {
+                "name": "Goomy", // 黏黏宝
+                "lv": 28, 
+                "gender": "F", 
+                "nature": "Modest",
+                "item": "Eviolite", // 辉石黏黏宝很硬
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":20 }, "ev_level": 150 },
+                "moves": ["Dragon Breath", "Water Pulse", "Protect", "Rain Dance"]
+            },
+            {
+                "name": "Pawmo", // 布土拨
+                "lv": 28, "gender": "F", "nature": "Adamant",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":25,"spa":25,"spd":20,"spe":31 }, "ev_level": 150 },
+                "moves": ["Spark", "Arm Thrust", "Dig", "Bite"]
+            },
+            {
+                "name": "Orthworm", // 拖拖蚓
+                "lv": 29,
+                "gender": "F", 
+                "nature": "Impish", 
+                "ability": "Earth Eater",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":20 }, "ev_level": 100 },
+                "moves": ["Iron Head", "Bulldoze", "Wrap", "Iron Defense"]
+            },
+            {
+                "name": "Floragato", // 蒂蕾喵 (太晶草)
+                "lv": 32, "gender": "F", "nature": "Jolly",
+                "mechanic": "tera",
+                "teraType": "Grass",
+                "item": "Miracle Seed",
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Seed Bomb", "U-turn", "Hone Claws", "Slash"],
+                "friendship": { "trust": 100, "passion": 150, "insight": 100, "devotion": 120 }
+            }
+        ]
+    },
+
+    // 【Tier 3 - 冠军测验的守门人】
+    // Lv.60+，完全进化，队伍成型。虽然还没用外挂，但已是冠军强度。
+    3: {
+        "trainerProficiency": 200,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": true,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                "name": "Lycanroc",
+                "lv": 60, 
+                "nature": "Jolly",
+                "ability": "Sand Rush",
+                "item": "Focus Sash", // 气腰保住稳定出招
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 200 },
+                "moves": ["Stealth Rock", "Accelrock", "Stone Edge", "Drill Run"]
+            },
+            {
+                "name": "Goodra", // 黏美龙
+                "lv": 60, 
+                "nature": "Modest", 
+                "ability": "Sap Sipper",
+                "item": "Leftovers",
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Dragon Pulse", "Muddy Water", "Sludge Bomb", "Ice Beam"]
+            },
+            {
+                "name": "Orthworm", // 拖拖蚓
+                "lv": 59, 
+                "nature": "Impish",
+                "item": "Sitrus Berry", 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":0 }, "ev_level": 252 },
+                "moves": ["Heavy Slam", "Body Press", "Iron Defense", "Earthquake"]
+            },
+            {
+                "name": "Dudunsparce", // 土龙节节
+                "lv": 59, 
+                "nature": "Adamant", 
+                "ability": "Serene Grace", // 天恩
+                "item": "Kings Rock", // 王者之证 (如果她想恶心人就会带)
+                // 修正：Leftovers
+                "moves": ["Hyper Drill", "Dragon Rush", "Coil", "Roost"]
+            },
+            {
+                "name": "Pawmot", // 巴布土拨 (Ace 1)
+                "lv": 60, 
+                "nature": "Jolly", 
+                "ability": "Iron Fist",
+                "item": "Punching Glove",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Double Shock", "Close Combat", "Ice Punch", "Mach Punch"]
+            },
+            {
+                "name": "Meowscarada", // 魔幻假面喵 (Ace 2)
+                "lv": 62, 
+                "gender": "F", 
+                "nature": "Jolly",
+                "mechanic": "tera",
+                "teraType": "Grass",
+                "item": "Choice Band", // 专爱头带
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                // 必中+必爆击，伤害简单粗暴
+                "moves": ["Flower Trick", "Knock Off", "Play Rough", "U-turn"],
+                "friendship": { "trust": 150, "passion": 200, "insight": 150, "devotion": 200 }
+            }
+        ]
+    },
+
+    // 【Tier 4 - 跨越地区的究极战斗狂】
+    // Lv.95-99 | 真正意义上的全明星战队。
+    // 这不是普通的冠军战，这是汇聚了帕底亚、北上乡与蓝莓学院后，完全没有限制的妮莫。
+    4: {
+        "trainerProficiency": 255, // Battle Genius
+        "unlocks": {
+            "enable_bond": false, 
+            "enable_styles": true, 
+            "enable_insight": true, 
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true,      // ✅ 部分队员可极巨化增加 Boss 战压迫感 (如杖尾鳞甲龙)
+            "enable_tera": true,         // ✅ 太晶化：核心战术
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [撒钉起点 / 先制控速]
+                "name": "Lycanroc", // 鬃岩狼人-白昼 (图中Lv.86 -> 修至95)
+                "lv": 95, 
+                "gender": "F", 
+                "nature": "Jolly", // 极速
+                "ability": "Sand Rush", // 拨沙：如果有沙暴则速度翻倍(可配队友技能) 或 Steadfast(不屈之心)
+                "item": "Focus Sash",   // 气腰确保撒出钉子
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Stealth Rock 后 Accelerator (冲岩) 蹭血，Endeavor (莽撞) 换掉对面通关大哥
+                "moves": ["Stealth Rock", "Accelrock", "Stone Edge", "Endeavor"]
+            },
+            {
+                // [高速虫网 / 辅助与火力]
+                "name": "Ribombee", // 蝶结萌虻
+                "lv": 95, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Shield Dust", 
+                "item": "Focus Sash", // 也带气腰(防止首发被秒)，双腰战术在无道具规则外很常见
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Sticky Web (黏黏网): 降低对手全队速度，让妮莫的高速队必拿先手
+                // Moonblast + Bug Buzz 也是很疼的本系
+                "moves": ["Sticky Web", "Moonblast", "Bug Buzz", "Psychic"]
+            },
+            {
+                // [极巨化ACE位置 / 准神]
+                "name": "Kommo-o", // 杖尾鳞甲龙
+                "lv": 97, 
+                "gender": "F", 
+                "nature": "Timid", // 胆小 (+速) 或 Naive 双刀
+                "ability": "Soundproof", // 隔音
+                "item": "Throat Spray",  // 爽喉喷雾
+                
+                // G-Max 其实不是它的长处，但普通的 Dynamax 也能增加它的耐久
+                "mechanic": "dynamax", 
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Clangorous Soul (魂舞烈音爆): 全能力+1并扣血，触发喷雾再+1特攻
+                // 瞬间造神
+                "moves": ["Clangorous Soul", "Clanging Scales", "Aura Sphere", "Flash Cannon"]
+            },
+            {
+                // [万能变幻 / 高速刺客]
+                "name": "Greninja", // 甲贺忍蛙 (忍住！这里是变幻自如/激流)
+                "lv": 96, 
+                "gender": "M", 
+                "nature": "Naive", // 天真
+                "ability": "Protean", // 变幻自如
+                "item": "Life Orb",   // 命玉
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 高速打击多系盲点
+                "moves": ["Ice Beam", "Dark Pulse", "Gunk Shot", "Hydro Pump"]
+            },
+            {
+                // [真正的“作弊” / ACE 1]
+                "name": "Pawmot", // 巴布土拨
+                "lv": 98, 
+                "gender": "M", // 图中是公的
+                "nature": "Jolly", 
+                "ability": "Iron Fist", 
+                "item": "Leppa Berry", // PP果，为了多一次复活
+                
+                "isAce": true, // 双ACE之一
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Revival Blessing (复生祈祷): 复活队伍里倒下的王牌 (Meowscarada/Kommo-o)
+                // Double Shock (电光双击): 120威力本系，无脑轰
+                "moves": ["Revival Blessing", "Double Shock", "Close Combat", "Mach Punch"],
+                
+                // Insight让他更会闪避
+                "friendship": { "trust": 255, "passion": 200, "insight": 150, "devotion": 200 }
+            },
+            {
+                // [宿命 / ACE 2]
+                "name": "Meowscarada", // 魔幻假面喵 (魔术师)
+                "lv": 99, 
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Protean", // 变幻自如。或者 Overgrow
+                "mechanic": "tera",
+                "teraType": "Grass",  // 草太晶：将千变万花威力推向极致
+                
+                "item": "Choice Scarf", // 讲究围巾：锁招但速度必须快过所有Lv.99
+                // 或者用 "Focus Sash" 确保至少放出一次必杀
+                
+                "isAce": true, 
+                // Lv.99 的满分配
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Flower Trick (千变万花): 必得要害(x1.5及无视防御buff) + 本系 + Insight修正
+                // 只要出手，对面非死即残，无视任何墙/防御强化
+                "moves": ["Flower Trick", "Knock Off", "Play Rough", "U-turn"],
+                
+                // “和我战斗到最后一刻吧！”
+                "friendship": { "trust": 200, "passion": 255, "insight": 255, "devotion": 120 }
+            }
+        ]
+    }
+};
+
+
 
 // ================================================================
 //  挂载到 window 对象，供插件内部访问
@@ -3834,6 +5272,13 @@ if (typeof window !== 'undefined') {
     window.BEA_DATA = BEA_DATA;
     window.CYNTHIA_DATA = CYNTHIA_DATA;
     window.JULIANA_DATA = JULIANA_DATA;
+    window.MAY_DATA = MAY_DATA;
+    window.LACEY_DATA = LACEY_DATA;
+    window.MISTY_DATA = MISTY_DATA;
+    window.ACEROLA_DATA = ACEROLA_DATA;
+    window.SKYLA_DATA = SKYLA_DATA;
+    window.IRIS_DATA = IRIS_DATA;
+    window.NEMONA_DATA = NEMONA_DATA;
     
     window.TRAINER_GLOBALS = {
         gloria: GLORIA_DATA,
@@ -3856,31 +5301,13 @@ if (typeof window !== 'undefined') {
         marnie: MARNIE_DATA,
         hex: HEX_DATA,
         bea: BEA_DATA,
-        cynthia: CYNTHIA_DATA
+        cynthia: CYNTHIA_DATA,
+        may: MAY_DATA,
+        lacey: LACEY_DATA,
+        misty: MISTY_DATA,
+        acerola: ACEROLA_DATA,
+        skyla: SKYLA_DATA,
+        iris: IRIS_DATA,
+        nemona: NEMONA_DATA
     };
 }
-
-// ES Module 导出
-export const TRAINER_GLOBALS = {
-    gloria: GLORIA_DATA,
-    selene: SELENE_DATA,
-    rosa: ROSA_DATA,
-    dawn: DAWN_DATA,
-    akari: AKARI_DATA,
-    serena: SERENA_DATA,
-    juliana: JULIANA_DATA,
-    lusamine: LUSAMINE_DATA,
-    lillie: LILLIE_DATA,
-    mallow: MALLOW_DATA,
-    lana: LANA_DATA,
-    irida: IRIDA_DATA,
-    sonia: SONIA_DATA,
-    roxie: ROXIE_DATA,
-    iono: IONO_DATA,
-    erika: ERIKA_DATA,
-    nessa: NESSA_DATA,
-    marnie: MARNIE_DATA,
-    hex: HEX_DATA,
-    bea: BEA_DATA,
-    cynthia: CYNTHIA_DATA
-};

@@ -13,7 +13,8 @@ const GLORIA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": true, // Galar 核心机制
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             {
@@ -148,7 +149,8 @@ const AKARI_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             {
@@ -269,7 +271,8 @@ const ROSA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -423,7 +426,8 @@ const SERENA_DATA = {
             "enable_mega": true,         // ✅ 唯一的钥匙：开启 Mega 进化按钮
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -513,6 +517,145 @@ const SERENA_DATA = {
 };
 
 /* 
+ * 角色: 小遥 (May)
+ * 身份: 丰缘顶级协调家 / 特区美食探险队队长
+ * 核心机制: Mega 进化 (Blazikenite) + 接力起飞 + 暴力美学
+ * 特色: 小巧的身体里蕴含着恐怖的破坏力 (Hoenn Powerhouse)
+ */
+const MAY_DATA = {
+    // 【Tier 4 - 丰缘之风·元气全开】
+    4: {
+        "trainerProficiency": 230,
+        // ==============================================================
+        // [Tier Specific Unlocks]
+        // ==============================================================
+        "unlocks": {
+            "enable_bond": true,         // ✅ 羁绊：和火焰鸡的默契
+            "enable_styles": false,
+            "enable_insight": true,      // ✅ 协调家的洞察力 (用于抓破绽)
+            "enable_mega": true,         // ✅ 核心：Mega 进化
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+
+        // ==============================================================
+        // [Party Data]
+        // ==============================================================
+        "party": [
+            {
+                // [绝对王牌 / 接力推土机]
+                "name": "Blaziken", // 火焰鸡
+                "lv": 99,
+                "gender": "F",      // 小遥的火焰鸡设定偏雌性（虽然游戏里是7:1）
+                "nature": "Adamant", // 固执：输出最大化，速度交给加速特性
+                "ability": "Speed Boost", // 加速：每回合速度+1，真正的滚雪球神器
+                
+                // === 机制核心 ===
+                "item": "Blazikenite",
+                "mechanic": "mega",
+                
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } 
+                },
+                
+                "isAce": true, 
+                // 关于 Passion (热情) 和 Trust (信赖) 极高
+                "friendship": { "trust": 255, "passion": 255, "insight": 150, "devotion": 120 },
+                
+                // 战术: Protect (守住) 蹭一回合加速 -> Swords Dance (如果贪到就结束游戏) -> Flare Blitz 轰炸
+                // 典型的 "只要让我动一次你就输了"
+                "moves": ["Protect", "Flare Blitz", "Close Combat", "Stone Edge"] 
+                // 替补技能: Swords Dance / Baton Pass (接棒给巨沼怪?)
+            },
+            {
+                // [沼泽守护者 / 联防核心]
+                "name": "Swampert", // 巨沼怪
+                "lv": 96,
+                "gender": "M",
+                "nature": "Relaxed", // 悠闲 (+防 -速)
+                "ability": "Damp",   // 湿气 (也许是因为她想搞研究抓宠，不想让对面爆炸)
+                "item": "Leftovers", // 剩饭
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 战术: 反手 Flip Turn (快速折返) 调度
+                "moves": ["Flip Turn", "Earthquake", "Scald", "Stealth Rock"] 
+            },
+            {
+                // [蘑菇捕获手 / 异常状态]
+                "name": "Breloom", // 斗笠菇 (实地调查必带)
+                "lv": 95,
+                "gender": "M",
+                "nature": "Jolly", 
+                "ability": "Technician", // 技术高手
+                "item": "Focus Sash",    // 气腰 (必睡一人)
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 哪怕是在Lv.95的环境，必中的 Spore 依然是噩梦
+                // Mach Punch 先制技收残血
+                "moves": ["Spore", "Bullet Seed", "Mach Punch", "Rock Tomb"] 
+            },
+            {
+                // [真正的“饭桶” / 辉石战神]
+                // 对应她“吃货”的设定，小卡比兽比卡比兽更能吃（进化辉石）
+                "name": "Munchlax", // 小卡比兽
+                "lv": 99, // 甚至比其他队员等级都高，因为吃得多
+                "gender": "M",
+                "nature": "Adamant",
+                "ability": "Thick Fat", // 厚脂肪 (冰火抗性)
+                "item": "Eviolite",     // 进化奇石：Def/SpD x1.5 -> 硬度非常离谱
+                
+                "stats_meta": { 
+                    // 特意拉满耐久的分配
+                    "ev_level": { "hp": 252, "atk": 100, "def": 158, "spa": 0, "spd": 0, "spe": 0 },
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 0 }
+                },
+                
+                // 诅咒强化流：脸接伤害 -> 睡觉 -> 然后一举毁灭世界
+                "moves": ["Curse", "Body Slam", "Rest", "Sleep Talk"]
+            },
+            {
+                // [优雅的冰雪 / 华丽大赛之星]
+                "name": "Glaceon", // 冰伊布 (致敬动画以及补充冰系打击面)
+                "lv": 94,
+                "gender": "F",
+                "nature": "Modest", 
+                "ability": "Snow Cloak", 
+                "item": "Choice Specs", // 讲究眼镜
+                
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
+                },
+                // 一发暴风雪/冰冻光束打过去，协调家的技能也是要看火力的
+                "moves": ["Ice Beam", "Shadow Ball", "Freeze-Dry", "Hyper Voice"]
+            },
+            {
+                // [空中的压制力 / 调查队护卫]
+                "name": "Metagross", // 巨金怪 (可能是大吾送的? 或者是丰缘强力代表)
+                "lv": 95,
+                "gender": "N",
+                "nature": "Adamant",
+                "ability": "Clear Body", // 恒净之躯 (不会被降能力)
+                "item": "Assault Vest",  // 突击背心 (弥补特防)
+                
+                "stats_meta": { 
+                    "ev_level": 252,
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
+                },
+                
+                "moves": ["Meteor Mash", "Zen Headbutt", "Bullet Punch", "Earthquake"]
+            }
+        ]
+    }
+};
+
+
+/* 
  * 角色: 小光 (Dawn)
  * 身份: 神奥协调大师 / 华丽大赛庆典冠军
  * 风格: 华丽与实力的完美结合 (Insight Stream)
@@ -537,7 +680,8 @@ const DAWN_DATA = {
             "enable_mega": true,         
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             {   // [Mega 战姬 - 不变]
@@ -650,7 +794,8 @@ const SELENE_DATA = {
             "enable_mega": false,
             "enable_z_move": true,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             {
@@ -754,7 +899,8 @@ const JULIANA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": true    // ✅ 解锁 太晶化 (核心机制: 亮晶晶的收藏癖)
+            "enable_tera": true,   // ✅ 解锁 太晶化 (核心机制: 亮晶晶的收藏癖)
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
         "party": [
             // 1. [坐骑/真·神兽] 
@@ -886,7 +1032,8 @@ const LUSAMINE_DATA = {
             "enable_mega": false,
             "enable_z_move": true,       // ✅ 核心：解锁 Z 手环权限
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -989,7 +1136,8 @@ const LILLIE_DATA = {
             "enable_mega": false,
             "enable_z_move": true,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         "party": [
@@ -1100,7 +1248,8 @@ const MALLOW_DATA = {
             "enable_mega": false,
             "enable_z_move": true,       // ✅ 队长即是 Z 力量的引导者
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -1216,7 +1365,8 @@ const LANA_DATA = {
             "enable_mega": false,
             "enable_z_move": true,       // ✅ 你的队伍就是我的鱼塘
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -1335,7 +1485,8 @@ const IRIDA_DATA = {
             "enable_mega": false, 
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -1426,6 +1577,341 @@ const IRIDA_DATA = {
         ]
     }
 };
+
+/* 
+ * 角色: 紫竽 (Lacey)
+ * 身份: 蓝莓学园四天王 / 风纪委员长 / 规则至上主义者
+ * 核心机制: 太晶化 (Tera: Stellar) + 恶作剧控速 + 概率管理
+ * "凡是不仅正确的事情，就是不正当的（X）！"
+ */
+const LACEY_DATA = {
+    // 【Tier 4 - 绝对正确的“花”之风纪】
+    4: {
+        "trainerProficiency": 230, // 学院派的高精准度
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true,    // ✅ 身为风纪委员，能在乱局中看清破绽 (命中修正)
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": true,       // ✅ 帕底亚/蓝莓学园留学生的核心技术
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [执法先锋 / 控速]
+                "name": "Whimsicott", // 风妖精
+                "lv": 92,
+                "gender": "F",
+                "nature": "Timid",   // 胆小 (+速)
+                "ability": "Prankster", // 恶作剧之心
+                "item": "Focus Sash",   // 气势披带：保证开出顺风
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 战术: 顺风(加速) -> 再来一次(锁对面强化/保护) -> 月亮之力
+                // 在这个都是Lv.90+怪物的环境，先按下“再来一次”常能逼疯那些准备剑舞的猛男
+                "moves": ["Tailwind", "Encore", "Moonblast", "Energy Ball"]
+            },
+            {
+                // [物理管教 / 威吓]
+                "name": "Granbull", // 布鲁皇
+                "lv": 90,
+                "gender": "F",
+                "nature": "Adamant", // 固执
+                "ability": "Intimidate", // 威吓：物理手的克星
+                "item": "Choice Band",   // 专爱头带：将输出最大化
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 即使没有妖精皮，Play Rough + 专头 的力度也足以粉碎龙系
+                // 补盲：地震 + 火焰拳
+                "moves": ["Play Rough", "Earthquake", "Fire Punch", "Close Combat"]
+            },
+            {
+                // [歌唱社团 / 音爆穿透]
+                "name": "Primarina", // 西狮海壬
+                "lv": 92,
+                "gender": "F",
+                "nature": "Modest", // 内敛
+                "ability": "Liquid Voice", // 湿润之声：声音技变水系
+                "item": "Throat Spray",    // 爽喉喷雾：用完巨声顺便+1特攻
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                // 典型的越打越痛。除了巨声，还需防范冰/仙盲点。
+                "moves": ["Hyper Voice", "Moonblast", "Ice Beam", "Psychic"]
+            },
+            {
+                // [甜蜜陷阱 / 强化要塞]
+                "name": "Alcremie", // 霜奶仙 (红钻综合)
+                "lv": 90,
+                "gender": "F",
+                "nature": "Bold",   // 大胆 (+防 -攻)
+                "ability": "Sweet Veil", // 甜幕：全队防睡眠（针对 T3+ 的睡杀流极佳）
+                "item": "Leftovers",     // 剩饭
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 改版：如果你单打碰到这只，会发现她使用了 "溶化(Acid Armor)" + "冥想(Calm Mind)"
+                // 然后 "辅助力量(Stored Power)" 一发入魂
+                "moves": ["Acid Armor", "Calm Mind", "Recover", "Stored Power"]
+            },
+            {
+                // [不确定性因素 / 赌狗之毒]
+                "name": "Slowbro-Galar", // 伽勒尔呆壳兽
+                "lv": 91,
+                "gender": "F",
+                "nature": "Modest",
+                "ability": "Quick Draw", // 速击：30% 概率先制度+1
+                "item": "Quick Claw",    // 先制之爪：20% 概率先制度+1
+                
+                // 双重判定：每一回合都有约 44% 的概率无视速度强行先手
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 0 }, "ev_level": 252 },
+                
+                // Shell Side Arm (臂贝武器): 自动选物理/特殊端造成更大伤害，必带
+                "moves": ["Shell Side Arm", "Psychic", "Flamethrower", "Nasty Plot"] 
+                // Nasty Plot(诡计)一旦强化成功，这只概率怪会变成推队王
+            },
+            {
+                // [风纪委员长 / 规则执行者 ACE]
+                "name": "Excadrill", // 龙头地鼠
+                "lv": 95,            // 王牌等级
+                "gender": "M",
+                "nature": "Adamant", // 固执
+                "ability": "Mold Breaker", // 破格：由于她的个性——"打破一切不正确防御（飘浮/结实）"
+                "item": "Assault Vest",    // 突击背心：硬切特攻手的资本
+                
+                // === 机制核心 ===
+                "mechanic": "tera",
+                "teraType": "Stellar", // 太晶：星晶。保留了她在 蓝莓学园 的标志性特征 (全属性打击面增强)
+                // 如果引擎不支持 Stellar，visually 可 fallback 至 Ground/Steel
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "isAce": true, 
+                
+                // 配招：
+                // Tera Blast (太晶爆发): 配合星晶，克制所有这只地鼠当前微弱的太晶对手。
+                // High Horsepower (十万马力): 不会误伤双打队友的本系，威力95。
+                // Iron Head (铁头): 稳定本系。
+                // Rock Slide (岩崩): 弥补打击面，加上破格可以打飞/虫。
+                "moves": ["High Horsepower", "Tera Blast", "Iron Head", "Rock Slide"],
+                
+                // [AVs - 情感倾向]
+                // 她的 Trust 和 Insight 很高，代表对规则的信赖和洞察力；
+                // Passion 虽然外表得体（不像奇树那么疯），但在关键时刻（太晶化）会爆发
+                "friendship": { "trust": 220, "passion": 180, "insight": 255, "devotion": 120 }
+            }
+        ]
+    }
+};
+
+
+/* 
+ * 角色: 小霞 (Misty)
+ * 身份: 华蓝道馆馆主 / 自封"世界第一美少女" / 严厉的泳池保全
+ * 核心机制: 纯朴联防 + 洞察心眼 (绝对零度) + 隐藏的呆霸王
+ * "我的策略用水来形容? ……那就是无论你怎么挣扎都会把你这一头闷进水里的压迫感！"
+ */
+const MISTY_DATA = {
+    // 【Tier 4 - 华蓝海角的严厉大姐姐】
+    4: {
+        "trainerProficiency": 230, // 关都老牌馆主的底力
+        "unlocks": {
+            "enable_bond": true,         // ✅ 羁绊解禁 (给可达鸭) 
+            "enable_styles": false,
+            "enable_insight": true,      // ✅ 洞察力开启：修正 '绝对零度' 和 '水炮' 命中
+            "enable_mega": false,        // 她在这一代依然坚持非Mega的一击制胜 (?) 或者可以考虑给 Mega 暴更... 但这里没带暴鲤龙
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [反强化的叹息之壁]
+                "name": "Quagsire", // 沼王
+                "lv": 84,
+                "gender": "F",
+                "nature": "Relaxed", // 悠闲 (+防 -速)
+                "ability": "Unaware", // 纯朴：无视对手一切攻/防能力变化
+                "item": "Leftovers",  // 剩饭
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 哈欠逼换，剧毒磨血，攀瀑本系
+                // 专门用来处理试图在小霞面前“跳龙舞”的家伙
+                "moves": ["Yawn", "Earthquake", "Waterfall", "Recover"]
+            },
+            {
+                // [蓄电发电机]
+                "name": "Lanturn", // 电灯怪
+                "lv": 84,
+                "gender": "F",
+                "nature": "Calm",   // 温和 (+特防)
+                "ability": "Volt Absorb", // 蓄电：完全免疫电系
+                "item": "Sitrus Berry", 
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
+                
+                // 水+电 双本盲点极少
+                "moves": ["Volt Switch", "Scald", "Ice Beam", "Thunder Wave"]
+            },
+            {
+                // [移动炮台/破壳流]
+                "name": "Blastoise", // 水箭龟  
+                "lv": 85,
+                "gender": "M",
+                "nature": "Adamant", // 固执
+                "ability": "Torrent", 
+                "item": "White Herb", // 白色香草：抵消破壳后的防御下降
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 战术：找机会 Shell Smash (及攻/速 +2)
+                // 然后逆鳞/水兵推队
+                "moves": ["Shell Smash", "Waterfall", "Outrage", "Earthquake"] // 替换了原本的雪崩/铁壁，更具进攻性
+            },
+            {
+                // [心眼战神 / 泳池BOSS]
+                "name": "Lapras", // 拉普拉斯
+                "lv": 86,
+                "gender": "F",
+                "nature": "Modest", // 内敛
+                "ability": "Water Absorb", // 储水
+                "item": "Assault Vest",    // 突击背心（特防 x1.5）-> 肉到令人绝望
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Sheer Cold (绝对零度): 
+                // T4 + enable_insight = 会让命中修正到一个"极其危险"的程度（例如50%甚至更高预判）
+                // 加上 突击背心 的硬度，她能试射很多发
+                "moves": ["Sheer Cold", "Freeze-Dry", "Hydro Pump", "Ice Shard"]
+            },
+            {   
+                // [ACE 1 - 鸭神的觉醒]
+                // 替代了原本的 Jellicent (胖嘟嘟)
+                "name": "Psyduck", // 可达鸭 (未进化)
+                "lv": 95,          // 等级拉高以示特别
+                "gender": "M",
+                "nature": "Modest", // 内敛 (+特攻)
+                "ability": "Cloud Nine", // 无关天气：什么雨天晴天，我的头疼最大
+                "item": "Eviolite",     // 进化奇石：Def/SpD x1.5
+                
+                // 标记为 Ace 之一，享受 Trainer 喊话
+                "isAce": true,
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 配招思路：呆头呆脑的超能力爆发
+                // Psychic (精神强念)
+                // Hydro Pump (水炮) - 相信 Insight，这发水炮必中
+                // Disable (定身法) - "哎呀头好痛，你别动了" 封锁对手上一技能
+                // Future Sight (预知未来) - 压场神技
+                "moves": ["Psychic", "Hydro Pump", "Disable", "Future Sight"],
+                
+                // [全岛最强的头痛羁绊]
+                // 玩家可以理解为这是小霞最初的那只可达鸭，Trust 和 Passion 都是满的
+                "friendship": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 } 
+            },
+            {
+                // [ACE 2 - 海南的双石]
+                "name": "Starmie", // 宝石海星
+                "lv": 92,
+                "gender": "N",
+                "nature": "Timid", // 胆小 (极速)
+                "ability": "Natural Cure", // 自然回复 (换人对策)
+                "item": "Life Orb",        // 命玉 (追求确一的斩杀线)
+                "isAce": true,             // 定位的真正Ace
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "friendship": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 },
+                "moves": ["Hydro Pump", "Thunderbolt", "Psychic", "Ice Beam"]
+            }
+        ]
+    }
+};
+
+const HEX_DATA = {
+
+    4: {
+        "trainerProficiency": 155,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": true, 
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [不死的空间手]
+                "name": "Dusclops", 
+                "lv": 74,
+                "gender": "F",
+                "nature": "Sassy", // 狂妄
+                "ability": "Pressure",
+                "item": "Eviolite", 
+                "stats_meta": { "ivs": { "hp": 31, "atk": 25, "def": 31, "spa": 25, "spd": 31, "spe": 0 }, "ev_level": 252 },
+                "moves": ["Night Shade", "Will-O-Wisp", "Trick Room", "Memento"] // 开完空间临别礼物退场，甚至不加敌方击杀数
+            },
+            {
+                // [重炮手]
+                "name": "Chandelure", // 水晶灯火灵
+                "lv": 75,
+                "gender": "F",
+                "nature": "Modest",
+                "ability": "Infiltrator", // 穿透
+                "item": "Choice Specs", // 讲究眼镜火抗极高
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Overheat", "Shadow Ball", "Energy Ball", "Trick"]
+            },
+            {
+                // [物理防御组]
+                "name": "Cofagrigus", // 只有合众/伽勒尔的 迭失棺
+                "lv": 72,
+                "gender": "M",
+                "nature": "Bold", 
+                "ability": "Mummy", // 木乃伊 (接触这只怪会让对方特性失效，专门克制物理手)
+                "item": "Leftovers",
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
+                "moves": ["Hex", "Toxic Spikes", "Protect", "Body Press"] 
+            },
+            {
+                // [超能爆破 / 控速]
+                "name": "Gothitelle", // 哥德小姐
+                "lv": 73,
+                "gender": "F",
+                "nature": "Calm",
+                "ability": "Competitive", // 蹭威吓可以加特攻
+                "item": "Sitrus Berry", 
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
+                "moves": ["Psychic", "Thunder Wave", "Fake Out", "Heal Pulse"]
+            },
+            {
+                // [怨念的化身 / Prankster Ace]
+                "name": "Banette", 
+                "lv": 78,
+                "gender": "F",
+                "nature": "Adamant", // 固执 (+攻 -特)
+                "ability": "Frisk", // 进化前看道具
+                
+                // === 机制核心 ===
+                "mechanic": "mega",     // 锁定：Mega 诅咒娃娃
+                "item": "Banettite", 
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                "isAce": true,
+                "friendship": { "trust": 100, "passion": 80, "insight": 220, "devotion": 120 }, // 她的玩偶
+                
+                // 战术核心: Prankster (进化后恶作剧之心) 带来的先制 
+                // Destiny Bond (同命) 先手施放：我不死你死，我还手你就死
+                // Gunk Shot 打妖精
+                "moves": ["Destiny Bond", "Gunk Shot", "Phantom Force", "Knock Off"]
+            }
+        ]
+    }
+};
 /* 
  * 角色: 索妮亚 (Sonia)
  * 身份: 伽勒尔地区博士 / 传说的记录者
@@ -1446,7 +1932,8 @@ const SONIA_DATA = {
             "enable_mega": true,         // 卡洛斯留学的纪念
             "enable_z_move": true,       // 阿罗拉交流的成果
             "enable_dynamax": true,      // 本土伽勒尔的能量
-            "enable_tera": true          // 最新的帕底亚论文课题
+            "enable_tera": true,         // 最新的帕底亚论文课题
+            "enable_proficiency_cap": true  // 训练度突破155上限
         },
 
         // ==============================================================
@@ -1541,7 +2028,8 @@ const ROXIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1588,7 +2076,8 @@ const ROXIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1649,7 +2138,8 @@ const ROXIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,     // T3 还没有去伽勒尔，不会极巨化
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1731,7 +2221,8 @@ const ROXIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": true,      // ✅ 超极巨灰尘山 & 颤弦蝾螈的舞台
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
 
         // ==============================================================
@@ -1847,7 +2338,8 @@ const IONO_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1893,7 +2385,8 @@ const IONO_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false // 此阶段还未获得太晶珠
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -1951,7 +2444,8 @@ const IONO_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": true          // ✅ 粉丝回馈：闪闪发光的太晶化解锁！
+            "enable_tera": true,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -2037,7 +2531,8 @@ const IONO_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": true,         // ✅ 奇树的招牌：亮晶晶的太晶化！
+            "enable_tera": true,
+            "enable_proficiency_cap": true
         },
 
         // ==============================================================
@@ -2152,7 +2647,8 @@ const ERIKA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2197,7 +2693,8 @@ const ERIKA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2254,7 +2751,8 @@ const ERIKA_DATA = {
             "enable_mega": true,     // ✅ T3 解锁 Mega，作为过渡
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -2327,7 +2825,8 @@ const ERIKA_DATA = {
             "enable_mega": true,         // ✅ 保留 Mega
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
 
         // ==============================================================
@@ -2439,8 +2938,14 @@ const NESSA_DATA = {
     1: {
         "trainerProficiency": 50,
         "unlocks": { 
-            "enable_bond": false, "enable_styles": false, "enable_insight": false, "enable_mega": false, "enable_z_move": false,
-            "enable_dynamax": false, "enable_tera": false 
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2473,9 +2978,14 @@ const NESSA_DATA = {
     2: {
         "trainerProficiency": 100,
         "unlocks": { 
-            "enable_bond": false, "enable_styles": false, "enable_insight": false, "enable_mega": false, "enable_z_move": false,
-            "enable_dynamax": true, // T2 初次解锁极巨(道馆战强度)
-            "enable_tera": false 
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2516,7 +3026,16 @@ const NESSA_DATA = {
     // Lv.75，完备雨天队，也是对战塔水准
     3: {
         "trainerProficiency": 160,
-        "unlocks": { false:false, "enable_dynamax":true }, // 省略写法
+        "unlocks": { 
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
         "party": [
             {
                 "name": "Pelipper",
@@ -2565,14 +3084,15 @@ const NESSA_DATA = {
     // Lv.85+，顶级控速强攻受，极巨化全开
     4: {
         "trainerProficiency": 210,
-        "unlocks": {
+        "unlocks": { 
             "enable_bond": false,
             "enable_styles": false,
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": true,      // ✅ 露璃娜的T台！
-            "enable_tera": false
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -2671,7 +3191,8 @@ const MARNIE_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2717,8 +3238,9 @@ const MARNIE_DATA = {
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": false, // T2 的场地通常是在地下街道，无法极巨化
-            "enable_tera": false
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -2771,8 +3293,9 @@ const MARNIE_DATA = {
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": true,      // ✅ 冠军杯：在这里不留遗憾！
-            "enable_tera": false
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -2849,8 +3372,9 @@ const MARNIE_DATA = {
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": true,      // ✅ 尖钉镇的骄傲，超极巨化！
-            "enable_tera": false
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
 
         // ==============================================================
@@ -2949,15 +3473,16 @@ const MARNIE_DATA = {
     }
 };
 /* 
- * 角色: 灵异迷 (Hex Maniac / Alice?)
- * 身份: 徘徊于各地的对战发烧友 / 诅咒载体
- * 核心机制: Mega 进化 + 极致 Insight (直感诅咒)
+ * 角色: 阿塞萝拉 (Acerola)
+ * 身份: 阿罗拉四天王 / S区旧街区的老大 / 古代王室末裔
+ * 核心机制: Z招式 (幽灵Z) + 画皮 (Disguise) + 诅咒消耗
+ * "来我的图书馆玩吧？大家（幽灵们）都说饿了……"
  */
-const HEX_DATA = {
-        // 【Tier 1 - 古宅里的恶作剧】
-    // Lv.24-26，未进化，单纯的幽灵系干扰
+const ACEROLA_DATA = {
+    // 【Tier 1 - 深夜的捉迷藏】
+    // Lv.24-26，由未进化的可爱幽灵组成，主打异常状态干扰。
     1: {
-        "trainerProficiency": 45,
+        "trainerProficiency": 60,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
@@ -2965,290 +3490,279 @@ const HEX_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
-                "name": "Duskull", // 夜巡灵
-                "lv": 24,
-                "gender": "F",
-                "nature": "Sassy", // 狂妄 (+特防)
-                "ability": "Levitate",
-                "stats_meta": { "ivs": { "hp": 20, "atk": 15, "def": 25, "spa": 15, "spd": 25, "spe": 10 }, "ev_level": 10 },
-                "moves": ["Night Shade", "Disable", "Will-O-Wisp", "Shadow Sneak"] // 经典的定身法+鬼火
-            },
-            {
-                "name": "Litwick", // 烛光灵
-                "lv": 24,
-                "gender": "F",
+                "name": "Drifloon", // 飘飘球
+                "lv": 24, 
+                "gender": "F", 
                 "nature": "Modest",
-                "ability": "Flash Fire", // 引火
-                "stats_meta": { "ivs": { "hp": 20, "atk": 15, "def": 15, "spa": 25, "spd": 15, "spe": 20 }, "ev_level": 20 },
-                "moves": ["Ember", "Hex", "Minimize", "Smog"] // 变小恶心人
+                "ability": "Unburden", // 轻装：这是个变速点
+                "item": "Oran Berry",  // 吃掉果子速度翻倍
+                "stats_meta": { "ivs": { "hp":20,"atk":0,"def":20,"spa":20,"spd":20,"spe":20 }, "ev_level": 10 },
+                "moves": ["Gust", "Astonish", "Payback", "Focus Energy"]
             },
             {
-                "name": "Shuppet", // 怨影娃娃 (娃娃控)
-                "lv": 26,
-                "gender": "F",
-                "nature": "Adamant", // 固执
-                "ability": "Insomnia",
-                "isAce": true, 
-                "item": "Spell Tag", // 诅咒之符
-                "stats_meta": { "ivs": { "hp": 25, "atk": 25, "def": 20, "spa": 15, "spd": 20, "spe": 25 }, "ev_level": 40 },
-                "moves": ["Shadow Sneak", "Knock Off", "Curse", "Screech"] // 先制技收割
-            }
-        ]
-    },
-    // 【Tier 2 - 墓园的守望者】
-    // Lv.48-52，进化奇石体系成型，难以突破的耐久
-    2: {
-        "trainerProficiency": 95,
-        "unlocks": {
-            "enable_bond": false,
-            "enable_styles": false,
-            "enable_insight": false,
-            "enable_mega": false, // 这个阶段还没有拿到 Key Stone
-            "enable_z_move": false,
-            "enable_dynamax": false,
-            "enable_tera": false
-        },
-        "party": [
-            {
-                "name": "Dusclops", // 彷徨夜灵
-                "lv": 49,
-                "gender": "F",
-                "nature": "Relaxed", // 悠闲
-                "ability": "Pressure",
-                "item": "Eviolite", // 辉石出现，硬度质变
-                "stats_meta": { "ivs": { "hp": 31, "atk": 25, "def": 31, "spa": 20, "spd": 31, "spe": 0 }, "ev_level": 120 },
-                // 空间开局 -> 诅咒 -> 痛平分
-                "moves": ["Trick Room", "Curse", "Pain Split", "Ice Punch"]
-            },
-            {
-                "name": "Lampent", // 灯火幽灵
-                "lv": 48,
-                "gender": "F",
-                "nature": "Modest",
-                "ability": "Flame Body", // 没什么物防，靠火焰躯体碰瓷
-                "stats_meta": { "ivs": { "hp": 25, "atk": 0, "def": 25, "spa": 31, "spd": 25, "spe": 31 }, "ev_level": 85 },
-                "moves": ["Shadow Ball", "Flamethrower", "Confuse Ray", "Energy Ball"]
-            },
-            {
-                "name": "Doublade", // 双剑鞘 (另一位物防大神)
-                "lv": 48,
-                "gender": "F",
-                "nature": "Brave",
-                "ability": "No Guard", // 无防守
-                "item": "Eviolite", // 如果规则允许双辉石(同人规则)最好，不然带气势披带
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 25, "spe": 0 }, "ev_level": 85 },
-                "moves": ["Swords Dance", "Shadow Sneak", "Sacred Sword", "Gyro Ball"] // 配合空间打输出
-            },
-            {
-                "name": "Banette", // 诅咒娃娃 (转为强攻)
-                "lv": 51,
-                "gender": "F",
+                "name": "Shuppet", // 怨影娃娃
+                "lv": 24, 
+                "gender": "F", 
                 "nature": "Adamant",
-                "ability": "Frisk", // 察觉
-                "item": "Colbur Berry", // 杭斑果 (抗恶)
+                "ability": "Insomnia", // 不眠
+                "stats_meta": { "ivs": { "hp":20,"atk":25,"def":20,"spa":10,"spd":20,"spe":20 }, "ev_level": 10 },
+                "moves": ["Shadow Sneak", "Will-O-Wisp", "Knock Off", "Screech"] // 鬼火是一种折磨
+            },
+            {
+                "name": "Sandygast", // 沙丘娃 (ACE 雏形)
+                "lv": 26, 
+                "gender": "F", 
+                "nature": "Quiet",
+                "ability": "Water Compaction", // 遇水凝固是一开始就有的
                 "isAce": true,
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 25, "spa": 10, "spd": 25, "spe": 31 }, "ev_level": 180 },
-                "moves": ["Phantom Force", "Sucker Punch", "Will-O-Wisp", "Destiny Bond"]
+                "stats_meta": { "ivs": { "hp":25,"atk":25,"def":25,"spa":25,"spd":25,"spe":20 }, "ev_level": 30 },
+                "moves": ["Mega Drain", "Sand Tomb", "Bulldoze", "Astonish"]
             }
         ]
     },
-    // 【Tier 3 - 不该被打开的封印 · Mega 降临】
-    // Lv.70+，解锁 Mega。
-    // 特点：王牌虽然换成了 Mega 诅咒娃娃，但这玩意的 "恶作剧之心 + 同命" 可能是游戏里最脏的 Combo 之一。
-    3: {
-        "trainerProficiency": 155,
+    // 【Tier 2 - 废弃大厦的传闻】
+    // Lv.48-52，4只队伍，开始出现诅咒娃娃和随风球的完全体能力。
+    2: {
+        "trainerProficiency": 110,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
             "enable_insight": false,
-            "enable_mega": true,         // ✅ 核心：Mega 诅咒娃娃登场
+            "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
-                // [不死的空间手]
-                "name": "Dusclops", 
-                "lv": 74,
-                "gender": "F",
-                "nature": "Sassy", // 狂妄
-                "ability": "Pressure",
-                "item": "Eviolite", 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 25, "def": 31, "spa": 25, "spd": 31, "spe": 0 }, "ev_level": 252 },
-                "moves": ["Night Shade", "Will-O-Wisp", "Trick Room", "Memento"] // 开完空间临别礼物退场，甚至不加敌方击杀数
+                "name": "Froslass", // 雪妖女 (在T2是非常快的一速干扰)
+                "lv": 48, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Snow Cloak",
+                "item": "Never-Melt Ice", // 不融冰
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":31 }, "ev_level": 85 },
+                "moves": ["Ice Beam", "Shadow Ball", "Confuse Ray", "Ominous Wind"]
             },
             {
-                // [重炮手]
-                "name": "Chandelure", // 水晶灯火灵
-                "lv": 75,
+                "name": "Banette", // 诅咒娃娃 (物理端)
+                "lv": 49, 
+                "gender": "M", 
+                "nature": "Adamant",
+                "ability": "Insomnia",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":25,"spa":10,"spd":25,"spe":31 }, "ev_level": 85 },
+                "moves": ["Shadow Claw", "Sucker Punch", "Will-O-Wisp", "Curse"]
+            },
+            {
+                "name": "Drifblim", // 随风球 (高HP特攻)
+                "lv": 49, 
+                "gender": "F", 
+                "nature": "Calm",
+                "ability": "Aftermath", // 引爆：被打倒会炸伤对手
+                "item": "Sitrus Berry", 
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":25 }, "ev_level": 120 },
+                "moves": ["Shadow Ball", "Gust", "Hex", "Stockpile"]
+            },
+            {
+                "name": "Palossand", // 噬沙堡爷 (ACE)
+                "lv": 52, 
                 "gender": "F",
                 "nature": "Modest",
-                "ability": "Infiltrator", // 穿透
-                "item": "Choice Specs", // 讲究眼镜火抗极高
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Overheat", "Shadow Ball", "Energy Ball", "Trick"]
-            },
-            {
-                // [物理防御组]
-                "name": "Cofagrigus", // 只有合众/伽勒尔的 迭失棺
-                "lv": 72,
-                "gender": "M",
-                "nature": "Bold", 
-                "ability": "Mummy", // 木乃伊 (接触这只怪会让对方特性失效，专门克制物理手)
-                "item": "Leftovers",
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
-                "moves": ["Hex", "Toxic Spikes", "Protect", "Body Press"] 
-            },
-            {
-                // [超能爆破 / 控速]
-                "name": "Gothitelle", // 哥德小姐
-                "lv": 73,
-                "gender": "F",
-                "nature": "Calm",
-                "ability": "Competitive", // 蹭威吓可以加特攻
-                "item": "Sitrus Berry", 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 200 },
-                "moves": ["Psychic", "Thunder Wave", "Fake Out", "Heal Pulse"]
-            },
-            {
-                // [怨念的化身 / Prankster Ace]
-                "name": "Banette", 
-                "lv": 78,
-                "gender": "F",
-                "nature": "Adamant", // 固执 (+攻 -特)
-                "ability": "Frisk", // 进化前看道具
-                
-                // === 机制核心 ===
-                "mechanic": "mega",     // 锁定：Mega 诅咒娃娃
-                "item": "Banettite", 
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                "isAce": true,
-                "friendship": { "trust": 100, "passion": 80, "insight": 220, "devotion": 120 }, // 她的玩偶
-                
-                // 战术核心: Prankster (进化后恶作剧之心) 带来的先制 
-                // Destiny Bond (同命) 先手施放：我不死你死，我还手你就死
-                // Gunk Shot 打妖精
-                "moves": ["Destiny Bond", "Gunk Shot", "Phantom Force", "Knock Off"]
+                "ability": "Water Compaction",
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":20 }, "ev_level": 120 },
+                "moves": ["Shadow Ball", "Earth Power", "Giga Drain", "Iron Defense"]
             }
         ]
     },
-    // 【Tier 4 - 欢迎来到我的灵界】
-    4: {
-        "trainerProficiency": 210,
-        // ==============================================================
-        // [Tier Specific Unlocks]
-        // ==============================================================
+    // 【Tier 3 - 四天王的真正实力】
+    // Lv.70+，5只队伍，新增 破破舵轮，解锁 Z 招式。风格开始变得诡异和坚硬。
+    3: {
+        "trainerProficiency": 170,
         "unlocks": {
             "enable_bond": false,
             "enable_styles": false,
-            "enable_insight": true,      // ✅ 灵媒的第六感全开！
-            "enable_mega": true,         // ✅ 她的 Mega 石来自墓地...
-            "enable_z_move": false,
+            "enable_insight": true,
+            "enable_mega": false,
+            "enable_z_move": true,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
-
-        // ==============================================================
-        // [Party Data]
-        // ==============================================================
         "party": [
             {
-                // [绝对核心 / 魔法镜要塞]
-                "name": "Sableye", // 勾魂眼
-                // 虽然她是 Mega 核心，但上场时是普通状态，通过 mechanic:'mega' 触发变身
-                "lv": 90,
-                "gender": "F",
-                "nature": "Bold", // 大胆（极限物耐）
-                "ability": "Prankster", // 进化前恶作剧之心：先手鬼火/冥想
-                // 进化后 Magic Bounce：反弹一切变化技
+                // [炸弹开局]
+                "name": "Drifblim", 
+                "lv": 73, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Unburden", // 改为轻装
+                "item": "Weakness Policy", // 只有AI敢这么玩，吃一发克制->特攻+2&速度x2
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 180 },
+                "moves": ["Shadow Ball", "Thunderbolt", "Will-O-Wisp", "Destiny Bond"]
+            },
+            {
+                // [极速干扰]
+                "name": "Froslass",
+                "lv": 74, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Cursed Body", // 穿透/诅咒之躯, 让对方技能被封印
+                "item": "Focus Sash", // 气腰同命
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 200 },
+                "moves": ["Spikes", "Ice Beam", "Shadow Ball", "Destiny Bond"]
+            },
+            {
+                // [物理重炮]
+                "name": "Dhelmise", // 破破舵轮
+                "lv": 74, "gender": "N", "nature": "Adamant",
+                "ability": "Steelworker", // 钢能力者 - 等于有三个本系
+                "item": "Assault Vest",   // 突击背心（因为它很硬）
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":20 }, "ev_level": 252 },
+                // 威力巨大的独有技
+                "moves": ["Anchor Shot", "Power Whip", "Phantom Force", "Heavy Slam"]
+            },
+            {
+                "name": "Banette",
+                "lv": 74, "gender": "F", "nature": "Adamant",
+                "ability": "Frisk", // 察觉
+                "item": "Life Orb", 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 180 },
+                "moves": ["Shadow Claw", "Sucker Punch", "Knock Off", "Will-O-Wisp"]
+            },
+            {
+                // [Z招式王牌]
+                "name": "Palossand",
+                "lv": 76, 
+                "gender": "F", 
+                "nature": "Modest",
+                "ability": "Water Compaction", // 遇水防御+2
+                
+                "mechanic": "zmove", // 激活 Z 招式
+                "item": "Ghostium Z", // 幽灵 Z
+                "isAce": true, 
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Giga Drain / Shore Up (集沙) 回血
+                "moves": ["Shadow Ball", "Earth Power", "Shore Up", "Teeter Dance"]
+            }
+        ]
+    },
+    // 【Tier 4 - 此世与彼世的边界】
+    // Lv.85+，6只队伍，谜拟Q 入队作为绝对的救场杀手。
+    // Insight 极高，闪避让人抓狂。
+    4: {
+        "trainerProficiency": 240,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, 
+            "enable_mega": false,
+            "enable_z_move": true,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [起点与献祭] 
+                "name": "Drifblim", // 随风球
+                "lv": 90, "gender": "F", "nature": "Timid",
+                "ability": "Unburden", // 轻装
+                "item": "Electric Seed", // 假设洛迪亚环境或队友配合，或者 Psychic Seed
+                "item": "Focus Sash", // 保底气腰轻装
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 战术: 顺风(Tailwind) -> 鬼火(Will-O-Wisp) -> 强风(Gust)/影球
+                // 高 HP，不容易被一击秒
+                "moves": ["Tailwind", "Shadow Ball", "Will-O-Wisp", "Self-Destruct"]
+            },
+            {
+                // [绝对的画皮 / 第六人机制怪]
+                "name": "Mimikyu", // 谜拟Q
+                "lv": 90, 
+                "gender": "F", 
+                "nature": "Jolly", // 爽朗 (+速)
+                "ability": "Disguise", // 画皮：免费抵挡一次伤害 (即使现在扣1/8也很强)
+                "item": "Life Orb",    // 命玉：增强剑舞后的斩杀力
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 战术：Disguise 吃伤害 -> Swords Dance (剑舞) -> 嬉闹/影袭清场
+                // 这只其实是队伍里的 隐藏ACE，非常契合 S 区那种破败布偶的氛围
+                "moves": ["Swords Dance", "Play Rough", "Shadow Sneak", "Shadow Claw"]
+            },
+            {
+                // [第三本系重坦]
+                "name": "Dhelmise", // 破破舵轮
+                "lv": 90, "gender": "N", "nature": "Brave", // 勇敢 (+攻 -速, 追求力度)
+                "ability": "Steelworker", // 钢能力者：钢系招式威力 x1.5
+                "item": "Expert Belt",    // 达人带，因为它打击面很广
+                // 或者突击背心 Assualt Vest
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":0 }, "ev_level": 252 },
+                
+                // Power Whip (120草) + Anchor Shot (封锁换人) + Gyro Ball (陀螺球，因为它哪怕Lv90也很慢)
+				// 新增 Poltergeist (灵骚) : 110威力幽灵本系，非常痛
+                "moves": ["Poltergeist", "Anchor Shot", "Power Whip", "Synthesi s"]
+            },
+            {
+                // [极速干扰]
+                "name": "Froslass", // 雪妖女
+                "lv": 90, "gender": "F", "nature": "Timid",
+                "ability": "Cursed Body", // 30% 封印对手
+                "item": "Colbur Berry",   // 抗恶果，防止被先制秒
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Aurora Veil (极光幕)? 如果有雪天。
+                // 默认选择 Spikes (撒菱) + Destiny Bond (同命) 的恶心流
+                "moves": ["Ice Beam", "Shadow Ball", "Spikes", "Destiny Bond"]
+            },
+            {
+                // [高攻刺客]
+                "name": "Banette", // 诅咒娃娃 (如果不能MEGA，就用命玉强攻)
+                "lv": 88, 
+                "gender": "F", 
+                "nature": "Adamant",
+                "ability": "Cursed Body", 
+                "item": "Focus Sash", // 再次强行续命
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Poltergeist", "Gunk Shot", "Sucker Punch", "Knock Off"]
+                // Gunk Shot 垃圾射击：针对妖精系的毒系大招，配合 Insight 可以修正命中
+            },
+            {
+                // [沙堡领主 / 永恒噩梦 ACE]
+                "name": "Palossand", // 噬沙堡爷
+                "lv": 92, 
+                "gender": "F", 
+                "nature": "Modest", // 内敛，追求特攻爆发
+                "ability": "Water Compaction", // 遇水防御激增
                 
                 // === 机制核心 ===
-                "item": "Sablenite",    // 勾魂眼进化石
-                "mechanic": "mega",     // 锁定：本场 Mega 手
+                "mechanic": "zmove", // 幽灵Z
+                "item": "Ghostium Z", 
                 
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "isAce": true,
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
                 
-                // 常见的恶心人配置: 冥想强化，自我再生续航。
-                // 攻击主要靠其实不低的暗影球或者欺诈 (Foul Play)。
-                "moves": ["Calm Mind", "Recover", "Will-O-Wisp", "Shadow Ball"],
+                // Shore Up (集沙): 沙暴下回复2/3，平时1/2，超强续航
+                // Shadow Ball (影球) -> NEVER-ENDING NIGHTMARE
+                // Earth Power (大地之力): 强力地本
+                // Giga Drain (终极吸取) or Sludge Bomb (污泥炸弹): 补盲战打击水/草
+                "moves": ["Shadow Ball", "Earth Power", "Shore Up", "Sludge Bomb"],
                 
-                "isAce": true, 
-                // 顶级的 Insight (255) + Trust (120) → 对训练家绝对服从，且能看穿所有替身/闪避
-                "friendship": { "trust": 120, "passion": 80, "insight": 255, "devotion": 120 }
-            },
-            {
-                // [不死的灰夜灵]
-                "name": "Dusclops", // 彷徨夜灵
-                "lv": 88,
-                "gender": "F",
-                "nature": "Relaxed", // 悠闲 (空间底速)
-                "ability": "Pressure", // 压迫感 (消耗PP)
-                "item": "Eviolite", // 辉石 (双防1.5倍，不可摧毁)
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 0 }, "ev_level": 252 },
-                
-                // 黑夜魔影(固定伤害) + 痛平分(强制修血) + 空间
-                "moves": ["Night Shade", "Pain Split", "Will-O-Wisp", "Trick Room"] 
-            },
-            {
-                // [强力破盾 / 补盲]
-                "name": "Chandelure", // 水晶灯火灵
-                "lv": 88,
-                "gender": "F",
-                "nature": "Timid", // 胆小 (+速)
-                "ability": "Infiltrator", // 穿透替身和光墙
-                "item": "Choice Scarf", // 围巾 (速度修正是关键，不然容易被秒)
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Fire Blast", "Shadow Ball", "Energy Ball", "Trick"] // 这里其实也有戏法干扰
-            },
-            {
-                // [诅咒死士]
-                "name": "Banette", // 诅咒娃娃 (虽然不Mega，但也配恶作剧相关)
-                "lv": 87,
-                "gender": "F",
-                "nature": "Adamant", // 固执
-                "ability": "Insomnia", // 不眠 (防止被催眠对策)
-                "item": "Focus Sash", // 气腰 (即使不Mega，也要保证必出一招诅咒或同命)
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                
-                // 垃圾射击补盲打妖精，同命硬换，魅影奇袭破保护
-                "moves": ["Gunk Shot", "Destiny Bond", "Knock Off", "Phantom Force"]
-            },
-            {
-                // [物理防御组]
-                "name": "Gourgeist-Super", // 特大南瓜怪人
-                "lv": 86,
-                "gender": "F",
-                "nature": "Impish", // 淘气 (+防)
-                "ability": "Frisk", // 察觉 (看道具方便做Trick)
-                "item": "Leftovers",
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                // 寄生种子+保护+潜灵奇袭 (经典的消耗连)
-                "moves": ["Leech Seed", "Protect", "Poltergeist", "Shadow Sneak"]
-            },
-            {
-                // [精神干扰]
-                "name": "Meowstic-F", // 超能妙喵 (雌性 - 好胜) 
-                "name": "Gothitelle", // 哥德小姐
-                "lv": 86,
-                "gender": "F",
-                "nature": "Calm", // 温和
-                "ability": "Competitive", // 好胜 (反威吓)
-                // 原设定有 Shadow Tag (踩影)，如果允许用那就是神。这里用好胜保守一点。
-                "item": "Sitrus Berry",
-                
-                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Psychic", "Thunder Wave", "Cosmic Power", "Stored Power"] // 辅助力量流
+                // [AVs - 鬼族的共鸣]
+                // 极高的 Insight (阿塞萝拉的特质) 让她和幽灵们能完美闪避
+                "friendship": { "trust": 160, "passion": 140, "insight": 255, "devotion": 120 }
             }
         ]
     }
@@ -3272,7 +3786,8 @@ const BEA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -3319,7 +3834,8 @@ const BEA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": false, // T2 的普通道馆赛不极巨化
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": false
         },
         "party": [
             {
@@ -3374,8 +3890,9 @@ const BEA_DATA = {
             "enable_insight": false,
             "enable_mega": false,
             "enable_z_move": false,
-            "enable_dynamax": true,      // ✅ 为冠军杯赛做准备
-            "enable_tera": false
+            "enable_dynamax": true,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3439,7 +3956,8 @@ const BEA_DATA = {
             "enable_mega": false,
             "enable_z_move": false,
             "enable_dynamax": true,      // ✅ 力量的极致体验
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3524,6 +4042,307 @@ const BEA_DATA = {
 };
 
 /* 
+ * 角色: 风露 (Skyla)
+ * 身份: 合众吹寄道馆馆主 / A区空中物流网总指挥
+ * 核心机制: 极巨化 (Max Airstream) + 精密制导 (Insight: Hurricane) + 神风攻势
+ * "在3000英尺的高空，没有人能逃过我的眼睛！全速爬升！"
+ */
+const SKYLA_DATA = {
+    // 【Tier 1 - 航校新手的初飞】
+    // Lv.24-26，各种飞行幼崽，主打基础的速度压制。
+    1: {
+        "trainerProficiency": 65,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
+        },
+        "party": [
+            {
+                "name": "Pidove", // 豆豆鸽
+                "lv": 24, 
+                "gender": "F", 
+                "nature": "Jolly", // 爽朗
+                "ability": "Super Luck", // 虽然是幼崽，运气不错
+                "stats_meta": { "ivs": { "hp":20,"atk":25,"def":20,"spa":10,"spd":20,"spe":25 }, "ev_level": 10 },
+                "moves": ["Air Cutter", "Quick Attack", "Roost", "Detect"]
+            },
+            {
+                "name": "Woobat", // 滚滚蝙蝠
+                "lv": 24, 
+                "gender": "M", 
+                "nature": "Timid",
+                "ability": "Unaware", // 纯朴：无视对方防御变化
+                "stats_meta": { "ivs": { "hp":20,"atk":10,"def":20,"spa":25,"spd":20,"spe":25 }, "ev_level": 10 },
+                "moves": ["Gust", "Confusion", "Heart Stamp", "Assurance"]
+            },
+            {
+                "name": "Ducklett", // 鸭宝宝
+                "lv": 26, 
+                "gender": "F", 
+                "nature": "Modest",
+                "ability": "Hydration", // 在雨天解状态
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":25,"atk":10,"def":20,"spa":25,"spd":25,"spe":25 }, "ev_level": 30 },
+                "moves": ["Water Pulse", "Aerial Ace", "Bubble Beam", "Aqua Ring"]
+            }
+        ]
+    },
+    // 【Tier 2 - A区红土风暴的洗礼】
+    // Lv.48-52，队伍开始成型，虽然脆弱但速度极快。
+    2: {
+        "trainerProficiency": 120,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, 
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": false
+        },
+        "party": [
+            {
+                "name": "Swoobat", // 心蝙蝠 (简单强化流)
+                "lv": 48, 
+                "gender": "M", 
+                "nature": "Timid",
+                "ability": "Simple", // 单纯：能力变化翻倍
+                "item": "Colbur Berry", // 抗恶果
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":31 }, "ev_level": 100 },
+                "moves": ["Calm Mind", "stored Power", "Air Slash", "Roost"] // 冥想一次特攻特防+2
+            },
+            {
+                "name": "Unfezant", // 高傲雉鸡 (暴击流)
+                "lv": 49, 
+                "gender": "F", 
+                "nature": "Jolly",
+                "ability": "Super Luck",
+                "item": "Razor Claw", // 焦点镜
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":25,"spa":10,"spd":25,"spe":31 }, "ev_level": 120 },
+                "moves": ["Air Cutter", "Night Slash", "Steel Wing", "Roost"]
+            },
+            {
+                "name": "Sigilyph", // 象征鸟 (魔法防御)
+                "lv": 49, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Magic Guard",
+                "item": "Flame Orb", // 烧伤自己防睡眠并转移
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":31 }, "ev_level": 120 },
+                "moves": ["Psycho Shift", "Roost", "Air Slash", "Cosmic Power"]
+            },
+            {
+                "name": "Swanna", // 舞天鹅 (ACE)
+                "lv": 52, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Big Pecks", // 健壮胸肌 (防降防)
+                "item": "Sharp Beak", 
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":20,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 200 },
+                "moves": ["Hurricane", "Surf", "Tailwind", "Roost"] // 虽然没雨天，但 T2 开始尝试裸打暴风
+            }
+        ]
+    },
+    // 【Tier 3 - 超音速货运航线】
+    // Lv.73-76，强力打手始祖大鸟入队，开始不讲道理的空袭。
+    3: {
+        "trainerProficiency": 175,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, // ✅ 暴风命中补正
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true, // ✅ 极巨飞冲 (Speed Control)
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                "name": "Archeops", // 始祖大鸟 (自杀式先锋)
+                "lv": 75, 
+                "gender": "M", 
+                "nature": "Jolly",
+                "ability": "Defeatist", // 软弱：半血以下就要命
+                "item": "Flying Gem",   // 或者是飞行石板/无道具Acrobatics策略
+                // 此处用各种手段模拟杂技：如果不带道具，Acrobatics 威力110
+                "item": null, 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                // 开局直接杂技+地震/岩崩，打死一个是一个
+                "moves": ["Acrobatics", "Stone Edge", "Earthquake", "U-turn"]
+            },
+            {
+                // [肉盾轰炸机]
+                "name": "Mandibuzz", // 秃鹰娜
+                "lv": 74, 
+                "gender": "F", 
+                "nature": "Impish", // 淘气 (+防)
+                "ability": "Overcoat", // 防尘：无视A区沙暴
+                "item": "Leftovers", 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Foul Play", "Roost", "Defog", "Toxic"]
+            },
+            {
+                // [强行破盾]
+                "name": "Braviary", // 勇士雄鹰
+                "lv": 74,  
+                "gender": "M", 
+                "nature": "Adamant",
+                "ability": "Sheer Force", // 强行：不发动特效但增伤
+                "item": "Life Orb",       // 命玉不扣血
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Brave Bird", "Close Combat", "Crush Claw", "Rock Slide"]
+            },
+            {
+                // [双重性格]
+                "name": "Unfezant", // 高傲雉鸡
+                "lv": 73, 
+                "gender": "F", 
+                "nature": "Jolly",
+                "ability": "Super Luck",
+                "item": "Scope Lens",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                "friendship": { "trust": 50, "passion": 100, "insight": 200, "devotion": 50 },
+                "moves": ["Night Slash", "Air Cutter", "Drill Run", "Quick Attack"]
+            },
+            {
+                // [极巨王牌]
+                "name": "Swanna",
+                "lv": 76, 
+                "gender": "F", 
+                "nature": "Timid",
+                "mechanic": "dynamax", // MAX AIRSTREAM = SPEED +1
+                "ability": "Hydration",
+                "item": "Expert Belt",
+                "isAce": true,
+                "stats_meta": { "ivs": { "hp":31,"atk":20,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                // Insight 让 Hurricane (110威力) 必中
+                "moves": ["Hurricane", "Hydro Pump", "Ice Beam", "Roost"]
+            }
+        ]
+    },
+    // 【Tier 4 - 万里长空的王牌飞行员】
+    // Lv.88-92，即使是脆皮在她的手里也能依靠极高的速度先发制人。
+    // 风露的“视力”在这里达到极致，几乎所有大威力低命中技能皆为必定命中。
+    4: {
+        "trainerProficiency": 225,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, // ✅ 核心：视力6.0的精准空袭
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true, // ✅ 全员提速推队
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [神谷特攻 / 一击脱离]
+                "name": "Archeops", // 始祖大鸟
+                "lv": 90, 
+                "gender": "M", 
+                "nature": "Jolly", // 爽朗 (极速)
+                "ability": "Defeatist",
+                // 无道具杂技 (Acrobatics) 威力 110，配合本系 = 165 威力
+                // 且因为无道具，第一击绝对比有道具强
+                "item": null, 
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 必中尖石攻击 (Insight修正) + 满威力杂技 + 地震 + 急速折返
+                "moves": ["Acrobatics", "Stone Edge", "Earthquake", "U-turn"]
+            },
+            {
+                // [特攻强化刺客]
+                "name": "Swoobat", // 心蝙蝠
+                "lv": 88, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Simple", // 单纯：冥想一次 = 特攻特防+2
+                "item": "Focus Sash", // 气腰：保证冥想成功
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":25,"spa":31,"spd":25,"spe":31 }, "ev_level": 252 },
+                
+                // 战术：抗一发-冥想-辅助力量(此时威力很大)
+                "moves": ["Calm Mind", "Stored Power", "Air Slash", "Heat Wave"]
+            },
+            {
+                // [空中装甲堡垒]
+                "name": "Mandibuzz", // 秃鹰娜
+                "lv": 90, 
+                "gender": "F", 
+                "nature": "Impish", // +防
+                "ability": "Overcoat", // 防尘：无视各种粉末和天气效果
+                "item": "Heavy-Duty Boots", // 厚底靴：无视隐形岩，这是飞行系内战的关键
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":20,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 欺诈(利用对手高物攻) + 扫除钉子 + 剧毒
+                "moves": ["Foul Play", "Defog", "Toxic", "Roost"]
+            },
+            {
+                // [对地攻击机]
+                "name": "Braviary", // 勇士雄鹰
+                "lv": 89, 
+                "gender": "M", 
+                "nature": "Adamant", // 固执
+                "ability": "Sheer Force", // 强行
+                "item": "Life Orb", // 命玉
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 暴力拆解一切。Brave Bird 无反伤 (因强行Bug) 但威力巨大
+                // 不对，Sheer Force只对带追加效果的技能生效，BB鸟不生效。
+                // 修正：Crush Claw(撕裂爪) / Rock Slide(岩崩) / Zen Headbutt
+                // 但 Brave Bird 依然是本系最高爆发
+                "moves": ["Brave Bird", "Rock Slide", "Close Combat", "Crush Claw"]
+            },
+            {
+                // [会心之风]
+                "name": "Unfezant", // 高傲雉鸡
+                "lv": 88, 
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Super Luck", 
+                "item": "Scope Lens", 
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":0,"spd":31,"spe":31 }, "ev_level": 252 },
+                // 刀刀烈火 + 高速神鸟激突 (Sky Attack) [配合道具香草? No, need scope lens]
+                // 相信她的 Night Slash 和 Air Cutter 必暴
+                "moves": ["Sky Attack", "Night Slash", "Steel Wing", "Quick Attack"]
+            },
+            {
+                // [极巨化王牌 / 白鸟]
+                "name": "Swanna", // 舞天鹅
+                "lv": 92, 
+                "gender": "F", 
+                "nature": "Timid", // 胆小 +速
+                
+                "mechanic": "dynamax", // G-MAX 开启
+                "item": "Life Orb",    // 命玉爆发
+                
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                "moves": ["Hurricane", "Hydro Pump", "Ice Beam", "Roost"],
+                
+                // [AVs - A区的女皇]
+                "friendship": { "trust": 160, "passion": 200, "insight": 255, "devotion": 120 }
+            }
+        ]
+    }
+};
+
+/* 
  * 角色: 竹兰 (Cynthia)
  * 身份: 神奥冠军 / 乃至全世代最强的王者之一
  * 核心机制: Mega进化 + Second Wind (二阶段变身)
@@ -3540,7 +4359,8 @@ const CYNTHIA_DATA = {
             "enable_mega": true,         // ✅ T2 就可以 Mega
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3620,7 +4440,8 @@ const CYNTHIA_DATA = {
             "enable_mega": true,         // ✅ 依然是 Mega
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3703,7 +4524,8 @@ const CYNTHIA_DATA = {
             "enable_mega": true,         // ✅ 破坏神降临
             "enable_z_move": false,
             "enable_dynamax": false,
-            "enable_tera": false
+            "enable_tera": false,
+            "enable_proficiency_cap": true
         },
         "party": [
             {
@@ -3813,6 +4635,617 @@ const CYNTHIA_DATA = {
     }
 };
 
+/* 
+ * 角色: 艾莉丝 (Iris)
+ * 身份: 合众冠军 / 极诣三皇 (野性) / 龙之民
+ * 核心机制: Z招式 (Dragonium Z) + 野性直觉 (修正大威力技能命中) + 双王牌压制
+ * "不论什么精密的算计，在压倒性的力量面前都会粉碎！我们要上了，双斧战龙！"
+ */
+const IRIS_DATA = {
+    // 【Tier 2 - “只是来打个招呼啦”】
+    // Lv.60+，冠军强度的起手，单王牌双斧战龙。
+    2: {
+        "trainerProficiency": 175,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": true,       // 龙系不需要优雅，只需要迅疾/刚猛的节奏
+            "enable_insight": true,      // ✅ 直觉开启：大字爆/水炮开始更加准了
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [特攻炮台]
+                "name": "Hydreigon", // 三首恶龙
+                "lv": 61,
+                "gender": "F",
+                "nature": "Modest", // 内敛
+                "ability": "Levitate", 
+                "item": "Wise Glasses", // 博识眼镜
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 120 },
+                "moves": ["Dragon Pulse", "Dark Pulse", "Flamethrower", "Surf"]
+            },
+            {
+                // [强力物理手]
+                "name": "Druddigon", // 赤面龙
+                "lv": 60,
+                "gender": "F",
+                "nature": "Adamant",
+                "ability": "Sheer Force", // 强行
+                "item": "Life Orb",       // 命玉 (经典的强行命玉流)
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 20 }, "ev_level": 85 },
+                "moves": ["Dragon Claw", "Fire Punch", "Thunder Punch", "Superpower"]
+            },
+            {
+                // [高速飞行员]
+                "name": "Archeops", // 始祖大鸟
+                "lv": 60,
+                "gender": "M",
+                "nature": "Jolly",
+                "ability": "Defeatist",
+                "item": "Flying Gem",   // 或者是无道具
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 25, "spa": 10, "spd": 25, "spe": 31 }, "ev_level": 120 },
+                "moves": ["Acrobatics", "Rock Slide", "Earthquake", "U-turn"]
+            },
+            {
+                // [物理壁垒]
+                "name": "Aggron", // 波士可多拉
+                "lv": 60,
+                "gender": "F",
+                "nature": "Impish",
+                "ability": "Rock Head", // 石头脑袋
+                "item": "Hard Stone",
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 20 }, "ev_level": 85 },
+                "moves": ["Head Smash", "Iron Head", "Earthquake", "Autotomize"]
+            },
+            {
+                // [特殊的龙(?)]
+                "name": "Lapras", // 拉普拉斯
+                "lv": 60,
+                "gender": "F",
+                "nature": "Modest",
+                "ability": "Water Absorb",
+                "item": "Leftovers",
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 85 },
+                "moves": ["Ice Beam", "Hydro Pump", "Thunderbolt", "Sing"]
+            },
+            {
+                // [王牌 ACE]
+                "name": "Haxorus", // 双斧战龙
+                "lv": 63,
+                "gender": "F",
+                "nature": "Adamant", // 固执
+                "ability": "Mold Breaker", // 破格 (无视结实/漂浮)
+                "item": "Focus Sash",      // 气腰保龙舞
+                "isAce": true,
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 120 },
+                "moves": ["Dragon Dance", "Dragon Claw", "Earthquake", "Poison Jab"],
+                "friendship": { "trust": 100, "passion": 150, "insight": 150, "devotion": 100 }
+            }
+        ]
+    },
+
+    // 【Tier 3 - “稍微拿出一点真本事咯！”】
+    // Lv.80+，双王牌体系确立。三首恶龙与双斧战龙同时拥有 Ace 标识。
+    3: {
+        "trainerProficiency": 210,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": true,
+            "enable_insight": true,      // 直觉修正大幅提升
+            "enable_mega": false,
+            "enable_z_move": false,      // T3暂不交Z招式
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [ACE 1 - 毁灭的特攻]
+                "name": "Hydreigon",
+                "lv": 82, 
+                "gender": "F", 
+                "nature": "Timid", // 胆小 (+速)
+                "ability": "Levitate",
+                "item": "Life Orb", 
+                "isAce": true, // 双ACE之一
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 180 },
+                // 野性直觉流: 高威力，无视命中缺陷
+                "moves": ["Draco Meteor", "Fire Blast", "Flash Cannon", "Surf"],
+                "friendship": { "trust": 100, "passion": 150, "insight": 150, "devotion": 100 }
+            },
+            {
+                "name": "Archeops",
+                "lv": 80, "gender": "M", "nature": "Jolly",
+                "item": null, // 无道具杂技
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Acrobatics", "Stone Edge", "Earthquake", "Endeavor"]
+            },
+            {
+                "name": "Aggron", 
+                "lv": 80, "gender": "F", "nature": "Adamant",
+                "ability": "Rock Head", // 无伤双刃头槌
+                "item": "Expert Belt",
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Head Smash", "Iron Tail", "Ice Punch", "Low Kick"] // Iron Tail 命中靠 direct
+            },
+            {
+                "name": "Lapras",
+                "lv": 80, "gender": "F", "nature": "Modest",
+                "item": "Wide Lens", // 辅助一唱，或者靠Insight
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 180 },
+                "moves": ["Hydro Pump", "Blizzard", "Thunder", "Sing"] // 全是大招，Insight修正
+            },
+            {
+                "name": "Druddigon",
+                "lv": 80, "gender": "F", "nature": "Adamant",
+                "ability": "Rough Skin", // 蹭血
+                "item": "Rocky Helmet",  // 经典的双重反伤
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Outrage", "Gunk Shot", "Superpower", "Sucker Punch"]
+            },
+            {
+                // [ACE 2 - 龙牙斩杀]
+                "name": "Haxorus", 
+                "lv": 84, // 等级略高
+                "gender": "F",
+                "nature": "Jolly", 
+                "ability": "Mold Breaker", 
+                "item": "Lum Berry", // 木子果防混乱解状态
+                "isAce": true,
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                "moves": ["Dragon Dance", "Outrage", "Earthquake", "Iron Tail"],
+                "friendship": { "trust": 100, "passion": 200, "insight": 200, "devotion": 100 }
+            }
+        ]
+    },
+
+    // 【Tier 4 - 此即为“原始的本能”！】
+    // Lv.95+，全能力解禁，Z招式确认为 Haxorus 使用。
+    // Insight +255，大招基本必中，暴力美学。
+    4: {
+        "trainerProficiency": 255, // Instinct Limit Break
+        "unlocks": {
+            "enable_bond": true,
+            "enable_styles": true,
+            "enable_insight": true,      // ✅ 直觉：所有大威力低命中技能 (流星群/大字爆/水炮/贴身冲撞) 命中率极大修正
+            "enable_mega": false,
+            "enable_z_move": true,       // ✅ Haxorus: Devastating Drake
+            "enable_dynamax": false,
+            "enable_tera": false,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [高火力特攻王牌]
+                "name": "Hydreigon", // 三首恶龙
+                "lv": 97, 
+                "gender": "F", 
+                "nature": "Timid", // 胆小 (+速)
+                "ability": "Levitate",
+                "item": "Life Orb", 
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                "isAce": true,
+                // Insight 使得 Draco Meteor (流星群) 和 Fire Blast (大字爆炎) 必中
+                // 不计后果的狂轰滥炸
+                "moves": ["Draco Meteor", "Fire Blast", "Hydro Pump", "Earth Power"],
+                "friendship": { "trust": 155, "passion": 255, "insight": 200, "devotion": 120 }
+            },
+            {
+                // [敢死队先锋]
+                "name": "Archeops", // 始祖大鸟
+                "lv": 95, 
+                "gender": "M", 
+                "nature": "Jolly", 
+                
+                // 气势披带 + 莽撞 (Endeavor) 针对高血量敌人
+                "item": "Focus Sash", 
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Head Smash (双刃头槌) 150威力，配合 Insight 必中
+                "moves": ["Head Smash", "Acrobatics", "Earthquake", "Endeavor"]
+            },
+            {
+                // [反伤坦克]
+                "name": "Druddigon", // 赤面龙
+                "lv": 95, 
+                "gender": "F", 
+                "nature": "Adamant", 
+                "ability": "Rough Skin", // 粗糙皮肤
+                "item": "Rocky Helmet",  // 凸凸头盔
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                // Glare (大蛇瞪眼) 控速，Sucker Punch (突袭) 收割
+                "moves": ["Glare", "Gunk Shot", "Superpower", "Sucker Punch"]
+            },
+            {
+                // [重装巨兽]
+                "name": "Aggron", // 波士可多拉
+                "lv": 96, 
+                "gender": "F", 
+                "nature": "Adamant",
+                "ability": "Rock Head", // 舍身
+                "item": "Assault Vest", // 突击背心 (弥补特防短板)
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Head Smash (150岩 无反伤) 简单就是力量
+                "moves": ["Head Smash", "Heavy Slam", "Earthquake", "Avalanche"]
+            },
+            {
+                // [全广角打击]
+                "name": "Lapras", // 拉普拉斯
+                "lv": 96, 
+                "gender": "F", 
+                "nature": "Modest",
+                "ability": "Water Absorb",
+                "item": "Expert Belt", // 达人带
+                
+                "stats_meta": { "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 全屏 110-120 威力的大招，这就是“野性”
+                "moves": ["Hydro Pump", "Blizzard", "Thunder", "Sing"]
+            },
+            {
+                // [究极王牌 - 你的败北无可避免]
+                "name": "Haxorus", // 双斧战龙
+                "lv": 98, 
+                "gender": "F", 
+                "nature": "Jolly", // 爽朗 (+速)
+                "ability": "Mold Breaker", // 破格 (无视多鳞/漂浮/结实)
+                
+                // === 机制核心 ===
+                "mechanic": "zmove",    // 使用Z招式
+                "item": "Dragonium Z",  // 龙 Z -> 究极巨龙震天地 (Devastating Drake)
+                
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // 战术: Dragon Dance (龙舞) 一次 -> 游戏结束
+                // Poison Jab (毒击) 杀妖精
+                // Iron Tail (铁尾) 杀仙/岩, Insight 修正后必中
+                // Outrage (逆鳞) -> 转化为 Z 招式 190 威力，不可阻挡
+                "moves": ["Dragon Dance", "Outrage", "Poison Jab", "Iron Tail"],
+                
+                // [AVs - 龙之心的共鸣]
+                "friendship": { "trust": 220, "passion": 255, "insight": 255, "devotion": 120 }
+            }
+        ]
+    }
+};
+
+/* 
+ * 角色: 妮莫 (Nemona)
+ * 身份: 帕底亚冠军级 / 学生会长 / 战斗狂人
+ * 核心机制: 太晶化 (Tera) + 复活战术 (Revival Blessing) + 无限连击
+ * "好厉害！那就是全力吗？那我也要不受限制地上了哦！"
+ */
+const NEMONA_DATA = {
+    // 【Tier 1 - “我也是才挑了宝可梦哦” (谎言)】
+    // Lv.15，用来进行教学局的队伍，但努力值已经悄悄开始分配了。
+    1: {
+        "trainerProficiency": 100,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": false,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": false, 
+            "enable_proficiency_cap": false
+        },
+        "party": [
+            {
+                "name": "Rockruff", // 岩狗狗
+                "lv": 14,
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Vital Spirit",
+                "stats_meta": { "ivs": { "hp":25,"atk":25,"def":25,"spa":10,"spd":25,"spe":31 }, "ev_level": 50 },
+                "moves": ["Rock Throw", "Bite", "Tackle", "Leer"]
+            },
+            {
+                "name": "Pawmi", // 布拨
+                "lv": 14, 
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Static",
+                "stats_meta": { "ivs": { "hp":25,"atk":25,"def":20,"spa":25,"spd":20,"spe":31 }, "ev_level": 50 },
+                "moves": ["Nuzzle", "Thunder Shock", "Scratch", "Quick Attack"]
+            },
+            {
+                "name": "Smoliv", // 迷你芙
+                "lv": 14, 
+                "gender": "F", 
+                "nature": "Modest",
+                "stats_meta": { "ivs": { "hp":25,"atk":10,"def":20,"spa":31,"spd":25,"spe":20 }, "ev_level": 50 },
+                "moves": ["Razor Leaf", "Tackle", "Absorb", "Sweet Scent"]
+            },
+            {
+                "name": "Sprigatito",
+                "lv": 16, 
+                "gender": "F", 
+                "nature": "Jolly",
+                "ability": "Overgrow", 
+                "item": "Oran Berry",
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 100 },
+                "moves": ["Leafage", "Scratch", "Bite", "Hone Claws"],
+                "friendship": { "trust": 100, "passion": 100, "insight": 120, "devotion": 120 }
+            }
+        ]
+    },
+
+    // 【Tier 2 - 道馆巡回中的偶遇】
+    // Lv.30，队伍进化，开始根据属性太晶化，压迫感增强。
+    2: {
+        "trainerProficiency": 150,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true, 
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": true,
+            "enable_proficiency_cap": false
+        },
+        "party": [
+            {
+                "name": "Lycanroc", // 鬃岩狼人-白昼 (高速岩钉/冲岩)
+                "lv": 29, 
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Sand Rush",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":25,"spa":10,"spd":25,"spe":31 }, "ev_level": 150 },
+                "moves": ["Accelrock", "Rock Tomb", "Stealth Rock", "Bite"]
+            },
+            {
+                "name": "Goomy", // 黏黏宝
+                "lv": 28, 
+                "gender": "F", 
+                "nature": "Modest",
+                "item": "Eviolite", // 辉石黏黏宝很硬
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":20 }, "ev_level": 150 },
+                "moves": ["Dragon Breath", "Water Pulse", "Protect", "Rain Dance"]
+            },
+            {
+                "name": "Pawmo", // 布土拨
+                "lv": 28, "gender": "F", "nature": "Adamant",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":25,"spa":25,"spd":20,"spe":31 }, "ev_level": 150 },
+                "moves": ["Spark", "Arm Thrust", "Dig", "Bite"]
+            },
+            {
+                "name": "Orthworm", // 拖拖蚓
+                "lv": 29,
+                "gender": "F", 
+                "nature": "Impish", 
+                "ability": "Earth Eater",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":20 }, "ev_level": 100 },
+                "moves": ["Iron Head", "Bulldoze", "Wrap", "Iron Defense"]
+            },
+            {
+                "name": "Floragato", // 蒂蕾喵 (太晶草)
+                "lv": 32, "gender": "F", "nature": "Jolly",
+                "mechanic": "tera",
+                "teraType": "Grass",
+                "item": "Miracle Seed",
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Seed Bomb", "U-turn", "Hone Claws", "Slash"],
+                "friendship": { "trust": 100, "passion": 150, "insight": 100, "devotion": 120 }
+            }
+        ]
+    },
+
+    // 【Tier 3 - 冠军测验的守门人】
+    // Lv.60+，完全进化，队伍成型。虽然还没用外挂，但已是冠军强度。
+    3: {
+        "trainerProficiency": 200,
+        "unlocks": {
+            "enable_bond": false,
+            "enable_styles": false,
+            "enable_insight": true,
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": false,
+            "enable_tera": true,
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                "name": "Lycanroc",
+                "lv": 60, 
+                "nature": "Jolly",
+                "ability": "Sand Rush",
+                "item": "Focus Sash", // 气腰保住稳定出招
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 200 },
+                "moves": ["Stealth Rock", "Accelrock", "Stone Edge", "Drill Run"]
+            },
+            {
+                "name": "Goodra", // 黏美龙
+                "lv": 60, 
+                "nature": "Modest", 
+                "ability": "Sap Sipper",
+                "item": "Leftovers",
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Dragon Pulse", "Muddy Water", "Sludge Bomb", "Ice Beam"]
+            },
+            {
+                "name": "Orthworm", // 拖拖蚓
+                "lv": 59, 
+                "nature": "Impish",
+                "item": "Sitrus Berry", 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":0 }, "ev_level": 252 },
+                "moves": ["Heavy Slam", "Body Press", "Iron Defense", "Earthquake"]
+            },
+            {
+                "name": "Dudunsparce", // 土龙节节
+                "lv": 59, 
+                "nature": "Adamant", 
+                "ability": "Serene Grace", // 天恩
+                "item": "Kings Rock", // 王者之证 (如果她想恶心人就会带)
+                // 修正：Leftovers
+                "moves": ["Hyper Drill", "Dragon Rush", "Coil", "Roost"]
+            },
+            {
+                "name": "Pawmot", // 巴布土拨 (Ace 1)
+                "lv": 60, 
+                "nature": "Jolly", 
+                "ability": "Iron Fist",
+                "item": "Punching Glove",
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                "moves": ["Double Shock", "Close Combat", "Ice Punch", "Mach Punch"]
+            },
+            {
+                "name": "Meowscarada", // 魔幻假面喵 (Ace 2)
+                "lv": 62, 
+                "gender": "F", 
+                "nature": "Jolly",
+                "mechanic": "tera",
+                "teraType": "Grass",
+                "item": "Choice Band", // 专爱头带
+                "isAce": true, 
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                // 必中+必爆击，伤害简单粗暴
+                "moves": ["Flower Trick", "Knock Off", "Play Rough", "U-turn"],
+                "friendship": { "trust": 150, "passion": 200, "insight": 150, "devotion": 200 }
+            }
+        ]
+    },
+
+    // 【Tier 4 - 跨越地区的究极战斗狂】
+    // Lv.95-99 | 真正意义上的全明星战队。
+    // 这不是普通的冠军战，这是汇聚了帕底亚、北上乡与蓝莓学院后，完全没有限制的妮莫。
+    4: {
+        "trainerProficiency": 255, // Battle Genius
+        "unlocks": {
+            "enable_bond": false, 
+            "enable_styles": true, 
+            "enable_insight": true, 
+            "enable_mega": false,
+            "enable_z_move": false,
+            "enable_dynamax": true,      // ✅ 部分队员可极巨化增加 Boss 战压迫感 (如杖尾鳞甲龙)
+            "enable_tera": true,         // ✅ 太晶化：核心战术
+            "enable_proficiency_cap": true
+        },
+        "party": [
+            {
+                // [撒钉起点 / 先制控速]
+                "name": "Lycanroc", // 鬃岩狼人-白昼 (图中Lv.86 -> 修至95)
+                "lv": 95, 
+                "gender": "F", 
+                "nature": "Jolly", // 极速
+                "ability": "Sand Rush", // 拨沙：如果有沙暴则速度翻倍(可配队友技能) 或 Steadfast(不屈之心)
+                "item": "Focus Sash",   // 气腰确保撒出钉子
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Stealth Rock 后 Accelerator (冲岩) 蹭血，Endeavor (莽撞) 换掉对面通关大哥
+                "moves": ["Stealth Rock", "Accelrock", "Stone Edge", "Endeavor"]
+            },
+            {
+                // [高速虫网 / 辅助与火力]
+                "name": "Ribombee", // 蝶结萌虻
+                "lv": 95, 
+                "gender": "F", 
+                "nature": "Timid",
+                "ability": "Shield Dust", 
+                "item": "Focus Sash", // 也带气腰(防止首发被秒)，双腰战术在无道具规则外很常见
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":0,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Sticky Web (黏黏网): 降低对手全队速度，让妮莫的高速队必拿先手
+                // Moonblast + Bug Buzz 也是很疼的本系
+                "moves": ["Sticky Web", "Moonblast", "Bug Buzz", "Psychic"]
+            },
+            {
+                // [极巨化ACE位置 / 准神]
+                "name": "Kommo-o", // 杖尾鳞甲龙
+                "lv": 97, 
+                "gender": "F", 
+                "nature": "Timid", // 胆小 (+速) 或 Naive 双刀
+                "ability": "Soundproof", // 隔音
+                "item": "Throat Spray",  // 爽喉喷雾
+                
+                // G-Max 其实不是它的长处，但普通的 Dynamax 也能增加它的耐久
+                "mechanic": "dynamax", 
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // Clangorous Soul (魂舞烈音爆): 全能力+1并扣血，触发喷雾再+1特攻
+                // 瞬间造神
+                "moves": ["Clangorous Soul", "Clanging Scales", "Aura Sphere", "Flash Cannon"]
+            },
+            {
+                // [万能变幻 / 高速刺客]
+                "name": "Greninja", // 甲贺忍蛙 (忍住！这里是变幻自如/激流)
+                "lv": 96, 
+                "gender": "M", 
+                "nature": "Naive", // 天真
+                "ability": "Protean", // 变幻自如
+                "item": "Life Orb",   // 命玉
+                
+                "stats_meta": { "ivs": { "hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31 }, "ev_level": 252 },
+                
+                // 高速打击多系盲点
+                "moves": ["Ice Beam", "Dark Pulse", "Gunk Shot", "Hydro Pump"]
+            },
+            {
+                // [真正的“作弊” / ACE 1]
+                "name": "Pawmot", // 巴布土拨
+                "lv": 98, 
+                "gender": "M", // 图中是公的
+                "nature": "Jolly", 
+                "ability": "Iron Fist", 
+                "item": "Leppa Berry", // PP果，为了多一次复活
+                
+                "isAce": true, // 双ACE之一
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Revival Blessing (复生祈祷): 复活队伍里倒下的王牌 (Meowscarada/Kommo-o)
+                // Double Shock (电光双击): 120威力本系，无脑轰
+                "moves": ["Revival Blessing", "Double Shock", "Close Combat", "Mach Punch"],
+                
+                // Insight让他更会闪避
+                "friendship": { "trust": 255, "passion": 200, "insight": 150, "devotion": 200 }
+            },
+            {
+                // [宿命 / ACE 2]
+                "name": "Meowscarada", // 魔幻假面喵 (魔术师)
+                "lv": 99, 
+                "gender": "F", 
+                "nature": "Jolly", 
+                "ability": "Protean", // 变幻自如。或者 Overgrow
+                "mechanic": "tera",
+                "teraType": "Grass",  // 草太晶：将千变万花威力推向极致
+                
+                "item": "Choice Scarf", // 讲究围巾：锁招但速度必须快过所有Lv.99
+                // 或者用 "Focus Sash" 确保至少放出一次必杀
+                
+                "isAce": true, 
+                // Lv.99 的满分配
+                "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
+                
+                // Flower Trick (千变万花): 必得要害(x1.5及无视防御buff) + 本系 + Insight修正
+                // 只要出手，对面非死即残，无视任何墙/防御强化
+                "moves": ["Flower Trick", "Knock Off", "Play Rough", "U-turn"],
+                
+                // “和我战斗到最后一刻吧！”
+                "friendship": { "trust": 200, "passion": 255, "insight": 255, "devotion": 120 }
+            }
+        ]
+    }
+};
+
+
 
 // ================================================================
 //  挂载到 window 对象，供插件内部访问
@@ -3839,6 +5272,13 @@ if (typeof window !== 'undefined') {
     window.BEA_DATA = BEA_DATA;
     window.CYNTHIA_DATA = CYNTHIA_DATA;
     window.JULIANA_DATA = JULIANA_DATA;
+    window.MAY_DATA = MAY_DATA;
+    window.LACEY_DATA = LACEY_DATA;
+    window.MISTY_DATA = MISTY_DATA;
+    window.ACEROLA_DATA = ACEROLA_DATA;
+    window.SKYLA_DATA = SKYLA_DATA;
+    window.IRIS_DATA = IRIS_DATA;
+    window.NEMONA_DATA = NEMONA_DATA;
     
     window.TRAINER_GLOBALS = {
         gloria: GLORIA_DATA,
@@ -3861,7 +5301,14 @@ if (typeof window !== 'undefined') {
         marnie: MARNIE_DATA,
         hex: HEX_DATA,
         bea: BEA_DATA,
-        cynthia: CYNTHIA_DATA
+        cynthia: CYNTHIA_DATA,
+        may: MAY_DATA,
+        lacey: LACEY_DATA,
+        misty: MISTY_DATA,
+        acerola: ACEROLA_DATA,
+        skyla: SKYLA_DATA,
+        iris: IRIS_DATA,
+        nemona: NEMONA_DATA
     };
 }
 
@@ -3983,23 +5430,114 @@ if (typeof window !== 'undefined') {
       '莉莉艾', '莉莉愛', '莉莉安'
     ],
 
+    // 19. 灵异迷/神婆
     'hex': [
       'Hex Maniac', 'Occult Maniac', 'オカルトマニア',
       '灵异迷', '靈異迷', 
       'Hex', 'HeXx', '海可丝'
     ],
 
-    // 20. 美月 (New)
+    // 20. 美月
     'selene': [
       'Selene', 'Mizuki', 'ミヅキ',
-      '美月', 'Moon' // Moon是常用别名
+      '美月', 'Moon' 
     ],
-    // 21. 小青 (New)
+
+    // 21. 小青
     'juliana': [
       'Juliana', 'Aoi', 'アオイ',
       '小青'
+    ],
+
+    // 22. 小遥
+    'may': [
+      'May', 
+      'Haruka', 'ハルカ',
+      '小遥', '小遙', '遥'
+    ],
+
+    // 23. [蓝莓] 紫竽 (新增)
+    'lacey': [
+        'Lacey', 'Nerine', 'ネリネ',
+        '紫竽', '紫玉', '紫芋'
+    ],
+
+    // 24. 小霞 (新增)
+    'misty': [
+        'Misty', 'Kasumi', 'カスミ',
+        '小霞'
+    ],
+
+    // 25. 阿塞萝拉 (新增)
+    'acerola': [
+        'Acerola', 'アセロラ',
+        '阿塞萝拉', '阿塞蘿拉', '阿塞罗拉'
+    ],
+
+    // 26. 风露 (新增)
+    'skyla': [
+        'Skyla', 'Fuuro', 'フウロ',
+        '风露', '風露'
+    ],
+
+    // 27. 艾莉丝 (新增)
+    'iris': [
+        'Iris', 'Airisu', 'アイリス',
+        '艾莉丝', '艾莉絲', '艾丽丝'
+    ],
+
+    // 28. 妮莫 (新增)
+    'nemona': [
+        'Nemona', 'Nemo', 'ネモ',
+        '妮莫', '尼莫'
     ]
   };
+
+
+const RELATIONSHIP_TAGS_COMMON = {
+  
+    // === -2: 极度负面 ===
+    '-2': [
+        '厌恶',  // 比“讨厌”语气更重，单纯看你不爽
+        '排斥'   // 拒绝物理和心理接触
+    ],
+  
+    // === -1: 负面但忍耐 ===
+    '-1': [ 
+        '抗拒',  // 心里抵触你
+        '嫌弃'   // 觉得你烦/多余
+    ],
+
+    // === 0: 绝对客观初始 ===
+    '0': [ 
+        '初见',  // 刚见到，没剧情
+        '陌生'   // 完全不认识
+    ],
+
+    // === 1: 并不深入的交集 ===
+    '1': [ 
+        '面熟',  // 见过几次，脸熟了
+        '认识'   // 仅仅是知道你是谁
+    ],
+
+    // === 2: 关系变质（好感变特殊） ===
+    '2': [ 
+        '暧昧',  // 气氛不一样了
+        '亲近'   // 物理和心理距离近了
+    ],
+
+    // === 3: 热度失控 ===
+    '3': [ 
+        '沉溺',  // 陷进去了
+        '贪恋'   // 想要更多（时间/接触）
+    ],
+
+    // === 4: 顶格 ===
+    '4': [ 
+        '挚爱',  // 最高的爱
+        '依存'   // 没你不行
+    ]
+};
 
 
 // NPC 关系阶段描述数据
@@ -4017,20 +5555,14 @@ const NPC_ADDON_DATA = {
             effect: '无极巨化压制 - 打破所有地点的特权',
             dialogue: '手伸出来。……还是这种原矿的手感比较好吧？这是那一天掉下来的碎片中，纯度最好的部分。戴上这个，以后不管是在野外，还是——在我的房间里，都不需要再去找什么“能量点”了。虽然依然只能维持三回合……但这三回合里，我要看到所谓的“最大”。懂了？'
         },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '嫌恶', desc: '眼神如看垃圾般冰冷，完全拒绝交流，本能地排斥与你接触。' },
-                '-1': { label: '不爽', desc: '没好气，只会因为工作勉强回应，否则直接怼回去了事。' }
-            },
-            neutral: {
-                '0': { label: '自来熟', desc: '完全没有对陌生人的距离感，见面就是热情的问候，单纯把你当做路边偶遇的普通饭友。' }
-            },
-            positive: {
-                '1': { label: '熟络', desc: '把你当成好用的劳动力伙伴，会分享多余试作品，互动大大咧咧。' },
-                '2': { label: '在意', desc: '开始有了少女心的自觉，会偷偷在休息日展示打扮，并在意你的评价。' },
-                '3': { label: '依恋', desc: '如同粘人的表妹，探险时紧跟不舍，露营时也无意识地靠近寻求温暖。' },
-                '4': { label: '誓约', desc: '不管冠军头衔，毫无防备地将身心最柔软的一面完全向你敞开。' }
-            }
+       relationship_tags: {
+            '-2': ['轰人', '厌烦'],
+            '-1': ['没好气', '嫌弃'],
+            '0':  ['自来熟', '路人'],
+            '1':  ['饭友', '能处'],
+            '2':  ['在意', '偷看'],
+            '3':  ['强贴', '要暖气'],
+            '4':  ['家里人', '依靠']
         },
         love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
     },
@@ -4047,20 +5579,14 @@ const NPC_ADDON_DATA = {
             effect: '安可：未碎之钻 - 在绝境时允许虽然可以引发宝石级甚至的一次性爆发',
             dialogue: '你知道吗？在我拍过的所有剧本里，使用宝石爆发通常都是悲剧英雄的最后如果一幕——因为光芒之后，什么都不会剩下。但那是剧本！现实是……我还在看着你！哪怕是在血条归零的前一秒，也给我按下去！'
         },
-        relationship_stage: {
-            negative: {
-                '-2': { label: 'NG废弃', desc: '眼神死寂。就像剪辑师毫不留情地剪掉穿帮镜头一样，她已经把你并没有任何高光画面的戏份统统删干净了。' },
-                '-1': { label: '背景板', desc: '把你当成了那种甚至不需要也没有名字的“路人A”，除了挡光之外没有任何存在感。' }
-            },
-            neutral: {
-                '0': { label: '试镜', desc: '拿着卷成筒的剧本上下打量你。那眼神不像看人，倒像是在看一个新的甚至还没拆封的对战道具好不好用。' }
-            },
-            positive: {
-                '1': { label: '即兴', desc: '你竟然没被她那突如其来的怪叫吓跑，甚至还接住了包袱。她把你从“道具”升级成了可以一起在这个片场里到处乱跑的“共犯”。' },
-                '2': { label: '饭搭', desc: '战术同步率飙升。她开始自然地把那些可以吃的树果或者零食分给你一半，还会在对战时不知不觉模仿起你的指挥动作。' },
-                '3': { label: '借口', desc: '方法派演技完全暴走。明明根本没有镜头在拍，她却总是打着“找找恋人的感觉”或是“排练一下胜利拥抱”这种明显的幌子，理直气壮地黏在你身上蹭来蹭去。' },
-                '4': { label: '独占', desc: '不需要剧本的最高默契。她那本写满了笔记的剧本被扔到了角落积灰。现在她只想在只有两个人的时候，把那个没加任何滤镜的、甚至有点傻气的笑容。' }
-            }
+        relationship_tags: {
+            '-2': ['封杀', 'NG'],
+            '-1': ['龙套', '路人'],
+            '0':  ['试镜', '考察'],
+            '1':  ['搭档', '合拍'],
+            '2':  ['入戏', '偏离'],
+            '3':  ['取材', '体验'],
+            '4':  ['主演', '主角']
         },
         love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
     },
@@ -4077,20 +5603,14 @@ const NPC_ADDON_DATA = {
             effect: '心眼/界限突破 - UI将实时叠加弱点/抗性分析图层，并强制全队突破“亲密度突破上限”。',
             dialogue: '哼……给你是给你，但不准嫌弃它旧！这上面的划痕也是我身经百战的勋章！……至于那个按钮，嗯，是我不小心……按得太用力卡住了。那时候我一边看着你，一边想着“能不能再近一点……再深一点……数值还能不能再高一点”，回过神来的时候，它就已经是这副样子了。反正！不管是看来还是看路，我都把我的经验刻在里面了。带着它走吧，别迷路了！'
         },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '失望', desc: '无法再说"没问题"，满脸失望，彻底放弃与无法沟通的你交流。' },
-                '-1': { label: '生硬', desc: '端着前辈架子公事公办，礼貌但带着明显的"你不配"的距离感。' }
-            },
-            neutral: {
-                '0': { label: '前辈', desc: '活力十足的好心向导，把你当成需要照顾但无关紧要的后辈。' }
-            },
-            positive: {
-                '1': { label: '关注', desc: '真心关心你的成长，对你的失误感到无奈又好笑，主动分享成果。' },
-                '2': { label: '慌张', desc: '"前辈"面具动摇，面对接触会明显害羞硬撑，手表心跳反应无法掩饰。' },
-                '3': { label: '心跳', desc: '彻底失去从容，甚至语无伦次，笨拙地制造独处机会，想撒娇却还在逞强。' },
-                '4': { label: '真爱', desc: '不再逞强，大大方方牵手，心跳爆表，满心都是对你的喜欢。' }
-            }
+        relationship_tags: {
+            '-2': ['失望', '放弃'],
+            '-1': ['生硬', '说教'],
+            '0':  ['前辈', '向导'],
+            '1':  ['关照', '认可'],
+            '2':  ['慌乱', '逞强'],
+            '3':  ['红心', '贴贴'],
+            '4':  ['满分', '没问题！']
         },
         love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
     },
@@ -4107,20 +5627,14 @@ const NPC_ADDON_DATA = {
             effect: '古昔的求生术 - 战斗中不再讲究什么竞技礼仪，而是学会像在洗翠一页：要么用尽吃奶的力气（刚猛）打晕对方，要么连滚带爬（迅疾）地抢先出手。',
             dialogue: '给你吧，这个。……没有脏！虽然旧了点，但我刚才有在这个世界的河里拼命洗过的！虽然那个牙印是消不掉了……那是，以前遇到红眼的头目时，为了不让自己吓得逃跑才咬住的。不过现在……只要抓着你的手，我就再也不需要靠这种东西来忍耐发抖了。所以它归你了。以后要是遇到了什么可怕的事……就像我以前那样，死死咬住它，然后拼了命地活下来——好吗？'
         },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '畏怖', desc: '把你视作狂暴头目般的极度危险源，见面倒头就跑或投掷道具自卫。' },
-                '-1': { label: '警戒', desc: '如同面对未知野兽，浑身紧绷保持距离，交易时绝不松开防御。' }
-            },
-            neutral: {
-                '0': { label: '雇主', desc: '为了生存卑微打工，只要有报酬什么都肯干，维持职业假笑。' }
-            },
-            positive: {
-                '1': { label: '饭票', desc: '发现你是好人，为了食物或零食愿意在尊严上稍微妥协一下。' },
-                '2': { label: '安居', desc: '不再时刻警惕，偶尔流露对现代安稳的眷恋，会笨拙地向你求助。' },
-                '3': { label: '归乡', desc: '把你当成可以托付后背的同伴，卸下重担，展露无阴霾的少女笑容。' },
-                '4': { label: '忠犬', desc: '认定你是世界上唯一的避风港，为了生存和依赖，死也不放手。' }
-            }
+        relationship_tags: {
+            '-2': ['惊吓', '逃窜'],
+            '-1': ['戒备', '紧绷'],
+            '0':  ['佣兵', '打杂'],
+            '1':  ['饭票', '还行'],
+            '2':  ['求喂', '蹭饭'],
+            '3':  ['护食', '钻窝'],
+            '4':  ['饲主', '唯一']
         },
         love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
     },
@@ -4137,314 +5651,38 @@ const NPC_ADDON_DATA = {
             effect: 'Mega进化 - 替代制式手环的私有装备。',
             dialogue: '手镐那种东西，谁都能戴对不对？但是这个不一样哦。把它戴在脖子上，这是我以前剪短头发时用的最重要的缎带。这样一来，无论你去哪里，都能感觉到这就是“我也在被瑟蕾娜注视着”的证明……对吧？'
         },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '拉黑', desc: '优雅全无，彻底冷暴力，像处理过季脏鞋一样将你踢出生活。' },
-                '-1': { label: '冷漠', desc: '标准完美但不带一丝温度的假笑，用最温柔的声音划清界限。' }
-            },
-            neutral: {
-                '0': { label: '造型', desc: '专业的形象顾问态度，把你当作有潜力的素人素材进行打磨改造。' }
-            },
-            positive: {
-                '1': { label: '朋友', desc: '真实热度浮现，约会时会放松询问喜好，偶尔暴露微小的不完美。' },
-                '2': { label: '占有', desc: '强力女友感，自然介入你的生活起居，对你关注其他人会有明显的醋意。' },
-                '3': { label: '沉重', desc: '从容不再，患得患失，极度渴望关注，脑补你离开的场景会红眼眶。' },
-                '4': { label: '唯一', desc: '既然成为了你的第一名，就不再需要对外完美，只要你只看着她一个人。' }
-            }
+        relationship_tags: {
+            '-2': ['拉黑', '过季'],
+            '-1': ['假笑', '外人'],
+            '0':  ['顾问', '打量'], 
+            '1':  ['私交', '合身'],
+            '2':  ['管束', '吃醋'], 
+            '3':  ['沉重', '占有'],
+            '4':  ['全部', '第一名'],
         },
         love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
     },
-    lusamine: {
-        name_cn: '露莎米奈',
-        name_en: 'Lusamine',
-        zone_affinity: { N: 0, B: 1, S: 0, A: 0, Z: 3 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '清理', desc: '眼神如冰，将你判定为必须清除的杂质，毫不留情地指挥安保处理。' },
-                '-1': { label: '鄙夷', desc: '高高在上，对你的任何言行都嗤之以鼻，仿佛你在污染空气。' }
-            },
-            neutral: {
-                '0': { label: '支配', desc: '施舍般的关怀，像打扮流浪狗一样无视你的意愿强加她的"美学"。' }
-            },
-            positive: {
-                '1': { label: '栽培', desc: '欣赏你的潜力，仿佛养成异兽般投入资源，流露慵懒的姐姐式笑容。' },
-                '2': { label: '愉悦', desc: '享受把你"修正"成她喜欢的样子的过程，对你的反抗感到有趣。' },
-                '3': { label: '窒息', desc: '爱变得粘稠沉重，过度干涉日常，觉得你受伤反而是只能依赖她的证明。' },
-                '4': { label: '收藏', desc: '病态的执着，已经把你视为绝不放手的私人藏品，哪怕关起来养一辈子。' }
-            }
+    may: {
+        name_cn: '小遥',
+        name_en: 'May',
+        zone_affinity: { N: 1, B: 3, S: 0, A: 2, Z: 0 },
+        unlock_key: 'enable_proficiency_cap', 
+        unlock_item: {
+            name_cn: '「沾有果酱的破旧笔记本」',
+            name_en: 'Berry-Stained Field Notebook',
+            emoji: '📓🍓',
+            desc: '一本边角已经磨损起毛、封皮还用防水胶带补过好几次的便携式调查笔记。随便翻开一页，相比起正经的生态数据，更多的地方写满了诸如《这就去吃这家店！》、《完全不推荐！》之类的狂草注脚。本子散发着好闻的橙橙果香味（可能因为夹层里真的夹着吃剩的果皮），内页里有一行被红笔大力圈出来的字：“只要和那个人在一起， uncharted（地图外）是不存在的！”',
+            effect: '界限突破 - 你的训练家熟练度上限提升至 255 (Max)。只有不会因为“常识”而停下脚步的探险者，才能培养出超越理论极限的队伍。',
+            dialogue: '嗯？你说普通的图鉴上写着那种宝可梦只能用这四种招式？那种事情书上说了不算啦！\n我爸爸常说：“数据是死的，但旅行是活的”。这本笔记本里，记下了我和你在特区这种乱七八糟的地方、即使累得走不动也要去找这里独有的“美味”的全部过程。\n所以——别被那些枯燥的数字束缚住了！如果是我们的话……就算是一百的极限，也能变成两百、三百给你看！来，向着未知的领域，冲刺——！'
         },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    lillie: {
-        name_cn: '莉莉艾',
-        name_en: 'Lillie',
-        zone_affinity: { N: 1, B: 2, S: 1, A: 1, Z: 3 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '畏缩', desc: '心理阴影爆发，像受惊小兽般颤抖躲避，嘴里念叨"只有这次"。' },
-                '-1': { label: '局促', desc: '极度不安，不仅眼神躲闪，甚至无法正常对话，只想逃离现场。' }
-            },
-            neutral: {
-                '0': { label: '试炼', desc: '把羞耻当修行，虽然耳根通红，但会为了完成辅导任务强行忍耐。' }
-            },
-            positive: {
-                '1': { label: '憧憬', desc: '把你视作可靠前辈，主动询问不懂的常识（即使内容可能误偏）。' },
-                '2': { label: '勇气', desc: '不再只躲在身后，笨拙地想为你做点什么，开始尝试挺身而出。' },
-                '3': { label: '依恋', desc: '全力以赴想要讨好你，会为了让你高兴穿上羞耻的衣服，满脸通红地求表扬。' },
-                '4': { label: '羁绊', desc: '不仅是为了试炼，而是为了守护你，可以鼓起勇气对抗全世界的坚强。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    mallow: {
-        name_cn: '玛奥',
-        name_en: 'Mallow',
-        zone_affinity: { N: 1, B: 3, S: 0, A: 0, Z: 1 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '黑心', desc: '不再热情，皮笑肉不笑，可能会在给你的料理里"意外"加料。' },
-                '-1': { label: '赶客', desc: '把你当蹭座的大麻烦，忙时大声吆喝驱赶，闲时也不想理你。' }
-            },
-            neutral: {
-                '0': { label: '顾客', desc: '标准的阳光看板娘，但笑容职业化，只把你当成能推销的饭票。' }
-            },
-            positive: {
-                '1': { label: '食客', desc: '认可你的胃口，开始给你各种加量服务和尝鲜特权，虽然可能烫嘴。' },
-                '2': { label: '帮厨', desc: '不把你当外人，直接抓进厨房帮忙，共享围裙，肢体接触从不避讳。' },
-                '3': { label: '风味', desc: '热情中混入暧昧，会一本正经地亲自确认味道（通过舔手指等方式）。' },
-                '4': { label: '家人', desc: '彻底抓住你的胃，把你和你的位置永远固定在她的生活（餐桌）里。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    lana: {
-        name_cn: '水莲',
-        name_en: 'Lana',
-        zone_affinity: { N: 1, B: 3, S: 0, A: 0, Z: 1 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '断线', desc: '假笑都懒得维持，像看死掉的杂鱼一样冷漠，由得你自生自灭。' },
-                '-1': { label: '恶意', desc: '玩笑充满攻击性，只会看着你狼狈的样子没心没肺地嘲笑，绝不伸手。' }
-            },
-            neutral: {
-                '0': { label: '捉弄', desc: '把你当成解闷玩具，喜欢看你上当受骗的蠢样，完全没放心上。' }
-            },
-            positive: {
-                '1': { label: '玩伴', desc: '玩笑里有了几分真意，虽然还使唤你，但如果你真的有难会立刻救。' },
-                '2': { label: '咬钩', desc: '露出认真的好胜心，比赛赢了会有强烈的、带占有欲的得意。' },
-                '3': { label: '收线', desc: '玩笑变得色气且危险，喜欢私下大胆诱导，观察你的反应为乐。' },
-                '4': { label: '满载', desc: '不再用谎言掩饰，眼神直白贪婪如同捕猎，绝不允许你看中的猎物逃走。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    irida: {
-        name_cn: '珠贝',
-        name_en: 'Irida',
-        zone_affinity: { N: 0, B: 0, S: 0, A: 1, Z: 3 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '断绝', desc: '首领威严回归，即使热死也不接受带有侮辱性质的现代施舍。' },
-                '-1': { label: '不信', desc: '只把你当冷气源，利用完就保持距离，充满警惕的利用关系。' }
-            },
-            neutral: {
-                '0': { label: '交易', desc: '各取所需，只要能给空调，稍微丢脸的姿势也能咬牙当做试炼。' }
-            },
-            positive: {
-                '1': { label: '舒适', desc: '开始习惯现代生活便利……和你。休息时间变长，不再对喂食感到羞耻。' },
-                '2': { label: '软化', desc: '架子不再端着，会无意识露出少女娇憨，抱怨太热并依赖你的清凉。' },
-                '3': { label: '依附', desc: '尊严溶解，本能地渴求你的体温，在意识模糊时把你当成了唯一依靠。' },
-                '4': { label: '空间', desc: '把你的身边定义为最新的"广阔空间"，为了这安心感，可以交付一切。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    sonia: {
-        name_cn: '索妮亚',
-        name_en: 'Sonia',
-        zone_affinity: { N: 1, B: 1, S: 0, A: 0, Z: 3 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '拉黑', desc: '触到底线后变得冰冷拒绝，连门都不让你进，彻底的学者式冷暴力。' },
-                '-1': { label: '不安', desc: '怕麻烦而躲避，抗拒交流，把自己裹紧不愿意让你接近。' }
-            },
-            neutral: {
-                '0': { label: '博士', desc: '努力端着长辈架子，满口学术话题，拼命掩饰自己生活废柴的本质。' }
-            },
-            positive: {
-                '1': { label: '助手', desc: '放弃伪装，理直气壮使唤你干体力活，把你当好用的新人苦力。' },
-                '2': { label: '姐姐', desc: '不再掩饰迷糊，会跟你撒娇求原谅，把你当成可以依靠的年下弟弟。' },
-                '3': { label: '依存', desc: '找不到你就会慌，生活小事一定要喊你名字，怕失去你这个生活管家。' },
-                '4': { label: '巢穴', desc: '彻底离不开，安心地向你展示一切乱糟糟的样子，把你当做最重要发现。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    roxie: {
-        name_cn: '霍米加',
-        name_en: 'Roxie',
-        zone_affinity: { N: 3, B: 0, S: 2, A: 0, Z: 0 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '噪音', desc: '视你为污染舞台的垃圾，直接竖中指并让保安叉出去。' },
-                '-1': { label: '路人', desc: '完全无视，认为你是没品味的跟风党，只会还没演出前就让你滚。' }
-            },
-            neutral: {
-                '0': { label: '听众', desc: '勉强算个还没聋的顾客，台上耍帅台下敷衍，只把你当金主。' }
-            },
-            positive: {
-                '1': { label: '死忠', desc: '认可你的品味，把你当熟客，后台偶尔能给你留个座聊两句。' },
-                '2': { label: '节奏', desc: '开始在意你的存在，会拉着你吐槽烦心事，把你划入"自己人"范畴。' },
-                '3': { label: '毒瘾', desc: '习惯你的陪伴，情绪上头时会有过激的咬痕或标记行为，不许你喊疼。' },
-                '4': { label: '在场', desc: '视你为演出不可或缺的重音，在狂热的高潮中，眼神只为你一人聚焦。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    iono: {
-        name_cn: '奇树',
-        name_en: 'Iono',
-        zone_affinity: { N: 3, B: 1, S: 1, A: 2, Z: 1 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '黑粉', desc: '下播眼神如看害虫，极度厌恶，只把你当那种最麻烦的anti处理。' },
-                '-1': { label: '流量', desc: '单纯的直播工具人/凯子，镜头前营业镜头后秒变冷漠路人。' }
-            },
-            neutral: {
-                '0': { label: '涨粉', desc: '热衷于用你造话题，互动亲密但眼神毫无感情，纯粹的视频素材。' }
-            },
-            positive: {
-                '1': { label: '场控', desc: '允许你作为懂规矩的熟人在后台停留，虽无视你但已是特权。' },
-                '2': { label: '助理', desc: '皮套裂开，开始理直气壮使唤你当下播后的生活保姆，把你当活人朋友。' },
-                '3': { label: '本音', desc: '脆弱时会像仓鼠一样寻求安慰，允许你触碰作为本体的发饰，表现出依赖。' },
-                '4': { label: '本物', desc: '无关流量，只想黏着你的阴角依恋。你是她下播后唯一的真实暖炉。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    erika: {
-        name_cn: '艾莉卡',
-        name_en: 'Erika',
-        zone_affinity: { N: 0, B: 3, S: 0, A: 1, Z: 1 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '驱逐', desc: '优雅地下达逐客令，如同拔除杂草般将你从视野中彻底清除。' },
-                '-1': { label: '无视', desc: '眼皮都不抬，把你当成不值一提的路边石子，完全不予理会。' }
-            },
-            neutral: {
-                '0': { label: '客人', desc: '标准的和风待客之道，温柔但疏离，把你当成普通的道馆挑战者。' }
-            },
-            positive: {
-                '1': { label: '茶友', desc: '愿意与你分享茶道时光，开始展露对花草的真挚热爱。' },
-                '2': { label: '花语', desc: '会用花的语言暗示心意，在你面前偶尔露出少女般的羞涩。' },
-                '3': { label: '绽放', desc: '为你卸下大和抚子的面具，展现任性又可爱的真实一面。' },
-                '4': { label: '永恒', desc: '如同永不凋谢的花，将一生的温柔与美丽只为你一人盛开。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    nessa: {
-        name_cn: '露璃娜',
-        name_en: 'Nessa',
-        zone_affinity: { N: 1, B: 3, S: 0, A: 2, Z: 1 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '黑名单', desc: '模特的冷酷全开，直接让经纪人把你列入永久拒绝往来名单。' },
-                '-1': { label: '敷衍', desc: '职业假笑，眼神空洞，把你当成无聊的跟拍狗仔打发。' }
-            },
-            neutral: {
-                '0': { label: '粉丝', desc: '标准的偶像营业模式，签名合影来者不拒，但毫无私人感情。' }
-            },
-            positive: {
-                '1': { label: '熟人', desc: '认出你的脸，会在人群中给你一个真心的微笑和小小特权。' },
-                '2': { label: '私下', desc: '愿意展示工作外的一面，会约你去不会被拍到的地方放松。' },
-                '3': { label: '独占', desc: '开始在意你和其他人的互动，会用各种方式宣示主权。' },
-                '4': { label: '真我', desc: '卸下所有光环，只想做你身边那个爱撒娇的普通女孩。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    marnie: {
-        name_cn: '玛俐',
-        name_en: 'Marnie',
-        zone_affinity: { N: 2, B: 1, S: 3, A: 0, Z: 0 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '出局', desc: '冷酷压迫感全开，直接把你列入黑名单，像屏蔽垃圾信息一样无视。' },
-                '-1': { label: '退票', desc: '态度尖锐，不加掩饰的厌烦，公事公办只想赶紧结束打发你走。' }
-            },
-            neutral: {
-                '0': { label: '路人', desc: '只有外表不好惹，但一开口比较亲切，甚至有点操心作为路人你的样子' }
-            },
-            positive: {
-                '1': { label: '会员', desc: '嘴角微扬，会给你特权票根，把你当成还算顺眼的熟面孔照顾。' },
-                '2': { label: '死忠', desc: '产生职业外兴趣，被夸会明显害羞，私下开始征询你的意见。' },
-                '3': { label: '溺爱', desc: '酷妹形象破功，为了满足你这个头号粉丝，羞耻的要求也会红着脸照做。' },
-                '4': { label: '真心', desc: '卸下偶像重担，亦不再为了家乡，只想和你安静地分享同一个生活角落。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    hex: {
-        name_cn: '海克丝',
-        name_en: 'Hex Maniac',
-        zone_affinity: { N: 0, B: 0, S: 3, A: 0, Z: 0 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '死咒', desc: '纯粹的恶意爆发，发出尖叫驱使怨灵攻击，视你为必须要消灭的仇敌。' },
-                '-1': { label: '回避', desc: '如见强光般躲避，虽然害怕但根本不愿意交流，视你为危险源。' }
-            },
-            neutral: {
-                '0': { label: '幽灵', desc: '极力降低存在感，被迫营业时结结巴巴，只想让你快点无视她。' }
-            },
-            positive: {
-                '1': { label: '觅食', desc: '躲在暗处用贪婪阴湿的眼神偷窥，把你当成诱人的精气食物源。' },
-                '2': { label: '接触', desc: '生理渴望战胜恐惧，借故蹭上来，触感冰冷粘腻带着溺水般的抓住不放。' },
-                '3': { label: '寄生', desc: '完全不知廉耻地想要钻进你的被窝或贴在你身上，变成没你就活不了的吸血鬼。' },
-                '4': { label: '诅咒', desc: '病态的幸福执念，发誓死也要缠着你，你成了她存续的唯一宿主与世界。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    bea: {
-        name_cn: '彩豆',
-        name_en: 'Bea',
-        zone_affinity: { N: 2, B: 0, S: 0, A: 3, Z: 1 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '制裁', desc: '毫不留情地武力压制，眼神如看违反道艺之人般冰冷，出手极重。' },
-                '-1': { label: '轻视', desc: '完全看不起你的软弱姿态，话都不想多说，直接让你回去重练。' }
-            },
-            neutral: {
-                '0': { label: '严师', desc: '冷酷的魔鬼教练，只关注体能数据，把你当成没有名字的受训学员。' }
-            },
-            positive: {
-                '1': { label: '同门', desc: '认可了你的毅力，休息时会扔毛巾给你，允许你在旁观摩。' },
-                '2': { label: '破绽', desc: '被发现偷吃或私下的一面后会害羞动摇，却还在嘴硬这是修行。' },
-                '3': { label: '切磋', desc: '热衷于汗水交织的近身寝技，眼神狂热，享受身体碰撞的极度刺激。' },
-                '4': { label: '臣服', desc: '彻底力竭后的温顺，像大猫一样把额头抵着胸口，你是她唯一的弱点。' }
-            }
-        },
-        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    },
-    cynthia: {
-        name_cn: '竹兰',
-        name_en: 'Cynthia',
-        zone_affinity: { N: 2, B: 2, S: 2, A: 2, Z: 2 },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '放逐', desc: '甚至不需要动手，但冰冷的眼神比暴风雪还可怕，那是让人生理冻结的压迫。' },
-                '-1': { label: '过客', desc: '教科书般的外交辞令，礼貌但把你隔绝在世界之外的绝对疏离。' }
-            },
-            neutral: {
-                '0': { label: '考察', desc: '居高临下的审视，把你当成一个需要评估数据对特区有无价值的变量。' }
-            },
-            positive: {
-                '1': { label: '雇佣', desc: '认可你的实用性，像使唤助手一样扔给你杂活，但允许你进入私人领地。' },
-                '2': { label: '破防', desc: '让你窥见生活废柴的反差一面，不再赶人，而是羞恼让你假装没看见。' },
-                '3': { label: '宠溺', desc: '高维度的温柔重力。会用奇怪理由把你留在身边，无时无刻不想确认你的存在。' },
-                '4': { label: '神话', desc: '甚至愿意把冠军荣耀抛在一边的深情，你比任何历史遗迹都要珍贵。' }
-            }
+        relationship_tags: {
+            '-2': ['绕道', '溜号'],
+            '-1': ['尬笑', '赶时间'],
+            '0':  ['队友', '借宿'],
+            '1':  ['投喂', '饭搭子'],
+            '2':  ['秘密', '打滚'],
+            '3':  ['贪吃', '取暖'],
+            '4':  ['停泊', '不走了']
         },
         love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
     },
@@ -4461,21 +5699,14 @@ const NPC_ADDON_DATA = {
             effect: 'Z招式 - 获得了Z力量的使用许可，激活后需配合全力姿势发动。',
             dialogue: '阿罗拉~！这是我的备用品喔！虽然尺寸有点小，但只要用力多戴一会，哪怕皮肤勒红了也就习惯了！上面有我的汗水？没关系呀，这就是“全力的阿罗拉”的味道嘛！来，我帮你戴！'
         },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '假笑', desc: '嘴角扬着标准的十五度，除此之外的面部肌肉完全不动，眼神只是礼貌地掠过你。' },
-                '-1': { label: '疏离', desc: '虽然嘴上还在说着“阿罗拉”，但身体本能地侧过半边，像是在这就是对待不熟的推销员。' }
-            },
-            neutral: {
-                // SFW 修正：正常的热情游客。对你友好，是因为她性格本来就好，而不是因为你特殊。
-                '0': { label: '游客', desc: '把你当成了热心的本地向导。会用灿烂的笑容和你打招呼，虽然也会因为好奇凑近看你，但也就是看两眼就跑去玩了的程度。' }
-            },
-            positive: {
-                '1': { label: '搭档', desc: '从“路人”升级为了“朋友”。会毫不客气地把沉重的背包挂到你身上，然后笑着给你一颗糖作为谢礼。' },
-                '2': { label: '靠近', desc: '无论是在沙发还是长椅上，坐下时肩膀会自然地碰在一起，似乎并没有“避嫌”这个概念。' },
-                '3': { label: '习惯', desc: '开始习惯肢体语言而非言语。比如通过捏你的手掌来打招呼，或者为了看清东西而相当自然地把下巴架在你肩上。' },
-                '4': { label: '艳阳', desc: '不再是那种无机质的笑。笑容里多了某种名为“安心”的温度，并在做Z招式姿势向你展示全力时不再看镜头，而是看着你。' }
-            }
+        relationship_tags: {
+            '-2': ['假笑', '空气'],
+            '-1': ['借过', '疏离'],
+            '0':  ['游客', '招呼'],
+            '1':  ['投喂', '随礼'],
+            '2':  ['贴近', '凝视'],
+            '3':  ['负重', '施压'],
+            '4':  ['艳阳', '全力']
         },
         love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
     },
@@ -4492,24 +5723,322 @@ const NPC_ADDON_DATA = {
             effect: '全属性太晶化 - 你可以无需充能，直接通过更换太晶珠内的核心，在战场上随时将宝可梦转化为包含 <星晶> 在内的任意属性。',
             dialogue: '（把那个死沉的箱子往你脚边一放，随手弹开锁扣……太晶折射的闪光瞬间亮了一片）喏，换这个带。学校发的那个球用两次就灭了，那种东西你也真能忍。……珠子在盖子上，碎块都在底下。为了把中间那个彩色的（星晶）给填满，我这周专门回了一趟那一层。虽然不太好找，但挖出来的时候我就在想，这个光泽肯定很衬你。……以后别捡其他的了，想看什么颜色，我这箱子里全都有。'
         },
-        relationship_stage: {
-            negative: {
-                '-2': { label: '路障', desc: '她觉得你挡路了。不会说话，只会面无表情地撞开你的肩膀走过去。' },
-                '-1': { label: '空气', desc: '即便你就在旁边，她也会旁若无人地戴上耳机，完全把你当成背景贴图处理。' }
-            },
-            neutral: {
-                // SFW 修正：普通的同学感。不利用你，但也随性。
-                '0': { label: '偶遇', desc: '把你当成那种见面会抬手“唷”一声的熟面孔。如果恰好顺路，会很自然地走在你旁边，但也仅限于如果不顺路就各走各的。' }
-            },
-            positive: {
-                '1': { label: '分食', desc: '似乎认可了你的品质。吃三明治如果咬到了不喜欢的橄榄，会很自然地挑出来直接塞进你嘴里。' },
-                '2': { label: '凝视', desc: '寻宝雷达响了。偶尔会发现她不知何时停下了手里的Switch，正托着腮，直勾勾地盯着你的侧脸发呆。' },
-                '3': { label: '领地', desc: '开始散发猫科动物的特性。你房间里她的私人物品越来越多，甚至你的衣服只要手感好，就会被那是她的睡衣。' },
-                '4': { label: '宝物', desc: '名为“你”的宝物收集完毕。她停止了四处乱跑，像只找到最满意纸箱的猫一样，安稳地蜷缩在有你气味的地方。' }
-            }
+        relationship_tags: {
+            '-2': ['路障', '撞开'],
+            '-1': ['空气', '降噪'],
+            '0':  ['偶遇', '招呼'], 
+            '1':  ['蹭饭', '分食'],
+            '2':  ['盯梢', '寻宝'],
+            '3':  ['入侵', '借宿'],
+            '4':  ['藏品', '宝物']
         },
         love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
-    }
+    },
+    lusamine: {
+        name_cn: '露莎米奈',
+        name_en: 'Lusamine',
+        zone_affinity: { N: 0, B: 1, S: 0, A: 0, Z: 3 },
+        relationship_tags: {
+            '-2': ['杂质', '排除'],
+            '-1': ['碍眼', '无视'], 
+            '0':  ['审视', '施舍'],
+            '1':  ['中意', '素材'],
+            '2':  ['妆点', '修正'],
+            '3':  ['溺爱', '温室'], 
+            '4':  ['藏品', '笼中']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    lillie: {
+        name_cn: '莉莉艾',
+        name_en: 'Lillie',
+        zone_affinity: { N: 1, B: 2, S: 1, A: 1, Z: 3 },
+        relationship_tags: {
+            '-2': ['惊吓', '躲藏'],
+            '-1': ['发抖', '退缩'],
+            '0':  ['试炼', '忍耐'],
+            '1':  ['前辈', '求教'],
+            '2':  ['羞耻', '配合'],
+            '3':  ['讨好', '过激'],
+            '4':  ['全力', '唯一']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    mallow: {
+        name_cn: '玛奥',
+        name_en: 'Mallow',
+        zone_affinity: { N: 1, B: 3, S: 0, A: 0, Z: 1 },
+        relationship_tags: {
+            '-2': ['加料', '黑店'],
+            '-1': ['占座', '赶人'],
+            '0':  ['营业', '推销'],
+            '1':  ['熟客', '多给'], 
+            '2':  ['帮厨', '投喂'],
+            '3':  ['尝味', '贪吃'],
+            '4':  ['饲主', '掌勺']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    lana: {
+        name_cn: '水莲',
+        name_en: 'Lana',
+        zone_affinity: { N: 1, B: 3, S: 0, A: 0, Z: 1 },
+        relationship_tags: {
+            '-2': ['杂鱼', '放生'], 
+            '-1': ['冷眼', '看戏'],
+            '0':  ['捉弄', '胡扯'],
+            '1':  ['玩伴', '上钩'],
+            '2':  ['咬钩', '博弈'],
+            '3':  ['诱捕', '收线'],
+            '4':  ['大鱼', '满载']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    irida: {
+        name_cn: '珠贝',
+        name_en: 'Irida',
+        zone_affinity: { N: 0, B: 0, S: 0, A: 1, Z: 3 },
+        relationship_tags: {
+            '-2': ['死撑', '谢客'],
+            '-1': ['也是交易', '别管'],
+            '0':  ['怕热', '寻凉'],
+            '1':  ['贪凉', '降温'],
+            '2':  ['融化', '没辙'], 
+            '3':  ['贴身', '解暑'],
+            '4':  ['空间', '定居']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    lacey: {
+        name_cn: '紫竽',
+        name_en: 'Lacey',
+        zone_affinity: { N: 1, B: 1, S: 0, A: 2, Z: 3 },
+        relationship_tags: {
+            '-2': ['空气', '绕路'],
+            '-1': ['找茬', '扣分'],
+            '0':  ['风纪', '执勤'],
+            '1':  ['放行', '例外'],
+            '2':  ['默许', '嘴硬'],
+            '3':  ['查房', '私权'], 
+            '4':  ['盲信', '正解']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    misty: {
+        name_cn: '小霞',
+        name_en: 'Misty',
+        zone_affinity: { N: 1, B: 3, S: 0, A: 1, Z: 1 },
+        relationship_tags: {
+            '-2': ['吹哨', '水枪'],
+            '-1': ['警告', '叉腰'],
+            '0':  ['严厉', '看管'],
+            '1':  ['擦头', '扔毛巾'],
+            '2':  ['别动', '上手'],
+            '3':  ['拖走', '揪人'],
+            '4':  ['听海', '安静']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    sonia: {
+        name_cn: '索妮亚',
+        name_en: 'Sonia',
+        zone_affinity: { N: 1, B: 1, S: 0, A: 0, Z: 3 },
+        relationship_tags: {
+            '-2': ['拉黑', '闭门'],
+            '-1': ['躲闪', '怕烦'],
+            '0':  ['端着', '装样'],
+            '1':  ['跑腿', '苦力'],
+            '2':  ['露馅', '耍赖'],
+            '3':  ['找物', '救命'],
+            '4':  ['乱窝', '定居']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    hex: {
+        name_cn: '海克丝',
+        name_en: 'Hex Maniac',
+        zone_affinity: { N: 0, B: 0, S: 3, A: 0, Z: 0 },
+        relationship_tags: {
+            '-2': ['死咒', '退散'],
+            '-1': ['晃眼', '遁走'],
+            '0':  ['背景', '路人'],
+            '1':  ['视线', '背后'],
+            '2':  ['采气', '触探'],
+            '3':  ['强附', '入宅'],
+            '4':  ['宿主', '永咒']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    roxie: {
+        name_cn: '霍米加',
+        name_en: 'Roxie',
+        zone_affinity: { N: 3, B: 0, S: 2, A: 0, Z: 0 },
+        relationship_tags: {
+            '-2': ['杂音', '切歌'],
+            '-1': ['没品', '晾着'],
+            '0':  ['看客', '营业'],
+            '1':  ['死忠', '后台'],
+            '2':  ['独奏', '合拍'],
+            '3':  ['猛毒', '标记'],
+            '4':  ['绝唱', '唯一']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    iono: {
+        name_cn: '奇树',
+        name_en: 'Iono',
+        zone_affinity: { N: 3, B: 1, S: 1, A: 2, Z: 1 },
+       relationship_tags: {
+            '-2': ['拉黑', '永封'],
+            '-1': ['恰饭', '变现'],
+            '0':  ['营业', '素材'],
+            '1':  ['场控', '白名'],
+            '2':  ['掉马', '使唤'],
+            '3':  ['放弃演戏', '充电'],
+            '4':  ['私联', '本物']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    erika: {
+        name_cn: '艾莉卡',
+        name_en: 'Erika',
+        zone_affinity: { N: 0, B: 3, S: 0, A: 1, Z: 1 },
+        relationship_tags: {
+            '-2': ['除草', '谢客'],
+            '-1': ['空气', '无视'],
+            '0':  ['礼貌', '老师'],
+            '1':  ['茶友', '留座'],
+            '2':  ['贪睡', '卸防'],
+            '3':  ['缠绕', '如藤'],
+            '4':  ['温室', '私有'] 
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    nessa: {
+        name_cn: '露璃娜',
+        name_en: 'Nessa',
+        zone_affinity: { N: 1, B: 3, S: 0, A: 2, Z: 1 },
+        relationship_tags: {
+            '-2': ['封杀', '死刑'],
+            '-1': ['公关', '假笑'],
+            '0':  ['营业', '摆拍'],
+            '1':  ['特权', '后台'],
+            '2':  ['破功', '较劲'],
+            '3':  ['圈地', '私藏'],
+            '4':  ['卸妆', '娇气']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    marnie: {
+        name_cn: '玛俐',
+        name_en: 'Marnie',
+        zone_affinity: { N: 2, B: 1, S: 3, A: 0, Z: 0 },
+        relationship_tags: {
+            '-2': ['拉黑', '闭麦'],
+            '-1': ['退票', '冷脸'],
+            '0':  ['酷妹', '指路'],
+            '1':  ['熟客', '赠票'],
+            '2':  ['害羞', '破防'],
+            '3':  ['私联', '宠粉'],
+            '4':  ['卸妆', '回乡']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    acerola: {
+        name_cn: '阿塞萝拉',
+        name_en: 'Acerola',
+        zone_affinity: { N: 0, B: 2, S: 3, A: 0, Z: 1 },
+       relationship_tags: {
+            '-2': ['送客', '阴风'],
+            '-1': ['空气', '透明'],
+            '0':  ['看店', '捣蛋'],
+            '1':  ['献宝', '破烂'],
+            '2':  ['借暖', '冰手'],
+            '3':  ['留宿', '鬼打墙'],
+            '4':  ['抱枕', '家人']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    bea: {
+        name_cn: '彩豆',
+        name_en: 'Bea',
+        zone_affinity: { N: 2, B: 0, S: 0, A: 3, Z: 1 },
+        relationship_tags: {
+            '-2': ['弱者', '无视'],
+            '-1': ['冷漠', '回炉'],
+            '0':  ['严师', '监督'],
+            '1':  ['递水', '认可'],
+            '2':  ['偷吃', '封口'],
+            '3':  ['切磋', '缠斗'],
+            '4':  ['力竭', '依偎']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    skyla: {
+        name_cn: '风露',
+        name_en: 'Skyla',
+        zone_affinity: { N: 1, B: 0, S: 0, A: 3, Z: 1 },
+        unlock_key: 'enable_dynamax', 
+
+        relationship_tags: {
+            '-2': ['抛离', '吃灰'],
+            '-1': ['借过', '很忙'], 
+            '0':  ['速递', '签收'],
+            '1':  ['顺路', '兜风'], 
+            '2':  ['零距', '贴背'],
+            '3':  ['迫降', '飞扑'],
+            '4':  ['停机', '不想飞']
+        },
+
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    iris: {
+        name_cn: '艾莉丝',
+        name_en: 'Iris',
+        zone_affinity: { N: 1, B: 3, S: 1, A: 2, Z: 2 },
+        relationship_tags: {
+            '-2': ['讨厌', '威吓'],
+            '-1': ['小气', '别管'],
+            '0':  ['野性', '乱跑'],
+            '1':  ['分食', '玩伴'],
+            '2':  ['怕冷', '钻衣'],
+            '3':  ['护食', '标记'],
+            '4':  ['筑巢', '家人'],
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    nemona: {
+        name_cn: '妮莫',
+        name_en: 'Nemona',
+        zone_affinity: { N: 1, B: 1, S: 1, A: 1, Z: 3 },
+        relationship_tags: {
+            '-2': ['没劲', '无视'],
+            '-1': ['路人', '叹气'], 
+            '0':  ['向导', '热心'], 
+            '1':  ['栽培', '投资'], 
+            '2':  ['瞬移', '刚好'],
+            '3':  ['再来', '不够'],
+            '4':  ['宿命', '全开'],
+        },
+
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+    cynthia: {
+        name_cn: '竹兰',
+        name_en: 'Cynthia',
+        zone_affinity: { N: 2, B: 2, S: 2, A: 2, Z: 2 },
+        relationship_tags: {
+            '-2': ['驱逐', '冰冷'],
+            '-1': ['客套', '外人'],
+            '0':  ['试探', '研究'],
+            '1':  ['征用', '顺手'],
+            '2':  ['露馅', '没辙'],
+            '3':  ['锁死', '引力'],
+            '4':  ['溺爱', '神话']
+        },
+        love_thresholds: { 1: 20, 2: 40, 3: 60, 4: 80 }
+    },
+
 };
 
 // ================================================================
@@ -4772,8 +6301,86 @@ if (typeof window !== 'undefined') {
   }
 
   /**
+   * 检测ERA变量是否使用新格式（无pkm前缀）
+   * @param {object} eraVars - ERA变量对象
+   * @returns {boolean} - true表示新格式，false表示旧格式
+   */
+  function isNewFormat(eraVars) {
+    if (!eraVars) return true; // 默认使用新格式
+    // 新格式：直接有 player/world_state/settings
+    // 旧格式：有 pkm.player/pkm.world_state/pkm.settings
+    return !eraVars.pkm && (eraVars.player || eraVars.world_state || eraVars.settings);
+  }
+
+  /**
+   * 获取兼容路径（自动适配新旧格式）
+   * @param {object} eraVars - ERA变量对象
+   * @param {string} path - 原始路径（如 'pkm.player.party'）
+   * @returns {string} - 适配后的路径
+   */
+  function getCompatPath(eraVars, path) {
+    const useNewFormat = isNewFormat(eraVars);
+    if (useNewFormat && path.startsWith('pkm.')) {
+      return path.slice(4); // 去掉 'pkm.' 前缀
+    }
+    if (!useNewFormat && !path.startsWith('pkm.')) {
+      return 'pkm.' + path; // 添加 'pkm.' 前缀
+    }
+    return path;
+  }
+
+  /**
+   * 兼容版 _.get，自动适配新旧格式
+   * @param {object} eraVars - ERA变量对象
+   * @param {string} path - 路径（如 'pkm.player.party' 或 'player.party'）
+   * @param {*} defaultValue - 默认值
+   * @returns {*} - 获取的值
+   */
+  function getEraValue(eraVars, path, defaultValue) {
+    if (!eraVars) return defaultValue;
+    
+    // 先尝试原始路径
+    let value = _.get(eraVars, path);
+    if (value !== undefined) return value;
+    
+    // 尝试兼容路径
+    const compatPath = getCompatPath(eraVars, path);
+    if (compatPath !== path) {
+      value = _.get(eraVars, compatPath);
+      if (value !== undefined) return value;
+    }
+    
+    return defaultValue;
+  }
+
+  /**
+   * 转换更新数据的路径为当前格式
+   * @param {object} eraVars - ERA变量对象
+   * @param {object} data - 要更新的数据对象
+   * @returns {object} - 转换后的数据对象
+   */
+  function convertUpdatePaths(eraVars, data) {
+    const useNewFormat = isNewFormat(eraVars);
+    const converted = {};
+    
+    for (const [path, value] of Object.entries(data)) {
+      let newPath = path;
+      
+      if (useNewFormat && path.startsWith('pkm.')) {
+        newPath = path.slice(4); // 去掉 'pkm.' 前缀
+      } else if (!useNewFormat && !path.startsWith('pkm.')) {
+        newPath = 'pkm.' + path; // 添加 'pkm.' 前缀
+      }
+      
+      converted[newPath] = value;
+    }
+    
+    return converted;
+  }
+
+  /**
    * 更新ERA变量
-   * @param {object} data - 要更新的变量对象（支持嵌套路径如 'pkm.player.party'）
+   * @param {object} data - 要更新的变量对象（支持嵌套路径如 'player.party' 或 'pkm.player.party'）
    * @returns {Promise} - 更新完成的 Promise
    */
   async function updateEraVars(data) {
@@ -4781,10 +6388,13 @@ if (typeof window !== 'undefined') {
       // 获取当前 ERA 变量用于智能判断
       const currentVars = await getEraVars();
       
+      // 转换路径为当前格式（兼容新旧格式）
+      const convertedData = convertUpdatePaths(currentVars, data);
+      
       // 构建完整的嵌套对象结构
       const nestedData = {};
       
-      for (const [path, value] of Object.entries(data)) {
+      for (const [path, value] of Object.entries(convertedData)) {
         const parts = path.split('.');
         let current = nestedData;
         
@@ -4849,7 +6459,7 @@ if (typeof window !== 'undefined') {
     const eraVars = await getEraVars();
     if (!eraVars) return null;
 
-    const playerData = _.get(eraVars, 'pkm.player', null);
+    const playerData = getEraValue(eraVars, 'player', null);
     return playerData;
   }
 
@@ -4912,7 +6522,7 @@ if (typeof window !== 'undefined') {
     console.warn(`${PLUGIN_NAME} setPlayerParty 已弃用，请使用 VariableEdit 直接更新槽位`);
     
     const eraVars = await getEraVars();
-    const playerData = _.get(eraVars, 'pkm.player', { 
+    const playerData = getEraValue(eraVars, 'player', { 
       name: '训练家', 
       party: {
         slot1: createEmptySlot(1),
@@ -4939,7 +6549,7 @@ if (typeof window !== 'undefined') {
           if (found) {
             // 更新 slot1
             updateEraVars({
-              'pkm.player.party.slot1': found
+              'player.party.slot1': found
             });
             console.log(`${PLUGIN_NAME} ✓ 已将 ${found.name} 设置到 slot1`);
             return found;
@@ -5476,7 +7086,8 @@ if (typeof window !== 'undefined') {
       enable_mega: false,
       enable_z_move: false,
       enable_dynamax: false,
-      enable_tera: false
+      enable_tera: false,
+      enable_proficiency_cap: false  // 训练度突破155上限
     };
     
     for (const unlocks of unlocksList) {
@@ -7018,7 +8629,9 @@ if (typeof window !== 'undefined') {
     // === 合并 unlocks ===
     // 将 p1 和 p2 的 unlocks 中为 true 的属性合并
     // 前端只需要知道"哪些机制可用"，不区分来源
-    const playerUnlocks = mergeUnlocks(resolvedPlayer.unlocks, eraPlayerData?.unlocks);
+    // 注意：bonds（女主角羁绊道具）也需要合并到 unlocks 中
+    const eraBonds = eraPlayerData?.bonds || {};
+    const playerUnlocks = mergeUnlocks(resolvedPlayer.unlocks, eraPlayerData?.unlocks, eraBonds);
     const enemyUnlocks = resolvedEnemy.unlocks || null;
 
     // === 处理全局系统开关 (settings) ===
@@ -7039,9 +8652,10 @@ if (typeof window !== 'undefined') {
     // === 处理 trainerProficiency ===
     // 从 ERA 数据获取（已经在 handleGenerationBeforeInject 中处理了 proficiency_up）
     // 多人合并时，选择 resolvedPlayer.trainerProficiency 和 eraPlayerData.trainerProficiency 中的最大值
+    // 注意：酒馆脚本不做上限限制（始终 0-255），上限限制由战斗前端根据 enable_proficiency_cap 处理
     const eraProficiency = eraPlayerData?.trainerProficiency || 0;
     const resolvedProficiency = resolvedPlayer.trainerProficiency || 0;
-    const trainerProficiency = Math.max(eraProficiency, resolvedProficiency);
+    const trainerProficiency = Math.min(255, Math.max(0, Math.max(eraProficiency, resolvedProficiency)));
 
     // 构建最终的战斗 JSON（前端 player/enemy 格式）
     const completeBattle = {
@@ -7390,6 +9004,7 @@ if (typeof window !== 'undefined') {
     if (unlocks.enable_bond) unlocksDisplay.push('Bond');
     if (unlocks.enable_styles) unlocksDisplay.push('Style');
     if (unlocks.enable_insight) unlocksDisplay.push('Insight');
+    if (unlocks.enable_proficiency_cap) unlocksDisplay.push('ProfCap');
     const unlocksStr = unlocksDisplay.length > 0 ? unlocksDisplay.join('/') : '无';
 
     // 构建羁绊遗物清单（详细版）- 区分 bonds（女主角羁绊道具）和 unlocks（普通能力）
@@ -7457,6 +9072,15 @@ if (typeof window !== 'undefined') {
      ✨ 效果: 移动充能站 - 【全属性随意切换】不再依赖一次性的充能服务。持有该箱体者，可在接触战中即时更换太晶珠核心，将任意宝可梦赋予可以随意指定的太晶属性。`);
     } else if (unlocks.enable_tera) {
       unlockItems.push(`  ✨ 太晶化 [🔓解锁] - 来源: 学院配给太晶珠`);
+    }
+    
+    // 训练度突破 - May
+    if (bonds.enable_proficiency_cap) {
+      bondItems.push(`  📓🍓 「沾有果酱的破旧笔记本」 —— [丰缘] May赠 [💍誓约]
+     [状态] 边角已经磨损起毛、封皮还用防水胶带补过好几次的便携式调查笔记。随便翻开一页，相比起正经的生态数据，更多的地方写满了诸如《这就去吃这家店！》、《完全不推荐！》之类的狂草注脚。
+     🚀 效果: 界限突破 - 【训练度上限提升】你的训练家熟练度上限提升至 255 (Max)。`);
+    } else if (unlocks.enable_proficiency_cap) {
+      unlockItems.push(`  🚀 训练度突破 [🔓解锁] - 来源: 通用训练手册`);
     }
 
     
@@ -7576,8 +9200,8 @@ ${inventorySection}${boxSection}
           console.log(`${PLUGIN_NAME} [PROFICIENCY] 当前: ${currentProficiency}, +${proficiencyUp} = ${newProficiency}`);
           
           // 标记需要更新
-          proficiencyUpdateData['pkm.player.trainerProficiency'] = newProficiency;
-          proficiencyUpdateData['pkm.player.proficiency_up'] = 0;
+          proficiencyUpdateData['player.trainerProficiency'] = newProficiency;
+          proficiencyUpdateData['player.proficiency_up'] = 0;
           
           // 立即更新本地数据（用于注入）
           playerData.trainerProficiency = newProficiency;
@@ -7816,13 +9440,47 @@ ${inventorySection}${boxSection}
   const NPC_INJECT_ID = 'pkm_npc_status';
   
   /**
-   * 获取 NPC 关系阶段描述
+   * 获取 NPC 关系阶段的四个 TAG（通用2个 + 角色专属2个）
+   * @param {string} npcId - NPC ID
+   * @param {number} stage - 当前阶段 (-2 ~ 4)
+   * @returns {object} - { tags: string[], tagsDisplay: string }
+   */
+  function getNpcStageTags(npcId, stage) {
+    const addon = NPC_ADDON_DATA[npcId];
+    const stageKey = String(stage);
+    
+    // 获取通用 TAG（2个）
+    const commonTags = RELATIONSHIP_TAGS_COMMON[stageKey] || ['未知', '未知'];
+    
+    // 获取角色专属 TAG（2个）
+    let characterTags = ['未知', '未知'];
+    if (addon && addon.relationship_tags && addon.relationship_tags[stageKey]) {
+      characterTags = addon.relationship_tags[stageKey];
+    }
+    
+    // 合并为四个 TAG
+    const allTags = [...commonTags, ...characterTags];
+    const tagsDisplay = allTags.map(t => `#${t}`).join(' ');
+    
+    return { tags: allTags, tagsDisplay };
+  }
+  
+  /**
+   * 获取 NPC 关系阶段描述（兼容旧格式）
    * @param {string} npcId - NPC ID
    * @param {number} stage - 当前阶段 (-2 ~ 4)
    * @returns {object} - { label, desc }
    */
   function getNpcStageDesc(npcId, stage) {
     const addon = NPC_ADDON_DATA[npcId];
+    
+    // 新格式：使用 relationship_tags
+    if (addon && addon.relationship_tags) {
+      const { tagsDisplay } = getNpcStageTags(npcId, stage);
+      return { label: tagsDisplay, desc: '' };
+    }
+    
+    // 旧格式兼容：relationship_stage
     if (!addon || !addon.relationship_stage) {
       return { label: '未知', desc: '未定义状态...' };
     }
@@ -7916,6 +9574,15 @@ ${inventorySection}${boxSection}
         : `\n   - 羁绊: ${addon.unlock_item.emoji} ${addon.unlock_item.name_cn} [未获得]`;
     }
     
+    // 新格式：使用四个 TAG 显示
+    if (addon.relationship_tags) {
+      const { tagsDisplay } = getNpcStageTags(npcId, stage);
+      return `${addon.name_cn} (${addon.name_en})
+   - [Stage ${stage}] ${tagsDisplay} (Love: ${loveDisplay})
+   - ${statusTag}${bondDisplay}`;
+    }
+    
+    // 旧格式兼容
     return `${addon.name_cn} (${addon.name_en})
    - [Stage ${stage}: ${stageDesc.label}] (Love: ${loveDisplay})
    - 状态: ${statusTag} ${stageDesc.desc}${bondDisplay}`;
@@ -7952,10 +9619,9 @@ ${inventorySection}${boxSection}
       
       // 2. 获取 NPC 状态（优先使用快照，因为 processNpcLoveUp 可能刚更新）
       const eraVars = await getEraVars();
-      const npcsState = _.get(eraVars, 'pkm.world_state.npcs', {});
-      const passerbyState = _.get(eraVars, 'pkm.world_state.passerby_npcs', {});
-      const playerBonds = _.get(eraVars, 'pkm.player.bonds', {});
-      const currentLocation = _.get(eraVars, 'pkm.world_state.location', 'Z');
+      const npcsState = getEraValue(eraVars, 'world_state.npcs', {});
+      const playerBonds = getEraValue(eraVars, 'player.bonds', {});
+      const currentLocation = getEraValue(eraVars, 'world_state.location', 'Z');
       
       // 合并快照数据（快照优先，因为是最新的）
       const mergedNpcsState = {};
@@ -7976,43 +9642,10 @@ ${inventorySection}${boxSection}
         }
       }
       
-      // 4. 扫描路人 NPC（通过名字或标签匹配）
-      const activePasserby = [];
-      
-      for (const [name, state] of Object.entries(passerbyState)) {
-        // 跳过模板和元数据
-        if (name.startsWith('$')) continue;
-        if (!state || typeof state !== 'object') continue;
-        
-        let isActive = false;
-        
-        // 方法1: 检查名字是否在上下文中出现
-        if (contextText.includes(name.toLowerCase())) {
-          isActive = true;
-        }
-        
-        // 方法2: 检查 tags 字段中的关键词
-        if (!isActive && state.tags) {
-          const tags = state.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-          if (tags.length > 0) {
-            isActive = tags.some(tag => contextText.includes(tag));
-          }
-        }
-        
-        if (isActive) {
-          activePasserby.push({ name, state });
-          console.log(`${PLUGIN_NAME} [NPC] 路人触发: ${name} (tags: ${state.tags || '无'})`);
-        }
-      }
-      
-      // 即使没有活跃 NPC，也保留区域状态卡注入
-      // （不再清除注入，因为区域信息始终有用）
-      
       console.log(`${PLUGIN_NAME} [NPC] 当前区域: ${currentLocation} (${ZONE_DATA[currentLocation]?.name_cn || '未知'})`);
       console.log(`${PLUGIN_NAME} [NPC] 激活主要角色: ${activeNpcs.join(', ') || '无'}`);
-      console.log(`${PLUGIN_NAME} [NPC] 激活路人: ${activePasserby.map(p => p.name).join(', ') || '无'}`);
       
-      // 5. 生成状态卡
+      // 4. 生成状态卡
       const sections = [];
       
       // 区域状态卡（始终显示当前区域信息）
@@ -8030,28 +9663,6 @@ ${inventorySection}${boxSection}
         sections.push(`【当前活跃/关注的主要 NPC 状态】\n${mainCards}`);
       }
       
-      // 路人 NPC 状态卡
-      if (activePasserby.length > 0) {
-        const passerbyCards = activePasserby.map((p, index) => {
-          const { name, state } = p;
-          const stage = state.stage || 0;
-          const love = state.love || 0;
-          
-          let stageLabel = '陌生';
-          if (stage === -2) stageLabel = '嫌恶 [🔒Lock]';
-          else if (stage === -1) stageLabel = '不爽';
-          else if (stage === 0) stageLabel = '陌生';
-          else if (stage === 1) stageLabel = '熟识';
-          else if (stage === 2) stageLabel = '好友';
-          else if (stage === 3) stageLabel = '亲密';
-          else if (stage === 4) stageLabel = '挚友 [🔒Lock]';
-          
-          return `${index + 1}. ${name}\n   - [Stage ${stage}: ${stageLabel}] (Love: ${love})`;
-        }).join('\n\n');
-        
-        sections.push(`【当前活跃的路人 NPC 状态】\n${passerbyCards}`);
-      }
-      
       const promptContent = `<npc_status_brief>
 ${sections.join('\n\n')}
 </npc_status_brief>`;
@@ -8066,21 +9677,395 @@ ${sections.join('\n\n')}
         content: promptContent
       }]);
       
-      const totalActive = activeNpcs.length + activePasserby.length;
-      console.log(`${PLUGIN_NAME} [NPC] ✓ 已注入 ${totalActive} 个活跃 NPC 状态 (主要: ${activeNpcs.length}, 路人: ${activePasserby.length})`);
+      console.log(`${PLUGIN_NAME} [NPC] ✓ 已注入 ${activeNpcs.length} 个活跃主要 NPC 状态`);
       
     } catch (e) {
       console.error(`${PLUGIN_NAME} [NPC] 注入失败:`, e);
     }
   }
+
+  // ============================================
+  //    F. PKM 时间系统 (DAY X 格式)
+  // ============================================
   
+  const TIME_INJECT_ID = 'pkm_time_status';
+  
+  /**
+   * 时段定义
+   * 宝可梦世界的一天分为多个时段
+   */
+  const TIME_PERIODS = {
+    'dawn': { label: '黎明', emoji: '🌅', hours: [5, 6] },
+    'morning': { label: '早晨', emoji: '☀️', hours: [7, 8, 9, 10] },
+    'noon': { label: '中午', emoji: '🌞', hours: [11, 12, 13] },
+    'afternoon': { label: '下午', emoji: '🌤️', hours: [14, 15, 16, 17] },
+    'evening': { label: '傍晚', emoji: '🌇', hours: [18, 19] },
+    'night': { label: '夜晚', emoji: '🌙', hours: [20, 21, 22, 23] },
+    'midnight': { label: '深夜', emoji: '🌑', hours: [0, 1, 2, 3, 4] }
+  };
+  
+  /**
+   * 时段顺序（用于推进）
+   */
+  const PERIOD_ORDER = ['dawn', 'morning', 'noon', 'afternoon', 'evening', 'night', 'midnight'];
+  
+  /**
+   * 获取时段信息
+   */
+  function getPeriodInfo(period) {
+    return TIME_PERIODS[period] || TIME_PERIODS['morning'];
+  }
+  
+  /**
+   * 获取下一个时段
+   */
+  function getNextPeriod(currentPeriod) {
+    const idx = PERIOD_ORDER.indexOf(currentPeriod);
+    if (idx === -1) return 'morning';
+    return PERIOD_ORDER[(idx + 1) % PERIOD_ORDER.length];
+  }
+  
+  /**
+   * 从 DAY 数计算派生时间信息
+   * @param {number} day - 当前天数 (从 1 开始)
+   * @returns {object} - { year, month, week, dayOfMonth, dayOfWeek, dayOfWeekLabel }
+   */
+  function calculateDerivedTime(day) {
+    if (!day || day < 1) day = 1;
+    
+    // 每年 365 天，每月 30 天，每周 7 天
+    const DAYS_PER_YEAR = 365;
+    const DAYS_PER_MONTH = 30;
+    const DAYS_PER_WEEK = 7;
+    
+    const year = Math.floor((day - 1) / DAYS_PER_YEAR) + 1;
+    const dayOfYear = ((day - 1) % DAYS_PER_YEAR) + 1;
+    
+    const month = Math.floor((dayOfYear - 1) / DAYS_PER_MONTH) + 1;
+    const dayOfMonth = ((dayOfYear - 1) % DAYS_PER_MONTH) + 1;
+    
+    const week = Math.floor((day - 1) / DAYS_PER_WEEK) + 1;
+    const dayOfWeek = ((day - 1) % DAYS_PER_WEEK); // 0-6
+    
+    const dayOfWeekLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const dayOfWeekLabel = dayOfWeekLabels[dayOfWeek];
+    
+    return {
+      year,
+      month,
+      week,
+      dayOfYear,
+      dayOfMonth,
+      dayOfWeek: dayOfWeek + 1, // 1-7
+      dayOfWeekLabel
+    };
+  }
+  
+  /**
+   * 解析 AI 输出的时间推进指令
+   * 支持格式：
+   * - "1day", "3days", "1 day"
+   * - "1week", "2weeks"
+   * - "1month"
+   * - "next_period" (推进到下一时段)
+   * - "skip_to_night", "skip_to_morning" 等
+   * @param {string} text - AI 输出的时间推进文本
+   * @returns {object|null} - { days: number, periods: number } 或 { skipTo: string }
+   */
+  function parseTimeAdvance(text) {
+    if (!text) return null;
+    text = String(text).toLowerCase().trim();
+    
+    // 匹配 "next_period" 或 "next period"
+    if (text === 'next_period' || text === 'next period') {
+      return { periods: 1 };
+    }
+    
+    // 匹配 "nextday" 或 "next_day" - 跳转到第二天早晨
+    if (text === 'nextday' || text === 'next_day' || text === 'next day') {
+      return { nextDay: true };
+    }
+    
+    // 匹配 "skip_to_xxx" 格式
+    const skipMatch = text.match(/^skip[_\s]?to[_\s]?(\w+)$/i);
+    if (skipMatch) {
+      const targetPeriod = skipMatch[1].toLowerCase();
+      if (TIME_PERIODS[targetPeriod]) {
+        return { skipTo: targetPeriod };
+      }
+    }
+    
+    // 匹配复合格式：数字+单位+时段，如 "3days_morning", "1week_night", "2days morning"
+    const compoundMatch = text.match(/^(\d+)\s*(day|days|week|weeks|month|months)[_\s]+(\w+)$/i);
+    if (compoundMatch) {
+      const value = parseInt(compoundMatch[1]);
+      const unit = compoundMatch[2].toLowerCase();
+      const targetPeriod = compoundMatch[3].toLowerCase();
+      
+      // 验证时段是否有效
+      if (!TIME_PERIODS[targetPeriod]) {
+        console.warn(`${PLUGIN_NAME} [TIME] 无效的时段: ${targetPeriod}`);
+        return null;
+      }
+      
+      let days = 0;
+      if (unit === 'day' || unit === 'days') {
+        days = value;
+      } else if (unit === 'week' || unit === 'weeks') {
+        days = value * 7;
+      } else if (unit === 'month' || unit === 'months') {
+        days = value * 30;
+      }
+      
+      console.log(`${PLUGIN_NAME} [TIME] 解析复合指令: +${days}天, 时段=${targetPeriod}`);
+      return { days: days, toPeriod: targetPeriod };
+    }
+    
+    // 匹配数字+单位格式（不带时段）
+    const match = text.match(/^(\d+)\s*(day|days|week|weeks|month|months|period|periods)$/i);
+    if (!match) {
+      console.warn(`${PLUGIN_NAME} [TIME] day_advance 格式错误: ${text}`);
+      return null;
+    }
+    
+    const value = parseInt(match[1]);
+    const unit = match[2].toLowerCase();
+    
+    if (unit === 'day' || unit === 'days') {
+      return { days: value };
+    } else if (unit === 'week' || unit === 'weeks') {
+      return { days: value * 7 };
+    } else if (unit === 'month' || unit === 'months') {
+      return { days: value * 30 };
+    } else if (unit === 'period' || unit === 'periods') {
+      return { periods: value };
+    }
+    
+    return null;
+  }
+  
+  /**
+   * 计算时间推进后的新状态
+   * @param {object} currentTime - { day, period }
+   * @param {object} advance - parseTimeAdvance 的返回值
+   * @returns {object} - { day, period, crossedDays }
+   */
+  function advanceTime(currentTime, advance) {
+    let day = currentTime.day || 1;
+    let period = currentTime.period || 'morning';
+    let crossedDays = 0;
+    
+    if (advance.nextDay) {
+      // 跳转到第二天早晨
+      day += 1;
+      period = 'morning';
+      crossedDays = 1;
+      return { day, period, crossedDays };
+    }
+    
+    if (advance.skipTo) {
+      // 跳转到指定时段
+      const currentIdx = PERIOD_ORDER.indexOf(period);
+      const targetIdx = PERIOD_ORDER.indexOf(advance.skipTo);
+      
+      if (targetIdx <= currentIdx) {
+        // 目标时段已过，跳到明天
+        day += 1;
+        crossedDays = 1;
+      }
+      period = advance.skipTo;
+    } else if (advance.periods) {
+      // 推进指定数量的时段
+      let periodsToAdvance = advance.periods;
+      const currentIdx = PERIOD_ORDER.indexOf(period);
+      
+      const totalPeriods = currentIdx + periodsToAdvance;
+      crossedDays = Math.floor(totalPeriods / PERIOD_ORDER.length);
+      const newPeriodIdx = totalPeriods % PERIOD_ORDER.length;
+      
+      day += crossedDays;
+      period = PERIOD_ORDER[newPeriodIdx];
+    } else if (advance.days) {
+      // 推进指定天数
+      day += advance.days;
+      crossedDays = advance.days;
+      
+      // 如果指定了目标时段，设置为该时段
+      if (advance.toPeriod && TIME_PERIODS[advance.toPeriod]) {
+        period = advance.toPeriod;
+      }
+      // 否则时段保持不变
+    }
+    
+    return { day, period, crossedDays };
+  }
+  
+  /**
+   * 生成时间状态卡
+   * @param {object} timeState - { day, period }
+   * @returns {string}
+   */
+  function generateTimeStatusCard(timeState) {
+    const day = timeState.day || 1;
+    const period = timeState.period || 'morning';
+    const periodInfo = getPeriodInfo(period);
+    const derived = calculateDerivedTime(day);
+    
+    // 格式：【当前时间】DAY 42 · 第2月第12天 · 周三 · 下午 🌤️
+    let card = `【当前时间】DAY ${day}`;
+    
+    if (derived.year > 1) {
+      card += ` · 第${derived.year}年`;
+    }
+    
+    card += ` · 第${derived.month}月第${derived.dayOfMonth}天`;
+    card += ` · ${derived.dayOfWeekLabel}`;
+    card += ` · ${periodInfo.label} ${periodInfo.emoji}`;
+    
+    return card;
+  }
+  
+  /**
+   * 处理时间推进（day_advance / period_set）
+   * 在 GENERATION_AFTER_COMMANDS 中调用
+   */
+  async function processTimeAdvance() {
+    const eraVars = await getEraVars();
+    const timeState = getEraValue(eraVars, 'world_state.time', { day: 1, period: 'morning' });
+    
+    const dayAdvance = getEraValue(eraVars, 'world_state.time.day_advance', null);
+    const periodSet = getEraValue(eraVars, 'world_state.time.period_set', null);
+    
+    if (!dayAdvance && !periodSet) return;
+    
+    const updateData = {};
+    let newDay = timeState.day || 1;
+    let newPeriod = timeState.period || 'morning';
+    
+    // 处理 day_advance
+    if (dayAdvance) {
+      console.log(`${PLUGIN_NAME} [TIME] 处理时间推进: ${dayAdvance}`);
+      const advance = parseTimeAdvance(dayAdvance);
+      
+      if (advance) {
+        const result = advanceTime({ day: newDay, period: newPeriod }, advance);
+        newDay = result.day;
+        newPeriod = result.period;
+        
+        console.log(`${PLUGIN_NAME} [TIME] 时间推进完成: DAY ${timeState.day} → DAY ${newDay}, ${timeState.period} → ${newPeriod}`);
+      }
+      
+      // 清除 day_advance
+      updateData['world_state.time.day_advance'] = null;
+    }
+    
+    // 处理 period_set（直接设置时段）
+    if (periodSet) {
+      const targetPeriod = String(periodSet).toLowerCase().trim();
+      if (TIME_PERIODS[targetPeriod]) {
+        const currentIdx = PERIOD_ORDER.indexOf(newPeriod);
+        const targetIdx = PERIOD_ORDER.indexOf(targetPeriod);
+        
+        // 如果目标时段在当前时段之前，说明跨天了
+        if (targetIdx < currentIdx) {
+          newDay += 1;
+          console.log(`${PLUGIN_NAME} [TIME] 时段设置跨天: DAY ${newDay - 1} → DAY ${newDay}`);
+        }
+        
+        newPeriod = targetPeriod;
+        console.log(`${PLUGIN_NAME} [TIME] 时段设置: ${timeState.period} → ${newPeriod}`);
+      } else {
+        console.warn(`${PLUGIN_NAME} [TIME] 无效的时段: ${periodSet}`);
+      }
+      
+      // 清除 period_set
+      updateData['world_state.time.period_set'] = null;
+    }
+    
+    // 更新时间状态
+    if (newDay !== timeState.day || newPeriod !== timeState.period) {
+      updateData['world_state.time.day'] = newDay;
+      updateData['world_state.time.period'] = newPeriod;
+      
+      // 更新派生时间信息（供 AI 参考）
+      const derived = calculateDerivedTime(newDay);
+      updateData['world_state.time.derived'] = derived;
+    }
+    
+    // 应用更新
+    if (Object.keys(updateData).length > 0) {
+      try {
+        await updateEraVars(updateData);
+        console.log(`${PLUGIN_NAME} [TIME] ✓ 时间已更新: DAY ${newDay} · ${getPeriodInfo(newPeriod).label}`);
+      } catch (e) {
+        console.warn(`${PLUGIN_NAME} [TIME] 更新时间失败:`, e);
+      }
+    }
+  }
+  
+  /**
+   * 注入时间状态到上下文
+   */
+  async function handleTimeInject() {
+    try {
+      const eraVars = await getEraVars();
+      let timeState = getEraValue(eraVars, 'world_state.time', null);
+      
+      // 如果时间状态不存在，初始化
+      if (!timeState || timeState.day === undefined) {
+        console.log(`${PLUGIN_NAME} [TIME] 时间状态不存在，初始化为 DAY 1 · 早晨`);
+        timeState = { day: 1, period: 'morning' };
+        
+        // 写入初始时间
+        await updateEraVars({
+          'world_state.time': {
+            day: 1,
+            period: 'morning',
+            day_advance: null,
+            period_set: null,
+            derived: calculateDerivedTime(1)
+          }
+        });
+      }
+      
+      // 生成时间状态卡
+      const timeCard = generateTimeStatusCard(timeState);
+      const derived = calculateDerivedTime(timeState.day || 1);
+      const periodInfo = getPeriodInfo(timeState.period || 'morning');
+      
+      // 构建注入内容
+      const promptContent = `<pkm_time_status>
+${timeCard}
+[时间系统说明]
+- 当前: DAY ${timeState.day || 1}, 时段: ${periodInfo.label}
+- 派生: 第${derived.year}年第${derived.month}月第${derived.dayOfMonth}天, ${derived.dayOfWeekLabel}
+- 时段顺序: dawn→morning→noon→afternoon→evening→night→midnight→(nextday)dawn
+</pkm_time_status>`;
+      
+      // 注入
+      injectPrompts([{
+        id: TIME_INJECT_ID,
+        position: 'after_wi_scan',
+        depth: 2,
+        role: 'system',
+        should_scan: false,
+        content: promptContent
+      }]);
+      
+      console.log(`${PLUGIN_NAME} [TIME] ✓ 已注入时间状态: DAY ${timeState.day || 1} · ${periodInfo.label}`);
+      
+    } catch (e) {
+      console.error(`${PLUGIN_NAME} [TIME] 注入失败:`, e);
+    }
+  }
+
   /**
    * 处理 NPC love_up 累加到 love，并验证 stage 变更合法性
    * 在 handleGenerationBeforeInject 中调用
    */
   async function processNpcLoveUp() {
     const eraVars = await getEraVars();
-    const npcsState = _.get(eraVars, 'pkm.world_state.npcs', {});
+    const npcsState = getEraValue(eraVars, 'world_state.npcs', {});
     
     if (_.isEmpty(npcsState)) return;
     
@@ -8150,7 +10135,7 @@ ${sections.join('\n\n')}
         if (nextThreshold !== null && effectiveLove >= nextThreshold) {
           // 检查玩家是否已获得该女主角的羁绊道具（bonds，而非普通 unlocks）
           const eraVars = await getEraVars();
-          const playerBonds = _.get(eraVars, 'pkm.player.bonds', {});
+          const playerBonds = getEraValue(eraVars, 'player.bonds', {});
           const hasBond = playerBonds[addon.unlock_key] === true;
           
           if (!hasBond) {
@@ -8348,7 +10333,7 @@ ${unlockItem.effect}
   eventOn('tavern_events.MESSAGE_SWIPED', () => resetState('消息重骰'));
   eventOn('tavern_events.MESSAGE_EDITED', () => resetState('消息编辑'));
 
-  // 监听生成前事件 - 注入玩家队伍数据到上下文 + NPC 状态
+  // 监听生成前事件 - 注入玩家队伍数据到上下文 + NPC 状态 + 时间状态
   eventOn('GENERATION_AFTER_COMMANDS', async (detail) => {
     // 0. 清除上次的解锁事件注入（如果有）
     await clearUnlockEventInjection();
@@ -8359,8 +10344,14 @@ ${unlockItem.effect}
     // 2. 处理 NPC love_up 累加（会触发新的解锁事件）
     await processNpcLoveUp();
     
-    // 3. 动态注入活跃 NPC 状态
+    // 3. 处理时间推进（day_advance / period_set）
+    await processTimeAdvance();
+    
+    // 4. 动态注入活跃 NPC 状态
     await handleDynamicNpcInject();
+    
+    // 5. 注入时间状态
+    await handleTimeInject();
   });
 
   // 监听 era:writeDone 事件 - 处理AI输出的战斗标签
@@ -8388,15 +10379,13 @@ ${unlockItem.effect}
     // 手动添加宝可梦到备用库
     async addToReserve(pokemon) {
       const eraVars = await getEraVars();
-      const playerData = _.get(eraVars, 'pkm.player', { name: '训练家', party: [], reserve: [] });
+      const playerData = getEraValue(eraVars, 'player', { name: '训练家', party: [], reserve: [] });
       const newReserve = [...(playerData.reserve || []), pokemon];
       
       updateEraVars({
-        pkm: {
-          player: {
-            ...playerData,
-            reserve: newReserve
-          }
+        player: {
+          ...playerData,
+          reserve: newReserve
         }
       });
       
@@ -8407,14 +10396,12 @@ ${unlockItem.effect}
     // 设置玩家名称
     async setPlayerName(name) {
       const eraVars = await getEraVars();
-      const playerData = _.get(eraVars, 'pkm.player', { name: '训练家', party: [], reserve: [] });
+      const playerData = getEraValue(eraVars, 'player', { name: '训练家', party: [], reserve: [] });
       
       updateEraVars({
-        pkm: {
-          player: {
-            ...playerData,
-            name: name
-          }
+        player: {
+          ...playerData,
+          name: name
         }
       });
       
@@ -8435,8 +10422,79 @@ ${unlockItem.effect}
       return completeBattle;
     },
     
+    // ========== 时间系统 API ==========
+    
+    // 获取当前时间状态
+    async getTime() {
+      const eraVars = await getEraVars();
+      const timeState = getEraValue(eraVars, 'world_state.time', { day: 1, period: 'morning' });
+      const derived = calculateDerivedTime(timeState.day || 1);
+      const periodInfo = getPeriodInfo(timeState.period || 'morning');
+      
+      return {
+        day: timeState.day || 1,
+        period: timeState.period || 'morning',
+        periodLabel: periodInfo.label,
+        periodEmoji: periodInfo.emoji,
+        ...derived
+      };
+    },
+    
+    // 设置时间（直接设置）
+    async setTime(day, period = 'morning') {
+      if (typeof day !== 'number' || day < 1) {
+        console.error(`${PLUGIN_NAME} [TIME] 无效的天数: ${day}`);
+        return null;
+      }
+      
+      const validPeriod = TIME_PERIODS[period] ? period : 'morning';
+      const derived = calculateDerivedTime(day);
+      
+      await updateEraVars({
+        'world_state.time': {
+          day: day,
+          period: validPeriod,
+          day_advance: null,
+          period_set: null,
+          derived: derived
+        }
+      });
+      
+      console.log(`${PLUGIN_NAME} [TIME] ✓ 时间已设置: DAY ${day} · ${getPeriodInfo(validPeriod).label}`);
+      return { day, period: validPeriod, ...derived };
+    },
+    
+    // 推进时间（使用自然语言）
+    async advanceTime(instruction) {
+      const eraVars = await getEraVars();
+      const timeState = getEraValue(eraVars, 'world_state.time', { day: 1, period: 'morning' });
+      
+      const advance = parseTimeAdvance(instruction);
+      if (!advance) {
+        console.error(`${PLUGIN_NAME} [TIME] 无法解析时间指令: ${instruction}`);
+        return null;
+      }
+      
+      const result = advanceTime(timeState, advance);
+      const derived = calculateDerivedTime(result.day);
+      
+      await updateEraVars({
+        'world_state.time.day': result.day,
+        'world_state.time.period': result.period,
+        'world_state.time.derived': derived
+      });
+      
+      console.log(`${PLUGIN_NAME} [TIME] ✓ 时间推进: DAY ${timeState.day} → DAY ${result.day}, ${timeState.period} → ${result.period}`);
+      return { day: result.day, period: result.period, crossedDays: result.crossedDays, ...derived };
+    },
+    
+    // 获取时间系统常量
+    getTimePeriods() {
+      return { ...TIME_PERIODS };
+    },
+    
     // 获取当前版本
-    version: '1.0.0'
+    version: '1.1.0'
   };
 
   // ============================================
@@ -8459,11 +10517,11 @@ ${unlockItem.effect}
       if (!obj || typeof obj !== 'object') return obj;
       
       // === 处理 proficiency_up：累加到 trainerProficiency ===
-      // 检查是否是 pkm.player 的更新且包含 proficiency_up
-      if (path === 'pkm.player' || path.endsWith('.player')) {
+      // 检查是否是 player 的更新且包含 proficiency_up
+      if (path === 'player' || path === 'pkm.player' || path.endsWith('.player')) {
         const proficiencyUp = obj.proficiency_up;
         if (proficiencyUp !== undefined && proficiencyUp !== null && typeof proficiencyUp === 'number' && proficiencyUp !== 0) {
-          const currentProficiency = _.get(currentVars, 'pkm.player.trainerProficiency', 0);
+          const currentProficiency = getEraValue(currentVars, 'player.trainerProficiency', 0);
           const newProficiency = Math.max(0, Math.min(255, currentProficiency + proficiencyUp));
           
           console.log(`${PLUGIN_NAME} [PROFICIENCY] 当前: ${currentProficiency}, +${proficiencyUp} = ${newProficiency}`);
@@ -8477,8 +10535,8 @@ ${unlockItem.effect}
       }
       
       // === 处理 ev_up：累加到 ev_level ===
-      // 检查是否是 party 的槽位更新（pkm.player.party.slotX）
-      if (path.includes('pkm.player.party.slot') && obj.stats_meta && typeof obj.stats_meta === 'object') {
+      // 检查是否是 party 的槽位更新（player.party.slotX 或 pkm.player.party.slotX）
+      if ((path.includes('player.party.slot') || path.includes('pkm.player.party.slot')) && obj.stats_meta && typeof obj.stats_meta === 'object') {
         // 提取槽位键名 (slot1, slot2, ...)
         const slotMatch = path.match(/slot\d+/);
         if (slotMatch) {
@@ -8487,7 +10545,7 @@ ${unlockItem.effect}
           
           // 如果有 ev_up 且大于 0，累加到 ev_level
           if (evUp !== undefined && evUp !== null && typeof evUp === 'number' && evUp > 0) {
-            const currentEvLevel = _.get(currentVars, `pkm.player.party.${slotKey}.stats_meta.ev_level`, 0);
+            const currentEvLevel = getEraValue(currentVars, `player.party.${slotKey}.stats_meta.ev_level`, 0);
             const newEvLevel = currentEvLevel + evUp;
             
             console.log(`${PLUGIN_NAME} [EV_UP] 槽位: ${slotKey}, 当前 ev_level: ${currentEvLevel}, ev_up: ${evUp}, 新 ev_level: ${newEvLevel}`);
@@ -8534,13 +10592,11 @@ ${unlockItem.effect}
     console.log(`${PLUGIN_NAME} ✓ ERA 变量更新拦截器已安装（ev_up/proficiency_up 自动累加模式）`);
   }
 
-  console.log(`${PLUGIN_NAME} ✓✓✓ 插件加载完成 ✓✓✓`);
+  console.log(`${PLUGIN_NAME} ✓✓✓ 插件加载完成 (v1.1.0) ✓✓✓`);
   console.log(`${PLUGIN_NAME} 可用接口: window.PKMPlugin`);
-  console.log(`${PLUGIN_NAME} - getPlayerParty(): 获取玩家队伍`);
-  console.log(`${PLUGIN_NAME} - setPlayerParty(mode, input): 设置队伍 (full/single/custom)`);
-  console.log(`${PLUGIN_NAME} - addToParty(pokemon): 添加到队伍`);
-  console.log(`${PLUGIN_NAME} - addToReserve(pokemon): 添加到备用库`);
-  console.log(`${PLUGIN_NAME} - setPlayerName(name): 设置玩家名称`);
-  console.log(`${PLUGIN_NAME} - triggerBattle(data): 手动触发战斗`);
+  console.log(`${PLUGIN_NAME} [队伍] getPlayerParty() / setPlayerParty(mode, input) / addToParty(pokemon)`);
+  console.log(`${PLUGIN_NAME} [时间] getTime() / setTime(day, period) / advanceTime(instruction)`);
+  console.log(`${PLUGIN_NAME} [战斗] triggerBattle(data)`);
+  console.log(`${PLUGIN_NAME} [时间系统] DAY X 格式，时段: dawn/morning/noon/afternoon/evening/night/midnight`);
 
 })();

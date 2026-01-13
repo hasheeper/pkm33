@@ -36,7 +36,14 @@ const AVATAR_LIBRARY = [
     'cynthia',
     'sonia',
     'juliana',
-    'selene'
+    'selene',
+    'may',
+    'lacey',
+    'misty',
+    'acerola',
+    'skyla',
+    'iris',
+    'nemona'
 ];
 
 const AVATAR_ALIAS_MAP = {

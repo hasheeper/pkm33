@@ -1486,9 +1486,13 @@ export class BattleState {
         
         // 【修复】读取敌方训练家熟练度，用于敌方 AI 对冲触发概率
         // JSON 格式: enemy.trainerProficiency (0-255)
+        // 根据 enable_proficiency_cap 解锁状态限制上限：false=155, true=255
+        // 注意：敌方的 unlocks 在后面解析，这里先预读取
+        const enemyProficiencyCapUnlocked = (json.unlocks || enemyObj.unlocks || {}).enable_proficiency_cap === true;
         if (enemyObj.trainerProficiency !== undefined) {
-            this.enemyTrainerProficiency = Math.min(255, Math.max(0, enemyObj.trainerProficiency));
-            console.log('[ENEMY PROFICIENCY] 敌方训练家熟练度:', this.enemyTrainerProficiency);
+            const enemyProficiencyCap = enemyProficiencyCapUnlocked ? 255 : 155;
+            this.enemyTrainerProficiency = Math.min(enemyProficiencyCap, Math.max(0, enemyObj.trainerProficiency));
+            console.log(`[ENEMY PROFICIENCY] 敌方训练家熟练度: ${this.enemyTrainerProficiency} (上限: ${enemyProficiencyCap})`);
         } else {
             this.enemyTrainerProficiency = 0;
         }
@@ -1530,7 +1534,8 @@ export class BattleState {
             enable_mega: enemyUnlocksRaw.enable_mega === true,        // Mega进化 (默认关闭)
             enable_z_move: enemyUnlocksRaw.enable_z_move === true,    // Z招式 (默认关闭)
             enable_dynamax: enemyUnlocksRaw.enable_dynamax === true,  // 极巨化 (默认关闭)
-            enable_tera: enemyUnlocksRaw.enable_tera === true         // 太晶化 (默认关闭)
+            enable_tera: enemyUnlocksRaw.enable_tera === true,        // 太晶化 (默认关闭)
+            enable_proficiency_cap: enemyUnlocksRaw.enable_proficiency_cap === true  // 训练度突破155上限 (默认关闭)
         };
         console.log('[UNLOCK] 敌方解锁状态:', this.enemyUnlocks);
 
