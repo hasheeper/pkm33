@@ -1421,6 +1421,23 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     // 检查招式在当前环境下是否合法/理智
     // =========================================================
     
+    // [类型0: 已有自我状态检查] - 已有 volatile 状态时禁止重复使用
+    // 这是最高优先级的检查，避免 AI 浪费回合
+    if (fullMoveData.volatileStatus && fullMoveData.target === 'self') {
+        const volatileKey = fullMoveData.volatileStatus;
+        // 可叠加状态除外（stockpile 由后续逻辑处理）
+        const stackableVolatiles = ['stockpile'];
+        // 刷新型状态可以重复使用
+        const refreshableVolatiles = ['charge', 'laserfocus', 'defensecurl'];
+        
+        if (!stackableVolatiles.includes(volatileKey) && 
+            !refreshableVolatiles.includes(volatileKey) &&
+            attacker.volatile && attacker.volatile[volatileKey]) {
+            console.log(`[AI BAN] ${moveName}：已有 ${volatileKey} 状态，禁止重复使用`);
+            return -99999;
+        }
+    }
+    
     // [类型1: 首回合限定组] - Fake Out, First Impression, Mat Block
     const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
     if (firstTurnOnlyMoves.includes(moveName) && (attacker.turnsOnField || 0) > 0) {
@@ -2103,8 +2120,13 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
                 return 15;
             }
             
-            // 3. focusenergy: 残血时不要聚气
+            // 3. focusenergy: 已有状态禁止重复，残血时不要聚气
             if (volatileKey === 'focusenergy') {
+                // 【修复】已有聚气状态，禁止重复使用
+                if (attacker.volatile && attacker.volatile.focusenergy) {
+                    console.log(`[AI BAN] Focus Energy：已处于聚气状态，禁止重复使用`);
+                    return -99999;
+                }
                 if (hpPercent < 0.30) {
                     return -100;
                 }
