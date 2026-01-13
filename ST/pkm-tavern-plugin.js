@@ -5665,7 +5665,7 @@ const NPC_ADDON_DATA = {
     may: {
         name_cn: '小遥',
         name_en: 'May',
-        zone_affinity: { N: 1, B: 3, S: 0, A: 2, Z: 0 },
+        zone_affinity: { N: 1, B: 3, S: 0, A: 2, Z: 2 },
         unlock_key: 'enable_proficiency_cap', 
         unlock_item: {
             name_cn: '「沾有果酱的破旧笔记本」',
@@ -6057,104 +6057,50 @@ const ZONE_DATA = {
         name_en: 'Neon District',
         security: 'B',
         security_note: '最繁华中心，治安虽好但充斥着信息与算法裹挟',
-        landmarks: '全息直播塔 / LiveHouse<猛毒核心> / 电竞中心 / 24h百货商圈',
+        landmarks: '奇树直播塔 / 猛毒核心LiveHouse / 赛博购物区 / 电子大道 / 故障游戏街',
         mist: '弥漫着像融化糖果一样的电子甜味',
-        dominant_desc: { // N3
-            iono: '无处不在的全息投影。不一定能见到本人，但你永远在她流量监控下。',
-            roxie: '地下乐团主唱，即便在深夜，贝斯不仅的轰鸣也是这一带的心跳。',
-            rosa: '这里的形象代言人。从巨大的广告牌到快闪活动，哪里热闹哪里就有她。'
-        },
-        avoid_reasons: { // N0
-            erika: '太吵了，这种充斥着人造糖精味的地方，没有丝毫风雅可言。',
-            hex: '光......太亮了......要在众目睽睽下被蒸发了......',
-            irida: '这种闷热的热气和嗡嗡作响的声音......难道是某种新式的酷刑？',
-            lusamine: '这种喧闹的平民娱乐场所，不符合理事长的美学。'
-        }
+        dominant_desc: {},
+        avoid_reasons: {}
     },
     B: {
         name_cn: '繁花海滨辖区',
         name_en: 'Bloom District',
         security: 'A-',
         security_note: '高端生态度假村，容易让人产生产生“过度放松”的幸福困倦感',
-        landmarks: '深蓝洄游迷宫 / 玉虹别苑(SPA) / 阿罗拉风情食堂 / 珊瑚礁海岸',
+        landmarks: '玉虹SPA / 无限泳池休息室 / 阿罗拉风情食堂 / 珍珠度假村 / 水晶泻湖 / 湛蓝礁石',
         mist: '湿度98%，高浓度的植物费洛蒙与海风混合',
-        dominant_desc: { // B3
-            erika: '这带高端会所的实际控制者，在这儿她比在关都更放得开。',
-            nessa: '水上竞技场与时尚界的双重女王，整个泳池都是她的T台。',
-            mallow: '把这里当成了也是第二个家，正在充满活力地推销阿罗拉料理。',
-            lana: '完全融入了这里的水域，可能正潜伏在某个礁石后面钓鱼。',
-            selene: '享受着这里的阳光，把“过度亲密”当成了自然的阿罗拉礼仪。'
-        },
-        avoid_reasons: { // B0
-            roxie: '比起海浪声，我更想让吉他箱炸掉。这种软得像棉花糖的地方不适合我。',
-            hex: '(阳光过于充足，该单位已判定此地为禁区，遁入地底)',
-            bea: '水中游玩并非修行，甜食会让身体迟钝......太松懈了。',
-            irida: '(尽管有水，但这湿热的空气甚至更致命，死守Z区不出来)'
-        }
+        dominant_desc: {},
+        avoid_reasons: {}
     },
     S: {
         name_cn: '暗影旧街辖区',
         name_en: 'Shadow District',
         security: 'D',
         security_note: '充满烟火气的底层老街，虽然路况复杂且无规则，但有着野蛮生长的活力',
-        landmarks: '生锈管网迷宫 / 废弃电厂 / 灵骨塔 / 深夜大排档与黑市',
+        landmarks: '尖钉镇救济中心 / 灵骨塔地下室 / 小照万事屋 / 阴郁街区 / 有毒工业园 / 铬合金运河',
         mist: '浓稠且阴冷，令人焦躁冲动，会放大心中阴暗或狂暴的一面',
-        dominant_desc: { // S3
-            marnie: '区域管控者。她在后面维持这个烂摊子的秩序，混混们的大姐头。',
-            hex: '潜伏在那个最深的阴影里。千万别回头，她一直盯着你看。',
-            akari: '为了生存什么都干的万事屋。比起那些太刺眼的地方，这里的旧房子让她安心。'
-        },
-        avoid_reasons: { // S0
-            erika: '这种地方......不仅脏，还会弄坏这一身昂贵的和服。',
-            lusamine: '污秽。这是特区最不优雅的角落。',
-            lillie: '(会因为阴森的气氛和路面也是不良少年吓得走不动路)',
-            mallow: '这里没有新鲜食材，只有腐烂和铁锈的味道。',
-            lana: '(没有适合游泳的水域，只有污水)',
-            irida: '(虽然比外面凉快一点，但这种压抑感比头目精灵还可怕)',
-            sonia: '这种环境太糟糕了...我、我的研究不需要来这种地方......'
-        }
+        dominant_desc: {},
+        avoid_reasons: {}
     },
     A: {
         name_cn: '极诣竞技辖区',
         name_en: 'Apex District',
         security: 'B+',
         security_note: '融合了“旷野地带”辽阔与“体育公馆”宏大的职业赛区，排斥一切娱乐',
-        landmarks: '极诣螺旋塔 / 钢铁意志道场 / 红土荒原竞技场 / 运动理疗中心',
+        landmarks: '钢铁意志道场 / 咖喱营地 / 冠军瞭望套房 / 深红熔炉城 / 地狱火山口 / 寂静冻土',
         mist: '几乎无味。空气中只有让人血脉偾张的焦糊味',
-        dominant_desc: { // A3
-            bea: '魔鬼教官。如果你没做好流汗流血及骨折的准备，别靠近她的道场。',
-            gloria: '即使不背着那些锅，她也是顶级的战斗狂人，这座塔常驻的梦魇。',
-            cynthia: '虽然经常四处乱跑，但这里依然是她作为特邀冠军最终镇守的王座。'
-        },
-        avoid_reasons: { // A0
-            mallow: '比起痛苦的肌肉训练，大家坐下来吃点好吃的不好吗？',
-            lana: '(这里太干燥了，也没有可以让水系宝可梦发挥的深水区)',
-            hex: '(太多强悍的格斗系和阳刚之气了......会死的......)',
-            sonia: '我是脑力劳动者，这种野蛮人的聚会就......',
-            roxie: '规矩太多了！不管是裁判还是制服！我要的是Live上的混乱和自由！',
-            lusamine: '一群只懂得破坏和流汗的野蛮人，不懂得欣赏爱的真谛。',
-            marnie: '(偶尔也许回来挑战，但这种斯巴达式的氛围实在太累人了)'
-        }
+        dominant_desc: {},
+        avoid_reasons: {}
     },
     Z: {
         name_cn: '天顶中枢区',
         name_en: 'Zenith Central',
         security: 'S',
         security_note: '学院都市与安全屋，生活极其便利但时刻处于被过度保护之下',
-        landmarks: '洛迪亚皇家学院(宿舍) / 大衍实验室 / PC存储中心 / 以太行政大楼',
+        landmarks: '洛迪亚皇家学院 / 中央实验室 / 以太总部 / 学术广场 / 零光环护城河',
         mist: '被高效净化。全岛唯一的“贤者模式”地带',
-        dominant_desc: { // Z3
-            lusamine: '这一带的女皇，如果你需要最高权限或资源，就得去大楼顶层求她。',
-            irida: '博物馆导游(自称)。实际情况是赖在全岛空调冷气最足的地方死不肯走。',
-            sonia: '研究所里的地缚灵。如果不去实验室把她刨出来，她可能会被论文埋没。',
-            lillie: '在这里学习和当助手。对于不想打架的人来说，这里是最好的避风港。'
-        },
-        avoid_reasons: { // Z0
-            roxie: '讨厌那种充满漂白剂味道的干净地板，在这里连大声说话都会被当成异类。',
-            hex: '(太亮了，太干净了，连个躲藏的阴影都没有......)',
-            akari: '这里的自动门和机器人太可怕了......而且太昂贵了，甚至不敢走路。',
-            marnie: '(不喜欢这里那种高高在上的规矩，也不想看到这就是那些西装革履的大人)'
-        }
+        dominant_desc: {},
+        avoid_reasons: {}
     }
 };
 
@@ -6229,7 +6175,7 @@ function generateZoneStatusCard(zoneCode) {
         card += `\n[不适应此地] (舒适度=0，若已在场会表现不适):`;
         chars.rare.forEach(c => {
             const reason = c.avoid_reason ? ` - ${c.avoid_reason}` : '';
-            card += `\n  ${c.name_cn}${reason}`;
+            card += `\n  ${c.name_cn}(${c.name_en})${reason}`;
         });
     }
     
@@ -9566,26 +9512,26 @@ ${inventorySection}${boxSection}
       loveDisplay = `${love}/MAX`;
     }
     
-    // 羁绊道具状态显示
-    let bondDisplay = '';
-    if (addon.unlock_item) {
-      bondDisplay = hasBond 
-        ? `\n   - 羁绊: ${addon.unlock_item.emoji} ${addon.unlock_item.name_cn} [已获得]`
-        : `\n   - 羁绊: ${addon.unlock_item.emoji} ${addon.unlock_item.name_cn} [未获得]`;
-    }
-    
     // 新格式：使用四个 TAG 显示
     if (addon.relationship_tags) {
       const { tagsDisplay } = getNpcStageTags(npcId, stage);
-      return `${addon.name_cn} (${addon.name_en})
-   - [Stage ${stage}] ${tagsDisplay} (Love: ${loveDisplay})
-   - ${statusTag}${bondDisplay}`;
+      const lines = [
+        `${addon.name_cn} (${addon.name_en})`,
+        `   - [Stage ${stage}] ${tagsDisplay} (Love: ${loveDisplay})`
+      ];
+      if (statusTag) lines.push(`   - ${statusTag}`);
+      return lines.join('\n');
     }
     
     // 旧格式兼容
-    return `${addon.name_cn} (${addon.name_en})
-   - [Stage ${stage}: ${stageDesc.label}] (Love: ${loveDisplay})
-   - 状态: ${statusTag} ${stageDesc.desc}${bondDisplay}`;
+    const legacyLines = [
+      `${addon.name_cn} (${addon.name_en})`,
+      `   - [Stage ${stage}: ${stageDesc.label}] (Love: ${loveDisplay})`
+    ];
+    if (statusTag || stageDesc.desc) {
+      legacyLines.push(`   - 状态: ${statusTag} ${stageDesc.desc}`.trim());
+    }
+    return legacyLines.join('\n');
   }
   
   /**

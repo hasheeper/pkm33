@@ -33,7 +33,6 @@ import {
     isZCrystal,
     isSwappable
 } from '../engine/items-data.js';
-import { TRAINER_GLOBALS } from '../data/trainer-data.js';
 
 // ============================================
 // 引擎层导入
