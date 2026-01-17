@@ -284,10 +284,17 @@ function performMegaEvolution(pokemon) {
         // 先尝试查全名 "Lucario-Mega" => "超级路卡利欧"
         let cn = window.Locale.get(megaData.name);
         
-        // 如果查不到翻译(还是英文)，尝试智能拼装: "超级" + 基础名
-        if (cn === megaData.name) {
-            const baseCn = window.Locale.get(pokemon.name.split('-')[0]);
+        // 检测是否为 Mega 形态（名字包含 -Mega 或 -Mega-X/Y）
+        const isMegaForm = megaData.name.includes('-Mega');
+        
+        // 如果是 Mega 形态，但翻译结果不包含"超级"，则强制添加
+        if (isMegaForm && !cn.startsWith('超级')) {
+            // 优先使用 POKEDEX 中的 baseSpecies 字段，更可靠
+            const megaPokedex = typeof POKEDEX !== 'undefined' ? POKEDEX[pokemon.megaTargetId] : null;
+            const baseSpeciesName = megaPokedex?.baseSpecies || megaData.name.split('-')[0];
+            const baseCn = window.Locale.get(baseSpeciesName);
             cn = `超级${baseCn}`;
+            console.log(`[MEGA] 智能拼装中文名: baseSpecies=${baseSpeciesName}, baseCn=${baseCn}, result=${cn}`);
         }
         pokemon.cnName = cn;
     } else {
@@ -315,11 +322,15 @@ function performMegaEvolution(pokemon) {
     const oldHp = pokemon.currHp;
     const oldMaxHp = pokemon.maxHp;
     
-    let autoEv = Math.floor(pokemon.level * 1.5);
-    if (autoEv > 85) autoEv = 85;
+    // 保留原始 Pokemon 的 EV 配置，如果没有则使用自动计算
+    let evLevel = pokemon.statsMeta?.ev_level;
+    if (evLevel === undefined || evLevel === null) {
+        evLevel = Math.floor(pokemon.level * 1.5);
+        if (evLevel > 85) evLevel = 85;
+    }
     
     const newStats = typeof calcStats === 'function'
-        ? calcStats(megaData.baseStats, pokemon.level, 31, autoEv)
+        ? calcStats(megaData.baseStats, pokemon.level, 31, evLevel)
         : megaData.baseStats;
     
     // HP 保持不变 (Mega 进化的核心规则)

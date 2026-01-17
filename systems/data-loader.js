@@ -27,7 +27,88 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true,"enableClash":false},"difficulty":"normal","player":{"name":"player","trainerProficiency":0,"party":[{"slot":1,"name":"Popplio","nickname":null,"species":null,"gender":"M","lv":5,"quality":"medium","nature":"Modest","ability":"Torrent","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Pound","Water Gun"],"stats_meta":{"ivs":{"hp":7,"atk":21,"def":7,"spa":26,"spd":29,"spe":30},"ev_level":12,"ev_up":0},"notes":null,"avs":{"trust":15,"passion":5,"insight":10,"devotion":0}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"enemy":{"id":"Bea","type":"trainer","name":"Bea","trainerProficiency":0,"lines":{"start":"目はいい。だが、判断の速さはどうだ？（眼神不错。但是，判断速度又如何呢？）","win":"……遅い。次の一手が見えていない。（……太慢了。完全没看到下一步。）","lose":"ほう……『芯』があるな。（嚯……很有『骨气』嘛。）","escape":"背中を見せるな！戦場なら死んでいるぞ！（别把背后的露出来！在战场上的话你已经死了！）"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"party":[{"name":"Tyrogue","gender":"F","lv":7,"nature":"Impish","ability":null,"shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":13,"atk":3,"def":4,"spa":1,"spd":13,"spe":15},"ev_level":2},"moves":["Fake Out","Tackle","Focus Energy"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null}
+    return {
+  "difficulty": "expert", 
+  "settings": {
+    "enableAVS": true,
+    "enableCommander": true,
+    "enableEVO": true,
+    "enableBGM": true,
+    "enableSFX": true,
+    "enableClash": true
+  },
+  "player": {
+    "name": "Champion",
+    "trainerProficiency": 255,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_styles": true,
+      "enable_bond": true,
+      "enable_tera": true,
+      "enable_dynamax": true
+    },
+    "party": [
+      {
+        "slot": 1,
+        "name": "Delphox",
+        "nickname": "炎后",
+        "lv": 88,
+        "item": "Delphoxite",
+        "mechanic": "mega",
+        "ability": "Blaze",
+        "nature": "Timid",
+        "isAce": true,
+        "moves": [
+          "Fire Blast",
+          "Psychic",
+          "Dazzling Gleam",
+          "Nasty Plot"
+        ],
+        "stats_meta": {
+          "ev_level": 252
+        },
+        "friendship": {
+          "avs": {
+            "passion": 255,
+            "insight": 255,
+            "trust": 220
+          }
+        }
+      }
+    ]
+  },
+  "enemy": {
+    "name": "Leon (Ultimate)",
+    "type": "CHAMPION",
+    "trainerProficiency": 255,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_bond": true,
+      "enable_styles": true,
+      "enable_tera": true,
+      "enable_dynamax": true
+    },
+    "party": [
+      {
+        "name": "Garganacl",
+        "lv": 88,
+        "ability": "Purifying Salt",
+        "item": "Leftovers",
+        "nature": "Careful",
+        "moves": ["Salt Cure", "Recover", "Earthquake", "Body Press"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 150, "devotion": 150 } }
+      }
+    ],
+    "lines": {
+      "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
+      "lose": "这就是……传说中的英雄吗……精彩绝伦！",
+      "win": "看来你的冠军时刻还没有到来啊！"
+    }
+  }
+}
 
 
 

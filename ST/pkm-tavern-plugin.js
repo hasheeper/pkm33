@@ -5348,7 +5348,7 @@ if (typeof window !== 'undefined') {
 
     // 5. 玛俐
     'marnie': [
-      'Marnie', 'Mary', 'マリィ',
+      'Marnie', 'マリィ',
       '玛俐', '瑪俐', '真俐'
     ],
 
@@ -5360,7 +5360,7 @@ if (typeof window !== 'undefined') {
 
     // 7. 彩豆
     'bea': [
-      'Bea', 'Saito', 'サイトウ',
+      'Saito', 'サイトウ',
       '彩豆'
     ],
 
@@ -5378,13 +5378,13 @@ if (typeof window !== 'undefined') {
 
     // 10. 鸣依
     'rosa': [
-      'Rosa', 'Mei', 'メイ',
+      'Rosa', 'メイ',
       '鸣依', '鳴依', '芽以'
     ],
 
     // 11. 小光
     'dawn': [
-      'Dawn', 'Hikari', 'ヒカリ',
+      'Hikari', 'ヒカリ',
       '小光'
     ],
 
@@ -5396,13 +5396,13 @@ if (typeof window !== 'undefined') {
 
     // 13. [洗翠] 珠贝
     'irida': [
-      'Irida', 'Kai', 'カイ',
+      'Irida', 'カイ',
       '珠贝', '珠貝'
     ],
 
     // 14. [洗翠] 小照
     'akari': [
-      'Akari', 'Sho', 'ショウ',
+      'Akari', 'ショウ',
       '小照'
     ],
 
@@ -5414,13 +5414,13 @@ if (typeof window !== 'undefined') {
 
     // 16. 玛奥
     'mallow': [
-      'Mallow', 'Mao', 'マオ',
+      'Mallow', 'マオ',
       '玛奥', '瑪奧', '玛沃'
     ],
 
     // 17. 水莲
     'lana': [
-      'Lana', 'Suiren', 'スイレン',
+      'Suiren', 'スイレン',
       '水莲', '水蓮'
     ],
 
@@ -5433,27 +5433,25 @@ if (typeof window !== 'undefined') {
     // 19. 灵异迷/神婆
     'hex': [
       'Hex Maniac', 'Occult Maniac', 'オカルトマニア',
-      '灵异迷', '靈異迷', 
-      'Hex', 'HeXx', '海可丝'
+      '灵异迷', '靈異迷', '海可丝'
     ],
 
     // 20. 美月
     'selene': [
       'Selene', 'Mizuki', 'ミヅキ',
-      '美月', 'Moon' 
+      '美月'
     ],
 
     // 21. 小青
     'juliana': [
-      'Juliana', 'Aoi', 'アオイ',
+      'Juliana', 'アオイ',
       '小青'
     ],
 
     // 22. 小遥
     'may': [
-      'May', 
       'Haruka', 'ハルカ',
-      '小遥', '小遙', '遥'
+      '小遥', '小遙'
     ],
 
     // 23. [蓝莓] 紫竽 (新增)
@@ -5482,13 +5480,13 @@ if (typeof window !== 'undefined') {
 
     // 27. 艾莉丝 (新增)
     'iris': [
-        'Iris', 'Airisu', 'アイリス',
+        'Iris', 'アイリス',
         '艾莉丝', '艾莉絲', '艾丽丝'
     ],
 
     // 28. 妮莫 (新增)
     'nemona': [
-        'Nemona', 'Nemo', 'ネモ',
+        'Nemona', 'ネモ',
         '妮莫', '尼莫'
     ]
   };
@@ -7287,7 +7285,14 @@ if (typeof window !== 'undefined') {
       ['marnie', 'MARNIE_DATA'],
       ['hex', 'HEX_DATA'],
       ['bea', 'BEA_DATA'],
-      ['cynthia', 'CYNTHIA_DATA']
+      ['cynthia', 'CYNTHIA_DATA'],
+      ['may', 'MAY_DATA'],
+      ['lacey', 'LACEY_DATA'],
+      ['misty', 'MISTY_DATA'],
+      ['acerola', 'ACEROLA_DATA'],
+      ['skyla', 'SKYLA_DATA'],
+      ['iris', 'IRIS_DATA'],
+      ['nemona', 'NEMONA_DATA']
     ];
 
     const missing = [];
@@ -10168,21 +10173,19 @@ ${unlockItem.effect}
 
 <VariableEdit>
 {
-  "pkm": {
-    "world_state": {
-      "npcs": {
-        "${npcId}": {
-          "stage": 4
-        }
+  "world_state": {
+    "npcs": {
+      "${npcId}": {
+        "stage": 4
       }
+    }
+  },
+  "player": {
+    "bonds": {
+      "${unlockKey}": true
     },
-    "player": {
-      "bonds": {
-        "${unlockKey}": true
-      },
-      "unlocks": {
-        "${unlockKey}": true
-      }
+    "unlocks": {
+      "${unlockKey}": true
     }
   }
 }
