@@ -181,52 +181,75 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     // Sheer Force 激活标记（用于生命宝珠反伤免疫）
     const sheerForceActive = hasSheerForce && moveHasSecondary;
     
+    // =========================================================
+    // 【Covert Cloak】隐密斗篷检查 - 免疫所有招式追加效果
+    // =========================================================
+    const targetItemId = (target.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const hasCovertCloak = targetItemId === 'covertcloak';
+    
     // 1.3 Secondary Effects（几率触发，通常对敌人）
     // 【Sheer Force】如果特性激活，跳过所有 secondary 副作用
     if (fullMoveData.secondary && !sheerForceActive) {
         const chance = fullMoveData.secondary.chance || 100;
         if (Math.random() * 100 < chance) {
+            // 【Covert Cloak】对目标的能力下降被阻止
             if (fullMoveData.secondary.boosts) {
-                changeStats(target, fullMoveData.secondary.boosts);
+                // 检查是否有对目标的负面效果
+                const hasNegativeBoosts = Object.values(fullMoveData.secondary.boosts).some(v => v < 0);
+                if (hasNegativeBoosts && hasCovertCloak) {
+                    logs.push(`${target.cnName} 的隐密斗篷阻止了能力下降!`);
+                } else {
+                    changeStats(target, fullMoveData.secondary.boosts);
+                }
             }
             if (fullMoveData.secondary.self && fullMoveData.secondary.self.boosts) {
                 changeStats(user, fullMoveData.secondary.self.boosts);
             }
             
             // 状态异常
+            // 【Covert Cloak】隐密斗篷免疫追加状态异常
             if (fullMoveData.secondary.status) {
-                const s = fullMoveData.secondary.status;
-                if (!target.status) {
-                    if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
-                        const result = MoveEffects.tryInflictStatus(target, s, user, battle);
-                        if (result.success) {
+                if (hasCovertCloak) {
+                    logs.push(`${target.cnName} 的隐密斗篷阻止了状态异常!`);
+                } else {
+                    const s = fullMoveData.secondary.status;
+                    if (!target.status) {
+                        if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                            const result = MoveEffects.tryInflictStatus(target, s, user, battle);
+                            if (result.success) {
+                                if (s === 'slp') {
+                                    target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                                }
+                                logs.push(result.message);
+                            }
+                        } else {
+                            target.status = s;
                             if (s === 'slp') {
                                 target.sleepTurns = Math.floor(Math.random() * 3) + 2;
                             }
-                            logs.push(result.message);
-                        }
-                    } else {
-                        target.status = s;
-                        if (s === 'slp') {
-                            target.sleepTurns = Math.floor(Math.random() * 3) + 2;
-                        }
-                        const statusMap = {
-                            brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
-                            tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
-                        };
-                        const statusText = statusMap[s];
-                        if (statusText) {
-                            logs.push(`${target.cnName} ${statusText}`);
+                            const statusMap = {
+                                brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
+                                tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
+                            };
+                            const statusText = statusMap[s];
+                            if (statusText) {
+                                logs.push(`${target.cnName} ${statusText}`);
+                            }
                         }
                     }
                 }
             }
             
             // 畏缩效果
+            // 【Covert Cloak】隐密斗篷免疫畏缩等追加效果
             if (fullMoveData.secondary.volatileStatus === 'flinch') {
-                target.volatile = target.volatile || {};
-                target.volatile.flinch = true;
-                logs.push(`${target.cnName} 畏缩了!`);
+                if (hasCovertCloak) {
+                    logs.push(`${target.cnName} 的隐密斗篷阻止了畏缩效果!`);
+                } else {
+                    target.volatile = target.volatile || {};
+                    target.volatile.flinch = true;
+                    logs.push(`${target.cnName} 畏缩了!`);
+                }
             }
         }
     }
@@ -238,41 +261,57 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             const chance = sec.chance || 100;
             if (Math.random() * 100 < chance) {
                 // 状态异常
+                // 【Covert Cloak】隐密斗篷免疫追加状态异常
                 if (sec.status && !target.status) {
-                    if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
-                        const result = MoveEffects.tryInflictStatus(target, sec.status, user, battle);
-                        if (result.success) {
+                    if (hasCovertCloak) {
+                        logs.push(`${target.cnName} 的隐密斗篷阻止了状态异常!`);
+                    } else {
+                        if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
+                            const result = MoveEffects.tryInflictStatus(target, sec.status, user, battle);
+                            if (result.success) {
+                                if (sec.status === 'slp') {
+                                    target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                                }
+                                logs.push(result.message);
+                            }
+                        } else {
+                            target.status = sec.status;
                             if (sec.status === 'slp') {
                                 target.sleepTurns = Math.floor(Math.random() * 3) + 2;
                             }
-                            logs.push(result.message);
-                        }
-                    } else {
-                        target.status = sec.status;
-                        if (sec.status === 'slp') {
-                            target.sleepTurns = Math.floor(Math.random() * 3) + 2;
-                        }
-                        const statusMap = {
-                            brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
-                            tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
-                        };
-                        const statusText = statusMap[sec.status];
-                        if (statusText) {
-                            logs.push(`${target.cnName} ${statusText}`);
+                            const statusMap = {
+                                brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
+                                tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
+                            };
+                            const statusText = statusMap[sec.status];
+                            if (statusText) {
+                                logs.push(`${target.cnName} ${statusText}`);
+                            }
                         }
                     }
                 }
                 
                 // 畏缩效果
+                // 【Covert Cloak】隐密斗篷免疫畏缩等追加效果
                 if (sec.volatileStatus === 'flinch') {
-                    target.volatile = target.volatile || {};
-                    target.volatile.flinch = true;
-                    logs.push(`${target.cnName} 畏缩了!`);
+                    if (hasCovertCloak) {
+                        logs.push(`${target.cnName} 的隐密斗篷阻止了畏缩效果!`);
+                    } else {
+                        target.volatile = target.volatile || {};
+                        target.volatile.flinch = true;
+                        logs.push(`${target.cnName} 畏缩了!`);
+                    }
                 }
                 
                 // 能力变化
+                // 【Covert Cloak】隐密斗篷免疫追加能力下降
                 if (sec.boosts) {
-                    changeStats(target, sec.boosts);
+                    const hasNegativeBoosts = Object.values(sec.boosts).some(v => v < 0);
+                    if (hasNegativeBoosts && hasCovertCloak) {
+                        logs.push(`${target.cnName} 的隐密斗篷阻止了能力下降!`);
+                    } else {
+                        changeStats(target, sec.boosts);
+                    }
                 }
             }
         }

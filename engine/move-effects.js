@@ -1848,4 +1848,9 @@ window.MoveEffects = {
     processTrappingDamage
 };
 
+// 【关键修复】确保 window.getMovePriority 使用正确的函数
+// 因为 battle-engine.js 加载时 MoveEffects 还未定义，会使用 fallback
+// 这里重新挂载以确保优先度判定正确
+window.getMovePriority = getMovePriority;
+
 console.log('[PKM] MoveEffects 模块已加载');

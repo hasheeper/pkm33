@@ -28,87 +28,99 @@
  */
 function getDefaultBattleData() {
     return {
-  "difficulty": "expert", 
+  "difficulty": "pvp_sim", 
   "settings": {
-    "enableAVS": true,
-    "enableCommander": true,
+    "enableAVS": false,
+    "enableCommander": false,
     "enableEVO": true,
     "enableBGM": true,
     "enableSFX": true,
     "enableClash": true
   },
   "player": {
-    "name": "Champion",
-    "trainerProficiency": 255,
+    "name": "ConfusedTrainer",
+    "trainerProficiency": 150,
     "unlocks": {
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_styles": true,
-      "enable_bond": true,
+      "enable_mega": false,
+      "enable_z_move": false,
+      "enable_styles": false,
+      "enable_bond": false,
       "enable_tera": true,
-      "enable_dynamax": true
+      "enable_dynamax": false
     },
     "party": [
       {
         "slot": 1,
-        "name": "Delphox",
-        "nickname": "炎后",
-        "lv": 88,
-        "item": "Delphoxite",
-        "mechanic": "mega",
-        "ability": "Blaze",
-        "nature": "Timid",
+        "name": "Incineroar",
+        "nickname": "宇宙第一虎",
+        "lv": 50,
+        "item": "Sitrus Berry",
+        "mechanic": "none",
+        "ability": "Intimidate",
+        "nature": "Adamant",
         "isAce": true,
         "moves": [
-          "Fire Blast",
-          "Psychic",
-          "Dazzling Gleam",
-          "Nasty Plot"
+          "Fake Out",
+          "Flare Blitz",
+          "Knock Off",
+          "Parting Shot"
         ],
         "stats_meta": {
-          "ev_level": 252
+          "ev_level": 252,
+          "ivs": { "spe": 31 }
         },
         "friendship": {
           "avs": {
-            "passion": 255,
-            "insight": 255,
-            "trust": 220
+            "passion": 200,
+            "trust": 200
           }
         }
       }
     ]
   },
   "enemy": {
-    "name": "Leon (Ultimate)",
-    "type": "CHAMPION",
-    "trainerProficiency": 255,
+    "name": "Ranked Opponent",
+    "type": "VETERAN",
+    "trainerProficiency": 200,
     "unlocks": {
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_bond": true,
-      "enable_styles": true,
+      "enable_mega": false,
+      "enable_z_move": false,
+      "enable_bond": false,
+      "enable_styles": false,
       "enable_tera": true,
-      "enable_dynamax": true
+      "enable_dynamax": false
     },
     "party": [
       {
-        "name": "Garganacl",
-        "lv": 88,
-        "ability": "Purifying Salt",
-        "item": "Leftovers",
-        "nature": "Careful",
-        "moves": ["Salt Cure", "Recover", "Earthquake", "Body Press"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 150, "devotion": 150 } }
+        "name": "Mismagius",
+        "nickname": "梦妖魔",
+        "lv": 50,
+        "ability": "Levitate",
+        "nature": "Timid",
+        "mechanic": "tera",
+        "teraType": "Fairy",
+        "forceTeraTurn": 1,
+        "moves": [
+            "Dazzling Gleam", 
+            "Shadow Ball", 
+            "Mystical Fire", 
+            "Protect"
+        ],
+        "stats_meta": { 
+            "ev_level": 252,
+            "evs": { "spe": 252, "spa": 252, "hp": 4 }
+        },
+        "friendship": { "avs": { "trust": 255 } }
       }
     ],
     "lines": {
-      "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
-      "lose": "这就是……传说中的英雄吗……精彩绝伦！",
-      "win": "看来你的冠军时刻还没有到来啊！"
+      "start": "如果你以为仅仅是属性克制关系就能获胜，那就大错特错了！",
+      "lose": "好吧，这就是威吓加击掌奇袭的威力吗……",
+      "win": "这就是道具隐密斗篷的效果，长见识了吗？"
     }
   }
 }
+
 
 
 
