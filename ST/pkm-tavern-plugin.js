@@ -436,55 +436,52 @@ const SERENA_DATA = {
         "party": [
             {
                 // [Mega 手/特攻手]
-                // 注意：名字改回基础形态 "Absol"，装备 Mega 石，加上 mechanic:'mega'
+                // 灾兽天使，配合她表演家的身份，同时Mega后的翅膀造型极具美感
                 "name": "Absol", 
                 "lv": 99,
                 "gender": "F",
-                "nature": "Jolly", // 爽朗 (Mega后115速度 + 魔法镜反弹，非常极端的破受配置)
-                "ability": "Justified", // 进化前特性：正义之心 (防恶系联防)
+                "nature": "Jolly", // 爽朗 (Mega后115速度 + 魔法镜反弹)
+                "ability": "Justified", 
                 "item": "Absolite",     // 关键道具：阿勃梭鲁进化石
                 
                 // === 触发器 ===
-                "mechanic": "mega",     // 告诉 AI 和 UI：这也是 Mega 进化的执行者
+                "mechanic": "mega",     
                 
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                // 魔法镜特性下，可以放心强化；突袭收割
                 "moves": ["Sucker Punch", "Play Rough", "Knock Off", "Swords Dance"]
             },
             {
+                // [Ace / 魔法管家]
                 "name": "Delphox",
                 "lv": 99,
                 "gender": "F",
                 "nature": "Timid", // 胆小
-                "ability": "Blaze", // 猛火 (配合高 Trust 的锁血，残血猛火更适合此时的场景)
-                // 或者用 "Magician" 也可以，但猛火作为 Ace 的翻盘能力更强
+                "ability": "Blaze", // 猛火 
                 "item": "Life Orb", 
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
                 "isAce": true, 
-                // 表演家的热情(Passion) 和 羁绊(Trust) 极高
                 "friendship": { "trust": 150, "passion": 255, "insight": 120, "devotion": 100 },
                 
                 "moves": ["Fire Blast", "Psychic", "Dazzling Gleam", "Calm Mind"]
             },
             {
-                // [高速刺客]
+                // [高速刺客] 如同骑士般守护公主的忍者
                 "name": "Greninja",
                 "lv": 93,
                 "gender": "M",
                 "nature": "Naive", // 天真
-                "ability": "Protean", // 变幻自如 (卡洛斯的代表性神特性)
-                "item": "Choice Scarf", // 围巾 (速度线控制)
+                "ability": "Protean", // 变幻自如 
+                "item": "Choice Scarf", // 围巾 
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 "moves": ["Ice Beam", "Dark Pulse", "Gunk Shot", "U-turn"]
             },
             {
-                // [神兽位 / 物理核心]
+                // [秩序守护者] 选择了Serena的神兽
                 "name": "Zygarde",
                 "lv": 95,
                 "gender": "N",
                 "nature": "Adamant", // 固执
-                // Power Construct (群聚变形) 是被动触发 (HP<50%)，不需 'mechanic' 控制
                 "ability": "Power Construct", 
                 "item": "Leftovers", 
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
@@ -493,7 +490,7 @@ const SERENA_DATA = {
             {
                 // [特攻爆破] 妖精女王
                 "name": "Sylveon", 
-                "lv": 88, // 稍微拉高等级
+                "lv": 94, 
                 "gender": "F",
                 "nature": "Modest",
                 "ability": "Pixilate", // 妖精皮肤
@@ -502,19 +499,20 @@ const SERENA_DATA = {
                 "moves": ["Hyper Voice", "Psyshock", "Shadow Ball", "Quick Attack"] 
             },
             {
-                // [水盾] 对应原来的 Vaporeon，但等级修复
-                "name": "Vaporeon",
-                "lv": 85, // 修正了原本 Lv.31 的问题
-                "gender": "F",
-                "nature": "Bold", 
-                "ability": "Water Absorb",
-                "item": "Leftovers",
+                "name": "Pangoro",
+                "lv": 95, 
+                "gender": "M",
+                "nature": "Adamant", // 固执
+                "ability": "Iron Fist", // 铁拳 (增强拳击类招式)
+                "item": "Choice Band",  // 讲究头带 (体现“墨镜熊猫”那种谁也不服的狠劲)
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Scald", "Wish", "Protect", "Toxic"] // 用 wish 奶队友
+                // 子弹拳必须要（弥补低速），近身战主要输出
+                "moves": ["Close Combat", "Knock Off", "Bullet Punch", "Ice Punch"] 
             }
         ]
     }
 };
+
 
 /* 
  * 角色: 小遥 (May)
@@ -6138,7 +6136,7 @@ function getZoneCharacters(zoneCode) {
 }
 
 /**
- * 生成区域状态卡文本（凝练版）
+ * 生成区域状态卡文本（仅 NPC 舒适度，不含区域描述）
  * @param {string} zoneCode - 区域代码 (N/B/S/A/Z)
  * @returns {string} - 格式化的状态卡文本
  */
@@ -6148,11 +6146,9 @@ function generateZoneStatusCard(zoneCode) {
     
     const chars = getZoneCharacters(zoneCode);
     
-    let card = `<pkm_zone_info>
-[LOC] 洛迪亚 · ${zone.name_cn} (${zone.name_en})
-治安: ${zone.security} - ${zone.security_note}
-地标: ${zone.landmarks}
-粉雾: ${zone.mist}
+    // 仅显示区域名称和 NPC 舒适度，不显示区域详细描述
+    let card = `<pkm_zone_npc_comfort>
+[当前区域] ${zone.name_cn} (${zoneCode})
 ---
 [主场势力] (舒适度=3，大概率已在场):`;
 
@@ -6177,9 +6173,7 @@ function generateZoneStatusCard(zoneCode) {
         });
     }
     
-    card += `\n---
-注: 以上仅为作为剧情参考的信息，不是实际的情况。不应该过度引入，适当把握
-</pkm_zone_info>`;
+    card += `\n注: 以上仅为作为剧情参考的信息，不是实际的情况。不应该过度引入，适当把握\n</pkm_zone_npc_comfort>`;
     
     return card;
 }
@@ -9572,7 +9566,12 @@ ${inventorySection}${boxSection}
       const eraVars = await getEraVars();
       const npcsState = getEraValue(eraVars, 'world_state.npcs', {});
       const playerBonds = getEraValue(eraVars, 'player.bonds', {});
-      const currentLocation = getEraValue(eraVars, 'world_state.location', 'Z');
+      
+      // 新格式: world_state.location 是对象 { region, x, y }
+      const locationData = getEraValue(eraVars, 'world_state.location', {});
+      const currentLocation = typeof locationData === 'object' 
+        ? (locationData.region || 'Z') 
+        : (locationData || 'Z');
       
       // 合并快照数据（快照优先，因为是最新的）
       const mergedNpcsState = {};
@@ -9599,7 +9598,7 @@ ${inventorySection}${boxSection}
       // 4. 生成状态卡
       const sections = [];
       
-      // 区域状态卡（始终显示当前区域信息）
+      // 区域 NPC 舒适度卡（始终显示当前区域的 NPC 舒适度信息）
       const zoneCard = generateZoneStatusCard(currentLocation);
       sections.push(zoneCard);
       
@@ -9921,6 +9920,8 @@ ${sections.join('\n\n')}
         if (targetIdx < currentIdx) {
           newDay += 1;
           console.log(`${PLUGIN_NAME} [TIME] 时段设置跨天: DAY ${newDay - 1} → DAY ${newDay}`);
+          // 设置宝可梦刷新标志
+          window._pkmPendingPokemonRefresh = true;
         }
         
         newPeriod = targetPeriod;
@@ -9941,6 +9942,16 @@ ${sections.join('\n\n')}
       // 更新派生时间信息（供 AI 参考）
       const derived = calculateDerivedTime(newDay);
       updateData['world_state.time.derived'] = derived;
+      
+      // ========== 如果日期变化，触发宝可梦刷新 ==========
+      if (newDay > timeState.day) {
+        console.log(`${PLUGIN_NAME} [TIME] 日期变化，触发宝可梦刷新事件`);
+        // 使用事件通信触发刷新（跨 iframe）
+        eventEmit('pkm:refreshPokemonSpawns', { 
+          oldDay: timeState.day, 
+          newDay: newDay 
+        });
+      }
     }
     
     // 应用更新
