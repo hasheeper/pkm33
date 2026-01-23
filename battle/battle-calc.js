@@ -204,15 +204,31 @@ export function calcDamage(attacker, defender, move, options = {}) {
     // === Protect/Detect 守住判定 ===
     // 【严重BUG修复】守住应该阻挡所有攻击和变化技（除了特定穿透技能）
     // 原逻辑错误：只检查 basePower > 0，导致变化技（如蘑菇孢子）不被阻挡
+    // 【修复】守住不应该阻挡 target: "self" 的招式（如磨爪、剑舞等自我强化技）
     if (defender.volatile && defender.volatile.protect) {
         const isContact = fullMoveData.flags && fullMoveData.flags.contact;
         let protectEffect = null;
+        
+        // 【关键修复】检查招式目标 - 自我强化技不应被守住阻挡
+        // target: "self" 表示招式目标是使用者自己，不指向对手
+        const moveTarget = fullMoveData.target || 'normal';
+        const selfTargetingMoves = ['self', 'allySide', 'allyTeam', 'adjacentAllyOrSelf'];
+        const isSelfTargeting = selfTargetingMoves.includes(moveTarget);
+        
+        if (isSelfTargeting) {
+            // 自我强化技（如磨爪、剑舞、龙舞等）不被守住阻挡
+            // 这些招式的目标是使用者自己，守住只能防御指向自己的招式
+            console.log(`[PROTECT IGNORE] ${move.name} 目标是自身 (target: ${moveTarget})，不受守住影响`);
+            // 不 return，继续执行招式
+        }
         
         // 检查是否为穿透守住的招式（佯攻 Feint、暗影袭击 Shadow Force 等）
         const bypassProtectMoves = ['feint', 'shadowforce', 'phantomforce', 'hyperspacefury', 'hyperspacehole'];
         const canBypassProtect = bypassProtectMoves.includes(moveId);
         
-        if (canBypassProtect) {
+        if (isSelfTargeting) {
+            // 已在上面处理，跳过守住判定
+        } else if (canBypassProtect) {
             console.log(`[PROTECT BYPASS] ${move.name} 穿透了守住！`);
             // 穿透守住的招式，继续执行
         } else {
