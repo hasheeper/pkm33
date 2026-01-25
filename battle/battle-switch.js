@@ -259,8 +259,15 @@ export async function handleEnemyFainted(e) {
         }
     }
     
+    // 【防止重复判定】如果已经判定过胜负，直接返回
+    if (battle.battleEndDetermined) {
+        console.log('[handleEnemyFainted] 胜负已判定，跳过');
+        return;
+    }
+    
     const battleEnd = battle.checkBattleEnd();
     if (battleEnd === 'win') {
+        battle.battleEndDetermined = true; // 标记胜负已判定
         log("🏆 <b style='color:#27ae60'>敌方全部战败！你赢了！</b>");
         const t = battle.trainer;
         if (t && t.id !== 'wild' && t.lines?.lose) {
@@ -269,6 +276,21 @@ export async function handleEnemyFainted(e) {
         setTimeout(() => {
             if (typeof window.battleEndSequence === 'function') {
                 window.battleEndSequence('win');
+            }
+        }, 2000);
+        return;
+    } else if (battleEnd === 'loss') {
+        // 【同命双杀】敌方倒下但玩家也全灭，且同命者是敌方 -> 玩家赢
+        // 这种情况在 checkBattleEnd 中已经处理，但如果返回 loss 说明是玩家用的同命
+        battle.battleEndDetermined = true;
+        log(" <b style='color:#e74c3c'>... 你输了.</b>");
+        const t = battle.trainer;
+        if (t && t.id !== 'wild' && t.lines?.win) {
+            log(`<i>${t.name}: "${t.lines.win}"</i>`);
+        }
+        setTimeout(() => {
+            if (typeof window.battleEndSequence === 'function') {
+                window.battleEndSequence('loss');
             }
         }, 2000);
         return;
@@ -492,6 +514,12 @@ export async function handlePlayerFainted(p) {
     
     log(`<b style="color:red">糟糕! ${p.cnName} 失去了战斗能力!</b>`);
     
+    // 【防止重复判定】如果已经判定过胜负，直接返回
+    if (battle.battleEndDetermined) {
+        console.log('[handlePlayerFainted] 胜负已判定，跳过');
+        return;
+    }
+    
     // === 【修复】检查敌方是否也同时倒下（双杀场景：闪焰冲锋/大爆炸等）===
     const e = battle.getEnemy();
     if (e && !e.isAlive()) {
@@ -500,6 +528,7 @@ export async function handlePlayerFainted(p) {
         // 检查战斗是否结束
         const battleEnd = battle.checkBattleEnd();
         if (battleEnd === 'win') {
+            battle.battleEndDetermined = true;
             log("🏆 <b style='color:#27ae60'>敌方全部战败！你赢了！</b>");
             const t = battle.trainer;
             if (t && t.id !== 'wild' && t.lines?.lose) {
@@ -508,6 +537,19 @@ export async function handlePlayerFainted(p) {
             setTimeout(() => {
                 if (typeof window.battleEndSequence === 'function') {
                     window.battleEndSequence('win');
+                }
+            }, 2000);
+            return;
+        } else if (battleEnd === 'loss') {
+            battle.battleEndDetermined = true;
+            log(" <b style='color:#e74c3c'>... 你输了.</b>");
+            const t = battle.trainer;
+            if (t && t.id !== 'wild' && t.lines?.win) {
+                log(`<i>${t.name}: "${t.lines.win}"</i>`);
+            }
+            setTimeout(() => {
+                if (typeof window.battleEndSequence === 'function') {
+                    window.battleEndSequence('loss');
                 }
             }, 2000);
             return;
@@ -573,6 +615,53 @@ export async function handlePlayerFainted(p) {
 export function triggerEntryAbilities(pokemon, opponent) {
     const battle = window.battle;
     if (!pokemon || !opponent) return;
+    
+    // === 【治愈之愿 / 新月祈祷】入场治愈效果 ===
+    // 判断是玩家方还是敌方
+    const isPlayerPokemon = battle.playerParty && battle.playerParty.includes(pokemon);
+    const side = isPlayerPokemon ? battle.playerSide : battle.enemySide;
+    
+    if (side) {
+        // Healing Wish: 回满 HP + 清除状态
+        if (side.healingWish) {
+            const healAmount = pokemon.maxHp - pokemon.currHp;
+            pokemon.currHp = pokemon.maxHp;
+            if (pokemon.status) {
+                pokemon.status = null;
+                pokemon.statusTurns = 0;
+                pokemon.sleepTurns = 0;
+            }
+            log(`<b style="color:#ff69b4">💖 治愈之愿的光芒包围了 ${pokemon.cnName}！HP 完全恢复！</b>`);
+            delete side.healingWish;
+            console.log(`[HEALING WISH] ${pokemon.cnName} 被治愈，回复 ${healAmount} HP`);
+            updateAllVisuals();
+        }
+        
+        // Lunar Dance: 回满 HP + 清除状态 + 回满 PP
+        if (side.lunarDance) {
+            const healAmount = pokemon.maxHp - pokemon.currHp;
+            pokemon.currHp = pokemon.maxHp;
+            if (pokemon.status) {
+                pokemon.status = null;
+                pokemon.statusTurns = 0;
+                pokemon.sleepTurns = 0;
+            }
+            // 回满所有招式的 PP
+            if (pokemon.moves) {
+                pokemon.moves.forEach(move => {
+                    if (move.pp !== undefined && move.maxPp !== undefined) {
+                        move.pp = move.maxPp;
+                    }
+                });
+            }
+            log(`<b style="color:#9b59b6">🌙 新月祈祷的月光包围了 ${pokemon.cnName}！HP 和 PP 完全恢复！</b>`);
+            delete side.lunarDance;
+            console.log(`[LUNAR DANCE] ${pokemon.cnName} 被治愈，回复 ${healAmount} HP，PP 全满`);
+            updateAllVisuals();
+        }
+    }
+    
+    // === 入场特性 ===
     if (typeof AbilityHandlers === 'undefined') return;
     
     const h = AbilityHandlers[pokemon.ability];

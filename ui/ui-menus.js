@@ -22,6 +22,49 @@ function showMovesMenu() {
     const battle = typeof window !== 'undefined' ? window.battle : null;
     
     // =========================================================
+    // 【蓄力技能锁定】检查玩家是否正在蓄力
+    // =========================================================
+    if (battle) {
+        const player = battle.getPlayer();
+        if (player && player.volatile?.chargingMove) {
+            const chargingMove = player.volatile.chargingMove;
+            
+            // 【重要】先检查是否能行动（畏缩/睡眠/麻痹/冰冻等会阻止行动）
+            // 如果无法行动，checkCanMove 会清除 chargingMove 状态
+            if (typeof window.checkCanMove === 'function') {
+                const canMoveCheck = window.checkCanMove(player);
+                if (!canMoveCheck.can) {
+                    // 无法行动，chargingMove 已被 checkCanMove 清除
+                    // 显示无法行动的原因，然后正常显示技能菜单
+                    console.log(`[CHARGE MOVE] Player cannot move: ${canMoveCheck.msg}`);
+                    // 不在这里显示消息，让 executePlayerTurn 处理
+                    // 继续显示正常的技能菜单
+                }
+            }
+            
+            // 再次检查 chargingMove 是否仍然存在（可能已被 checkCanMove 清除）
+            if (player.volatile?.chargingMove) {
+                console.log(`[CHARGE MOVE] Player is charging ${chargingMove}, forcing move execution`);
+                
+                // 找到对应的技能索引
+                const moveIndex = player.moves?.findIndex(m => m.name === chargingMove);
+                if (moveIndex >= 0 && typeof window.handleAttack === 'function') {
+                    const moveToUse = player.moves[moveIndex];
+                    // 显示提示
+                    if (typeof window.log === 'function') {
+                        window.log(`<span style="color:#f59e0b">⚡ ${player.cnName} 继续执行 ${moveToUse.cn || chargingMove}!</span>`);
+                    }
+                    // 强制执行蓄力技能（传递索引而非对象）
+                    setTimeout(() => {
+                        window.handleAttack(moveIndex);
+                    }, 100);
+                    return; // 不显示技能菜单
+                }
+            }
+        }
+    }
+    
+    // =========================================================
     // 【Insight 预警系统】预测 AI 的"初始意图"
     // AI 最终决策可能不同（见招拆招），但 Insight 显示的是初始意图
     // =========================================================
@@ -170,24 +213,36 @@ function updateMegaButtonVisibility() {
     // 解锁系统检查
     const unlocks = battle.playerUnlocks || {};
     
+    // =========================================================
+    // 机制锁检查：两层锁机制
+    // 一层锁 (unlocks)：玩家是否解锁了该机制
+    // 二层锁 (mechanic)：宝可梦是否被指定使用该机制
+    // =========================================================
+    
     // 检查是否可以 Mega 进化
-    const canMega = unlocks.enable_mega !== false
+    // 【修复】必须明确 enable_mega === true 才能使用 Mega
+    // 【二层锁】宝可梦必须有 mechanic === 'mega' 才能 Mega 进化
+    const canMega = unlocks.enable_mega === true
         && typeof canMegaEvolveFunc === 'function' 
         && canMegaEvolveFunc(p) 
         && !battle.playerMegaUsed
         && canActivateMechanicFunc(p, 'mega')
-        && (!lockedMechanic || lockedMechanic === 'mega');
+        && lockedMechanic === 'mega';  // 【关键修复】必须明确指定 mechanic
     
     // 检查是否可以极巨化
-    const canDynamax = unlocks.enable_dynamax !== false
+    // 【修复】必须明确 enable_dynamax === true 才能使用极巨化
+    // 【二层锁】宝可梦必须有 mechanic === 'dynamax' 才能极巨化
+    const canDynamax = unlocks.enable_dynamax === true
         && p.canDynamax 
         && !p.isDynamaxed 
         && !battle.playerMaxUsed
         && canActivateMechanicFunc(p, 'dynamax')
-        && (!lockedMechanic || lockedMechanic === 'dynamax');
+        && lockedMechanic === 'dynamax';  // 【关键修复】必须明确指定 mechanic
     
     // 检查是否可以太晶化
-    const canTerastallize = unlocks.enable_tera !== false
+    // 【修复】必须明确 enable_tera === true 才能使用太晶化
+    // 【二层锁】宝可梦必须有 mechanic === 'tera' 才能太晶化
+    const canTerastallize = unlocks.enable_tera === true
         && p.canTera 
         && !p.isTerastallized 
         && !battle.playerTeraUsed
@@ -248,26 +303,12 @@ function updateMegaButtonVisibility() {
         return;
     }
     
-    // 无锁定机制时的自动检测
-    if (canDynamax || (canMega && isDynamaxTarget)) {
-        // 极巨化模式
-        megaBtn.classList.remove('hidden');
-        megaBtn.classList.add('dynamax-style');
-        if (iconText) iconText.textContent = 'X';
-        p.evolutionType = 'dynamax';
-        console.log('[MEGA UI] Showing Dynamax button (auto-detected)');
-    } else if (canMega) {
-        // 普通 Mega 模式
-        megaBtn.classList.remove('hidden');
-        megaBtn.classList.remove('dynamax-style');
-        p.evolutionType = 'mega';
-        console.log('[MEGA UI] Showing Mega button (auto-detected)');
-    } else {
-        megaBtn.classList.add('hidden');
-        console.log('[MEGA UI] Hidden: no mechanic available');
-        battle.playerMegaArmed = false;
-        megaBtn.classList.remove('armed');
-    }
+    // 无锁定机制时：隐藏按钮
+    // 【关键】四大机制 (Mega/Dynamax/Tera/Z-Move) 都必须有明确的 mechanic 字段
+    megaBtn.classList.add('hidden');
+    console.log('[MEGA UI] Hidden: no mechanic specified (all mechanics require explicit mechanic field)');
+    battle.playerMegaArmed = false;
+    megaBtn.classList.remove('armed');
 }
 
 // ============================================
@@ -392,8 +433,10 @@ function toggleMega() {
     
     // =========================================================
     // 太晶化模式 (优先检查)
+    // 【修复】必须检查：1) unlocks.enable_tera === true  2) mechanic === 'tera'
     // =========================================================
-    if (p && p.mechanic === 'tera' && p.canTera) {
+    const teraUnlocks = battle.playerUnlocks || {};
+    if (p && teraUnlocks.enable_tera === true && p.mechanic === 'tera' && p.canTera) {
         if (battle.playerTeraUsed || p.isTerastallized) {
             return;
         }
@@ -411,7 +454,12 @@ function toggleMega() {
     }
     
     // 检查是否是极巨化模式
-    const isDynamaxMode = p && (p.canDynamax || (p.megaTargetId && p.megaTargetId.toLowerCase().includes('gmax')));
+    // 【修复】必须检查：1) unlocks.enable_dynamax === true  2) mechanic === 'dynamax'
+    const unlocks = battle.playerUnlocks || {};
+    const isDynamaxMode = p 
+        && unlocks.enable_dynamax === true 
+        && p.mechanic === 'dynamax'  // 【二层锁】必须明确指定 mechanic
+        && (p.canDynamax || (p.megaTargetId && p.megaTargetId.toLowerCase().includes('gmax')));
     
     if (isDynamaxMode) {
         // === 极巨化模式 ===
@@ -432,7 +480,9 @@ function toggleMega() {
     }
     
     // === 普通 Mega 模式 ===
-    if (!p || !canMegaEvolveFunc || !canMegaEvolveFunc(p) || battle.playerMegaUsed) {
+    // 【修复】必须检查 unlocks.enable_mega === true
+    const megaUnlocks = battle.playerUnlocks || {};
+    if (!p || megaUnlocks.enable_mega !== true || !canMegaEvolveFunc || !canMegaEvolveFunc(p) || battle.playerMegaUsed) {
         return;
     }
     

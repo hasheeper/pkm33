@@ -27,14 +27,82 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true,"enableClash":false},"difficulty":"normal","player":{"name":"player","trainerProficiency":0,"party":[{"slot":1,"name":"Latios","nickname":null,"species":null,"gender":"M","lv":10,"quality":"high","nature":"Hasty","ability":"Levitate","shiny":false,"item":"Soul Dew","mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Dragon Breath","Protect","Stored Power","Helping Hand"],"stats_meta":{"ivs":{"hp":29,"atk":31,"def":1,"spa":28,"spd":30,"spe":31},"ev_level":25,"ev_up":0},"notes":null,"avs":{"trust":20,"passion":10,"insight":0,"devotion":0}},{"slot":2,"name":"Latias","nickname":null,"species":null,"gender":"F","lv":10,"quality":"high","nature":"Timid","ability":"Levitate","shiny":false,"item":"Soul Dew","mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Mist Ball","Charm","Psywave","Wish"],"stats_meta":{"ivs":{"hp":6,"atk":20,"def":31,"spa":31,"spd":31,"spe":31},"ev_level":25,"ev_up":0},"notes":null,"avs":{"trust":20,"passion":10,"insight":1,"devotion":0}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"enemy":{"id":"Nemona","type":"trainer","name":"Nemona","trainerProficiency":0,"lines":{"start":"あたしの『実り』になってくれるかな？　全力で来て！(能成为我的『果实』吗？全—力攻过来吧！)","win":"あははっ！　まだまだ『未熟』だね、でもそこが可愛い！(啊哈哈！还很『青涩』呢，不过那一点也很可爱！)","lose":"ゾクゾクしちゃう……！　キミ、本当に初心者！？(忍不住要颤抖了……！你，真的是新手吗！？)","escape":"えっ！？　逃げるの？　待って待って、まだ終わってないよ！(欸！？要逃跑吗？等下等下，还没结束呢！)"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"party":[{"name":"Sprigatito","lv":16,"gender":"F","nature":"Jolly","ability":"Overgrow","item":"Oran Berry","isAce":true,"stats_meta":{"ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"ev_level":100},"moves":["Leafage","Scratch","Bite","Hone Claws"],"avs":{"trust":100,"passion":100,"insight":120,"devotion":120}},{"name":"Pawmi","lv":14,"gender":"F","nature":"Jolly","ability":"Static","stats_meta":{"ivs":{"hp":25,"atk":25,"def":20,"spa":25,"spd":20,"spe":31},"ev_level":50},"moves":["Nuzzle","Thunder Shock","Scratch","Quick Attack"],"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}},{"name":"Rockruff","lv":14,"gender":"F","nature":"Jolly","ability":"Vital Spirit","stats_meta":{"ivs":{"hp":25,"atk":25,"def":25,"spa":10,"spd":25,"spe":31},"ev_level":50},"moves":["Rock Throw","Bite","Tackle","Leer"],"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null}
-
-
-
-
-
-
-
+    return {
+  "settings": {
+    "enableAVS": false,
+    "enableCommander": true, 
+    "enableSFX": true,
+    "enableEnvironment": true   // 环境天气系统开关
+  },
+  
+  // ============================================
+  // 环境天气配置 (地图模块接口)
+  // ============================================
+  // 可选值: "none" | "rain" | "sun" | "sandstorm" | "snow" | "hail"
+  // 开局自动触发，不依赖宝可梦特性
+  // 宝可梦天气技能/特性结束后会回归环境天气
+  "environment": {
+    "weather": "rain",      // 当前测试：雨天
+    "weatherTurns": 0       // 0 = 永久持续，>0 = 指定回合数（暂未实现）
+  },
+  
+  "player": {
+    "name": "Eiscue_Debugger",
+    "trainerProficiency": 100,
+    "party": [
+      {
+        "slot": 1,
+        "name": "Ninetales-Alola",
+        "nickname": "Snow_Setup",
+        "species": "Ninetales-Alola",
+        "gender": "F",
+        "lv": 50,
+        "ability": "Snow Warning",
+        "item": "Icy Rock",
+        "moves": ["Blizzard", "Aurora Veil", "Freeze-Dry", "Protect"],
+        "stats_meta": { "ev_level": 200 },
+        "avs": { "devotion": 100 },
+        "notes": "_STEP 1_: Sets Snow Immediately."
+      },
+      {
+        "slot": 2,
+        "name": "Eiscue",
+        "nickname": "The_Face",
+        "species": "Eiscue",
+        "gender": "M",
+        "lv": 50,
+        "nature": "Jolly",
+        "isAce": true,
+        "ability": "Ice Face",
+        "item": "Leftovers",
+        "moves": ["Liquidation", "Icicle Crash", "Belly Drum", "Protect"],
+        "stats_meta": { "ev_level": 255 },
+        "notes": "Starts in Base (Ice Face). _STEP 2_: Switch In. Take Physical. Break. _STEP 3_: End Turn reform."
+      }
+    ],
+    "unlocks": {}
+  },
+  "enemy": {
+    "name": "Weather_Bot",
+    "id": "Test_Dummy_02",
+    "party": [
+        {
+          "name": "Venusaur",
+          "moves": ["Solar Beam", "Sludge Bomb", "Sleep Powder", "Synthesis"], 
+          "item": "Black Sludge",
+          "ability": "Overgrow",
+          "nature": "Modest", "evs": {"spa": 252, "spe": 252}
+        },
+        {
+          "name": "Swampert",
+          "moves": ["Earthquake", "Waterfall", "Ice Punch", "Stealth Rock"],
+          "item": "Leftovers",
+          "ability": "Torrent",
+          "nature": "Adamant", "evs": {"atk": 252, "hp": 252} 
+        }
+    ]
+  }
+}
 }
 
 // ============================================

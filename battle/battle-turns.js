@@ -82,6 +82,10 @@ export function onTurnStart() {
 export async function executePlayerTurn(p, e, move) {
     const battle = window.battle;
     
+    // === 【官方机制】同命/怨恨状态清除逻辑 ===
+    // 关键：状态在使用者"尝试出招"时清除，不管出什么招
+    // 例外：如果因为睡眠/冰冻/畏缩等无法行动，状态保留
+    
     // 状态阻断检测
     if (typeof window.checkCanMove === 'function') {
         const check = window.checkCanMove(p);
@@ -89,6 +93,8 @@ export async function executePlayerTurn(p, e, move) {
             log(`<span style="color:#e67e22">${check.msg}</span>`);
         }
         if (!check.can) {
+            // 【关键】无法行动时，同命状态保留！
+            console.log(`[DESTINY BOND] ${p.cnName} 无法行动，同命状态保留`);
             await wait(500);
             return { pivot: false };
         }
@@ -102,6 +108,8 @@ export async function executePlayerTurn(p, e, move) {
             const canMove = abilityHandler.onBeforeMove(p, move, beforeMoveLogs);
             beforeMoveLogs.forEach(txt => log(txt));
             if (canMove === false) {
+                // 【关键】特性阻止行动时，同命状态保留！
+                console.log(`[DESTINY BOND] ${p.cnName} 被特性阻止行动，同命状态保留`);
                 await wait(500);
                 return { pivot: false };
             }
@@ -113,8 +121,44 @@ export async function executePlayerTurn(p, e, move) {
     if (p.mustRecharge) {
         log(`<span style="color:#e74c3c">${p.cnName} 因为上回合的反作用力无法动弹!</span>`);
         p.mustRecharge = false;
+        // 【关键】硬直时，同命状态保留！
+        console.log(`[DESTINY BOND] ${p.cnName} 硬直中，同命状态保留`);
         await wait(500);
         return { pivot: false };
+    }
+
+    // === 【精神场地】阻止先制技能对地面目标生效 ===
+    // 【重要】只阻止"以对手为目标"的先制技能，不阻止 self/allySide 等
+    const getMovePriorityFn = (typeof window.getMovePriority === 'function') ? window.getMovePriority : (m => m?.priority || 0);
+    const movePriority = getMovePriorityFn(move, p, e);
+    if (movePriority > 0 && battle?.terrain === 'psychicterrain') {
+        // 检查招式目标类型：只有以对手为目标的招式才会被阻止
+        const moveTarget = move.target || 'normal';
+        const targetsOpponent = !['self', 'allySide', 'allyTeam', 'allies', 'adjacentAlly', 'adjacentAllyOrSelf'].includes(moveTarget);
+        
+        if (targetsOpponent) {
+            // 检查目标是否接地（Flying 类型或 Levitate 特性不受影响）
+            const targetAbility = (e.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const targetIsGrounded = !e.types?.includes('Flying') && targetAbility !== 'levitate';
+            
+            if (targetIsGrounded) {
+                log(`<span style="color:#9b59b6">🔮 ${e.cnName} 被精神场地保护了！先制技能无效！</span>`);
+                console.log(`[PSYCHIC TERRAIN] ${p.cnName} 的先制技能 ${move.name} (priority=${movePriority}, target=${moveTarget}) 被精神场地阻止`);
+                await wait(500);
+                return { pivot: false };
+            }
+        }
+    }
+
+    // === 【官方机制】在尝试出招时立即清除同命/怨恨状态 ===
+    // 不管这回合用什么招（攻击/变化/守住），只要开始行动就清除
+    if (p.volatile && p.volatile.destinyBond) {
+        delete p.volatile.destinyBond;
+        console.log(`[DESTINY BOND CLEAR] ${p.cnName} 尝试出招，同命状态清除`);
+    }
+    if (p.volatile && p.volatile.grudge) {
+        delete p.volatile.grudge;
+        console.log(`[GRUDGE CLEAR] ${p.cnName} 尝试出招，怨恨状态清除`);
     }
 
     log(`[${p.cnName}] 使用了 <b>${move.cn}</b>!`);
@@ -124,6 +168,15 @@ export async function executePlayerTurn(p, e, move) {
     
     // 记录本回合使用的技能
     p.lastMoveUsed = move.name;
+    
+    // 【Gen7同命机制】使用其他招式时清除同命成功标记，重置连锁
+    if (move.name !== 'Destiny Bond') {
+        p.lastDestinyBondSuccess = false;
+    }
+    // 【怨恨同理】
+    if (move.name !== 'Grudge') {
+        p.lastGrudgeSuccess = false;
+    }
     
     // 【珍藏(Last Resort)支持】追踪所有成功使用过的招式
     if (!result?.failed) {
@@ -187,6 +240,9 @@ export async function executePlayerTurn(p, e, move) {
         checkCrisisBgm();
     }
     
+    // 【已移除】旧的招式执行后清除逻辑
+    // 现在同命/怨恨状态在"尝试出招时"立即清除（见上方代码）
+    
     return { pivot: result?.pivot || false };
 }
 
@@ -221,6 +277,10 @@ export async function executeEnemyTurn(e, p, move) {
         return { pivot: false };
     }
 
+    // === 【官方机制】同命/怨恨状态清除逻辑 ===
+    // 关键：状态在使用者"尝试出招"时清除，不管出什么招
+    // 例外：如果因为睡眠/冰冻/畏缩等无法行动，状态保留
+
     await wait(800);
     
     // 状态阻断检测
@@ -230,6 +290,8 @@ export async function executeEnemyTurn(e, p, move) {
             log(`<span style="color:#e67e22">${check.msg}</span>`);
         }
         if (!check.can) {
+            // 【关键】无法行动时，同命状态保留！
+            console.log(`[DESTINY BOND] ${e.cnName} 无法行动，同命状态保留`);
             return { pivot: false };
         }
     }
@@ -242,6 +304,8 @@ export async function executeEnemyTurn(e, p, move) {
             const canMove = abilityHandler.onBeforeMove(e, move, beforeMoveLogs);
             beforeMoveLogs.forEach(txt => log(txt));
             if (canMove === false) {
+                // 【关键】特性阻止行动时，同命状态保留！
+                console.log(`[DESTINY BOND] ${e.cnName} 被特性阻止行动，同命状态保留`);
                 return { pivot: false };
             }
         }
@@ -252,7 +316,42 @@ export async function executeEnemyTurn(e, p, move) {
     if (e.mustRecharge) {
         log(`<span style="color:#e74c3c">${e.cnName} 因为上回合的反作用力无法动弹!</span>`);
         e.mustRecharge = false;
+        // 【关键】硬直时，同命状态保留！
+        console.log(`[DESTINY BOND] ${e.cnName} 硬直中，同命状态保留`);
         return { pivot: false };
+    }
+
+    // === 【精神场地】阻止先制技能对地面目标生效 ===
+    // 【重要】只阻止"以对手为目标"的先制技能，不阻止 self/allySide 等
+    const getMovePriorityFnE = (typeof window.getMovePriority === 'function') ? window.getMovePriority : (m => m?.priority || 0);
+    const movePriorityE = getMovePriorityFnE(move, e, p);
+    if (movePriorityE > 0 && battle?.terrain === 'psychicterrain') {
+        // 检查招式目标类型：只有以对手为目标的招式才会被阻止
+        const moveTargetE = move.target || 'normal';
+        const targetsOpponentE = !['self', 'allySide', 'allyTeam', 'allies', 'adjacentAlly', 'adjacentAllyOrSelf'].includes(moveTargetE);
+        
+        if (targetsOpponentE) {
+            // 检查目标是否接地（Flying 类型或 Levitate 特性不受影响）
+            const targetAbility = (p.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const targetIsGrounded = !p.types?.includes('Flying') && targetAbility !== 'levitate';
+            
+            if (targetIsGrounded) {
+                log(`<span style="color:#9b59b6">🔮 ${p.cnName} 被精神场地保护了！先制技能无效！</span>`);
+                console.log(`[PSYCHIC TERRAIN] ${e.cnName} 的先制技能 ${move.name} (priority=${movePriorityE}, target=${moveTargetE}) 被精神场地阻止`);
+                return { pivot: false };
+            }
+        }
+    }
+
+    // === 【官方机制】在尝试出招时立即清除同命/怨恨状态 ===
+    // 不管这回合用什么招（攻击/变化/守住），只要开始行动就清除
+    if (e.volatile && e.volatile.destinyBond) {
+        delete e.volatile.destinyBond;
+        console.log(`[DESTINY BOND CLEAR] ${e.cnName} 尝试出招，同命状态清除`);
+    }
+    if (e.volatile && e.volatile.grudge) {
+        delete e.volatile.grudge;
+        console.log(`[GRUDGE CLEAR] ${e.cnName} 尝试出招，怨恨状态清除`);
     }
 
     const moveName = move.cn || move.name || 'Unknown';
@@ -263,6 +362,15 @@ export async function executeEnemyTurn(e, p, move) {
     
     // 记录本回合使用的技能
     e.lastMoveUsed = move.name;
+    
+    // 【Gen7同命机制】使用其他招式时清除同命成功标记，重置连锁
+    if (move.name !== 'Destiny Bond') {
+        e.lastDestinyBondSuccess = false;
+    }
+    // 【怨恨同理】
+    if (move.name !== 'Grudge') {
+        e.lastGrudgeSuccess = false;
+    }
     
     // 【珍藏(Last Resort)支持】追踪所有成功使用过的招式
     if (!result?.failed) {
@@ -305,6 +413,9 @@ export async function executeEnemyTurn(e, p, move) {
     }
     
     updateAllVisuals();
+    
+    // 【已移除】旧的招式执行后清除逻辑
+    // 现在同命/怨恨状态在"尝试出招时"立即清除（见上方代码）
     
     console.log('[executeEnemyTurn] Completed');
     return { 
@@ -687,6 +798,71 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
                 poke.heal(healAmount);
                 logs.push(`<span style="color:#3498db">${poke.cnName} 的雨盘恢复了 ${healAmount} 点体力!</span>`);
             }
+        }
+    }
+    
+    // 【太阳之力 Solar Power】晴天时回合末扣 1/8 HP（特攻加成在 onModifyStat 中处理）
+    // 【天气统一】标准值: sun, 极端值: harshsun
+    if (pokeAbilityForWeather === 'solarpower') {
+        const isSunnySolar = currentWeatherForAbility === 'sun' || currentWeatherForAbility === 'harshsun';
+        if (isSunnySolar) {
+            const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+            poke.takeDamage(dmg);
+            logs.push(`<span style="color:#f39c12">☀️ ${poke.cnName} 的太阳之力在阳光下消耗了 ${dmg} 点体力!</span>`);
+        }
+    }
+    
+    // 【收获 Harvest】回合末回收已使用的树果（晴天 100%，其他 50%）
+    if (pokeAbilityForWeather === 'harvest' && poke.usedBerry && !poke.item) {
+        const isSunnyHarvest = currentWeatherForAbility === 'sun' || currentWeatherForAbility === 'harshsun';
+        const harvestChance = isSunnyHarvest ? 1.0 : 0.5;
+        if (Math.random() < harvestChance) {
+            poke.item = poke.usedBerry;
+            logs.push(`<span style="color:#27ae60">🍇 ${poke.cnName} 的收获特性回收了 ${poke.usedBerry}!</span>`);
+            
+            // 【关键】获得道具后取消 Unburden 效果
+            if (poke.unburdenActive) {
+                poke.unburdenActive = false;
+                console.log(`[HARVEST -> UNBURDEN] ${poke.cnName} 回收道具，轻装效果解除`);
+            }
+            poke.usedBerry = null;
+            
+            // 【关键修复】回收后立即检查是否满足吃果子条件
+            if (typeof ItemEffects !== 'undefined' && ItemEffects.checkHPBerry) {
+                let berryLogs = [];
+                const berryTriggered = ItemEffects.checkHPBerry(poke, berryLogs, opponent);
+                if (berryTriggered) {
+                    berryLogs.forEach(txt => logs.push(txt));
+                    console.log(`[HARVEST] ${poke.cnName} 回收后立即吃掉了果子`);
+                }
+            }
+        }
+    }
+    
+    // 【反刍 Cud Chew】回合末再吃一次上回合的树果
+    if (pokeAbilityForWeather === 'cudchew' && poke.cudChewBerry) {
+        if (poke.cudChewReady) {
+            // 触发树果效果
+            const berry = poke.cudChewBerry;
+            logs.push(`<b style="color:#27ae60">🐄 ${poke.cnName} 的反刍特性发动！再次享用了 ${berry} 的效果！</b>`);
+            
+            // 根据树果类型触发效果
+            if (typeof window.triggerBerryEffect === 'function') {
+                window.triggerBerryEffect(poke, berry, logs);
+            } else {
+                // 简化版：直接回复 HP（大部分树果都是回复类）
+                const itemId = berry.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (itemId === 'sitrusberry') {
+                    const heal = Math.floor(poke.maxHp * 0.25);
+                    poke.currHp = Math.min(poke.maxHp, poke.currHp + heal);
+                    logs.push(`<span style="color:#27ae60">回复了 ${heal} 点体力！</span>`);
+                }
+            }
+            poke.cudChewBerry = null;
+            poke.cudChewReady = false;
+        } else {
+            // 标记下回合可以触发
+            poke.cudChewReady = true;
         }
     }
 

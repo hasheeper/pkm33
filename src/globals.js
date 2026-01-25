@@ -68,6 +68,21 @@ import {
     canKnockOff
 } from '../engine/move-handlers.js';
 
+import {
+    CHARGE_MOVES,
+    CHARGE_MOVE_CONFIG,
+    getChargeMoveConfig,
+    isChargeMove,
+    checkInstantCondition,
+    handleChargePhase,
+    handleReleasePhase,
+    checkInvulnerability,
+    getChargingMove,
+    clearChargingState,
+    checkFocusPunchInterrupt,
+    checkBeakBlastBurn
+} from '../engine/charge-moves.js';
+
 import { calcDamage } from '../battle/battle-calc.js';
 import { applyMoveSecondaryEffects } from '../battle/battle-effects.js';
 import { applyDamage } from '../battle/battle-damage.js';
@@ -156,6 +171,20 @@ window.MoveHandlers = MoveHandlers;
 window.getMoveHandler = getMoveHandler;
 window.hasMoveHandler = hasMoveHandler;
 window.canKnockOff = canKnockOff;
+
+// 蓄力技能系统
+window.CHARGE_MOVES = CHARGE_MOVES;
+window.CHARGE_MOVE_CONFIG = CHARGE_MOVE_CONFIG;
+window.getChargeMoveConfig = getChargeMoveConfig;
+window.isChargeMove = isChargeMove;
+window.checkInstantCondition = checkInstantCondition;
+window.handleChargePhase = handleChargePhase;
+window.handleReleasePhase = handleReleasePhase;
+window.checkInvulnerability = checkInvulnerability;
+window.getChargingMove = getChargingMove;
+window.clearChargingState = clearChargingState;
+window.checkFocusPunchInterrupt = checkFocusPunchInterrupt;
+window.checkBeakBlastBurn = checkBeakBlastBurn;
 
 // 伤害计算
 window.calcDamage = calcDamage;

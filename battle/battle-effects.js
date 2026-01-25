@@ -38,13 +38,23 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     console.log(`[MOVE HANDLER] Looking for handler: "${move.name}", found:`, handler ? 'YES' : 'NO', handler?.onUse ? '(has onUse)' : '');
     
     // === onUse 钩子 (变化技/天气/场地等，以及技能前置检查如 Fake Out) ===
-    if (handler && handler.onUse) {
+    // 【重要】蓄力技能的 onUse 已在 applyDamage 中处理，此处跳过
+    // 检查：如果 damageDealt > 0，说明已经造成伤害，onUse 已经执行过
+    const isChargeMove = handler && handler.isChargeMove;
+    const shouldSkipOnUse = isChargeMove && damageDealt > 0;
+    
+    if (handler && handler.onUse && !shouldSkipOnUse) {
         console.log(`[MOVE HANDLER] Calling onUse for "${move.name}", battle:`, battle, 'isPlayer:', isPlayer);
         const result = handler.onUse(user, target, logs, battle, isPlayer);
         console.log(`[MOVE HANDLER] onUse returned, logs now:`, logs);
         if (result) {
             if (result.failed) {
                 return { logs, pivot: false };
+            }
+            // 【蓄力技能】正在蓄力中，跳过伤害计算
+            if (result.charging && result.skipDamage) {
+                console.log(`[CHARGE MOVE] ${move.name} is charging, skipping damage`);
+                return { logs, pivot: false, charging: true };
             }
             if (result.selfDestruct) {
                 // 自爆类技能已在 handler 中处理 HP
@@ -148,6 +158,34 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                     if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('STAT_DOWN');
                 }
             }
+        }
+        
+        // === 【白色香草 White Herb】能力下降后立即检查 ===
+        checkWhiteHerb(subject, logs);
+    };
+    
+    // helper：检查并触发白色香草
+    const checkWhiteHerb = (pokemon, logs) => {
+        if (!pokemon.item) return;
+        const itemId = pokemon.item.toLowerCase().replace(/[^a-z]/g, '');
+        if (itemId !== 'whiteherb' && pokemon.item !== '白色香草') return;
+        
+        let restored = false;
+        const statNames = ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion'];
+        for (const stat of statNames) {
+            if (pokemon.boosts[stat] < 0) {
+                pokemon.boosts[stat] = 0;
+                restored = true;
+            }
+        }
+        
+        if (restored) {
+            // 消耗道具
+            const oldItem = pokemon.item;
+            pokemon.item = null;
+            logs.push(`<b style="color:#22c55e">🍃 ${pokemon.cnName} 的白色香草发动了！能力下降被还原了！</b>`);
+            console.log(`[WHITE HERB] ${pokemon.cnName} 消耗了 ${oldItem}，能力下降被还原`);
+            if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('ITEM_USE');
         }
     };
     
@@ -357,42 +395,8 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         logs.push(`${user.cnName} 守住了自己!`);
     }
     
-    // ========== 2. 反伤 (Recoil) ==========
-    const noRecoilAbility = (typeof AbilityHandlers !== 'undefined' && user.ability && AbilityHandlers[user.ability]) 
-        ? (AbilityHandlers[user.ability].noRecoil || AbilityHandlers[user.ability].noIndirectDamage) 
-        : false;
-    
-    if (!noRecoilAbility) {
-        if (fullMoveData.recoil && damageDealt > 0) {
-            const [num, den] = fullMoveData.recoil;
-            const recoilDmg = Math.max(1, Math.floor(damageDealt * num / den));
-            user.takeDamage(recoilDmg);
-            logs.push(`${user.cnName} 受到了 ${recoilDmg} 点反作用力伤害!`);
-        } else if (damageDealt > 0) {
-            const recoilPatches = (typeof RECOIL_MOVES !== 'undefined') ? RECOIL_MOVES : {};
-            if (recoilPatches[move.name]) {
-                const [num, den] = recoilPatches[move.name];
-                const recoilDmg = Math.max(1, Math.floor(damageDealt * num / den));
-                user.takeDamage(recoilDmg);
-                logs.push(`${user.cnName} 受到了 ${recoilDmg} 点反作用力伤害!`);
-            }
-        }
-        
-        // 生命宝珠反伤
-        // 【Sheer Force + Magic Guard】免疫生命宝珠反伤
-        const userItem = (user.item || '').toLowerCase().replace(/[^a-z]/g, '');
-        if (userItem === 'lifeorb' && damageDealt > 0) {
-            // Sheer Force 激活时免疫生命宝珠反伤
-            // Magic Guard 也免疫（已在 noRecoilAbility 中处理）
-            if (!sheerForceActive) {
-                const lifeOrbRecoil = Math.max(1, Math.floor(user.maxHp * 0.1));
-                user.takeDamage(lifeOrbRecoil);
-                logs.push(`${user.cnName} 受到了生命宝珠的反噬!`);
-            }
-        }
-    }
-    
-    // ========== 3. 吸血 (Drain) ==========
+    // ========== 2. 吸血 (Drain) - 先于反伤结算 ==========
+    // 【Gen 9 正确顺序】吸血回复应在生命宝珠反伤之前结算
     if (fullMoveData.drain && damageDealt > 0) {
         const [num, den] = fullMoveData.drain;
         const healAmt = Math.max(1, Math.floor(damageDealt * num / den));
@@ -410,6 +414,49 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             if (actualHeal > 0) {
                 user.heal(healAmt);
                 logs.push(`${user.cnName} 吸取了对手的体力!`);
+            }
+        }
+    }
+    
+    // ========== 3. 反伤 (Recoil) - 在吸血之后结算 ==========
+    // 【Rock Head】只免疫招式反伤，不免疫 Life Orb
+    const noRecoilAbility = (typeof AbilityHandlers !== 'undefined' && user.ability && AbilityHandlers[user.ability]) 
+        ? AbilityHandlers[user.ability].noRecoil
+        : false;
+    // 【Magic Guard】免疫所有间接伤害（包括 Life Orb）
+    const noIndirectDamage = (typeof AbilityHandlers !== 'undefined' && user.ability && AbilityHandlers[user.ability]) 
+        ? AbilityHandlers[user.ability].noIndirectDamage
+        : false;
+    
+    // 招式反伤：Rock Head 和 Magic Guard 都能免疫
+    if (!noRecoilAbility && !noIndirectDamage) {
+        if (fullMoveData.recoil && damageDealt > 0) {
+            const [num, den] = fullMoveData.recoil;
+            const recoilDmg = Math.max(1, Math.floor(damageDealt * num / den));
+            user.takeDamage(recoilDmg);
+            logs.push(`${user.cnName} 受到了 ${recoilDmg} 点反作用力伤害!`);
+        } else if (damageDealt > 0) {
+            const recoilPatches = (typeof RECOIL_MOVES !== 'undefined') ? RECOIL_MOVES : {};
+            if (recoilPatches[move.name]) {
+                const [num, den] = recoilPatches[move.name];
+                const recoilDmg = Math.max(1, Math.floor(damageDealt * num / den));
+                user.takeDamage(recoilDmg);
+                logs.push(`${user.cnName} 受到了 ${recoilDmg} 点反作用力伤害!`);
+            }
+        }
+    }
+    
+    // 生命宝珠反伤 - 独立于招式反伤结算
+    // 【Magic Guard】免疫生命宝珠反伤
+    // 【Sheer Force】激活时免疫生命宝珠反伤
+    // 【Rock Head】不能免疫生命宝珠反伤！
+    if (!noIndirectDamage) {
+        const userItem = (user.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (userItem === 'lifeorb' && damageDealt > 0) {
+            if (!sheerForceActive) {
+                const lifeOrbRecoil = Math.max(1, Math.floor(user.maxHp * 0.1));
+                user.takeDamage(lifeOrbRecoil);
+                logs.push(`${user.cnName} 受到了生命宝珠的反噬!`);
             }
         }
     }
@@ -436,14 +483,8 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         }
     }
     
-    // 诅咒 (鬼系)
-    if (move.name === 'Curse' && user.types.includes('Ghost')) {
-        const selfDmg = Math.floor(user.maxHp / 2);
-        user.takeDamage(selfDmg);
-        target.volatile = target.volatile || {};
-        target.volatile['curse'] = true;
-        logs.push(`${user.cnName} 削减了自己的体力，对 ${target.cnName} 施加了诅咒!`);
-    }
+    // 诅咒 (鬼系) - 【已移至 move-handlers.js 统一处理，此处删除避免重复扣血】
+    // if (move.name === 'Curse' && user.types.includes('Ghost')) { ... }
     
     // 束缚类技能
     if (fullMoveData.volatileStatus === 'partiallytrapped') {

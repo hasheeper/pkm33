@@ -1976,7 +1976,7 @@ export const MOVES = {
 		pp: 5,
 		priority: 0,
 		flags: { protect: 1, mirror: 1, metronome: 1 },
-		// Recoil implemented in battle-actions.ts
+		mindBlownRecoil: true, // 使用后扣 50% HP，即使 Miss/Protect 也要扣
 		secondary: null,
 		target: "normal",
 		type: "Grass",

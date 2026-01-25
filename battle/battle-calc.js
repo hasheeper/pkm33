@@ -24,6 +24,9 @@
  * @returns {object} - { damage, effectiveness, isCrit, miss, hitCount, blocked }
  */
 export function calcDamage(attacker, defender, move, options = {}) {
+    // 获取 battle 对象
+    const battle = (typeof window !== 'undefined') ? window.battle : null;
+    
     // 获取完整技能数据
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
@@ -151,6 +154,46 @@ export function calcDamage(attacker, defender, move, options = {}) {
         delete attacker.volatile.charge;
     }
     
+    // === 【天气威力修正】使用 MoveEffects 模块 ===
+    const currentWeather = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';
+    const moveType = move.type || fullMoveData.type || 'Normal';
+    
+    if (currentWeather && typeof MoveEffects !== 'undefined' && MoveEffects.getWeatherModifier) {
+        const weatherResult = MoveEffects.getWeatherModifier(currentWeather, moveType, move.name);
+        if (weatherResult.modifier !== 1) {
+            const oldPower = basePower;
+            basePower = Math.floor(basePower * weatherResult.modifier);
+            console.log(`[WEATHER] ${weatherResult.log} (${oldPower} -> ${basePower})`);
+            if (!options.isSimulation && weatherResult.log) {
+                move._weatherPowerLog = weatherResult.log;
+            }
+            
+            // 【始源天气】威力归零 = 招式失效，立即返回并显示日志
+            if (weatherResult.modifier === 0 && oldPower > 0) {
+                const blockMsg = (currentWeather === 'harshsun') 
+                    ? `<span style="color:#f59e0b">🔥 水被强烈的阳光蒸发了！</span>`
+                    : `<span style="color:#3b82f6">🌊 火被暴风雨浇灭了！</span>`;
+                return { 
+                    damage: 0, 
+                    effectiveness: 0, 
+                    isCrit: false, 
+                    miss: false, 
+                    hitCount: 0, 
+                    blocked: true,
+                    weatherBlocked: true,
+                    weatherBlockMessage: blockMsg
+                };
+            }
+        }
+        
+        // 天气球 (Weather Ball) 威力变化
+        if (move.name === 'Weather Ball' && currentWeather !== 'none') {
+            const oldPower = basePower;
+            basePower = 100;
+            console.log(`[WEATHER BALL] 天气 ${currentWeather}，威力翻倍！(${oldPower} -> ${basePower})`);
+        }
+    }
+    
     // === 【磨砺 Laser Focus】下回合必定暴击 ===
     // 在暴击判定处处理，这里只做标记检查
     
@@ -201,6 +244,40 @@ export function calcDamage(attacker, defender, move, options = {}) {
         };
     }
     
+    // === 半无敌状态检测 (Semi-Invulnerable) ===
+    // 检查目标是否处于飞翔/挖洞/潜水等半无敌状态
+    // 【重要】跳过不针对特定目标的技能：
+    // - self: 对自己使用（如 Geomancy, Swords Dance）
+    // - allySide/allyTeam: 对己方场地使用（如 Light Screen, Reflect）
+    // - all: 场地技能（如 Rain Dance, Sunny Day, Trick Room）
+    // - foeSide: 对敌方场地使用（如 Stealth Rock, Spikes）
+    // - allAdjacent/allAdjacentFoes: 范围攻击（如 Earthquake, Surf）- 这些仍需检测
+    const moveTarget = fullMoveData.target || move.target || 'normal';
+    const nonTargetingMoves = ['self', 'allySide', 'allyTeam', 'all', 'foeSide', 'adjacentAlly', 'adjacentAllyOrSelf'];
+    const isNonTargeting = nonTargetingMoves.includes(moveTarget);
+    const isStatusMove = fullMoveData.category === 'Status' || move.cat === 'status';
+    
+    if (defender.volatile && typeof checkInvulnerability === 'function' && !isNonTargeting) {
+        const invulnResult = checkInvulnerability(defender, move);
+        if (invulnResult.invulnerable && !invulnResult.canHit) {
+            console.log(`[INVULN] ${defender.cnName} 处于 ${invulnResult.status} 状态，${move.name} 无法命中`);
+            return {
+                damage: 0,
+                effectiveness: 1,
+                isCrit: false,
+                miss: true,
+                hitCount: 0,
+                invulnerableMiss: true,
+                invulnStatus: invulnResult.status
+            };
+        }
+        // 如果可以命中且双倍伤害，标记在 move 上
+        if (invulnResult.doubleDamage) {
+            move._invulnDoubleDamage = true;
+            console.log(`[INVULN] ${move.name} 对 ${invulnResult.status} 状态的目标造成双倍伤害`);
+        }
+    }
+    
     // === Protect/Detect 守住判定 ===
     // 【严重BUG修复】守住应该阻挡所有攻击和变化技（除了特定穿透技能）
     // 原逻辑错误：只检查 basePower > 0，导致变化技（如蘑菇孢子）不被阻挡
@@ -209,16 +286,17 @@ export function calcDamage(attacker, defender, move, options = {}) {
         const isContact = fullMoveData.flags && fullMoveData.flags.contact;
         let protectEffect = null;
         
-        // 【关键修复】检查招式目标 - 自我强化技不应被守住阻挡
+        // 【关键修复】检查招式目标 - 自我强化技和场地技不应被守住阻挡
         // target: "self" 表示招式目标是使用者自己，不指向对手
+        // target: "all" 表示影响整个场地（如天气技能 Sandstorm、Rain Dance 等）
         const moveTarget = fullMoveData.target || 'normal';
-        const selfTargetingMoves = ['self', 'allySide', 'allyTeam', 'adjacentAllyOrSelf'];
-        const isSelfTargeting = selfTargetingMoves.includes(moveTarget);
+        const nonTargetingMoves = ['self', 'allySide', 'allyTeam', 'adjacentAllyOrSelf', 'all'];
+        const isNonTargeting = nonTargetingMoves.includes(moveTarget);
         
-        if (isSelfTargeting) {
-            // 自我强化技（如磨爪、剑舞、龙舞等）不被守住阻挡
-            // 这些招式的目标是使用者自己，守住只能防御指向自己的招式
-            console.log(`[PROTECT IGNORE] ${move.name} 目标是自身 (target: ${moveTarget})，不受守住影响`);
+        if (isNonTargeting) {
+            // 自我强化技（如磨爪、剑舞、龙舞等）和场地技（如沙暴、祈雨等）不被守住阻挡
+            // 这些招式不指向对手，守住只能防御指向自己的招式
+            console.log(`[PROTECT IGNORE] ${move.name} 目标是 ${moveTarget}，不受守住影响`);
             // 不 return，继续执行招式
         }
         
@@ -226,7 +304,7 @@ export function calcDamage(attacker, defender, move, options = {}) {
         const bypassProtectMoves = ['feint', 'shadowforce', 'phantomforce', 'hyperspacefury', 'hyperspacehole'];
         const canBypassProtect = bypassProtectMoves.includes(moveId);
         
-        if (isSelfTargeting) {
+        if (isNonTargeting) {
             // 已在上面处理，跳过守住判定
         } else if (canBypassProtect) {
             console.log(`[PROTECT BYPASS] ${move.name} 穿透了守住！`);
@@ -314,6 +392,45 @@ export function calcDamage(attacker, defender, move, options = {}) {
     const ignoresAbilities = moldBreakerAbilities.includes(attackerAbilityId) || 
                              moldBreakerMoves.includes(moveId);
     
+    // =========================================================
+    // 【始源天气】招式失效判定
+    // Desolate Land (harshsun): 水系攻击招式失效
+    // Primordial Sea (heavyrain): 火系攻击招式失效
+    // =========================================================
+    if (battle && basePower > 0) {
+        const attackMoveType = move.type || fullMoveData.type || 'Normal';
+        
+        // 【终结之地 Desolate Land】水系攻击招式失效
+        if (battle.weather === 'harshsun' && attackMoveType === 'Water') {
+            console.log(`[DESOLATE LAND] 🔥 水系招式 ${move.name} 被强烈的阳光蒸发了！`);
+            return { 
+                damage: 0, 
+                effectiveness: 0, 
+                isCrit: false, 
+                miss: false, 
+                hitCount: 0, 
+                blocked: true,
+                weatherBlocked: true,
+                weatherBlockMessage: `<span style="color:#f59e0b">🔥 水被强烈的阳光蒸发了！</span>`
+            };
+        }
+        
+        // 【始源之海 Primordial Sea】火系攻击招式失效
+        if (battle.weather === 'heavyrain' && attackMoveType === 'Fire') {
+            console.log(`[PRIMORDIAL SEA] 🌊 火系招式 ${move.name} 被暴风雨浇灭了！`);
+            return { 
+                damage: 0, 
+                effectiveness: 0, 
+                isCrit: false, 
+                miss: false, 
+                hitCount: 0, 
+                blocked: true,
+                weatherBlocked: true,
+                weatherBlockMessage: `<span style="color:#3b82f6">🌊 火被暴风雨浇灭了！</span>`
+            };
+        }
+    }
+    
     // === 特性免疫判定 Hook ===
     if (!ignoresAbilities && typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
         const ahDef = AbilityHandlers[defender.ability];
@@ -373,6 +490,16 @@ export function calcDamage(attacker, defender, move, options = {}) {
     
     // === 命中判定 ===
     let moveAcc = (accuracy === true || accuracy === undefined) ? 100 : accuracy;
+    
+    // === 【天气命中率修正】使用 MoveEffects 模块 ===
+    const weatherForAcc = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';
+    if (weatherForAcc && typeof MoveEffects !== 'undefined' && MoveEffects.getWeatherAccuracyModifier) {
+        const accResult = MoveEffects.getWeatherAccuracyModifier(weatherForAcc, move.name);
+        if (accResult.accuracy !== null) {
+            moveAcc = accResult.accuracy;
+            console.log(`[WEATHER ACC] ${accResult.log}`);
+        }
+    }
     
     // 无防守 (No Guard)
     const attackerHasNoGuard = attackerAbilityId === 'noguard';
@@ -515,6 +642,17 @@ export function calcDamage(attacker, defender, move, options = {}) {
     let atkStat = isSpecial ? attacker.getStat('spa') : attacker.getStat('atk');
     let defStat = isSpecial ? defender.getStat('spd') : defender.getStat('def');
     
+    // === 【天气防御加成】使用 MoveEffects 模块 ===
+    const weatherForDef = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';
+    const defenderTypesForWeather = defender.types || [];
+    if (weatherForDef && typeof MoveEffects !== 'undefined' && MoveEffects.getWeatherDefenseBoost) {
+        const defResult = MoveEffects.getWeatherDefenseBoost(weatherForDef, defenderTypesForWeather, isSpecial);
+        if (defResult.multiplier !== 1) {
+            const oldDef = defStat;
+            defStat = Math.floor(defStat * defResult.multiplier);
+            console.log(`[WEATHER DEF] ${defResult.log} (${oldDef} -> ${defStat})`);
+        }
+    }
     
     // === 【纯朴 Unaware】特性处理 ===
     if (typeof AbilityHandlers !== 'undefined') {
@@ -566,8 +704,29 @@ export function calcDamage(attacker, defender, move, options = {}) {
     
     // 属性克制
     // 【修复】确保 moveType 有效，优先使用 move.type，回退到 fullMoveData.type
-    const moveType = move.type || fullMoveData.type || 'Normal';
-    let effectiveness = getTypeEffectiveness(moveType, defensiveTypes, move.name);
+    // 注意：moveType 已在天气威力修正处声明，此处直接使用
+    const effectiveMoveType = move.type || fullMoveData.type || 'Normal';
+    let effectiveness = getTypeEffectiveness(effectiveMoveType, defensiveTypes, move.name);
+    
+    // =========================================================
+    // 【Delta Stream 德尔塔气流】飞行系克制伤害变为 1 倍
+    // 电/冰/岩 对飞行系的效果绝佳 -> 强制变为 1 倍
+    // =========================================================
+    if (battle && battle.weather === 'deltastream') {
+        const defenderTypes = defender.types || [];
+        const isFlying = defenderTypes.includes('Flying');
+        const isSuperEffectiveAgainstFlying = ['Electric', 'Ice', 'Rock'].includes(effectiveMoveType);
+        
+        if (isFlying && isSuperEffectiveAgainstFlying && effectiveness > 1) {
+            // 计算飞行系被克制的倍率贡献
+            // 例如：冰打龙飞 = 2(龙) * 2(飞) = 4，需要除以 2 变成 2
+            // 例如：岩打飞 = 2(飞) = 2，需要除以 2 变成 1
+            const flyingWeakness = ['Electric', 'Ice', 'Rock'].includes(effectiveMoveType) ? 2 : 1;
+            const originalEffectiveness = effectiveness;
+            effectiveness = effectiveness / flyingWeakness;
+            console.log(`[DELTA STREAM] 🌪️ 德尔塔气流保护了飞行系！${effectiveMoveType} 克制倍率: ${originalEffectiveness} -> ${effectiveness}`);
+        }
+    }
     
     // === 本系加成 (STAB) ===
     let stab = 1;
@@ -784,10 +943,26 @@ export function calcDamage(attacker, defender, move, options = {}) {
     
     // === 防御方特性伤害修正 ===
     // 【重要】传递 isSimulation 标记，避免 AI 模拟时触发形态变化等副作用
+    let defenderAbilityLog = null;
     if (!ignoresAbilities && typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
         const ahDef = AbilityHandlers[defender.ability];
         if (ahDef.onDefenderModifyDamage) {
-            singleHitDamage = ahDef.onDefenderModifyDamage(singleHitDamage, attacker, defender, move, effectiveness, options.isSimulation);
+            const originalDamage = singleHitDamage;
+            const result = ahDef.onDefenderModifyDamage(singleHitDamage, attacker, defender, move, effectiveness, options.isSimulation);
+            // 支持返回对象 { damage, log } 或直接返回数字
+            if (typeof result === 'object' && result !== null) {
+                singleHitDamage = result.damage;
+                defenderAbilityLog = result.log || null;
+            } else {
+                singleHitDamage = result;
+            }
+            // 【干燥皮肤等特性】如果伤害增加且没有自定义日志，生成默认日志
+            if (!options.isSimulation && singleHitDamage > originalDamage && !defenderAbilityLog) {
+                const abilityName = defender.ability;
+                if (abilityName === 'Dry Skin' && move.type === 'Fire') {
+                    defenderAbilityLog = `🔥 ${defender.cnName} 的干燥皮肤让火系伤害增加了!`;
+                }
+            }
         }
     }
     
@@ -846,6 +1021,13 @@ export function calcDamage(attacker, defender, move, options = {}) {
     // 总伤害
     let totalDamage = singleHitDamage * hitCount;
     
+    // 【半无敌状态双倍伤害】地震对挖洞、冲浪对潜水等
+    if (move._invulnDoubleDamage) {
+        totalDamage = totalDamage * 2;
+        console.log(`[INVULN] 双倍伤害生效: ${totalDamage / 2} × 2 = ${totalDamage}`);
+        delete move._invulnDoubleDamage; // 清除标记
+    }
+    
     // 【对冲系统】应用对冲伤害倍率
     if (move.clashDamageMultiplier !== undefined && move.clashDamageMultiplier < 1) {
         const originalDamage = totalDamage;
@@ -862,7 +1044,8 @@ export function calcDamage(attacker, defender, move, options = {}) {
         hitCount,
         resistBerryTriggered,
         resistBerryMessage,
-        commandCritTriggered
+        commandCritTriggered,
+        defenderAbilityLog
     };
 }
 

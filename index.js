@@ -72,7 +72,8 @@ async function initGame() {
         enableEVO: settings.enableEVO !== false,           // 进化/羁绊共鸣系统
         enableBGM: settings.enableBGM !== false,           // 背景音乐
         enableSFX: settings.enableSFX !== false,           // 音效
-        enableClash: settings.enableClash !== false        // 对冲系统
+        enableClash: settings.enableClash !== false,       // 对冲系统
+        enableEnvironment: settings.enableEnvironment !== false  // 环境天气系统
     };
     console.log('[SETTINGS] 全局系统开关:', window.GAME_SETTINGS);
     
@@ -99,6 +100,11 @@ async function initGame() {
     document.getElementById('game-view').classList.remove('hidden');
 
     resetSpriteState();
+    
+    // 初始化天气视觉系统
+    if (typeof window.initWeatherSystem === 'function') {
+        window.initWeatherSystem();
+    }
 
     // 加载对战 JSON (已在预加载阶段获取)
     try {
@@ -293,6 +299,37 @@ async function initGame() {
     // === 播放战斗 BGM ===
     if (typeof playBattleBgm === 'function') {
         playBattleBgm();
+    }
+    
+    // === 环境天气初始化 (地图模块接口) ===
+    // 在入场特性之前触发，宝可梦特性可以覆盖环境天气
+    // 受 settings.enableEnvironment 开关控制
+    const enableEnv = window.GAME_SETTINGS && window.GAME_SETTINGS.enableEnvironment;
+    if (enableEnv && json.environment && json.environment.weather && json.environment.weather !== 'none') {
+        const envWeather = json.environment.weather;
+        const envTurns = json.environment.weatherTurns || 0;
+        
+        // 保存环境天气到 battle 对象，用于天气结束后回归
+        battle.environmentWeather = envWeather;
+        battle.weather = envWeather;
+        battle.weatherTurns = envTurns; // 0 = 永久
+        
+        // 天气名称映射
+        const weatherNames = {
+            'rain': '下起了雨',
+            'sun': '阳光变得强烈',
+            'sandstorm': '刮起了沙暴',
+            'snow': '下起了雪',
+            'hail': '下起了冰雹'
+        };
+        const weatherName = weatherNames[envWeather] || envWeather;
+        log(`<span style="color:#9b59b6">🌍 环境效果：${weatherName}！</span>`);
+        
+        // 触发天气视觉效果
+        if (typeof window.setWeatherVisuals === 'function') {
+            window.setWeatherVisuals(envWeather);
+        }
+        console.log(`[ENVIRONMENT] 初始化环境天气: ${envWeather}, 持续: ${envTurns || '永久'}`);
     }
     
     // === 触发双方入场特性 (威吓、天气等) ===
@@ -502,6 +539,20 @@ function updateAllVisuals(forceSpriteAnim = false) {
                 // 禁用逻辑
                 let isDisabled = false;
                 if (showZStyle && battle.playerZUsed) isDisabled = true;
+                
+                // 【关键修复】检查定身法/诅咒之躯封印
+                if (p.volatile && p.volatile.disable > 0 && p.volatile.disabledMove) {
+                    if (m.name === p.volatile.disabledMove) {
+                        isDisabled = true;
+                        console.log(`[DISABLE UI] ${m.name} 被封印，按钮禁用`);
+                    }
+                }
+                
+                // 【关键修复】检查怨恨封印 (Grudge)
+                if (p.volatile && p.volatile.grudgeSealed && p.volatile.grudgeSealed.includes(m.name)) {
+                    isDisabled = true;
+                    console.log(`[GRUDGE UI] ${m.name} 被怨恨封印，按钮禁用`);
+                }
                 
                 // 获取显示名称和类型
                 let displayName = m.cn || m.name;
@@ -2419,6 +2470,12 @@ async function executeEndPhase(p, e) {
         if (typeof MoveEffects !== 'undefined' && MoveEffects.tickVolatileStatus) {
             const volatileLogs = MoveEffects.tickVolatileStatus(p);
             volatileLogs.forEach(txt => log(txt));
+            // 【关键修复】检查灭亡之歌等效果是否导致玩家倒下
+            if (!p.isAlive()) {
+                updateAllVisuals();
+                await handlePlayerFainted(p);
+                return; // 玩家倒下，终止回合末结算
+            }
         }
         // === 【新增】道具回合末效果 (剧毒宝珠、火焰宝珠、剩饭等) ===
         if (typeof MoveEffects !== 'undefined' && MoveEffects.processEndTurnItemEffects) {
@@ -2437,6 +2494,12 @@ async function executeEndPhase(p, e) {
         if (typeof MoveEffects !== 'undefined' && MoveEffects.tickVolatileStatus) {
             const volatileLogs = MoveEffects.tickVolatileStatus(e);
             volatileLogs.forEach(txt => log(txt));
+            // 【关键修复】检查灭亡之歌等效果是否导致敌方倒下
+            if (!e.isAlive()) {
+                updateAllVisuals();
+                await handleEnemyFainted(e);
+                return; // 敌方倒下，终止回合末结算
+            }
         }
         // === 【新增】道具回合末效果 (剧毒宝珠、火焰宝珠、剩饭等) ===
         if (typeof MoveEffects !== 'undefined' && MoveEffects.processEndTurnItemEffects) {
@@ -2568,9 +2631,16 @@ window.executeEndPhase = executeEndPhase;
  * ===========================================
  */
 function checkPlayerDefeatOrForceSwitch() {
+    // 【防止重复判定】如果已经判定过胜负，直接返回
+    if (battle.battleEndDetermined) {
+        console.log('[checkPlayerDefeatOrForceSwitch] 胜负已判定，跳过');
+        return Promise.resolve('already_determined');
+    }
+    
     const battleEnd = battle.checkBattleEnd();
     
     if (battleEnd === 'loss') {
+        battle.battleEndDetermined = true;
         log(" <b style='color:#e74c3c'>... 你输了.</b>");
 
         if (battle.trainer && battle.trainer.id !== 'wild' && battle.trainer.lines?.win) {
@@ -2581,6 +2651,16 @@ function checkPlayerDefeatOrForceSwitch() {
 
         setTimeout(() => battleEndSequence('loss'), 2000);
         return Promise.resolve('loss');
+    } else if (battleEnd === 'win') {
+        // 【同命双杀】可能在这里触发（玩家倒下但敌方也全灭，且同命者是敌方）
+        battle.battleEndDetermined = true;
+        log("🏆 <b style='color:#27ae60'>敌方全部战败！你赢了！</b>");
+        const t = battle.trainer;
+        if (t && t.id !== 'wild' && t.lines?.lose) {
+            log(`<i>${t.name}: "${t.lines.lose}"</i>`);
+        }
+        setTimeout(() => battleEndSequence('win'), 2000);
+        return Promise.resolve('win');
     }
     
     // 强制换人 - 返回 Promise 等待玩家选择
@@ -2950,6 +3030,14 @@ async function performSwitch(newIndex) {
         log("由于交换宝可梦，敌方发起了攻击！");
         battle.locked = true;
         await enemyTurn();
+        
+        // 【修复】敌方攻击结束后（包括被精神场地阻止的情况），显示招式菜单
+        const currentP = battle.getPlayer();
+        const currentE = battle.getEnemy();
+        if (currentP && currentP.isAlive() && currentE && currentE.isAlive()) {
+            updateAllVisuals();
+            showMovesMenu();
+        }
     } else {
         // 强制换人完成后，刷新界面并解锁
         updateAllVisuals();

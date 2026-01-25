@@ -542,8 +542,17 @@ export class Pokemon {
             ev_level: evLevel,
             nature: this.nature
         });
-        this.maxHp = stats.hp;
-        this.currHp = stats.hp;
+        
+        // === 【脱壳忍者 Shedinja 特判】HP 强制为 1 ===
+        const speciesId = (this.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (speciesId === 'shedinja') {
+            this.maxHp = 1;
+            this.currHp = 1;
+            console.log(`[SHEDINJA] ${this.cnName} 的 HP 强制设为 1`);
+        } else {
+            this.maxHp = stats.hp;
+            this.currHp = stats.hp;
+        }
         this.atk = stats.atk;
         this.def = stats.def;
         this.spa = stats.spa;
@@ -680,7 +689,16 @@ export class Pokemon {
             }
             // 使用 Locale 工具获取技能中文名
             const cnName = (typeof window !== 'undefined' && window.Locale) ? window.Locale.get(md.name) : md.name;
-            return { name: md.name, cn: cnName, type: md.type, power: md.power || 0, cat: md.cat || 'phys' };
+            // 【修复】保留 target 字段，用于精神场地等机制判断招式目标类型
+            return { 
+                name: md.name, 
+                cn: cnName, 
+                type: md.type, 
+                power: md.power || 0, 
+                cat: md.cat || 'phys',
+                target: md.target || 'normal',  // 【关键】保留目标类型
+                priority: md.priority || 0      // 【关键】保留优先度
+            };
         });
         
         // 如果没给技能或过滤后为空，给个默认的
@@ -1153,6 +1171,15 @@ export function checkCanMove(pokemon, move = null) {
     // 1. 畏缩 (Flinch) - 本回合无法行动，用完即清
     if (pokemon.volatile && pokemon.volatile.flinch) {
         pokemon.volatile.flinch = false;
+        // 【重要】畏缩会中断蓄力技能
+        if (pokemon.volatile.chargingMove) {
+            delete pokemon.volatile.chargingMove;
+            // 清除半无敌状态
+            delete pokemon.volatile.flying;
+            delete pokemon.volatile.underground;
+            delete pokemon.volatile.underwater;
+            delete pokemon.volatile.shadow;
+        }
         return { can: false, msg: `${pokemon.cnName} 因为畏缩而无法动弹!` };
     }
     
@@ -1163,12 +1190,28 @@ export function checkCanMove(pokemon, move = null) {
             pokemon.status = null;
             return { can: true, msg: `${pokemon.cnName} 醒过来了!` };
         }
+        // 【重要】睡眠会中断蓄力技能
+        if (pokemon.volatile && pokemon.volatile.chargingMove) {
+            delete pokemon.volatile.chargingMove;
+            delete pokemon.volatile.flying;
+            delete pokemon.volatile.underground;
+            delete pokemon.volatile.underwater;
+            delete pokemon.volatile.shadow;
+        }
         return { can: false, msg: `${pokemon.cnName} 正在熟睡中...` };
     }
     
     // 3. 麻痹 (Paralysis) - 25% 几率无法行动
     if (pokemon.status === 'par') {
         if (Math.random() < 0.25) {
+            // 【重要】麻痹无法行动会中断蓄力技能
+            if (pokemon.volatile && pokemon.volatile.chargingMove) {
+                delete pokemon.volatile.chargingMove;
+                delete pokemon.volatile.flying;
+                delete pokemon.volatile.underground;
+                delete pokemon.volatile.underwater;
+                delete pokemon.volatile.shadow;
+            }
             return { can: false, msg: `${pokemon.cnName} 因身体麻痹而无法行动!` };
         }
     }
@@ -1190,6 +1233,14 @@ export function checkCanMove(pokemon, move = null) {
         if (Math.random() < 0.2) {
             pokemon.status = null;
             return { can: true, msg: `${pokemon.cnName} 的冰冻解除了!` };
+        }
+        // 【重要】冰冻会中断蓄力技能
+        if (pokemon.volatile && pokemon.volatile.chargingMove) {
+            delete pokemon.volatile.chargingMove;
+            delete pokemon.volatile.flying;
+            delete pokemon.volatile.underground;
+            delete pokemon.volatile.underwater;
+            delete pokemon.volatile.shadow;
         }
         return { can: false, msg: `${pokemon.cnName} 被冻得动弹不得!` };
     }
@@ -1241,6 +1292,13 @@ export function checkCanMove(pokemon, move = null) {
         }
     }
     
+    // 5d. 怨恨封印 (Grudge Seal) - 被怨恨封印的招式无法使用
+    if (pokemon.volatile && pokemon.volatile.grudgeSealed && move) {
+        if (pokemon.volatile.grudgeSealed.includes(move.name)) {
+            return { can: false, msg: `${pokemon.cnName} 的 ${move.cn || move.name} 被怨念封印了!` };
+        }
+    }
+    
     return { can: true, msg: '', forcedMove: null };
 }
 
@@ -1250,6 +1308,34 @@ export function checkCanMove(pokemon, move = null) {
 export function clearVolatileStatus(pokemon) {
     if (pokemon.volatile) {
         pokemon.volatile.flinch = false;
+    }
+}
+
+/**
+ * 清除换人时的所有临时状态（包括蓄力状态）
+ * 用于换人、濒死等情况
+ */
+export function clearAllVolatileStatus(pokemon) {
+    if (!pokemon) return;
+    
+    // 清除蓄力状态
+    if (typeof clearChargingState === 'function') {
+        clearChargingState(pokemon);
+    } else if (pokemon.volatile) {
+        // Fallback: 手动清除蓄力相关状态
+        delete pokemon.volatile.chargingMove;
+        delete pokemon.volatile.flying;
+        delete pokemon.volatile.underground;
+        delete pokemon.volatile.underwater;
+        delete pokemon.volatile.shadow;
+    }
+    
+    // 清除其他临时状态
+    if (pokemon.volatile) {
+        pokemon.volatile.flinch = false;
+        pokemon.volatile.protect = false;
+        delete pokemon.volatile.lockedMove;
+        delete pokemon.volatile.lastMove;
     }
 }
 
@@ -1269,6 +1355,7 @@ export function clearVolatileStatus(pokemon) {
 if (typeof window !== 'undefined') {
     window.checkCanMove = checkCanMove;
     window.clearVolatileStatus = clearVolatileStatus;
+    window.clearAllVolatileStatus = clearAllVolatileStatus;
     // getEndTurnStatusLogs 已迁移到 battle-turns.js
     // getMovePriority 使用 MoveEffects.getMovePriority
     window.getMovePriority = (typeof MoveEffects !== 'undefined' && MoveEffects.getMovePriority) 
@@ -1434,6 +1521,75 @@ export class BattleState {
             this.enemySide.auroraVeil--;
             if (this.enemySide.auroraVeil === 0) {
                 logs.push("敌方的极光幕消失了！");
+            }
+        }
+        
+        // =========================================================
+        // 【修复】天气回合递减
+        // 【重要】始源天气 (deltastream, harshsun, heavyrain) 不递减
+        // 它们只在对应特性宝可梦在场时存在
+        // =========================================================
+        const PRIMAL_WEATHERS = ['deltastream', 'harshsun', 'heavyrain'];
+        if (this.weatherTurns && this.weatherTurns > 0 && !PRIMAL_WEATHERS.includes(this.weather)) {
+            this.weatherTurns--;
+            console.log(`[WEATHER] 天气回合递减: ${this.weatherTurns + 1} -> ${this.weatherTurns}`);
+            if (this.weatherTurns === 0) {
+                const weatherNames = {
+                    'rain': '雨停了。',
+                    'sun': '阳光恢复了正常。',
+                    'sandstorm': '沙暴停止了。',
+                    'hail': '冰雹停止了。',
+                    'snow': '雪停了。'
+                };
+                const msg = weatherNames[this.weather] || '天气恢复了正常。';
+                logs.push(`🌤️ ${msg}`);
+                console.log(`[WEATHER] 天气结束: ${this.weather}`);
+                
+                // 检查是否有环境天气需要回归
+                if (this.environmentWeather && this.environmentWeather !== 'none') {
+                    this.weather = this.environmentWeather;
+                    this.weatherTurns = 0; // 环境天气永久
+                    const envWeatherNames = {
+                        'rain': '雨天',
+                        'sun': '晴天',
+                        'sandstorm': '沙暴',
+                        'snow': '雪天',
+                        'hail': '冰雹'
+                    };
+                    const envName = envWeatherNames[this.environmentWeather] || this.environmentWeather;
+                    logs.push(`<span style="color:#9b59b6">🌍 环境天气回归：${envName}！</span>`);
+                    console.log(`[ENVIRONMENT] 回归环境天气: ${this.environmentWeather}`);
+                    // 更新天气视觉效果
+                    if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                        window.setWeatherVisuals(this.environmentWeather);
+                    }
+                } else {
+                    this.weather = null;
+                    // 更新天气视觉效果
+                    if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                        window.setWeatherVisuals('none');
+                    }
+                }
+            }
+        }
+        
+        // =========================================================
+        // 【修复】场地回合递减 (Terrain)
+        // =========================================================
+        if (this.terrainTurns && this.terrainTurns > 0) {
+            this.terrainTurns--;
+            console.log(`[TERRAIN] 场地回合递减: ${this.terrainTurns + 1} -> ${this.terrainTurns}`);
+            if (this.terrainTurns === 0) {
+                const terrainNames = {
+                    'electricterrain': '电气场地消失了。',
+                    'grassyterrain': '青草场地消失了。',
+                    'psychicterrain': '精神场地消失了。',
+                    'mistyterrain': '薄雾场地消失了。'
+                };
+                const msg = terrainNames[this.terrain] || '场地效果消失了。';
+                logs.push(`🌿 ${msg}`);
+                console.log(`[TERRAIN] 场地结束: ${this.terrain}`);
+                this.terrain = null;
             }
         }
         
@@ -1642,9 +1798,31 @@ export class BattleState {
     getEnemy() { return this.enemyParty[this.enemyActive]; }
     
     // 检查胜负
+    // 【官方规则】同命导致的双杀，使用同命者输
     checkBattleEnd() {
         const playerAlive = this.playerParty.some(p => p.isAlive());
         const enemyAlive = this.enemyParty.some(p => p.isAlive());
+        
+        console.log(`[checkBattleEnd] playerAlive: ${playerAlive}, enemyAlive: ${enemyAlive}, destinyBondCauser: ${this.destinyBondCauser}`);
+        
+        // 双方都没有存活的宝可梦 -> 需要判断谁输
+        if (!playerAlive && !enemyAlive) {
+            // 【同命规则】如果是同命导致的双杀，使用同命者输
+            // destinyBondCauser 记录了谁使用了同命导致双杀
+            if (this.destinyBondCauser === 'enemy') {
+                // 敌方使用同命导致双杀 -> 敌方输 -> 玩家赢
+                console.log('[BATTLE END] 同命双杀：敌方使用同命，敌方输');
+                return 'win';
+            } else if (this.destinyBondCauser === 'player') {
+                // 玩家使用同命导致双杀 -> 玩家输
+                console.log('[BATTLE END] 同命双杀：玩家使用同命，玩家输');
+                return 'loss';
+            }
+            // 其他双杀情况（如大爆炸）：攻击者输
+            // 默认：玩家输（保守判定）
+            console.log('[BATTLE END] 双杀：默认玩家输');
+            return 'loss';
+        }
         
         if (!playerAlive) return 'loss';
         if (!enemyAlive) return 'win';

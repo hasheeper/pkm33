@@ -22,6 +22,133 @@
 // ============================================
 
 /**
+ * 处理蓄力技能的 onUse 钩子
+ * 统一处理天气联动、强力香草、蓄力状态等逻辑
+ * @param {Pokemon} attacker 攻击方
+ * @param {string} moveName 技能名称
+ * @param {object} battle 战斗状态
+ * @param {Array} logs 日志数组
+ * @returns {object} { skipDamage, charging, released }
+ */
+function handleChargeMoveOnUse(attacker, moveName, battle, logs) {
+    // 获取蓄力配置
+    const config = (typeof getChargeMoveConfig === 'function') 
+        ? getChargeMoveConfig(moveName) 
+        : (typeof window !== 'undefined' && window.CHARGE_MOVES) 
+            ? window.CHARGE_MOVES[moveName] 
+            : null;
+    
+    if (!config) {
+        // 没有配置，直接执行
+        return {};
+    }
+    
+    // 检查是否正在蓄力中（第二回合）
+    const chargingMove = attacker.volatile?.chargingMove;
+    if (chargingMove === moveName) {
+        // 第二回合：释放攻击
+        if (attacker.volatile) {
+            delete attacker.volatile.chargingMove;
+            // 清除半无敌状态
+            if (config.type === 'invuln' && config.status) {
+                delete attacker.volatile[config.status];
+            }
+        }
+        
+        // 释放时的能力提升（如 Geomancy）
+        if (config.releaseBoost) {
+            const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+            for (const [stat, stages] of Object.entries(config.releaseBoost)) {
+                if (attacker.applyBoost) {
+                    attacker.applyBoost(stat, stages);
+                    const changeText = stages >= 2 ? '大幅' : '';
+                    logs.push(`${attacker.cnName} 的${statNames[stat] || stat}${changeText}提升了！`);
+                }
+            }
+        }
+        
+        logs.push(`${attacker.cnName} ${config.releaseText}`);
+        return { released: true };
+    }
+    
+    // 第一回合：检查是否可以跳过蓄力
+    let canSkip = false;
+    let skipReason = null;
+    let consumeItem = false;
+    
+    // 1. 天气联动型：检查天气
+    if (config.type === 'weather' && config.weather) {
+        const currentWeather = battle?.weather || null;
+        if (currentWeather && config.weather.includes(currentWeather)) {
+            canSkip = true;
+            skipReason = 'weather';
+        }
+    }
+    
+    // 2. 强力香草 (Power Herb)：消耗道具跳过蓄力
+    if (!canSkip) {
+        const userItem = (attacker.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (userItem === 'powerherb') {
+            canSkip = true;
+            skipReason = 'powerherb';
+            consumeItem = true;
+        }
+    }
+    
+    if (canSkip) {
+        // 可以跳过蓄力，直接攻击
+        if (consumeItem) {
+            logs.push(`${attacker.cnName} 的强力香草生效了！`);
+            attacker.item = null;
+        }
+        
+        // 蓄力期间的能力提升仍然生效
+        if (config.chargeBoost) {
+            const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+            for (const [stat, stages] of Object.entries(config.chargeBoost)) {
+                if (attacker.applyBoost) {
+                    attacker.applyBoost(stat, stages);
+                    logs.push(`${attacker.cnName} 的${statNames[stat] || stat}提升了！`);
+                }
+            }
+        }
+        
+        if (skipReason === 'weather') {
+            logs.push(`${attacker.cnName} 借助天气的力量，${config.releaseText}`);
+        } else {
+            logs.push(`${attacker.cnName} ${config.releaseText}`);
+        }
+        
+        return { released: true };
+    }
+    
+    // 需要蓄力
+    attacker.volatile = attacker.volatile || {};
+    attacker.volatile.chargingMove = moveName;
+    
+    // 半无敌状态
+    if (config.type === 'invuln' && config.status) {
+        attacker.volatile[config.status] = true;
+    }
+    
+    // 蓄力期间的能力提升
+    if (config.chargeBoost) {
+        const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+        for (const [stat, stages] of Object.entries(config.chargeBoost)) {
+            if (attacker.applyBoost) {
+                attacker.applyBoost(stat, stages);
+                logs.push(`${attacker.cnName} 的${statNames[stat] || stat}提升了！`);
+            }
+        }
+    }
+    
+    logs.push(`${attacker.cnName} ${config.chargeText}`);
+    
+    // 阻止伤害计算，本回合结束
+    return { charging: true, skipDamage: true };
+}
+
+/**
  * 检查道具是否可以被 Knock Off 打落
  * 不能打落：Mega 石、Z 纯晶、专属道具（朱红色宝珠等）
  */
@@ -1025,9 +1152,29 @@ export const MoveHandlers = {
     // 6. 天气技能 (Weather Moves)
     // ============================================
     
+    // 【始源天气】不可被普通天气技能覆盖
+    // Delta Stream (德尔塔气流), Desolate Land (终结之地), Primordial Sea (始源之海)
+    
     'Rain Dance': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'rain'; // 标准值: rain
+            // 【修复】始源天气不可被覆盖
+            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
+                console.log('[WEATHER] Rain Dance failed: primal weather active');
+                return { failed: true };
+            }
+            // 【修复】如果已经是雨天，技能失败
+            if (battle && (battle.weather === 'rain' || battle.weather === 'heavyrain')) {
+                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
+                console.log('[WEATHER] Rain Dance failed: already raining');
+                return { failed: true };
+            }
+            if (battle) {
+                battle.weather = 'rain';
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('rain');
+                }
+            }
             logs.push('天空下起了大雨!');
             logs.push('<span style="color:#3498db">水系技能威力提升，火系技能威力下降!</span>');
             return { weather: 'rain' };
@@ -1037,7 +1184,24 @@ export const MoveHandlers = {
     
     'Sunny Day': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'sun'; // 标准值: sun
+            // 【修复】始源天气不可被覆盖
+            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
+                console.log('[WEATHER] Sunny Day failed: primal weather active');
+                return { failed: true };
+            }
+            // 【修复】如果已经是晴天，技能失败
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
+                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
+                console.log('[WEATHER] Sunny Day failed: already sunny');
+                return { failed: true };
+            }
+            if (battle) {
+                battle.weather = 'sun';
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('sun');
+                }
+            }
             logs.push('阳光变得强烈了!');
             logs.push('<span style="color:#e67e22">火系技能威力提升，水系技能威力下降!</span>');
             return { weather: 'sun' };
@@ -1047,7 +1211,24 @@ export const MoveHandlers = {
     
     'Sandstorm': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'sandstorm'; // 标准值: sandstorm
+            // 【修复】始源天气不可被覆盖
+            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
+                console.log('[WEATHER] Sandstorm failed: primal weather active');
+                return { failed: true };
+            }
+            // 【修复】如果已经是沙暴，技能失败
+            if (battle && battle.weather === 'sandstorm') {
+                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
+                console.log('[WEATHER] Sandstorm failed: already sandstorm');
+                return { failed: true };
+            }
+            if (battle) {
+                battle.weather = 'sandstorm';
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('sand');
+                }
+            }
             logs.push('沙暴刮起来了!');
             logs.push('<span style="color:#d4ac0d">岩石系特防提升，非岩/地/钢系每回合受伤!</span>');
             return { weather: 'sandstorm' };
@@ -1057,7 +1238,24 @@ export const MoveHandlers = {
     
     'Hail': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'hail'; // 标准值: hail
+            // 【修复】始源天气不可被覆盖
+            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
+                console.log('[WEATHER] Hail failed: primal weather active');
+                return { failed: true };
+            }
+            // 【修复】如果已经是冰雹，技能失败
+            if (battle && battle.weather === 'hail') {
+                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
+                console.log('[WEATHER] Hail failed: already hailing');
+                return { failed: true };
+            }
+            if (battle) {
+                battle.weather = 'hail';
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('hail');
+                }
+            }
             logs.push('开始下冰雹了!');
             logs.push('<span style="color:#5dade2">非冰系每回合受伤!</span>');
             return { weather: 'hail' };
@@ -1067,7 +1265,24 @@ export const MoveHandlers = {
     
     'Snowscape': {
         onUse: (attacker, defender, logs, battle) => {
-            if (battle) battle.weather = 'snow'; // 标准值: snow
+            // 【修复】始源天气不可被覆盖
+            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
+                console.log('[WEATHER] Snowscape failed: primal weather active');
+                return { failed: true };
+            }
+            // 【修复】如果已经是雪天，技能失败
+            if (battle && battle.weather === 'snow') {
+                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
+                console.log('[WEATHER] Snowscape failed: already snowing');
+                return { failed: true };
+            }
+            if (battle) {
+                battle.weather = 'snow';
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('snow');
+                }
+            }
             logs.push('下起了雪!');
             logs.push('<span style="color:#85c1e9">冰系防御提升!</span>');
             return { weather: 'snow' };
@@ -1250,34 +1465,41 @@ export const MoveHandlers = {
     // Rapid Spin, Defog 已在第3157行附近定义（完整版本，支持 side 和速度+1）
     
     // ============================================
-    // 8. 蓄力技能 (Two-Turn Moves) - 简化为单回合
+    // 8. 蓄力技能 (Two-Turn Moves) - 完整两回合实现
     // ============================================
+    // 蓄力逻辑由 engine/charge-moves.js 统一处理
+    // 此处的 onUse 钩子用于检测蓄力状态并返回相应结果
     
     'Solar Beam': {
+        isChargeMove: true,
         onUse: (attacker, defender, logs, battle) => {
-            // 简化：直接发射，不需要蓄力
-            // 【天气统一】兼容 sun 和 harshsun
-            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
-                logs.push(`${attacker.cnName} 借助强烈的阳光，瞬间发射了日光束!`);
-            } else {
-                logs.push(`${attacker.cnName} 迅速聚集能量发射了日光束!`);
-            }
-            return { skipCharge: true };
+            return handleChargeMoveOnUse(attacker, 'Solar Beam', battle, logs);
         },
-        description: '晴天下无需蓄力'
+        description: '晴天下无需蓄力，其他天气需要1回合蓄力'
     },
     
     'Solar Blade': {
+        isChargeMove: true,
         onUse: (attacker, defender, logs, battle) => {
-            // 【天气统一】兼容 sun 和 harshsun
-            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
-                logs.push(`${attacker.cnName} 借助阳光的力量挥出了日光刃!`);
-            } else {
-                logs.push(`${attacker.cnName} 聚集光芒挥出了日光刃!`);
-            }
-            return { skipCharge: true };
+            return handleChargeMoveOnUse(attacker, 'Solar Blade', battle, logs);
         },
-        description: '晴天下无需蓄力'
+        description: '晴天下无需蓄力，其他天气需要1回合蓄力'
+    },
+    
+    'Electro Shot': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Electro Shot', battle, logs);
+        },
+        description: '雨天下无需蓄力，蓄力时特攻+1'
+    },
+    
+    'Meteor Beam': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Meteor Beam', battle, logs);
+        },
+        description: '蓄力时特攻+1'
     },
     
     // Hyper Beam, Giga Impact 已在第820行附近定义（完整版本）
@@ -1285,69 +1507,61 @@ export const MoveHandlers = {
     // ============================================
     // 8.5 半无敌状态技能 (Semi-Invulnerable Moves)
     // ============================================
-    // 注意：完整的两回合逻辑需要引擎支持 isCharging 状态
-    // 这里简化为单回合版本，但保留 breaksProtect 等关键属性
+    // 完整的两回合逻辑，蓄力期间进入半无敌状态
     
     // 【潜灵奇袭 Phantom Force】多龙巴鲁托核心技能
     // 穿透守住，拖极巨化回合
     'Phantom Force': {
+        isChargeMove: true,
         breaksProtect: true, // 穿透守住
         onUse: (attacker, defender, logs, battle) => {
-            // 简化：单回合版本
-            logs.push(`${attacker.cnName} 消失在了异次元中...`);
-            logs.push(`${attacker.cnName} 从异次元发动了攻击！`);
-            return {};
+            return handleChargeMoveOnUse(attacker, 'Phantom Force', battle, logs);
         },
-        description: '穿透守住'
+        description: '穿透守住，蓄力期间半无敌'
     },
     
     // 【暗影潜袭 Shadow Force】骑拉帝纳专属
     'Shadow Force': {
+        isChargeMove: true,
         breaksProtect: true,
         onUse: (attacker, defender, logs, battle) => {
-            logs.push(`${attacker.cnName} 消失在了暗影中...`);
-            logs.push(`${attacker.cnName} 从暗影中发动了攻击！`);
-            return {};
+            return handleChargeMoveOnUse(attacker, 'Shadow Force', battle, logs);
         },
-        description: '穿透守住'
+        description: '穿透守住，蓄力期间半无敌'
     },
     
     // 【飞翔 Fly】
     'Fly': {
+        isChargeMove: true,
         onUse: (attacker, defender, logs, battle) => {
-            logs.push(`${attacker.cnName} 飞上了高空！`);
-            logs.push(`${attacker.cnName} 俯冲攻击！`);
-            return {};
+            return handleChargeMoveOnUse(attacker, 'Fly', battle, logs);
         },
-        description: '飞上高空后攻击'
+        description: '飞上高空后攻击，蓄力期间半无敌'
     },
     
     // 【挖洞 Dig】
     'Dig': {
+        isChargeMove: true,
         onUse: (attacker, defender, logs, battle) => {
-            logs.push(`${attacker.cnName} 钻入了地下！`);
-            logs.push(`${attacker.cnName} 从地下发动攻击！`);
-            return {};
+            return handleChargeMoveOnUse(attacker, 'Dig', battle, logs);
         },
-        description: '钻入地下后攻击'
+        description: '钻入地下后攻击，蓄力期间半无敌'
     },
     
     // 【潜水 Dive】
     'Dive': {
+        isChargeMove: true,
         onUse: (attacker, defender, logs, battle) => {
-            logs.push(`${attacker.cnName} 潜入了水中！`);
-            logs.push(`${attacker.cnName} 从水中发动攻击！`);
-            return {};
+            return handleChargeMoveOnUse(attacker, 'Dive', battle, logs);
         },
-        description: '潜入水中后攻击'
+        description: '潜入水中后攻击，蓄力期间半无敌'
     },
     
     // 【弹跳 Bounce】
     'Bounce': {
+        isChargeMove: true,
         onUse: (attacker, defender, logs, battle) => {
-            logs.push(`${attacker.cnName} 跳到了高空！`);
-            logs.push(`${attacker.cnName} 落下攻击！`);
-            return {};
+            return handleChargeMoveOnUse(attacker, 'Bounce', battle, logs);
         },
         secondary: { chance: 30, status: 'par' },
         description: '跳到高空后攻击，30%麻痹'
@@ -1355,12 +1569,83 @@ export const MoveHandlers = {
     
     // 【天空落下 Sky Drop】
     'Sky Drop': {
+        isChargeMove: true,
         onUse: (attacker, defender, logs, battle) => {
-            logs.push(`${attacker.cnName} 抓住 ${defender.cnName} 飞上了高空！`);
-            logs.push(`${attacker.cnName} 将 ${defender.cnName} 摔落！`);
-            return {};
+            return handleChargeMoveOnUse(attacker, 'Sky Drop', battle, logs);
         },
-        description: '抓住对手飞上高空后摔落'
+        description: '抓住对手飞上高空后摔落，蓄力期间双方半无敌'
+    },
+    
+    // 【火箭头锤 Skull Bash】蓄力时提升防御
+    'Skull Bash': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Skull Bash', battle, logs);
+        },
+        description: '缩头蓄力提升防御后猛烈撞击'
+    },
+    
+    // 【神鸟攻击 Sky Attack】高暴击率
+    'Sky Attack': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Sky Attack', battle, logs);
+        },
+        description: '蓄力后发动神鸟攻击，高暴击率'
+    },
+    
+    // 【真空斩 Razor Wind】高暴击率
+    'Razor Wind': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Razor Wind', battle, logs);
+        },
+        description: '卷起狂风后释放真空斩，高暴击率'
+    },
+    
+    // 【冰冻伏特 Freeze Shock】酋雷姆-黑专属
+    'Freeze Shock': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Freeze Shock', battle, logs);
+        },
+        description: '被冰冷电流包围后释放'
+    },
+    
+    // 【极寒冷焰 Ice Burn】酋雷姆-白专属
+    'Ice Burn': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Ice Burn', battle, logs);
+        },
+        description: '被极寒火焰包围后释放'
+    },
+    
+    // 【大地掌控 Geomancy】哲尔尼亚斯专属变化技
+    'Geomancy': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Geomancy', battle, logs);
+        },
+        description: '吸收大地力量后大幅提升特攻特防速度'
+    },
+    
+    // 【鸟嘴加农炮 Beak Blast】铳嘴大鸟专属
+    'Beak Blast': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Beak Blast', battle, logs);
+        },
+        description: '加热鸟嘴后发射，蓄力期间被接触会烧伤对手'
+    },
+    
+    // 【真气拳 Focus Punch】被攻击会中断
+    'Focus Punch': {
+        isChargeMove: true,
+        onUse: (attacker, defender, logs, battle) => {
+            return handleChargeMoveOnUse(attacker, 'Focus Punch', battle, logs);
+        },
+        description: '集中精神后发出强力拳击，被攻击会中断'
     },
     
     // ============================================
@@ -2214,126 +2499,14 @@ export const MoveHandlers = {
     // ============================================
     // 吸血/反伤技能补充 (Drain/Recoil Moves)
     // ============================================
-    
-    'Giga Drain': {
-        onHit: (attacker, defender, damage, logs) => {
-            const drainAmount = Math.floor(damage / 2);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吸取了对手的体力!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '造成伤害并回复伤害的50%'
-    },
-    
-    'Drain Punch': {
-        onHit: (attacker, defender, damage, logs) => {
-            const drainAmount = Math.floor(damage / 2);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吸取了对手的体力!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '造成伤害并回复伤害的50%'
-    },
-    
-    'Horn Leech': {
-        onHit: (attacker, defender, damage, logs) => {
-            const drainAmount = Math.floor(damage / 2);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吸取了对手的体力!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '造成伤害并回复伤害的50%'
-    },
-    
-    'Leech Life': {
-        onHit: (attacker, defender, damage, logs) => {
-            const drainAmount = Math.floor(damage / 2);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吸取了对手的体力!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '造成伤害并回复伤害的50%'
-    },
-    
-    'Oblivion Wing': {
-        onHit: (attacker, defender, damage, logs) => {
-            // 回复伤害的75%
-            const drainAmount = Math.floor(damage * 0.75);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吸取了对手的体力!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '造成伤害并回复伤害的75%'
-    },
-    
-    'Draining Kiss': {
-        onHit: (attacker, defender, damage, logs) => {
-            // 回复伤害的75%
-            const drainAmount = Math.floor(damage * 0.75);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吸取了对手的体力!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '造成伤害并回复伤害的75%'
-    },
-    
-    'Absorb': {
-        onHit: (attacker, defender, damage, logs) => {
-            const drainAmount = Math.floor(damage / 2);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吸取了对手的体力!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '造成伤害并回复伤害的50%'
-    },
-    
-    'Mega Drain': {
-        onHit: (attacker, defender, damage, logs) => {
-            const drainAmount = Math.floor(damage / 2);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吸取了对手的体力!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '造成伤害并回复伤害的50%'
-    },
-    
-    'Dream Eater': {
-        onHit: (attacker, defender, damage, logs) => {
-            // 只对睡眠状态的对手有效（伤害计算已在别处处理）
-            const drainAmount = Math.floor(damage / 2);
-            const actualHeal = Math.min(drainAmount, attacker.maxHp - attacker.currHp);
-            if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
-                logs.push(`${attacker.cnName} 吃掉了对手的梦!`);
-            }
-            return { drain: actualHeal };
-        },
-        description: '吃掉睡眠中对手的梦，回复伤害的50%'
-    },
+    // 【已移除重复处理器】
+    // 吸血技能 (Giga Drain, Drain Punch, Horn Leech, Leech Life, Oblivion Wing,
+    // Draining Kiss, Absorb, Mega Drain, Dream Eater 等) 的吸血效果
+    // 已由 battle-effects.js 通过 moves-data.js 中的 drain 字段统一处理。
+    // 此处不再重复定义 onHit 钩子，避免双重日志和双重回血。
+    //
+    // 如需为特定吸血技能添加额外效果（如 Dream Eater 的睡眠检查），
+    // 请使用 onUse 钩子进行前置检查，而非 onHit。
 
     // ============================================
     // 道具交换技能 (Item Swap Moves)
@@ -2825,6 +2998,18 @@ export const MoveHandlers = {
         },
         description: '威力140钢系特殊，使用后自损50%最大HP'
     },
+    
+    // 【叶绿爆震】威力150草系特殊，使用后自损50%最大HP
+    'Chloroblast': {
+        onHit: (attacker, defender, damage, logs) => {
+            const recoil = Math.ceil(attacker.maxHp / 2);
+            attacker.takeDamage(recoil);
+            logs.push(`<span style="color:#27ae60">🌿 ${attacker.cnName} 释放了叶绿素能量！受到了 ${recoil} 点反作用伤害！</span>`);
+            if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
+            return {};
+        },
+        description: '威力150草系特殊，使用后自损50%最大HP'
+    },
 
     // ============================================
     // 诅咒 (Curse) - 幽灵/非幽灵双模式
@@ -2835,16 +3020,22 @@ export const MoveHandlers = {
             
             if (isGhost) {
                 // 幽灵系：扣50%血，让对手每回合掉1/4
+                // 【关键修复】即使 HP 不足也要执行，使用者会濒死但诅咒仍然生效
                 const cost = Math.floor(user.maxHp / 2);
-                if (user.currHp <= cost) {
-                    logs.push(`<b style="color:#7c3aed">但是没法再削减体力了...</b>`);
-                    return { failed: true };
-                }
-                user.takeDamage(cost);
-                logs.push(`<b style="color:#7c3aed">👻 ${user.cnName} 削减体力诅咒了 ${target.cnName}！</b>`);
-                // 给对手施加诅咒状态
+                
+                // 先施加诅咒（确保即使自己死了也能生效）
                 if (!target.volatile) target.volatile = {};
                 target.volatile.curse = true;
+                
+                // 然后扣血（可能导致自己濒死）
+                user.takeDamage(cost);
+                
+                if (user.currHp <= 0) {
+                    logs.push(`<b style="color:#7c3aed">👻 ${user.cnName} 献祭了自己，诅咒了 ${target.cnName}！</b>`);
+                } else {
+                    logs.push(`<b style="color:#7c3aed">👻 ${user.cnName} 削减体力诅咒了 ${target.cnName}！</b>`);
+                }
+                
                 if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
                 return { success: true, ghostCurse: true };
             } else {
@@ -2911,11 +3102,17 @@ export const MoveHandlers = {
 
     // 【治愈之愿】自己濒死，完全治愈下一只出场的宝可梦
     'Healing Wish': {
-        onUse: (user, target, logs) => {
+        onUse: (user, target, logs, battle, isPlayer) => {
             user.currHp = 0;
-            // 标记治愈之愿效果
-            if (!user.side) user.side = {};
-            user.side.healingWish = true;
+            // 【修复】标记治愈之愿效果到 battle.side 而非 user.side
+            // 因为 user 即将死亡，数据会丢失
+            const battleObj = battle || window.battle;
+            if (battleObj) {
+                const side = isPlayer ? 'playerSide' : 'enemySide';
+                if (!battleObj[side]) battleObj[side] = {};
+                battleObj[side].healingWish = true;
+                console.log(`[HEALING WISH] 标记到 battle.${side}.healingWish`);
+            }
             logs.push(`<b style="color:#ff69b4">💖 ${user.cnName} 化作了治愈之光！</b>`);
             if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
             return { success: true, selfKO: true };
@@ -2925,10 +3122,16 @@ export const MoveHandlers = {
 
     // 【新月祈祷】自己濒死，完全治愈下一只出场的宝可梦（含PP）
     'Lunar Dance': {
-        onUse: (user, target, logs) => {
+        onUse: (user, target, logs, battle, isPlayer) => {
             user.currHp = 0;
-            if (!user.side) user.side = {};
-            user.side.lunarDance = true;
+            // 【修复】标记新月祈祷效果到 battle.side
+            const battleObj = battle || window.battle;
+            if (battleObj) {
+                const side = isPlayer ? 'playerSide' : 'enemySide';
+                if (!battleObj[side]) battleObj[side] = {};
+                battleObj[side].lunarDance = true;
+                console.log(`[LUNAR DANCE] 标记到 battle.${side}.lunarDance`);
+            }
             logs.push(`<b style="color:#9b59b6">🌙 ${user.cnName} 化作了月光！</b>`);
             if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
             return { success: true, selfKO: true };
@@ -2937,19 +3140,110 @@ export const MoveHandlers = {
     },
 
     // 【同命】如果这回合被击倒，击倒自己的对手也会倒下
+    // 【Gen7机制】连续使用会失败，但失败后连锁重置，下回合可以再成功
+    // 正确循环：成功 -> 失败 -> 成功 -> 失败
     'Destiny Bond': {
         onUse: (user, target, logs) => {
-            // 连续使用检测
-            if (user.lastMoveUsed === 'Destiny Bond') {
+            // 【关键修复】检查的是"上回合同命是否成功"，而不是"上回合是否使用了同命"
+            // lastDestinyBondSuccess 标记上回合同命是否成功
+            if (user.lastDestinyBondSuccess) {
                 logs.push(`<b style="color:#e74c3c">但是失败了！</b>`);
+                // 失败后清除标记，下回合可以再成功
+                user.lastDestinyBondSuccess = false;
+                console.log(`[DESTINY BOND] ${user.cnName} 连续使用失败，连锁重置`);
                 return { failed: true };
             }
             if (!user.volatile) user.volatile = {};
             user.volatile.destinyBond = true;
+            // 标记本回合同命成功
+            user.lastDestinyBondSuccess = true;
+            console.log(`[DESTINY BOND SET] ${user.cnName} 的同命状态已设置, volatile:`, JSON.stringify(user.volatile));
             logs.push(`<b style="color:#7c3aed">💀 ${user.cnName} 想要和对手同归于尽！</b>`);
             return { success: true };
         },
         description: '如果这回合被击倒，击倒自己的对手也会倒下'
+    },
+    
+    // 【怨恨】如果被击倒，对手使用的招式PP归零
+    // 【Gen7机制】连续使用会失败，但失败后连锁重置，下回合可以再成功
+    'Grudge': {
+        onUse: (user, target, logs) => {
+            // 【关键修复】检查的是"上回合怨恨是否成功"
+            if (user.lastGrudgeSuccess) {
+                logs.push(`<b style="color:#e74c3c">但是失败了！</b>`);
+                user.lastGrudgeSuccess = false;
+                console.log(`[GRUDGE] ${user.cnName} 连续使用失败，连锁重置`);
+                return { failed: true };
+            }
+            if (!user.volatile) user.volatile = {};
+            user.volatile.grudge = true;
+            user.lastGrudgeSuccess = true;
+            logs.push(`<b style="color:#7c3aed">👻 ${user.cnName} 想要让对手承受怨恨！</b>`);
+            return { success: true };
+        },
+        description: '如果被击倒，对手使用的招式PP归零'
+    },
+
+    // 【黑色目光】阻止对手逃跑/换人
+    'Mean Look': {
+        onUse: (user, target, logs) => {
+            if (!target.volatile) target.volatile = {};
+            // 幽灵系免疫
+            if (target.types && target.types.includes('Ghost')) {
+                logs.push(`对幽灵系没有效果!`);
+                return { failed: true };
+            }
+            // 已经被困住
+            if (target.volatile.cantEscape) {
+                logs.push(`但是失败了! (${target.cnName} 已经无法逃走了)`);
+                return { failed: true };
+            }
+            target.volatile.cantEscape = true;
+            target.volatile.trappedBy = user;
+            logs.push(`<b style="color:#7c3aed">👁️ ${target.cnName} 被 ${user.cnName} 的目光锁定，无法逃走！</b>`);
+            return { success: true };
+        },
+        description: '阻止对手逃跑或换人'
+    },
+    
+    // 【挡路】阻止对手逃跑/换人（同 Mean Look）
+    'Block': {
+        onUse: (user, target, logs) => {
+            if (!target.volatile) target.volatile = {};
+            if (target.types && target.types.includes('Ghost')) {
+                logs.push(`对幽灵系没有效果!`);
+                return { failed: true };
+            }
+            if (target.volatile.cantEscape) {
+                logs.push(`但是失败了! (${target.cnName} 已经无法逃走了)`);
+                return { failed: true };
+            }
+            target.volatile.cantEscape = true;
+            target.volatile.trappedBy = user;
+            logs.push(`<b style="color:#7c3aed">🚧 ${target.cnName} 被 ${user.cnName} 挡住了去路，无法逃走！</b>`);
+            return { success: true };
+        },
+        description: '阻止对手逃跑或换人'
+    },
+    
+    // 【蛛网】阻止对手逃跑/换人
+    'Spider Web': {
+        onUse: (user, target, logs) => {
+            if (!target.volatile) target.volatile = {};
+            if (target.types && target.types.includes('Ghost')) {
+                logs.push(`对幽灵系没有效果!`);
+                return { failed: true };
+            }
+            if (target.volatile.cantEscape) {
+                logs.push(`但是失败了! (${target.cnName} 已经无法逃走了)`);
+                return { failed: true };
+            }
+            target.volatile.cantEscape = true;
+            target.volatile.trappedBy = user;
+            logs.push(`<b style="color:#7c3aed">🕸️ ${target.cnName} 被蛛网缠住，无法逃走！</b>`);
+            return { success: true };
+        },
+        description: '阻止对手逃跑或换人'
     },
 
     // 【灭亡之歌】3回合后双方倒下

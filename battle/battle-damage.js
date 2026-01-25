@@ -75,6 +75,12 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             preLogs.forEach(txt => log(`<span style="color:#e74c3c">${txt}</span>`));
             return { damage: 0, effectiveness: 0, miss: false, failed: true };
         }
+        // 【蓄力技能】正在蓄力中，跳过伤害计算
+        if (preCheck && preCheck.charging && preCheck.skipDamage) {
+            preLogs.forEach(txt => log(txt));
+            console.log(`[CHARGE MOVE] ${move.name} is charging, skipping damage calculation`);
+            return { damage: 0, effectiveness: 1, miss: false, charging: true };
+        }
         preLogs.forEach(txt => log(txt));
     }
     
@@ -96,6 +102,12 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
     // 0. 处理恶作剧之心免疫 (恶系免疫变化技)
     if (result.pranksterImmune) {
         log(`<b style='color:#8b5cf6'>${result.message || defender.cnName + ' 是恶属性，免疫了恶作剧之心的效果！'}</b>`);
+        return result;
+    }
+    
+    // 0. 处理始源天气招式失效 (Desolate Land / Primordial Sea)
+    if (result.weatherBlocked) {
+        log(result.weatherBlockMessage || `<b style='color:#9b59b6'>招式被天气阻止了！</b>`);
         return result;
     }
     
@@ -132,12 +144,42 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             attacker.takeDamage(crashDmg);
             log(`<b style='color:#e74c3c'>${attacker.cnName} 失去了平衡，摔倒受到了 ${crashDmg} 点伤害!</b>`);
         }
+        
+        // 【关键修复】selfdestruct: "always" 的招式即使被守住也要死
+        // Explosion, Self-Destruct, Misty Explosion 等
+        const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+        if (fullMoveData.selfdestruct === 'always') {
+            attacker.currHp = 0;
+            log(`<b style='color:#e74c3c'>${attacker.cnName} 的爆炸波及了自己！</b>`);
+            console.log(`[SELFDESTRUCT] ${attacker.cnName} 即使被守住也自爆了`);
+        }
+        
+        // 【关键修复】mindBlownRecoil 的招式即使被守住也要扣 50% HP
+        // Mind Blown, Steel Beam, Chloroblast 等
+        if (fullMoveData.mindBlownRecoil) {
+            const recoil = Math.ceil(attacker.maxHp / 2);
+            attacker.takeDamage(recoil);
+            log(`<b style='color:#e74c3c'>${attacker.cnName} 承受了反作用力！(-${recoil})</b>`);
+            console.log(`[MIND BLOWN RECOIL] ${attacker.cnName} 即使被守住也扣血 ${recoil}`);
+        }
+        
         return result;
     }
     
     // I. 处理 MISS
     if (result.miss) {
-        if (result.insightMiracle) {
+        if (result.invulnerableMiss) {
+            // 【半无敌状态】目标处于飞翔/挖洞/潜水等状态
+            const statusTexts = {
+                flying: '飞在天空中',
+                underground: '躲在地下',
+                underwater: '潜在水中',
+                shadow: '隐藏在暗影中'
+            };
+            const statusText = statusTexts[result.invulnStatus] || '处于半无敌状态';
+            log(`<b style='color:#aaa'>${defender.cnName} ${statusText}，攻击没有命中!</b>`);
+        } else if (result.insightMiracle) {
             log(`<b style="color:#d4ac0d; text-shadow:0 0 5px gold;">✨ 不可能的奇迹！${defender.cnName} 看穿了绝对命中的轨迹！(Insight EX)</b>`);
         } else if (defender.commandDodgeActive) {
             // 【战术指挥】DODGE! 指令成功闪避
@@ -162,6 +204,23 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             let blunderLogs = [];
             ItemEffects.checkBlunderPolicy(attacker, blunderLogs);
             blunderLogs.forEach(txt => log(txt));
+        }
+        
+        // 【关键修复】selfdestruct: "always" 的招式即使 MISS 也要死
+        const moveIdMiss = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fullMoveDataMiss = (typeof MOVES !== 'undefined' && MOVES[moveIdMiss]) ? MOVES[moveIdMiss] : {};
+        if (fullMoveDataMiss.selfdestruct === 'always') {
+            attacker.currHp = 0;
+            log(`<b style='color:#e74c3c'>${attacker.cnName} 的爆炸波及了自己！</b>`);
+            console.log(`[SELFDESTRUCT] ${attacker.cnName} 即使 MISS 也自爆了`);
+        }
+        
+        // 【关键修复】mindBlownRecoil 的招式即使 MISS 也要扣 50% HP
+        if (fullMoveDataMiss.mindBlownRecoil) {
+            const recoil = Math.ceil(attacker.maxHp / 2);
+            attacker.takeDamage(recoil);
+            log(`<b style='color:#e74c3c'>${attacker.cnName} 承受了反作用力！(-${recoil})</b>`);
+            console.log(`[MIND BLOWN RECOIL] ${attacker.cnName} 即使 MISS 也扣血 ${recoil}`);
         }
         
         return result;
@@ -241,6 +300,14 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         return result;
     }
     
+    // === 【修复】Ice Face 等特性把攻击技伤害归零的处理 ===
+    // 当攻击技 (power > 0) 伤害被特性归零时，输出特性日志
+    if (result.damage === 0 && move.power > 0 && result.defenderAbilityLog) {
+        log(result.defenderAbilityLog);
+        updateAllVisuals();
+        return result;
+    }
+    
     // III. 如果有伤害 -> 扣血
     const dmgCategory = (move.cat || result.category || 'physical').toLowerCase();
     
@@ -270,13 +337,32 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             console.log(`[Rage Fist Counter] ${defender.cnName} 被攻击次数: ${defender.timesAttacked}`);
         }
         
-        // 【Illusion 幻觉破解】受到伤害后触发 onDamageTaken 钩子
+        // 【特性钩子】受到伤害后触发 onDamageTaken (Stamina, Justified, Steam Engine, etc.)
         if (typeof AbilityHandlers !== 'undefined' && defender.ability) {
             const abilityHandler = AbilityHandlers[defender.ability];
             if (abilityHandler && abilityHandler.onDamageTaken) {
                 let damageLogs = [];
-                abilityHandler.onDamageTaken(defender, actualDamage, attacker, damageLogs);
+                abilityHandler.onDamageTaken(defender, actualDamage, attacker, damageLogs, move);
                 damageLogs.forEach(txt => log(txt));
+            }
+        }
+        
+        // 【Focus Punch 中断检查】受到伤害时，如果正在蓄力真气拳则中断
+        if (actualDamage > 0 && typeof window.checkFocusPunchInterrupt === 'function') {
+            if (window.checkFocusPunchInterrupt(defender, actualDamage)) {
+                log(`<b style="color:#e74c3c">${defender.cnName} 失去了集中，真气拳被中断了！</b>`);
+                // 清除蓄力状态
+                if (typeof window.clearChargingState === 'function') {
+                    window.clearChargingState(defender);
+                }
+            }
+        }
+        
+        // 【Beak Blast 烧伤检查】蓄力期间被接触攻击会烧伤对手
+        if (actualDamage > 0 && typeof window.checkBeakBlastBurn === 'function') {
+            let burnLogs = [];
+            if (window.checkBeakBlastBurn(defender, attacker, move, burnLogs)) {
+                burnLogs.forEach(txt => log(txt));
             }
         }
         
@@ -337,17 +423,20 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         
         // === HP 阈值树果检查（文柚果、混乱果等）===
         // 【修复】先检查树果触发，但延迟输出日志，确保在伤害日志之后显示
+        // 【关键】传递 attacker 作为 opponent，用于 Unnerve 检查
         let berryLogs = [];
         let berryTriggered = false;
         let cheekPouchHeal = 0;
         if (defender.currHp > 0 && typeof ItemEffects !== 'undefined' && ItemEffects.checkHPBerry) {
-            berryTriggered = ItemEffects.checkHPBerry(defender, berryLogs);
+            berryTriggered = ItemEffects.checkHPBerry(defender, berryLogs, attacker);
             if (berryTriggered) {
-                // 颊囊特性：吃树果时额外回复 33% HP
+                // 颊囊特性已在 _triggerBerryAbilityHooks 中处理
+                // 这里保留兼容性检查
                 const abilityId = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-                if (abilityId === 'cheekpouch') {
+                if (abilityId === 'cheekpouch' && !berryLogs.some(l => l.includes('颊囊'))) {
                     cheekPouchHeal = Math.floor(defender.maxHp * 0.33);
                     defender.currHp = Math.min(defender.maxHp, defender.currHp + cheekPouchHeal);
+                    berryLogs.push(`<b style="color:#f39c12">🐹 ${defender.cnName} 的颊囊发动！额外回复了 ${cheekPouchHeal} HP！</b>`);
                 }
             }
         }
@@ -381,6 +470,17 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         // 抗性树果触发消息
         if (result.resistBerryTriggered && result.resistBerryMessage) {
             log(`<span style="color:#27ae60">🍇 ${result.resistBerryMessage}</span>`);
+        }
+        
+        // 【防御方特性增伤日志】干燥皮肤等特性的火系增伤反馈
+        if (result.defenderAbilityLog) {
+            log(`<span style="color:#e67e22">${result.defenderAbilityLog}</span>`);
+        }
+        
+        // 【天气威力修正日志】火系/水系技能 + Solar Beam/Solar Blade
+        if (move._weatherPowerLog) {
+            log(`<span style="color:#5dade2">${move._weatherPowerLog}</span>`);
+            delete move._weatherPowerLog; // 清除标记
         }
         
         if (result.isCrit) {
@@ -431,7 +531,22 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             defender.boosts.spa = Math.min(6, (defender.boosts.spa || 0) + 2);
             log(`<span style="color:#ef4444">💪 ${defender.cnName} 的攻击大幅提升！</span>`);
             log(`<span style="color:#a855f7">✨ ${defender.cnName} 的特攻大幅提升！</span>`);
-            defender.item = null; // 消耗品
+            
+            // 【关键】消耗道具并触发 Unburden 等特性
+            const lostItem = defender.item;
+            defender.item = null;
+            defender.usedItem = lostItem; // 记录使用过的道具（用于 Harvest 等）
+            
+            // 触发 onItemLost 钩子（Unburden 等）
+            if (typeof AbilityHandlers !== 'undefined' && defender.ability) {
+                const abilityHandler = AbilityHandlers[defender.ability];
+                if (abilityHandler && abilityHandler.onItemLost) {
+                    let itemLogs = [];
+                    abilityHandler.onItemLost(defender, lostItem, itemLogs);
+                    itemLogs.forEach(txt => log(txt));
+                }
+            }
+            
             if (typeof window !== 'undefined' && typeof window.playSFX === 'function') {
                 window.playSFX('STAT_UP');
             }
@@ -491,11 +606,35 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         
         // === 【同命 Destiny Bond】判定 ===
         // 如果被击倒的宝可梦处于同命状态，攻击者也会被击倒
+        console.log(`[DESTINY BOND CHECK] defender: ${defender.cnName}, hasVolatile: ${!!defender.volatile}, destinyBond: ${defender.volatile?.destinyBond}, attackerAlive: ${attacker.isAlive()}`);
         if (defender.volatile && defender.volatile.destinyBond && attacker.isAlive()) {
             log(`<b style="color:#9b59b6">💀 ${defender.cnName} 拉着 ${attacker.cnName} 同归于尽了！</b>`);
+            console.log(`[DESTINY BOND] 触发! ${attacker.cnName} 将被击倒`);
             attacker.takeDamage(attacker.currHp);
             updateAllVisuals();
             result.destinyBondTriggered = true;
+            
+            // 【官方规则】记录同命使用者，用于双杀判定
+            // 同命导致的双杀，使用同命者输
+            if (window.battle) {
+                // defender 是使用同命的一方
+                const isDefenderPlayer = window.battle.playerParty.includes(defender);
+                window.battle.destinyBondCauser = isDefenderPlayer ? 'player' : 'enemy';
+                console.log(`[DESTINY BOND] 记录同命使用者: ${window.battle.destinyBondCauser}`);
+            }
+        }
+        
+        // === 【怨恨 Grudge】判定 ===
+        // 如果被击倒的宝可梦处于怨恨状态，攻击者使用的招式被封印（无法再使用）
+        // 【适配无PP系统】改为封印招式而非清空PP
+        if (defender.volatile && defender.volatile.grudge && move) {
+            log(`<b style="color:#9b59b6">👻 ${defender.cnName} 的怨恨发动了！${attacker.cnName} 的 ${move.cn || move.name} 被怨念封印了！</b>`);
+            // 封印攻击者的对应招式
+            if (!attacker.volatile) attacker.volatile = {};
+            if (!attacker.volatile.grudgeSealed) attacker.volatile.grudgeSealed = [];
+            attacker.volatile.grudgeSealed.push(move.name);
+            console.log(`[GRUDGE] ${attacker.cnName} 的 ${move.name} 被封印`);
+            result.grudgeTriggered = true;
         }
     }
     

@@ -45,7 +45,7 @@ const AI_ACTION_TYPE = {
 const AI_ABILITY_TRAITS = {
     // 一次性护盾
     'Disguise':      { type: 'consumable_shield', breakValue: 350, bustedFlag: 'disguiseBusted' },
-    'Ice Face':      { type: 'consumable_shield', breakValue: 300, condition: 'physical', bustedFlag: 'iceFaceBusted' },
+    'Ice Face':      { type: 'consumable_shield', breakValue: 300, condition: 'physical', bustedFlag: 'iceFaceBroken' },
     
     // 满血减伤
     'Multiscale':    { type: 'damage_reduction', breakValue: 150, condition: 'full_hp' },
@@ -76,6 +76,16 @@ const AI_COUNTER_MOVES = ['Haze', 'Clear Smog', 'Roar', 'Whirlwind', 'Dragon Tai
  */
 export function getAiAction(aiPoke, playerPoke, difficulty = 'hard', aiParty = [], battleContext = {}) {
     if (!aiPoke || !playerPoke) return null;
+    
+    // 【蓄力技能锁定】检查 AI 是否正在蓄力
+    if (aiPoke.volatile?.chargingMove) {
+        const chargingMove = aiPoke.volatile.chargingMove;
+        const moveToUse = aiPoke.moves?.find(m => m.name === chargingMove);
+        if (moveToUse) {
+            console.log(`[AI CHARGE] ${aiPoke.cnName} 正在蓄力 ${chargingMove}，强制执行`);
+            return { type: AI_ACTION_TYPE.MOVE, move: moveToUse, forced: true };
+        }
+    }
     
     const normalizedDiff = (difficulty || 'hard').toLowerCase();
     
@@ -158,15 +168,11 @@ export function getNormalAiMove(attacker, defender, aiParty = null) {
     // 【修复】过滤掉必定失败的招式（得分 <= -9000）
     const viableMoves = rankedMoves.filter(m => m.score > -9000);
     
-    // 如果所有招式都被禁用，选择一个非首回合限制的招式
+    // 如果所有招式都被禁用，选择得分最高的那个（最不坏的）
     if (viableMoves.length === 0) {
-        const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
-        const fallbackMoves = attacker.moves.filter(m => !firstTurnOnlyMoves.includes(m.name));
-        if (fallbackMoves.length > 0) {
-            return fallbackMoves[Math.floor(Math.random() * fallbackMoves.length)];
-        }
-        // 真的没有其他招式了，只能硬着头皮用
-        return attacker.moves[0];
+        // 【关键修复】不要随机选，选得分最高的（即使是负分）
+        console.log(`[AI FALLBACK] 所有招式都被禁用，选择得分最高的: ${rankedMoves[0]?.move?.name} (${rankedMoves[0]?.score})`);
+        return rankedMoves[0].move;
     }
     
     const roll = Math.random();
@@ -192,14 +198,11 @@ export function getHardAiMove(attacker, defender, aiParty = null) {
     // 【修复】过滤掉必定失败的招式（得分 <= -9000）
     const viableMoves = rankedMoves.filter(m => m.score > -9000);
     
-    // 如果所有招式都被禁用，选择一个非首回合限制的招式
+    // 如果所有招式都被禁用，选择得分最高的那个（最不坏的）
     if (viableMoves.length === 0) {
-        const firstTurnOnlyMoves = ['Fake Out', 'First Impression', 'Mat Block'];
-        const fallbackMoves = attacker.moves.filter(m => !firstTurnOnlyMoves.includes(m.name));
-        if (fallbackMoves.length > 0) {
-            return fallbackMoves[0]; // Hard 难度选第一个
-        }
-        return attacker.moves[0];
+        // 【关键修复】不要随机选，选得分最高的（即使是负分）
+        console.log(`[AI FALLBACK] 所有招式都被禁用，选择得分最高的: ${rankedMoves[0]?.move?.name} (${rankedMoves[0]?.score})`);
+        return rankedMoves[0].move;
     }
     
     // 【修复】极巨化时，如果最高分招式是免疫的攻击招式（-9999），优先选择 Max Guard
@@ -373,6 +376,19 @@ export function getExpertAiAction(aiPoke, playerPoke, aiParty = [], battleContex
             move: killMove.move, 
             style: killMove.style || null,
             reasoning: killMove.reasoning 
+        };
+    }
+    
+    // ========================================
+    // 阶段 1.3：危机闪避 (Crisis Evasion) [v3.5]
+    // 如果我处于斩杀线且速度更快，优先使用半无敌技能躲避
+    // ========================================
+    const evasionMove = findEvasionMove(aiPoke, playerPoke);
+    if (evasionMove) {
+        return { 
+            type: AI_ACTION_TYPE.MOVE, 
+            move: evasionMove.move, 
+            reasoning: evasionMove.reasoning 
         };
     }
     
@@ -566,6 +582,88 @@ function findKillMove(aiPoke, playerPoke) {
     }
     
     return bestKillMove;
+}
+
+/**
+ * 危机闪避：在斩杀线时寻找半无敌技能躲避 [v3.5]
+ * 
+ * 核心逻辑：
+ * 1. 检测是否处于斩杀线（对方能一击秒杀我）
+ * 2. 如果我速度更快，使用半无敌技能可以躲避本回合攻击
+ * 3. 半无敌技能：Dig, Fly, Dive, Bounce, Phantom Force, Shadow Force
+ * 
+ * @returns {object|null} { move, reasoning } 或 null
+ */
+function findEvasionMove(aiPoke, playerPoke) {
+    // 半无敌技能列表（从 charge-moves.js 的 type: 'invuln' 配置）
+    const INVULN_MOVES = ['Dig', 'Fly', 'Dive', 'Bounce', 'Phantom Force', 'Shadow Force', 'Sky Drop'];
+    
+    // 获取速度
+    const mySpeed = getEffectiveSpeed(aiPoke);
+    const targetSpeed = getEffectiveSpeed(playerPoke);
+    const isTrickRoom = (typeof battle !== 'undefined') && battle.field && battle.field.trickRoom > 0;
+    const aiFaster = isTrickRoom ? (mySpeed < targetSpeed) : (mySpeed > targetSpeed);
+    
+    // 如果速度慢，半无敌技能没有意义（会先被打死）
+    if (!aiFaster) {
+        return null;
+    }
+    
+    // 计算对方最大伤害
+    let maxIncomingDmg = 0;
+    for (const pMove of playerPoke.moves) {
+        const mergedMove = getMergedMoveData(pMove);
+        const dmgResult = simulateDamage(playerPoke, aiPoke, mergedMove);
+        if (dmgResult.damage > maxIncomingDmg) {
+            maxIncomingDmg = dmgResult.damage;
+        }
+    }
+    
+    const myHp = aiPoke.currHp;
+    const willDieNextTurn = maxIncomingDmg >= myHp;
+    
+    // 如果不会死，不需要闪避
+    if (!willDieNextTurn) {
+        return null;
+    }
+    
+    // 检查是否有强力香草（有香草的话，蓄力技能变成即发，更有价值）
+    const hasHerb = (aiPoke.item || '').toLowerCase().includes('power herb') || 
+                    (aiPoke.item || '').includes('强力香草');
+    
+    // 寻找半无敌技能
+    let bestEvasionMove = null;
+    let bestDamage = 0;
+    
+    for (const move of aiPoke.moves) {
+        if (INVULN_MOVES.includes(move.name)) {
+            const mergedMove = getMergedMoveData(move);
+            const dmgResult = simulateDamage(aiPoke, playerPoke, mergedMove);
+            
+            // 检查是否免疫（0 伤害说明属性免疫）
+            if (dmgResult.damage <= 0) {
+                continue;
+            }
+            
+            // 选择伤害最高的半无敌技能
+            if (dmgResult.damage > bestDamage) {
+                bestDamage = dmgResult.damage;
+                bestEvasionMove = move;
+            }
+        }
+    }
+    
+    if (bestEvasionMove) {
+        const reasoning = hasHerb 
+            ? `Crisis evasion with Power Herb (instant ${bestEvasionMove.name})`
+            : `Crisis evasion: ${bestEvasionMove.name} to dodge lethal attack`;
+        
+        console.log(`[AI EVASION] ${aiPoke.name} 处于斩杀线 (${myHp}HP vs ${maxIncomingDmg}伤害)，使用 ${bestEvasionMove.name} 闪避`);
+        
+        return { move: bestEvasionMove, reasoning };
+    }
+    
+    return null;
 }
 
 /**
@@ -1118,10 +1216,24 @@ function getMergedMoveData(move) {
 function simulateDamage(attacker, defender, move) {
     // 【关键修复】前置免疫检查：确保 AI 不会选择对目标无效的招式
     // 这是最高优先级的检查，必须在任何伤害计算之前执行
-    const moveType = move.type || 'Normal';
+    
+    // 【重要】考虑皮肤系特性的属性转换 (Galvanize, Pixilate, Aerilate, Refrigerate)
+    let moveType = move.type || 'Normal';
+    if (typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability]) {
+        const ah = AbilityHandlers[attacker.ability];
+        if (ah.onModifyType) {
+            const typeResult = ah.onModifyType(move, attacker, window.battle);
+            if (typeResult && typeResult.newType) {
+                moveType = typeResult.newType;
+                console.log(`[AI SIMULATE] ${attacker.ability} 将 ${move.name} 属性变为 ${moveType}`);
+            }
+        }
+    }
+    
     const defenderTypes = defender.types || ['Normal'];
     const preCheckEff = getTypeEffectivenessAI(moveType, defenderTypes, move.name || '');
     if (preCheckEff === 0) {
+        console.log(`[AI SIMULATE] ${move.name} (${moveType}) 对 ${defenderTypes.join('/')} 无效，跳过`);
         return { damage: 0, effectiveness: 0 };
     }
     
@@ -1215,7 +1327,20 @@ function evaluateMoveImpact(attacker, defender, move) {
             
             if (isShieldActive && conditionMet && dmgResult.damage === 0) {
                 // 护盾挡住了攻击，但破盾有战术价值
-                baseScore += trait.breakValue;
+                let breakValue = trait.breakValue;
+                
+                // 【修复】Ice Face 在雪天下会恢复，破盾价值大幅降低
+                if (defAbility === 'Ice Face') {
+                    const battle = typeof window !== 'undefined' ? window.battle : null;
+                    const weather = battle?.weather;
+                    if (weather === 'snow' || weather === 'hail') {
+                        // 雪天下破盾几乎无意义，因为回合结束会恢复
+                        breakValue = 50; // 大幅降低破盾价值
+                        console.log(`[AI] Ice Face 在雪天下，破盾价值降低: ${trait.breakValue} -> ${breakValue}`);
+                    }
+                }
+                
+                baseScore += breakValue;
                 shieldBreak = true;
             }
         }
@@ -1341,6 +1466,23 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     if (!move) return -9999;
 
     const moveName = move.name || '';
+    
+    // =========================================================
+    // -1. 定身法/诅咒之躯/怨恨封印检查 (Disable/Cursed Body/Grudge)
+    // 被封印的招式完全禁止使用
+    // =========================================================
+    if (attacker.volatile) {
+        // 定身法/诅咒之躯封印
+        if (attacker.volatile.disable > 0 && attacker.volatile.disabledMove === moveName) {
+            console.log(`[AI BAN] ${moveName} 被定身法/诅咒之躯封印`);
+            return -99999;
+        }
+        // 怨恨封印
+        if (attacker.volatile.grudgeSealed && attacker.volatile.grudgeSealed.includes(moveName)) {
+            console.log(`[AI BAN] ${moveName} 被怨恨封印`);
+            return -99999;
+        }
+    }
     
     // =========================================================
     // 0. Z-Move / Max Move 全场唯一限制 (Once Per Battle)
@@ -1540,17 +1682,20 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     }
     
     // 4b. 天气技对已存在的相同天气无效
+    // 【修复】使用实际的天气值（小写）进行匹配
     const weatherMoves = {
-        'Rain Dance': 'RainDance',
-        'Sunny Day': 'SunnyDay', 
-        'Sandstorm': 'Sandstorm',
-        'Hail': 'Hail',
-        'Snowscape': 'Snow'
+        'Rain Dance': 'rain',
+        'Sunny Day': 'sun', 
+        'Sandstorm': 'sandstorm',
+        'Hail': 'hail',
+        'Snowscape': 'snow'
     };
-    if (weatherMoves[moveName] && typeof battle !== 'undefined' && battle.field) {
-        const currentWeather = battle.field.weather || '';
-        if (currentWeather && currentWeather.toLowerCase().includes(weatherMoves[moveName].toLowerCase())) {
-            console.log(`[AI BAN] ${moveName} 天气已存在，禁止使用`);
+    if (weatherMoves[moveName]) {
+        // 检查 battle.weather（直接属性）或 battle.field.weather
+        const currentWeather = (typeof battle !== 'undefined' && battle.weather) || 
+                               (typeof battle !== 'undefined' && battle.field && battle.field.weather) || '';
+        if (currentWeather === weatherMoves[moveName]) {
+            console.log(`[AI BAN] ${moveName} 天气已存在 (${currentWeather})，禁止使用`);
             return -9999;
         }
     }
@@ -1583,9 +1728,16 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         }
     }
     
-    // Destiny Bond 连续使用会失败
-    if (moveName === 'Destiny Bond' && attacker.lastMoveUsed === 'Destiny Bond') {
+    // Destiny Bond 连续使用会失败（但失败后连锁重置，下回合可以再成功）
+    // 【修复】检查的是 lastDestinyBondSuccess，而不是 lastMoveUsed
+    if (moveName === 'Destiny Bond' && attacker.lastDestinyBondSuccess) {
         console.log(`[AI BAN] Destiny Bond 连续使用必定失败`);
+        return -9999;
+    }
+    
+    // Grudge 同理
+    if (moveName === 'Grudge' && attacker.lastGrudgeSuccess) {
+        console.log(`[AI BAN] Grudge 连续使用必定失败`);
         return -9999;
     }
     
@@ -2193,12 +2345,33 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             
             // curse (幽灵系): 对手已被诅咒
             if (volatileKey === 'curse') {
-                // 幽灵系诅咒需要检查自身血量
+                // 幽灵系诅咒：需要扣50%血，可能导致自杀
                 if (attacker.types && attacker.types.includes('Ghost')) {
-                    if (hpPercent <= 0.50) {
-                        console.log(`[AI BAN] Curse：血量不足 50%，使用会自杀`);
+                    // 【关键修复】检查是否是最后一只宝可梦
+                    const aliveCount = (aiParty || []).filter(p => p && p.currHp > 0).length;
+                    const isLastPokemon = aliveCount <= 1;
+                    
+                    if (isLastPokemon) {
+                        // 最后一只宝可梦，绝对不能自杀诅咒
+                        console.log(`[AI BAN] Curse：最后一只宝可梦，禁止自杀诅咒`);
                         return -99999;
                     }
+                    
+                    // 【关键修复】如果有同命状态，不要用诅咒打断它（给最低分）
+                    if (attacker.volatile && attacker.volatile.destinyBond) {
+                        console.log(`[AI BAN] Curse：有同命状态，不要自杀打断`);
+                        return -999999; // 比其他禁止招式更低，确保不会被 fallback 选中
+                    }
+                    
+                    if (hpPercent <= 0.50) {
+                        // 残血时使用诅咒是有效的献祭战术（但不是最后一只）
+                        console.log(`[AI TACTIC] Curse：残血献祭诅咒！`);
+                        return 3000; // 高优先级
+                    }
+                    
+                    // 血量高于50%时，诅咒的价值较低（会损失大量HP）
+                    console.log(`[AI WARN] Curse：血量 ${Math.floor(hpPercent*100)}% 较高，降低优先级`);
+                    return -500; // 降低优先级但不完全禁止
                 }
             }
             
@@ -2214,6 +2387,46 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
                 }
                 return 50;
             }
+        }
+        
+        // =========================================================
+        // 【控制招式】Mean Look / Block / Spider Web 等
+        // 对手已被困住时禁止重复使用
+        // =========================================================
+        const trappingMoves = ['Mean Look', 'Block', 'Spider Web', 'Anchor Shot', 'Spirit Shackle', 'Jaw Lock'];
+        if (trappingMoves.includes(moveName)) {
+            // 对手已被困住
+            if (defender.volatile && defender.volatile.cantEscape) {
+                console.log(`[AI BAN] ${moveName}：对手已被困住，无效`);
+                return -99999;
+            }
+            // 对手是幽灵系，免疫
+            if (defender.types && defender.types.includes('Ghost')) {
+                console.log(`[AI BAN] ${moveName}：对手是幽灵系，免疫`);
+                return -99999;
+            }
+            // 控制招式有一定价值
+            return 80;
+        }
+        
+        // =========================================================
+        // 【灭亡之歌】Perish Song - 双方都已有状态时禁止使用
+        // =========================================================
+        if (moveName === 'Perish Song') {
+            // 任意一方已有灭亡之歌状态，禁止使用
+            const attackerHasPerish = attacker.volatile && attacker.volatile.perishsong;
+            const defenderHasPerish = defender.volatile && defender.volatile.perishsong;
+            if (attackerHasPerish || defenderHasPerish) {
+                console.log(`[AI BAN] Perish Song：已有灭亡之歌状态，无效`);
+                return -99999;
+            }
+            // 最后一只宝可梦不应该使用灭亡之歌（会同归于尽）
+            const aliveCount = (aiParty || []).filter(p => p && p.currHp > 0).length;
+            if (aliveCount <= 1) {
+                console.log(`[AI BAN] Perish Song：最后一只宝可梦，禁止使用`);
+                return -99999;
+            }
+            return 100; // 灭亡之歌有战术价值
         }
         
         // =========================================================
@@ -2830,11 +3043,16 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
     }
     
     // =========================================================
-    // 【Extension 4】硬直/蓄力技能风险评估
+    // 【Extension 4】硬直/蓄力技能风险评估 [v3.5 增强]
     // =========================================================
     const rechargeMoves = ['Hyper Beam', 'Giga Impact', 'Hydro Cannon', 'Blast Burn', 'Frenzy Plant', 'Roar of Time', 'Eternabeam', 'Prismatic Laser', 'Meteor Assault'];
     const chargeMoves = ['Solar Beam', 'Solar Blade', 'Meteor Beam', 'Sky Attack', 'Skull Bash'];
+    const invulnMoves = ['Dig', 'Fly', 'Dive', 'Bounce', 'Phantom Force', 'Shadow Force', 'Sky Drop'];
     const weather = (typeof battle !== 'undefined' && battle.field) ? battle.field.weather : '';
+    
+    // 检查强力香草
+    const hasHerb = (attacker.item || '').toLowerCase().includes('power herb') || 
+                    (attacker.item || '').includes('强力香草');
     
     // 4.1 硬直技能 (需要下回合不能动)
     if (rechargeMoves.includes(moveName)) {
@@ -2858,8 +3076,6 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         const isSolar = moveName.includes('Solar');
         // 【天气统一】兼容 sun 和 harshsun
         const hasSun = (weather === 'sun' || weather === 'harshsun');
-        const hasHerb = (attacker.item || '').toLowerCase().includes('power herb') || 
-                        (attacker.item || '').includes('强力香草');
         
         if (isSolar && !hasSun && !hasHerb) {
             // 没有晴天也没有强力香草，蓄力回合是送
@@ -2868,12 +3084,50 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
         } else if (hasSun || hasHerb) {
             // 即发状态，这是好技能
             score += 500;
+            console.log(`[AI SMART] ${moveName} 有天气/香草加持，加分 (+500)`);
         }
         
         // Meteor Beam 特殊处理：蓄力时 +1 特攻
         if (moveName === 'Meteor Beam' && !hasHerb) {
             // 没有香草但能强化，风险降低
             score -= 2000; // 仍有风险但不是完全禁用
+        }
+    }
+    
+    // 4.3 【v3.5 新增】半无敌技能评估 (Dig, Fly, Dive 等)
+    if (invulnMoves.includes(moveName)) {
+        // 计算是否处于危机（对方能秒杀我）
+        let maxIncomingDmg = 0;
+        for (const pMove of defender.moves || []) {
+            const pMerged = getMergedMoveData(pMove);
+            const pDmg = simulateDamage(defender, attacker, pMerged);
+            if (pDmg.damage > maxIncomingDmg) {
+                maxIncomingDmg = pDmg.damage;
+            }
+        }
+        
+        const myHp = attacker.currHp;
+        const willDieNextTurn = maxIncomingDmg >= myHp;
+        const mySpeed = getEffectiveSpeed(attacker);
+        const targetSpeed = getEffectiveSpeed(defender);
+        const isTrickRoom = (typeof battle !== 'undefined') && battle.field && battle.field.trickRoom > 0;
+        const aiFaster = isTrickRoom ? (mySpeed < targetSpeed) : (mySpeed > targetSpeed);
+        
+        if (hasHerb) {
+            // 有强力香草：半无敌技能变成即发高威力技能，大幅加分
+            score += 800;
+            console.log(`[AI SMART] ${moveName} 有强力香草，即发半无敌技能 (+800)`);
+        } else if (willDieNextTurn && aiFaster) {
+            // 处于斩杀线且速度快：半无敌技能可以躲避致命攻击
+            score += 2000;
+            console.log(`[AI EVASION] ${moveName} 危机闪避加分 (+2000)：${myHp}HP vs ${maxIncomingDmg}伤害`);
+        } else if (!aiFaster) {
+            // 速度慢：半无敌技能风险高（会先被打）
+            score -= 1000;
+            console.log(`[AI SMART] ${moveName} 速度慢，半无敌技能风险高 (-1000)`);
+        } else {
+            // 正常情况：轻微惩罚（两回合技能效率低）
+            score -= 300;
         }
     }
     

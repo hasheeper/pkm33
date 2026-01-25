@@ -2028,6 +2028,29 @@ function isSwappable(itemId) {
 
 const ItemEffects = {
     /**
+     * 【内部辅助】触发吃树果相关的特性钩子
+     * - Cheek Pouch: 额外回复 1/3 HP
+     * - Cud Chew: 记录树果，下回合再吃一次
+     * - Unburden: 道具消耗后速度翻倍
+     */
+    _triggerBerryAbilityHooks(pokemon, berry, logs) {
+        if (!pokemon.ability || typeof AbilityHandlers === 'undefined') return;
+        
+        const handler = AbilityHandlers[pokemon.ability];
+        if (!handler) return;
+        
+        // Cheek Pouch: 吃树果额外回复 1/3 HP
+        if (handler.onEatBerry) {
+            handler.onEatBerry(pokemon, berry, logs);
+        }
+        
+        // Unburden: 道具消耗后速度翻倍
+        if (handler.onItemLost) {
+            handler.onItemLost(pokemon, berry, logs);
+        }
+    },
+    
+    /**
      * 检查 Focus Sash 效果
      * @returns {boolean} 是否触发了气势披带
      */
@@ -2111,17 +2134,33 @@ const ItemEffects = {
      * 检查 HP 阈值触发的树果 (回复/强化)
      * @param {Object} pokemon - 宝可梦
      * @param {Array} logs - 日志数组
+     * @param {Object} opponent - 对手（用于检查 Unnerve）
      * @returns {boolean} 是否触发了树果
      */
-    checkHPBerry(pokemon, logs = []) {
+    checkHPBerry(pokemon, logs = [], opponent = null) {
         if (!pokemon.item) return false;
+        
+        // 【紧张感 Unnerve】检查：对手有紧张感时无法吃树果
+        if (opponent && opponent.ability) {
+            const oppAbilityId = opponent.ability.toLowerCase().replace(/[^a-z]/g, '');
+            if (oppAbilityId === 'unnerve') {
+                console.log(`[UNNERVE] ${pokemon.cnName} 因对手的紧张感无法吃树果`);
+                return false;
+            }
+        }
+        // 也检查 cannotEatBerry 标记
+        if (pokemon.cannotEatBerry) {
+            console.log(`[UNNERVE] ${pokemon.cnName} 被标记为无法吃树果`);
+            return false;
+        }
         
         const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
         const itemData = ITEMS[itemId];
         if (!itemData || !itemData.isBerry) return false;
         
         const hpPercent = pokemon.currHp / pokemon.maxHp;
-        const isGluttony = pokemon.ability && pokemon.ability.toLowerCase().replace(/[^a-z]/g, '') === 'gluttony';
+        const abilityId = pokemon.ability ? pokemon.ability.toLowerCase().replace(/[^a-z]/g, '') : '';
+        const isGluttony = abilityId === 'gluttony';
         
         // 贪吃鬼特性：触发线提升到 50%
         let triggerThreshold = itemData.triggerHP || 0.25;
@@ -2132,6 +2171,7 @@ const ItemEffects = {
         if (hpPercent > triggerThreshold) return false;
         
         const berryName = itemData.cnName || itemData.name;
+        const consumedBerry = pokemon.item; // 记录消耗的树果
         
         // 回复类树果
         if (itemData.effect === 'healOnLowHP') {
@@ -2145,7 +2185,11 @@ const ItemEffects = {
             if (heal > 0) {
                 pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
                 pokemon.item = null;
+                pokemon.usedBerry = consumedBerry; // 记录用于 Harvest 回收
                 logs.push(`<span style="color:#27ae60">🍇 ${pokemon.cnName} 吃掉了${berryName}，回复了 ${heal} 点体力！</span>`);
+                
+                // 触发吃树果相关特性钩子
+                this._triggerBerryAbilityHooks(pokemon, consumedBerry, logs);
                 return true;
             }
         }
@@ -2153,6 +2197,7 @@ const ItemEffects = {
         // 强化类树果
         if (itemData.effect === 'pinchBoost' && itemData.statBoost) {
             pokemon.item = null;
+            pokemon.usedBerry = consumedBerry;
             if (typeof pokemon.applyBoost === 'function') {
                 for (const [stat, amount] of Object.entries(itemData.statBoost)) {
                     pokemon.applyBoost(stat, amount);
@@ -2166,12 +2211,14 @@ const ItemEffects = {
             const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
             const boostStr = Object.entries(itemData.statBoost).map(([s, a]) => `${statNames[s] || s}+${a}`).join('/');
             logs.push(`<span style="color:#f39c12">🍒 ${pokemon.cnName} 吃掉了${berryName}，${boostStr}！</span>`);
+            this._triggerBerryAbilityHooks(pokemon, consumedBerry, logs);
             return true;
         }
         
         // 随机强化树果 (星桃果)
         if (itemData.effect === 'pinchBoostRandom') {
             pokemon.item = null;
+            pokemon.usedBerry = consumedBerry;
             const stats = ['atk', 'def', 'spa', 'spd', 'spe'];
             const randomStat = stats[Math.floor(Math.random() * stats.length)];
             const amount = itemData.boostAmount || 2;
@@ -2183,6 +2230,7 @@ const ItemEffects = {
             }
             const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
             logs.push(`<span style="color:#f39c12">⭐ ${pokemon.cnName} 吃掉了${berryName}，${statNames[randomStat]}+${amount}！</span>`);
+            this._triggerBerryAbilityHooks(pokemon, consumedBerry, logs);
             return true;
         }
         
@@ -2706,6 +2754,60 @@ function isChoiceItem(itemName) {
 }
 
 // ============================================
+// 树果效果触发函数（用于 Cud Chew 等）
+// ============================================
+
+/**
+ * 触发树果效果（不消耗道具，仅触发效果）
+ * 用于 Cud Chew 反刍特性
+ * @param {Object} pokemon - 宝可梦
+ * @param {string} berry - 树果名称
+ * @param {Array} logs - 日志数组
+ */
+function triggerBerryEffect(pokemon, berry, logs = []) {
+    if (!berry) return;
+    
+    const itemId = berry.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const itemData = ITEMS[itemId];
+    if (!itemData || !itemData.isBerry) return;
+    
+    const berryName = itemData.cnName || itemData.name;
+    
+    // 回复类树果
+    if (itemData.effect === 'healOnLowHP') {
+        let heal = 0;
+        if (itemData.healPercent) {
+            heal = Math.floor(pokemon.maxHp * itemData.healPercent);
+        } else if (itemData.healAmount) {
+            heal = itemData.healAmount;
+        }
+        if (heal > 0) {
+            pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
+            logs.push(`<span style="color:#27ae60">回复了 ${heal} 点体力！</span>`);
+        }
+    }
+    
+    // 强化类树果
+    if (itemData.effect === 'pinchBoost' && itemData.statBoost) {
+        if (!pokemon.boosts) pokemon.boosts = {};
+        for (const [stat, amount] of Object.entries(itemData.statBoost)) {
+            pokemon.boosts[stat] = Math.min(6, (pokemon.boosts[stat] || 0) + amount);
+        }
+        const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+        const boostStr = Object.entries(itemData.statBoost).map(([s, a]) => `${statNames[s] || s}+${a}`).join('/');
+        logs.push(`<span style="color:#f39c12">${boostStr}！</span>`);
+    }
+    
+    // 状态治愈类树果
+    if (itemData.effect === 'cureStatus' && itemData.cures && pokemon.status === itemData.cures) {
+        pokemon.status = null;
+        pokemon.statusTurns = 0;
+        const statusNames = { slp: '睡眠', psn: '中毒', brn: '灼伤', par: '麻痹', frz: '冰冻' };
+        logs.push(`<span style="color:#27ae60">${statusNames[itemData.cures] || '异常状态'}被治愈了！</span>`);
+    }
+}
+
+// ============================================
 // 导出
 // ============================================
 
@@ -2722,6 +2824,7 @@ if (typeof window !== 'undefined') {
     window.isMegaStone = isMegaStone;
     window.isZCrystal = isZCrystal;
     window.isSwappable = isSwappable;
+    window.triggerBerryEffect = triggerBerryEffect; // Cud Chew 等需要
 }
 
 // ES Module 导出

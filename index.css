@@ -302,6 +302,56 @@ body {
     overflow: hidden;
 }
 
+/* ============================================
+   Canvas 粒子天气系统
+   ============================================ */
+#weather-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+/* 天气背景色调滤镜 */
+.bg-gradient {
+    transition: filter 1.5s ease, background-color 1.5s ease;
+}
+
+/* 雨天 - 柔和的浅灰蓝色 */
+.bg-rain, .bg-heavyrain {
+    background-color: rgba(160, 180, 200, 0.35) !important;
+}
+
+/* 沙暴 - 柔和的浅土色 */
+.bg-sand {
+    background-color: rgba(210, 180, 140, 0.4) !important;
+}
+
+/* 雪天 - 柔和的浅天蓝色 */
+.bg-snow, .bg-hail {
+    background-color: rgba(180, 210, 240, 0.4) !important;
+}
+
+/* 晴天 - 柔和的浅金色 */
+.bg-sun {
+    background-color: rgba(255, 240, 200, 0.35) !important;
+}
+
+/* 大日照 - 更强烈的金橙色 */
+.bg-harshsun {
+    background-color: rgba(255, 200, 120, 0.45) !important;
+}
+
+/* 乱气流 - 诡异的青绿色 */
+.bg-deltastream {
+    background-color: rgba(100, 220, 200, 0.3) !important;
+}
+
 .sprite-wrapper {
     position: absolute;
     pointer-events: none;

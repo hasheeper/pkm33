@@ -662,27 +662,122 @@ const WEATHER_TYPES = {
 };
 
 /**
- * 获取天气对技能威力的修正
+ * 获取天气对技能威力的修正（完整版）
  * @param {string} weather 当前天气
  * @param {string} moveType 技能属性
- * @returns {number} 威力倍率
+ * @param {string} moveName 技能名称（用于特例判断）
+ * @returns {{ modifier: number, log: string|null }} 威力倍率和日志
  */
-function getWeatherModifier(weather, moveType) {
-    if (!weather || !WEATHER_TYPES[weather]) return 1;
-    
-    const w = WEATHER_TYPES[weather];
-    
-    if (moveType === 'Fire') {
-        if (w.fireBoost) return w.fireBoost;
-        if (w.fireNerf) return w.fireNerf;
+function getWeatherModifier(weather, moveType, moveName = '') {
+    if (!weather || weather === 'none') {
+        return { modifier: 1, log: null };
     }
     
-    if (moveType === 'Water') {
-        if (w.waterBoost) return w.waterBoost;
-        if (w.waterNerf) return w.waterNerf;
+    let modifier = 1;
+    let log = null;
+    
+    // === 1. 基础天气属性修正 ===
+    if (weather === 'sun' || weather === 'harshsun') {
+        if (moveType === 'Fire') {
+            modifier = 1.5;
+            log = `☀️ 晴天增强了火系技能的威力！`;
+        } else if (moveType === 'Water') {
+            // 【特判】水蒸气 (Hydro Steam) 在晴天下威力 x1.5 而非 x0.5
+            if (moveName === 'Hydro Steam') {
+                modifier = 1.5;
+                log = `☀️ 水蒸气在晴天下威力增强！`;
+            } else if (weather === 'harshsun') {
+                // 大日照完全阻止水系技能
+                modifier = 0;
+                log = `🔥 大日照完全蒸发了水系技能！`;
+            } else {
+                modifier = 0.5;
+                log = `☀️ 晴天削弱了水系技能的威力...`;
+            }
+        }
+    } else if (weather === 'rain' || weather === 'heavyrain') {
+        if (moveType === 'Water') {
+            modifier = 1.5;
+            log = `🌧️ 雨天增强了水系技能的威力！`;
+        } else if (moveType === 'Fire') {
+            if (weather === 'heavyrain') {
+                // 大雨完全阻止火系技能
+                modifier = 0;
+                log = `🌧️ 大雨完全浇灭了火系技能！`;
+            } else {
+                modifier = 0.5;
+                log = `🌧️ 雨天削弱了火系技能的威力...`;
+            }
+        }
     }
     
-    return 1;
+    // === 2. Solar Beam / Solar Blade 在恶劣天气威力减半 ===
+    const solarMoves = ['Solar Beam', 'Solar Blade'];
+    if (solarMoves.includes(moveName)) {
+        const weakenedWeathers = ['rain', 'heavyrain', 'sandstorm', 'hail', 'snow'];
+        if (weakenedWeathers.includes(weather)) {
+            modifier = 0.5;
+            log = `天气影响削弱了 ${moveName} 的威力...`;
+        }
+    }
+    
+    return { modifier, log };
+}
+
+/**
+ * 获取天气对命中率的修正
+ * @param {string} weather 当前天气
+ * @param {string} moveName 技能名称
+ * @returns {{ accuracy: number|null, log: string|null }} 修正后的命中率（null表示不修改）
+ */
+function getWeatherAccuracyModifier(weather, moveName) {
+    if (!weather || weather === 'none') {
+        return { accuracy: null, log: null };
+    }
+    
+    const rainMoves = ['Thunder', 'Hurricane', 'Sandsear Storm', 'Bleakwind Storm', 'Wildbolt Storm'];
+    const sunAccDropMoves = ['Thunder', 'Hurricane'];
+    
+    if (weather === 'rain' || weather === 'heavyrain') {
+        if (rainMoves.includes(moveName)) {
+            return { accuracy: 100, log: `🌧️ 雨天使 ${moveName} 必中！` };
+        }
+    } else if (weather === 'sun' || weather === 'harshsun') {
+        if (sunAccDropMoves.includes(moveName)) {
+            return { accuracy: 50, log: `☀️ 晴天使 ${moveName} 命中率降至 50%` };
+        }
+    } else if (weather === 'snow' || weather === 'hail') {
+        if (moveName === 'Blizzard') {
+            return { accuracy: 100, log: `❄️ 雪天使 Blizzard 必中！` };
+        }
+    }
+    
+    return { accuracy: null, log: null };
+}
+
+/**
+ * 获取天气对防御的加成
+ * @param {string} weather 当前天气
+ * @param {Array} defenderTypes 防御方属性
+ * @param {boolean} isSpecial 是否特殊攻击
+ * @returns {{ multiplier: number, log: string|null }} 防御倍率
+ */
+function getWeatherDefenseBoost(weather, defenderTypes, isSpecial) {
+    if (!weather || weather === 'none' || !defenderTypes) {
+        return { multiplier: 1, log: null };
+    }
+    
+    // 沙暴：岩石系特防 x1.5
+    if (weather === 'sandstorm' && isSpecial && defenderTypes.includes('Rock')) {
+        return { multiplier: 1.5, log: `🏜️ 沙暴增强了岩石系的特防！` };
+    }
+    
+    // 下雪：冰系物防 x1.5
+    if ((weather === 'snow' || weather === 'hail') && !isSpecial && defenderTypes.includes('Ice')) {
+        return { multiplier: 1.5, log: `❄️ 下雪增强了冰系的物防！` };
+    }
+    
+    return { multiplier: 1, log: null };
 }
 
 // ========== 场地系统 (Terrain) ==========
@@ -1061,6 +1156,52 @@ function clearEntryHazards(isPlayer, battle) {
 // ========== Volatile 状态系统 (Taunt, Substitute 等) ==========
 
 /**
+ * 【精神香草 Mental Herb】检查并解除控制状态
+ * @param {Pokemon} pokemon - 宝可梦
+ * @param {string} condition - 被施加的状态 (taunt/encore/torment/healblock/disable/attract)
+ * @param {Array} logs - 日志数组
+ * @returns {boolean} 是否触发并解除状态
+ */
+function checkMentalHerb(pokemon, condition, logs) {
+    if (!pokemon.item) return false;
+    
+    const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (itemId !== 'mentalherb' && pokemon.item !== '精神香草') return false;
+    
+    const cures = ['taunt', 'encore', 'torment', 'healblock', 'disable', 'attract'];
+    if (!cures.includes(condition)) return false;
+    
+    // 解除状态
+    if (pokemon.volatile) {
+        if (condition === 'encore') {
+            pokemon.volatile.encore = 0;
+            pokemon.volatile.encoreMove = null;
+        } else if (condition === 'disable') {
+            pokemon.volatile.disable = 0;
+            pokemon.volatile.disabledMove = null;
+        } else if (condition === 'attract') {
+            pokemon.volatile.attract = false;
+        } else if (condition === 'torment') {
+            pokemon.volatile.torment = false;
+        } else {
+            pokemon.volatile[condition] = 0;
+        }
+    }
+    
+    const conditionNames = {
+        taunt: '挑衅', encore: '再来一次', torment: '无理取闹',
+        healblock: '回复封锁', disable: '定身法', attract: '着迷'
+    };
+    
+    // 消耗道具
+    pokemon.item = null;
+    logs.push(`<b style="color:#9b59b6">🌿 ${pokemon.cnName} 的精神香草生效了！解除了${conditionNames[condition] || condition}！</b>`);
+    console.log(`[MENTAL HERB] ${pokemon.cnName} 消耗了精神香草，解除了 ${condition}`);
+    if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('ITEM_USE');
+    return true;
+}
+
+/**
  * 处理 Volatile 状态技能
  * @param {Pokemon} user 使用者
  * @param {Pokemon} target 目标
@@ -1123,6 +1264,10 @@ function applyVolatileStatus(user, target, move) {
             }
             target.volatile.taunt = 3;
             logs.push(`${target.cnName} 陷入了挑衅状态!`);
+            // 【精神香草】检查
+            if (checkMentalHerb(target, 'taunt', logs)) {
+                return { success: true, logs }; // 状态被立即解除
+            }
             return { success: true, logs };
             
         case 'Substitute':
@@ -1150,6 +1295,10 @@ function applyVolatileStatus(user, target, move) {
             target.volatile.encore = 3;
             target.volatile.encoreMove = target.lastMoveUsed;
             logs.push(`${target.cnName} 被强制再来一次!`);
+            // 【精神香草】检查
+            if (checkMentalHerb(target, 'encore', logs)) {
+                return { success: true, logs };
+            }
             return { success: true, logs };
             
         case 'Disable':
@@ -1161,18 +1310,30 @@ function applyVolatileStatus(user, target, move) {
             target.volatile.disable = 4;
             target.volatile.disabledMove = target.lastMoveUsed;
             logs.push(`${target.cnName} 的 ${target.lastMoveUsed} 被封印了!`);
+            // 【精神香草】检查
+            if (checkMentalHerb(target, 'disable', logs)) {
+                return { success: true, logs };
+            }
             return { success: true, logs };
             
         case 'Torment':
             // 无理取闹：无法连续使用同一技能
             target.volatile.torment = true;
             logs.push(`${target.cnName} 陷入了无理取闹状态!`);
+            // 【精神香草】检查
+            if (checkMentalHerb(target, 'torment', logs)) {
+                return { success: true, logs };
+            }
             return { success: true, logs };
             
         case 'Heal Block':
             // 回复封锁
             target.volatile.healBlock = 5;
             logs.push(`${target.cnName} 被封锁了回复!`);
+            // 【精神香草】检查
+            if (checkMentalHerb(target, 'healblock', logs)) {
+                return { success: true, logs };
+            }
             return { success: true, logs };
             
         // ===================== 持续伤害/干扰类 =====================
@@ -1256,6 +1417,10 @@ function applyVolatileStatus(user, target, move) {
             }
             target.volatile.attract = true;
             logs.push(`${target.cnName} 着迷了!`);
+            // 【精神香草】检查
+            if (checkMentalHerb(target, 'attract', logs)) {
+                return { success: true, logs };
+            }
             return { success: true, logs };
             
         case 'Focus Energy':
@@ -1515,10 +1680,13 @@ function tickVolatileStatus(pokemon, opponent = null) {
         }
     }
     
-    // 同命（每回合重置）
-    if (pokemon.volatile.destinybond) {
-        delete pokemon.volatile.destinybond;
-    }
+    // 同命（已移至 executePlayerTurn/executeEnemyTurn 招式执行后处理）
+    // 【关键修复】不要在回合末清除 destinyBond！
+    // destinyBond 应该在使用者"使用其他招式时"才清除，而非回合末
+    // 这样才能让同命状态在下一回合被攻击时生效
+    // if (pokemon.volatile.destinyBond) {
+    //     delete pokemon.volatile.destinyBond;
+    // }
     
     return logs;
 }
@@ -1648,6 +1816,13 @@ function applyKnockOff(attacker, defender, move) {
     
     // 检查对手是否有道具
     if (defender.item && defender.item !== '') {
+        // 【黏着 Sticky Hold】检查：道具无法被拍落
+        const defenderAbilityId = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (defenderAbilityId === 'stickyhold') {
+            logs.push(`<span style="color:#9b59b6">${defender.cnName} 的黏着特性保护了道具！</span>`);
+            return { success: false, logs, bonusDamage: 1.5 }; // 仍有伤害加成
+        }
+        
         // 【软编码】使用 canKnockOffItem 函数判定
         const isUnremovable = !canKnockOffItem(defender.item);
         
@@ -1655,7 +1830,18 @@ function applyKnockOff(attacker, defender, move) {
             const knockedItem = defender.item;
             defender.item = null;
             defender.knockedOffItem = knockedItem; // 记录被拍落的道具
-            logs.push(`${attacker.cnName} 拍落了 ${defender.cnName} 的 ${knockedItem}！`);
+            
+            // 触发 Unburden 等 onItemLost 钩子
+            if (typeof AbilityHandlers !== 'undefined' && defender.ability) {
+                const abilityHandler = AbilityHandlers[defender.ability];
+                if (abilityHandler && abilityHandler.onItemLost) {
+                    abilityHandler.onItemLost(defender, knockedItem, logs);
+                }
+            }
+            
+            const itemData = (typeof window.getItem === 'function') ? window.getItem(knockedItem) : null;
+            const itemName = itemData?.cnName || knockedItem;
+            logs.push(`${attacker.cnName} 拍落了 ${defender.cnName} 的 ${itemName}！`);
             bonusDamage = 1.5; // 拍落有道具的对手伤害 x1.5
         }
     }
@@ -1813,6 +1999,8 @@ window.MoveEffects = {
     WEATHER_TYPES,
     TERRAIN_TYPES,
     getWeatherModifier,
+    getWeatherAccuracyModifier,
+    getWeatherDefenseBoost,
     getTerrainModifier,
     
     // 技能标记

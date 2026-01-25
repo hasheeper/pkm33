@@ -54,6 +54,7 @@ import '../battle/battle-effects.js';
 import '../battle/battle-damage.js';
 import '../battle/battle-switch.js';
 import '../battle/battle-turns.js';
+import '../battle/battle-weather.js';
 
 // ============================================
 // 6. AI 引擎

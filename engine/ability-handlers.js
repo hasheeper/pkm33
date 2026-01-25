@@ -392,32 +392,191 @@ export const AbilityHandlers = {
         }
     },
 
+    // 【始源天气列表】不可被普通天气特性覆盖
+    // Delta Stream, Desolate Land, Primordial Sea
+    
     // 【降雨】
     'Drizzle': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'rain'; // 标准值: rain
+            if (battle) {
+                // 【修复】始源天气不可被覆盖
+                if (['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                    logs.push(`<span style="color:#9b59b6">神秘的气流极其强劲，${self.cnName} 的降雨无法生效！</span>`);
+                    console.log(`[WEATHER] Drizzle blocked by primal weather: ${battle.weather}`);
+                    return;
+                }
+                battle.weather = 'rain'; // 标准值: rain
+                // 【修复】设置天气持续回合，检查 Damp Rock 延长
+                const itemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                battle.weatherTurns = (itemId === 'damprock') ? 8 : 5;
+                console.log(`[WEATHER] Drizzle: 设置雨天 ${battle.weatherTurns} 回合`);
+                // 更新天气视觉效果
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('rain');
+                }
+            }
             logs.push(`🌧️ ${self.cnName} 带来了降雨!`);
         }
     },
     // 【日照】
     'Drought': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'sun'; // 标准值: sun
+            if (battle) {
+                // 【修复】始源天气不可被覆盖
+                if (['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                    logs.push(`<span style="color:#9b59b6">神秘的气流极其强劲，${self.cnName} 的日照无法生效！</span>`);
+                    console.log(`[WEATHER] Drought blocked by primal weather: ${battle.weather}`);
+                    return;
+                }
+                battle.weather = 'sun'; // 标准值: sun
+                // 【修复】设置天气持续回合，检查 Heat Rock 延长
+                const itemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                battle.weatherTurns = (itemId === 'heatrock') ? 8 : 5;
+                console.log(`[WEATHER] Drought: 设置晴天 ${battle.weatherTurns} 回合`);
+                // 更新天气视觉效果
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('sun');
+                }
+            }
             logs.push(`☀️ ${self.cnName} 让阳光变得强烈了!`);
         }
     },
     // 【扬沙】
     'Sand Stream': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'sandstorm'; // 标准值: sandstorm
+            if (battle) {
+                // 【修复】始源天气不可被覆盖
+                if (['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                    logs.push(`<span style="color:#9b59b6">神秘的气流极其强劲，${self.cnName} 的扬沙无法生效！</span>`);
+                    console.log(`[WEATHER] Sand Stream blocked by primal weather: ${battle.weather}`);
+                    return;
+                }
+                battle.weather = 'sandstorm'; // 标准值: sandstorm
+                // 【修复】设置天气持续回合，检查 Smooth Rock 延长
+                const itemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                battle.weatherTurns = (itemId === 'smoothrock') ? 8 : 5;
+                console.log(`[WEATHER] Sand Stream: 设置沙暴 ${battle.weatherTurns} 回合`);
+                // 更新天气视觉效果
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('sand');
+                }
+            }
             logs.push(`🌪️ ${self.cnName} 扬起了沙暴!`);
         }
     },
     // 【降雪】
     'Snow Warning': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) battle.weather = 'snow'; // 标准值: snow
+            if (battle) {
+                // 【修复】始源天气不可被覆盖
+                if (['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
+                    logs.push(`<span style="color:#9b59b6">神秘的气流极其强劲，${self.cnName} 的降雪无法生效！</span>`);
+                    console.log(`[WEATHER] Snow Warning blocked by primal weather: ${battle.weather}`);
+                    return;
+                }
+                battle.weather = 'snow'; // 标准值: snow
+                // 【修复】设置天气持续回合，检查 Icy Rock 延长
+                const itemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                battle.weatherTurns = (itemId === 'icyrock') ? 8 : 5;
+                console.log(`[WEATHER] Snow Warning: 设置雪天 ${battle.weatherTurns} 回合`);
+                // 更新天气视觉效果
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('snow');
+                }
+            }
             logs.push(`❄️ ${self.cnName} 让天空开始下雪了!`);
+        }
+    },
+    
+    // 【绯红脉动 Orichalcum Pulse】故勒顿专属 - 进场开晴天，晴天下攻击x1.33
+    'Orichalcum Pulse': {
+        onStart: (self, enemy, logs, battle) => {
+            if (battle) {
+                battle.weather = 'sun'; // 标准值: sun
+                self.orichalcumActive = true;
+            }
+            logs.push(`☀️ ${self.cnName} 的绯红脉动发动了！阳光变得强烈了！`);
+        },
+        onModifyStat: (stats, poke, battle) => {
+            // 晴天下攻击 x1.33
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
+                stats.atk = Math.floor(stats.atk * 1.3333);
+            }
+        }
+    },
+    
+    // 【强子引擎 Hadron Engine】密勒顿专属 - 进场开电气场地，场地下特攻x1.33
+    'Hadron Engine': {
+        onStart: (self, enemy, logs, battle) => {
+            if (battle) {
+                battle.terrain = 'electricterrain';
+                self.hadronActive = true;
+            }
+            logs.push(`⚡ ${self.cnName} 的强子引擎发动了！电气在脚下涌动！`);
+        },
+        onModifyStat: (stats, poke, battle) => {
+            // 电气场地下特攻 x1.33
+            if (battle && battle.terrain === 'electricterrain') {
+                stats.spa = Math.floor(stats.spa * 1.3333);
+            }
+        }
+    },
+    
+    // 【终结之地 Desolate Land】原始固拉多专属 - 进场开大日照，水系技能无效
+    'Desolate Land': {
+        onStart: (self, enemy, logs, battle) => {
+            if (battle) {
+                battle.weather = 'harshsun'; // 极端天气
+                battle.weatherSource = self; // 标记天气来源
+                // 更新天气视觉效果
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('harshsun');
+                }
+            }
+            logs.push(`🔥 ${self.cnName} 的终结之地发动了！强烈的日照笼罩了战场！`);
+        },
+        onModifyStat: (stats, poke, battle) => {
+            // 大日照下攻击无加成，但水系技能在 getWeatherModifier 中被阻止
+        }
+    },
+    
+    // 【始源之海 Primordial Sea】原始盖欧卡专属 - 进场开大雨，火系技能无效
+    'Primordial Sea': {
+        onStart: (self, enemy, logs, battle) => {
+            if (battle) {
+                battle.weather = 'heavyrain'; // 极端天气
+                battle.weatherSource = self;
+                // 更新天气视觉效果
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('heavyrain');
+                }
+            }
+            logs.push(`🌊 ${self.cnName} 的始源之海发动了！暴风雨席卷了战场！`);
+        }
+    },
+    
+    // 【德尔塔气流 Delta Stream】Mega裂空座专属 - 进场开乱流，飞行系弱点无效
+    'Delta Stream': {
+        onStart: (self, enemy, logs, battle) => {
+            if (battle) {
+                battle.weather = 'deltastream';
+                battle.weatherSource = self;
+                // 更新天气视觉效果
+                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+                    window.setWeatherVisuals('deltastream');
+                }
+            }
+            logs.push(`🌪️ ${self.cnName} 的德尔塔气流发动了！神秘的乱流保护着战场！`);
+        }
+    },
+    
+    // 【花之礼 Flower Gift】樱花儿专属 - 晴天下己方攻击和特防x1.5
+    'Flower Gift': {
+        onModifyStat: (stats, poke, battle) => {
+            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
+                stats.atk = Math.floor(stats.atk * 1.5);
+                stats.spd = Math.floor(stats.spd * 1.5);
+            }
         }
     },
 
@@ -851,7 +1010,157 @@ export const AbilityHandlers = {
             if (poke.unburdenActive) {
                 stats.spe = Math.floor(stats.spe * 2);
             }
+        },
+        // 【关键】获得道具后取消速度加成
+        onItemGained: (pokemon, item, logs) => {
+            if (pokemon.unburdenActive) {
+                pokemon.unburdenActive = false;
+                console.log(`[UNBURDEN] ${pokemon.cnName} 获得道具，轻装效果解除`);
+            }
         }
+    },
+    
+    // 【颊囊 Cheek Pouch】吃树果时额外回复 1/3 HP
+    // 代表：掘掘兔、咬咬龟
+    'Cheek Pouch': {
+        onEatBerry: (pokemon, berry, logs) => {
+            const healAmount = Math.floor(pokemon.maxHp / 3);
+            if (typeof pokemon.heal === 'function') {
+                pokemon.heal(healAmount);
+            } else {
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+            }
+            logs.push(`<b style="color:#f39c12">🐹 ${pokemon.cnName} 的颊囊发动！额外回复了 ${healAmount} HP！</b>`);
+        }
+    },
+    
+    // 【贪吃鬼 Gluttony】HP 50% 以下就吃原本 25% 才吃的树果
+    // 代表：卡比兽、大舌舔
+    'Gluttony': {
+        berryThreshold: 0.5 // 将 25% 阈值提升到 50%
+    },
+    
+    // 【紧张感 Unnerve】敌方无法食用树果
+    // 代表：超梦、老班、暴鲤龙
+    'Unnerve': {
+        onStart: (self, enemy, logs, battle) => {
+            logs.push(`<b style="color:#e74c3c">😨 ${self.cnName} 的紧张感让对手紧张起来了！</b>`);
+            // 标记敌方无法吃树果
+            if (enemy) enemy.cannotEatBerry = true;
+        },
+        // 全局效果：阻止敌方吃树果
+        preventEnemyBerry: true
+    },
+    
+    // 【察觉 Frisk】进场时显示对手道具
+    // 代表：诅咒娃娃、鬼斯通
+    'Frisk': {
+        onStart: (self, enemy, logs, battle) => {
+            if (enemy && enemy.item) {
+                const itemData = (typeof window.getItem === 'function') ? window.getItem(enemy.item) : null;
+                const itemName = itemData?.cnName || enemy.item;
+                logs.push(`<b style="color:#9b59b6">👁️ ${self.cnName} 察觉到 ${enemy.cnName} 携带着 ${itemName}！</b>`);
+            } else if (enemy) {
+                logs.push(`<b style="color:#9b59b6">👁️ ${self.cnName} 察觉到 ${enemy.cnName} 没有携带道具。</b>`);
+            }
+        }
+    },
+    
+    // 【反刍 Cud Chew】吃树果后下回合末再吃一次
+    // 代表：奇麒麟、帕底亚肯泰罗
+    'Cud Chew': {
+        onEatBerry: (pokemon, berry, logs) => {
+            // 记录吃的树果，下回合末再触发一次
+            pokemon.cudChewBerry = berry;
+            pokemon.cudChewReady = false; // 下回合末才触发
+            console.log(`[CUD CHEW] ${pokemon.cnName} 记录了 ${berry}，下回合末再吃一次`);
+        },
+        onTurnEnd: (pokemon, logs) => {
+            // 如果有记录的树果且已经过了一回合
+            if (pokemon.cudChewBerry && pokemon.cudChewReady) {
+                const berry = pokemon.cudChewBerry;
+                logs.push(`<b style="color:#27ae60">🐄 ${pokemon.cnName} 的反刍特性发动！再次享用了 ${berry} 的效果！</b>`);
+                // 触发树果效果（需要调用树果处理函数）
+                if (typeof window.triggerBerryEffect === 'function') {
+                    window.triggerBerryEffect(pokemon, berry, logs);
+                }
+                pokemon.cudChewBerry = null;
+                pokemon.cudChewReady = false;
+            } else if (pokemon.cudChewBerry && !pokemon.cudChewReady) {
+                // 标记下回合可以触发
+                pokemon.cudChewReady = true;
+            }
+        }
+    },
+    
+    // 【笨拙 Klutz】携带物无效（不加成、不吃、不投掷）
+    // 代表：布卢皇、顽皮熊猫
+    'Klutz': {
+        // 标记：道具效果无效
+        itemDisabled: true,
+        // 注意：火珠/毒珠也不会生效
+        preventItemEffect: true
+    },
+    
+    // 【魔术师 Magician】攻击造成伤害后偷取对手道具
+    // 代表：妖精系
+    'Magician': {
+        onAfterDamage: (attacker, defender, damage, move, logs) => {
+            if (damage > 0 && !attacker.item && defender.item) {
+                // 检查是否可以偷取
+                const defenderAbilityId = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                if (defenderAbilityId === 'stickyhold') {
+                    logs.push(`<span style="color:#9b59b6">${defender.cnName} 的黏着特性阻止了道具被偷！</span>`);
+                    return;
+                }
+                // 检查不可交换道具
+                if (typeof window.isSwappable === 'function' && !window.isSwappable(defender.item)) {
+                    return;
+                }
+                const stolenItem = defender.item;
+                attacker.item = stolenItem;
+                defender.item = null;
+                const itemData = (typeof window.getItem === 'function') ? window.getItem(stolenItem) : null;
+                const itemName = itemData?.cnName || stolenItem;
+                logs.push(`<b style="color:#9b59b6">🎩 ${attacker.cnName} 的魔术师偷走了 ${defender.cnName} 的 ${itemName}！</b>`);
+            }
+        }
+    },
+    
+    // 【顺手牵羊 Pickpocket】被接触攻击后偷取对手道具
+    // 代表：狡猾天狗、扒手猫
+    'Pickpocket': {
+        onDamageTaken: (pokemon, damage, source, logs, move) => {
+            if (!move) return;
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+            const isContact = fullMoveData.flags && fullMoveData.flags.contact;
+            
+            if (damage > 0 && isContact && !pokemon.item && source && source.item) {
+                // 检查黏着特性
+                const sourceAbilityId = (source.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                if (sourceAbilityId === 'stickyhold') {
+                    logs.push(`<span style="color:#9b59b6">${source.cnName} 的黏着特性阻止了道具被偷！</span>`);
+                    return;
+                }
+                // 检查不可交换道具
+                if (typeof window.isSwappable === 'function' && !window.isSwappable(source.item)) {
+                    return;
+                }
+                const stolenItem = source.item;
+                pokemon.item = stolenItem;
+                source.item = null;
+                const itemData = (typeof window.getItem === 'function') ? window.getItem(stolenItem) : null;
+                const itemName = itemData?.cnName || stolenItem;
+                logs.push(`<b style="color:#9b59b6">🤏 ${pokemon.cnName} 的顺手牵羊偷走了 ${source.cnName} 的 ${itemName}！</b>`);
+            }
+        }
+    },
+    
+    // 【黏着 Sticky Hold】道具无法被偷取或打落
+    // 代表：臭泥、黏美儿
+    'Sticky Hold': {
+        preventItemLoss: true
     },
 
     // ============================================
@@ -1973,17 +2282,20 @@ export const AbilityHandlers = {
                 }
                 
                 // 实际战斗中：变身为解冻头形态
+                let iceFaceLog = null;
                 if (typeof window.performFormChange === 'function') {
                     const res = window.performFormChange(defender, 'eiscuenoice', 'iceface');
                     if (res && res.success) {
                         defender.iceFaceBroken = true;
+                        iceFaceLog = `<span style="color:#60a5fa">❄️ ${defender.cnName} 的结冻头代替它承受了攻击！</span>`;
                         console.log(`[ICE FACE] ${defender.cnName} 的结冻头被打碎了！`);
                         if (typeof window.updateAllVisuals === 'function') {
                             window.updateAllVisuals();
                         }
                     }
                 }
-                return 0; // 伤害归零
+                // 【修复】返回对象以包含日志
+                return { damage: 0, log: iceFaceLog };
             }
             return damage;
         },
@@ -2206,9 +2518,11 @@ export const AbilityHandlers = {
         onDamageTaken: (pokemon, damage, source, logs, move) => {
             if (damage > 0 && source && move && Math.random() < 0.3) {
                 if (!source.volatile) source.volatile = {};
-                source.volatile.disable = move.name;
-                source.volatile.disableTurns = 4;
+                // 【关键修复】使用正确的字段名，与 checkCanMove 一致
+                source.volatile.disable = 4; // 持续 4 回合
+                source.volatile.disabledMove = move.name; // 被封印的招式名
                 logs.push(`<span style="color:#9b59b6">👻 ${pokemon.cnName} 的诅咒之躯发动! ${source.cnName} 的 ${move.cn || move.name} 被封印了!</span>`);
+                console.log(`[CURSED BODY] ${source.cnName} 的 ${move.name} 被封印 4 回合`);
             }
         }
     },
@@ -2231,6 +2545,36 @@ export const AbilityHandlers = {
     'Simple': {
         onBoostChange: (pokemon, stat, change) => {
             return change * 2; // 翻倍
+        }
+    },
+    
+    // 【持久力 Stamina】受到攻击时防御+1
+    'Stamina': {
+        onDamageTaken: (pokemon, damage, source, logs, move) => {
+            if (damage > 0) {
+                if (!pokemon.boosts) pokemon.boosts = {};
+                const oldDef = pokemon.boosts.def || 0;
+                if (oldDef < 6) {
+                    pokemon.boosts.def = Math.min(6, oldDef + 1);
+                    logs.push(`<span style="color:#3498db">🛡️ ${pokemon.cnName} 的持久力发动！防御提升了！</span>`);
+                    console.log(`[STAMINA] ${pokemon.cnName} 防御 +1 (${oldDef} -> ${pokemon.boosts.def})`);
+                }
+            }
+        }
+    },
+    
+    // 【弱点保险 Weak Armor】受到物理攻击时防御-1，速度+2
+    'Weak Armor': {
+        onDamageTaken: (pokemon, damage, source, logs, move) => {
+            if (damage > 0 && move && (move.cat === 'phys' || move.category === 'Physical')) {
+                if (!pokemon.boosts) pokemon.boosts = {};
+                const oldDef = pokemon.boosts.def || 0;
+                const oldSpe = pokemon.boosts.spe || 0;
+                pokemon.boosts.def = Math.max(-6, oldDef - 1);
+                pokemon.boosts.spe = Math.min(6, oldSpe + 2);
+                logs.push(`<span style="color:#e74c3c">💨 ${pokemon.cnName} 的碎裂盔甲发动！防御下降，速度大幅提升！</span>`);
+                console.log(`[WEAK ARMOR] ${pokemon.cnName} 防御 -1, 速度 +2`);
+            }
         }
     }
     
