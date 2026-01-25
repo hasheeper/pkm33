@@ -829,6 +829,7 @@ export class Pokemon {
         // 满值 255 时约 50% 概率，100 时约 20% 概率
         // 每只宝可梦每场战斗只能触发一次
         // 只有 isAce=true 的宝可梦才能触发 AVs 被动
+        // 【Ambrosia】神之琼浆天气下 AVS 触发率 x2
         if (this.isAce && this.avs && dmg >= this.currHp && !this.avsTriggered?.trustEndure) {
             const baseTrust = this.getEffectiveAVs('trust');
             // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
@@ -836,7 +837,18 @@ export class Pokemon {
                 const effectiveTrust = this.avsEvolutionBoost ? baseTrust * 2 : baseTrust;
                 // 线性概率：满值 50%，无保底（低 AVS 就是低概率）
                 // Trust 60 → 11.76%, Trust 100 → 19.6%, Trust 255 → 50%
-                const triggerChance = (effectiveTrust / 255) * 0.50;
+                let triggerChance = (effectiveTrust / 255) * 0.50;
+                
+                // 【Ambrosia 神之琼浆】AVS 触发率 x2
+                if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getAVSMultiplier) {
+                    const currentWeather = window.battle?.weather || '';
+                    const avsMultiplier = window.WeatherEffects.getAVSMultiplier(currentWeather);
+                    if (avsMultiplier > 1) {
+                        triggerChance *= avsMultiplier;
+                        console.log(`[AMBROSIA] 💫 神之琼浆：Trust 触发率 x${avsMultiplier}`);
+                    }
+                }
+                triggerChance = Math.min(triggerChance, 1.0); // 上限 100%
                 
                 if (Math.random() < triggerChance) {
                     this.currHp = 1;
@@ -986,8 +998,22 @@ export class Pokemon {
     }
     
     // 回复
-    heal(amount) {
-        this.currHp = Math.min(this.maxHp, this.currHp + amount);
+    // 【Smog 专用】化学屏障 - 所有回复效果减半
+    heal(amount, options = {}) {
+        let finalAmount = amount;
+        
+        // 检查天气回复减半（Smog 化学屏障）
+        // options.bypassWeather = true 可以跳过（用于治愈之愿等更替技能）
+        if (!options.bypassWeather && typeof window !== 'undefined' && window.battle && window.WeatherEffects) {
+            const healMult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
+            if (healMult < 1) {
+                finalAmount = Math.floor(amount * healMult);
+                console.log(`[SMOG] 🏭 化学屏障：回复量 ${amount} -> ${finalAmount} (x${healMult})`);
+            }
+        }
+        
+        this.currHp = Math.min(this.maxHp, this.currHp + finalAmount);
+        return finalAmount; // 返回实际回复量
     }
     
     /**
@@ -1216,9 +1242,32 @@ export function checkCanMove(pokemon, move = null) {
         }
     }
     
+    // 3.5 【Ambrosia 时空醉】检查并应用混乱（Mega/Z/Dynamax/Tera 后的下回合）
+    // 注意：这里只设置混乱状态，不返回，让后续的混乱检查处理自伤逻辑
+    let neuroBacklashMessage = '';
+    if (pokemon.volatile && pokemon.volatile.neuroBacklash) {
+        if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.applyNeuroBacklashConfusion) {
+            const neuroResult = window.WeatherEffects.applyNeuroBacklashConfusion(pokemon);
+            if (neuroResult.applied) {
+                console.log(`[AMBROSIA] ⚡ 时空醉发作：${pokemon.cnName} 陷入混乱`);
+                neuroBacklashMessage = neuroResult.message;
+                // 不返回，继续执行后续检查（混乱自伤会在 battle-turns.js 中处理）
+            }
+        }
+    }
+    
     // 4. 冰冻 (Frozen) - 20% 几率解冻，否则无法行动
     if (pokemon.status === 'frz') {
-        // 4a. 自解冻招式检查 (defrost flag)
+        // 4a. 【Gale 极速解冻】香风天气下立即解冻
+        if (typeof window !== 'undefined' && window.battle && 
+            typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkRapidThawCure) {
+            const thawResult = window.WeatherEffects.checkRapidThawCure(window.battle.weather, pokemon);
+            if (thawResult.thawed) {
+                return { can: true, msg: thawResult.message };
+            }
+        }
+        
+        // 4b. 自解冻招式检查 (defrost flag)
         // 使用带有 defrost 标记的招式可以立即解冻并攻击
         if (move) {
             const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1229,7 +1278,7 @@ export function checkCanMove(pokemon, move = null) {
             }
         }
         
-        // 4b. 随机解冻 (20% 几率)
+        // 4c. 随机解冻 (20% 几率)
         if (Math.random() < 0.2) {
             pokemon.status = null;
             return { can: true, msg: `${pokemon.cnName} 的冰冻解除了!` };
@@ -1299,7 +1348,7 @@ export function checkCanMove(pokemon, move = null) {
         }
     }
     
-    return { can: true, msg: '', forcedMove: null };
+    return { can: true, msg: neuroBacklashMessage, forcedMove: null };
 }
 
 /**
@@ -1549,16 +1598,21 @@ export class BattleState {
                 if (this.environmentWeather && this.environmentWeather !== 'none') {
                     this.weather = this.environmentWeather;
                     this.weatherTurns = 0; // 环境天气永久
-                    const envWeatherNames = {
-                        'rain': '雨天',
-                        'sun': '晴天',
-                        'sandstorm': '沙暴',
-                        'snow': '雪天',
-                        'hail': '冰雹'
-                    };
-                    const envName = envWeatherNames[this.environmentWeather] || this.environmentWeather;
-                    logs.push(`<span style="color:#9b59b6">🌍 环境天气回归：${envName}！</span>`);
+                    
+                    // 使用压制系统的回归消息
+                    if (typeof window !== 'undefined' && window.WeatherEffects) {
+                        const revertMsg = window.WeatherEffects.getWeatherRevertMessage(this);
+                        logs.push(revertMsg);
+                    } else {
+                        const envWeatherNames = {
+                            'rain': '雨天', 'sun': '晴天', 'sandstorm': '沙暴',
+                            'snow': '雪天', 'hail': '冰雹', 'smog': '烟霾'
+                        };
+                        const envName = envWeatherNames[this.environmentWeather] || this.environmentWeather;
+                        logs.push(`<span style="color:#9b59b6">🌍 环境天气回归：${envName}！</span>`);
+                    }
                     console.log(`[ENVIRONMENT] 回归环境天气: ${this.environmentWeather}`);
+                    
                     // 更新天气视觉效果
                     if (typeof window !== 'undefined' && window.setWeatherVisuals) {
                         window.setWeatherVisuals(this.environmentWeather);
@@ -1575,21 +1629,33 @@ export class BattleState {
         
         // =========================================================
         // 【修复】场地回合递减 (Terrain)
+        // 【Ambrosia】神之琼浆天气下，精神场地和薄雾场地无限持续
         // =========================================================
         if (this.terrainTurns && this.terrainTurns > 0) {
-            this.terrainTurns--;
-            console.log(`[TERRAIN] 场地回合递减: ${this.terrainTurns + 1} -> ${this.terrainTurns}`);
-            if (this.terrainTurns === 0) {
-                const terrainNames = {
-                    'electricterrain': '电气场地消失了。',
-                    'grassyterrain': '青草场地消失了。',
-                    'psychicterrain': '精神场地消失了。',
-                    'mistyterrain': '薄雾场地消失了。'
-                };
-                const msg = terrainNames[this.terrain] || '场地效果消失了。';
-                logs.push(`🌿 ${msg}`);
-                console.log(`[TERRAIN] 场地结束: ${this.terrain}`);
-                this.terrain = null;
+            // 【Ambrosia 无限场地】检查是否跳过递减
+            let skipTerrainDecrement = false;
+            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.isTerrainInfinite) {
+                if (window.WeatherEffects.isTerrainInfinite(this.weather, this.terrain)) {
+                    skipTerrainDecrement = true;
+                    console.log(`[AMBROSIA] 🌈 无限场地：${this.terrain} 在神之琼浆中永久持续`);
+                }
+            }
+            
+            if (!skipTerrainDecrement) {
+                this.terrainTurns--;
+                console.log(`[TERRAIN] 场地回合递减: ${this.terrainTurns + 1} -> ${this.terrainTurns}`);
+                if (this.terrainTurns === 0) {
+                    const terrainNames = {
+                        'electricterrain': '电气场地消失了。',
+                        'grassyterrain': '青草场地消失了。',
+                        'psychicterrain': '精神场地消失了。',
+                        'mistyterrain': '薄雾场地消失了。'
+                    };
+                    const msg = terrainNames[this.terrain] || '场地效果消失了。';
+                    logs.push(`🌿 ${msg}`);
+                    console.log(`[TERRAIN] 场地结束: ${this.terrain}`);
+                    this.terrain = null;
+                }
             }
         }
         

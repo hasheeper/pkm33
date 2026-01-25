@@ -210,6 +210,18 @@ function applyDynamaxState(pokemon, isActive) {
         // [ON] 开启极巨化
         console.log(`[DYNAMAX] ${pokemon.name} 招式转换为极巨招式`);
         
+        // === 【Ambrosia 时空醉】标记下回合混乱 ===
+        if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkNeuroBacklash) {
+            const currentWeather = window.battle?.weather || '';
+            const trainer = window.battle?.isPlayerTurn ? null : window.battle?.enemyTrainer;
+            const neuroResult = window.WeatherEffects.checkNeuroBacklash(currentWeather, 'dynamax', pokemon, trainer);
+            if (neuroResult.shouldTrigger) {
+                pokemon.volatile = pokemon.volatile || {};
+                pokemon.volatile.neuroBacklash = true;
+                console.log(`[AMBROSIA] ⚡ 时空醉：${pokemon.name} 被标记，下回合将混乱`);
+            }
+        }
+        
         // === 检测是否有超极巨化因子 ===
         const gmaxFactor = getGMaxFactor(pokemon);
         if (gmaxFactor) {

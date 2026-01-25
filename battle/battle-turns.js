@@ -54,6 +54,36 @@ export function onTurnStart() {
     const battle = window.battle;
     if (!battle) return;
     
+    const logs = [];
+    
+    // 【Chronal Rift 速度熵增】回合开始时检查时空翻转
+    if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkEntropyFlux) {
+        const weather = battle?.weather || battle?.environmentWeather || '';
+        const entropyResult = window.WeatherEffects.checkEntropyFlux(weather);
+        if (entropyResult.shouldTrigger) {
+            // 翻转戏法空间状态
+            battle.field = battle.field || {};
+            if (battle.field.trickRoom > 0) {
+                // 关闭戏法空间
+                battle.field.trickRoom = 0;
+                logs.push(entropyResult.message);
+                logs.push(`<span style="color:#a855f7">🌀 戏法空间崩塌！速度恢复正常！</span>`);
+                console.log(`[CHRONAL RIFT] ⚡ 速度熵增：戏法空间关闭`);
+            } else {
+                // 开启戏法空间（无限持续）
+                battle.field.trickRoom = 999; // 无限持续
+                battle.field.chronalTrickRoom = true; // 标记为时空裂隙产生的
+                logs.push(entropyResult.message);
+                logs.push(`<span style="color:#a855f7">🌀 戏法空间展开！速度的概念被扭曲了！</span>`);
+                console.log(`[CHRONAL RIFT] ⚡ 速度熵增：戏法空间开启（无限）`);
+            }
+            // 输出日志
+            if (typeof window.log === 'function') {
+                logs.forEach(l => window.log(l));
+            }
+        }
+    }
+    
     // 【古武系统】回合开始时递减冷却
     if (battle.playerStyleCooldown > 0) {
         battle.playerStyleCooldown--;
@@ -95,6 +125,18 @@ export async function executePlayerTurn(p, e, move) {
         if (!check.can) {
             // 【关键】无法行动时，同命状态保留！
             console.log(`[DESTINY BOND] ${p.cnName} 无法行动，同命状态保留`);
+            await wait(500);
+            return { pivot: false };
+        }
+    }
+    
+    // === 【混乱自伤检查】===
+    if (typeof window.MoveEffects !== 'undefined' && window.MoveEffects.checkConfusion) {
+        const confusionCheck = window.MoveEffects.checkConfusion(p);
+        confusionCheck.logs.forEach(txt => log(`<span style="color:#e67e22">${txt}</span>`));
+        if (confusionCheck.selfHit) {
+            // 混乱自伤，无法行动
+            console.log(`[CONFUSION] ${p.cnName} 混乱自伤，无法行动`);
             await wait(500);
             return { pivot: false };
         }
@@ -292,6 +334,17 @@ export async function executeEnemyTurn(e, p, move) {
         if (!check.can) {
             // 【关键】无法行动时，同命状态保留！
             console.log(`[DESTINY BOND] ${e.cnName} 无法行动，同命状态保留`);
+            return { pivot: false };
+        }
+    }
+    
+    // === 【混乱自伤检查】===
+    if (typeof window.MoveEffects !== 'undefined' && window.MoveEffects.checkConfusion) {
+        const confusionCheck = window.MoveEffects.checkConfusion(e);
+        confusionCheck.logs.forEach(txt => log(`<span style="color:#e67e22">${txt}</span>`));
+        if (confusionCheck.selfHit) {
+            // 混乱自伤，无法行动
+            console.log(`[CONFUSION] ${e.cnName} 混乱自伤，无法行动`);
             return { pivot: false };
         }
     }
@@ -575,13 +628,17 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         // 检查毒疗特性
         if (pokeAbilityId === 'poisonheal') {
             // 毒疗：回复 1/8 HP
-            const healAmount = Math.max(1, Math.floor(poke.maxHp / 8));
-            if (typeof poke.heal === 'function') {
-                poke.heal(healAmount);
+            const baseHeal = Math.max(1, Math.floor(poke.maxHp / 8));
+            let actualHeal = baseHeal;
+            // 【Smog 化学屏障】使用统一治愈函数
+            if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                actualHeal = window.WeatherEffects.applyHeal(poke, baseHeal, { source: 'Poison Heal' });
+            } else if (typeof poke.heal === 'function') {
+                actualHeal = poke.heal(baseHeal);
             } else {
-                poke.currHp = Math.min(poke.maxHp, poke.currHp + healAmount);
+                poke.currHp = Math.min(poke.maxHp, poke.currHp + baseHeal);
             }
-            logs.push(`<span style="color:#4cd137">💚 ${poke.cnName} 的毒疗特性发动，回复了 ${healAmount} 点体力!</span>`);
+            logs.push(`<span style="color:#4cd137">💚 ${poke.cnName} 的毒疗特性发动，回复了 ${actualHeal} 点体力!</span>`);
         } else {
             // 正常中毒伤害
             const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
@@ -595,13 +652,22 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     }
 
     // ----------------------------------------
-    // 3. 寄生种子 (Leech Seed): 被对方吸血 1/8
+    // 3. 寄生种子 (Leech Seed): 被对方吸血 1/8 (Gale: 1/6)
     // ----------------------------------------
     if (poke.volatile && poke.volatile['leechseed'] && opponent && opponent.isAlive()) {
-        const drain = Math.max(1, Math.floor(poke.maxHp / 8));
+        // 【Gale 生机传导】寄生种子伤害从 1/8 提升至 1/6
+        let leechRatio = 1/8;
+        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getVitalitySurgeLeechSeedRatio) {
+            leechRatio = window.WeatherEffects.getVitalitySurgeLeechSeedRatio(window.battle.weather);
+        }
+        const drain = Math.max(1, Math.floor(poke.maxHp * leechRatio));
         poke.takeDamage(drain);
         opponent.heal(drain);
-        logs.push(`${poke.cnName} 的体力被寄生种子吸取了! (-${drain})`);
+        if (leechRatio > 1/8) {
+            logs.push(`<span style="color:#22c55e">🌿 ${poke.cnName} 的体力被强化的寄生种子吸取了! (-${drain})</span>`);
+        } else {
+            logs.push(`${poke.cnName} 的体力被寄生种子吸取了! (-${drain})`);
+        }
     }
 
     // ----------------------------------------
@@ -697,33 +763,36 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
 
     // ----------------------------------------
     // 9. 天气伤害 (Weather Damage)
+    // 【重构】使用 weather-effects.js 模块
     // ----------------------------------------
     const battle = window.battle;
     const currentWeather = battle ? battle.weather : null;
-    const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-    const hasMagicGuard = pokeAbility === 'magicguard';
-    const hasOvercoat = pokeAbility === 'overcoat';
-    // 【Safety Goggles】防尘护目镜免疫沙暴/冰雹伤害
-    const pokeItem = (poke.item || '').toLowerCase().replace(/[^a-z]/g, '');
-    const hasSafetyGoggles = pokeItem === 'safetygoggles';
     
-    if (currentWeather && !hasMagicGuard && !hasOvercoat && !hasSafetyGoggles) {
-        if (currentWeather === 'sandstorm') {
-            const immuneToSand = poke.types && (poke.types.includes('Rock') || poke.types.includes('Ground') || poke.types.includes('Steel'));
-            const sandAbilityImmune = ['sandveil', 'sandforce', 'sandrush'].includes(pokeAbility);
-            if (!immuneToSand && !sandAbilityImmune) {
-                const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
-                poke.takeDamage(dmg);
-                logs.push(`${poke.cnName} 受到沙暴的伤害! (-${dmg})`);
-            }
+    if (currentWeather && typeof window.WeatherEffects !== 'undefined') {
+        // 使用新模块计算天气伤害
+        const weatherDmg = window.WeatherEffects.getWeatherDamage(poke, currentWeather);
+        if (weatherDmg > 0) {
+            poke.takeDamage(weatherDmg);
+            const weatherLog = window.WeatherEffects.getWeatherDamageLog(poke, currentWeather, weatherDmg);
+            logs.push(weatherLog);
         }
-        if (currentWeather === 'hail') {
-            const immuneToHail = poke.types && poke.types.includes('Ice');
-            const hailAbilityImmune = ['icebody', 'snowcloak', 'slushrush'].includes(pokeAbility);
-            if (!immuneToHail && !hailAbilityImmune) {
-                const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
-                poke.takeDamage(dmg);
-                logs.push(`${poke.cnName} 受到冰雹的伤害! (-${dmg})`);
+    } else if (currentWeather) {
+        // Fallback: 旧逻辑（仅在模块未加载时使用）
+        const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        const hasMagicGuard = pokeAbility === 'magicguard';
+        const hasOvercoat = pokeAbility === 'overcoat';
+        const pokeItem = (poke.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        const hasSafetyGoggles = pokeItem === 'safetygoggles';
+        
+        if (!hasMagicGuard && !hasOvercoat && !hasSafetyGoggles) {
+            if (currentWeather === 'sandstorm') {
+                const immuneToSand = poke.types && (poke.types.includes('Rock') || poke.types.includes('Ground') || poke.types.includes('Steel'));
+                const sandAbilityImmune = ['sandveil', 'sandforce', 'sandrush'].includes(pokeAbility);
+                if (!immuneToSand && !sandAbilityImmune) {
+                    const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
+                    poke.takeDamage(dmg);
+                    logs.push(`${poke.cnName} 受到沙暴的伤害! (-${dmg})`);
+                }
             }
         }
     }
@@ -853,9 +922,15 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
                 // 简化版：直接回复 HP（大部分树果都是回复类）
                 const itemId = berry.toLowerCase().replace(/[^a-z0-9]/g, '');
                 if (itemId === 'sitrusberry') {
-                    const heal = Math.floor(poke.maxHp * 0.25);
-                    poke.currHp = Math.min(poke.maxHp, poke.currHp + heal);
-                    logs.push(`<span style="color:#27ae60">回复了 ${heal} 点体力！</span>`);
+                    const baseHeal = Math.floor(poke.maxHp * 0.25);
+                    let actualHeal = baseHeal;
+                    // 【Smog 化学屏障】使用统一治愈函数
+                    if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                        actualHeal = window.WeatherEffects.applyHeal(poke, baseHeal, { source: 'Cud Chew Sitrus' });
+                    } else {
+                        poke.currHp = Math.min(poke.maxHp, poke.currHp + baseHeal);
+                    }
+                    logs.push(`<span style="color:#27ae60">回复了 ${actualHeal} 点体力！</span>`);
                 }
             }
             poke.cudChewBerry = null;
@@ -872,6 +947,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     // 【线性机制】概率 = (effectiveDevotion / 255) * 0.35
     // 满值 255 时约 35% 概率，100 时约 14% 概率
     // 只有【玩家方】的 isAce=true 宝可梦才能触发 AVs 被动
+    // 【Ambrosia】神之琼浆天气下 AVS 触发率 x2
     if (isPlayerPoke && poke.isAce && poke.avs) {
         const baseDevotion = poke.getEffectiveAVs ? poke.getEffectiveAVs('devotion') : poke.avs.devotion;
         // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
@@ -882,7 +958,18 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
             
             // 线性概率计算：满值 35%，无保底（低 AVS 就是低概率）
             // Devotion 10 → 1.37%, Devotion 100 → 13.7%, Devotion 255 → 35%
-            const baseChance = (effectiveDevotion / 255) * 0.35;
+            let baseChance = (effectiveDevotion / 255) * 0.35;
+            
+            // 【Ambrosia 神之琼浆】AVS 触发率 x2
+            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getAVSMultiplier) {
+                const currentWeather = battle?.weather || '';
+                const avsMultiplier = window.WeatherEffects.getAVSMultiplier(currentWeather);
+                if (avsMultiplier > 1) {
+                    baseChance *= avsMultiplier;
+                    baseChance = Math.min(baseChance, 1.0); // 上限 100%
+                    console.log(`[AMBROSIA] 💫 神之琼浆：Devotion 触发率 x${avsMultiplier}`);
+                }
+            }
             
             // 初始化全局触发标记
             if (!poke.avsTriggered) poke.avsTriggered = {};

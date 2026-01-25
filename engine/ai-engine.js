@@ -1403,7 +1403,7 @@ function evaluateMoveImpact(attacker, defender, move) {
 }
 
 /**
- * 获取有效速度（考虑麻痹、顺风等）
+ * 获取有效速度（考虑麻痹、顺风、天气等）
  */
 function getEffectiveSpeed(pokemon) {
     let spe = pokemon.getStat?.('spe') || pokemon.spe || 100;
@@ -1411,6 +1411,14 @@ function getEffectiveSpeed(pokemon) {
     // 麻痹减速
     if (pokemon.status === 'par') {
         spe = Math.floor(spe * 0.5);
+    }
+    
+    // 【Ashfall 积灰迟滞】接地宝可梦速度降低
+    if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getAshfallSpeedMultiplier) {
+        const ashfallMult = window.WeatherEffects.getAshfallSpeedMultiplier(pokemon, window.battle.weather);
+        if (ashfallMult < 1) {
+            spe = Math.floor(spe * ashfallMult);
+        }
     }
     
     return spe;

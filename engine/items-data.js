@@ -2170,23 +2170,37 @@ const ItemEffects = {
         
         if (hpPercent > triggerThreshold) return false;
         
+        // 【Ashfall 覆盖失效】检查树果是否被火山灰封锁
+        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.isItemBlanketed) {
+            if (window.WeatherEffects.isItemBlanketed(itemId, window.battle.weather)) {
+                logs.push(`<span style="color:#8b8b8b">🌋 ${pokemon.cnName} 的树果被火山灰覆盖，无法食用!</span>`);
+                return false;
+            }
+        }
+        
         const berryName = itemData.cnName || itemData.name;
         const consumedBerry = pokemon.item; // 记录消耗的树果
         
         // 回复类树果
         if (itemData.effect === 'healOnLowHP') {
-            let heal = 0;
+            let baseHeal = 0;
             if (itemData.healPercent) {
-                heal = Math.floor(pokemon.maxHp * itemData.healPercent);
+                baseHeal = Math.floor(pokemon.maxHp * itemData.healPercent);
             } else if (itemData.healAmount) {
-                heal = itemData.healAmount;
+                baseHeal = itemData.healAmount;
             }
             
-            if (heal > 0) {
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
+            if (baseHeal > 0) {
+                // 【Smog 化学屏障】使用统一治愈函数
+                let actualHeal = baseHeal;
+                if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                    actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Berry' });
+                } else {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
+                }
                 pokemon.item = null;
                 pokemon.usedBerry = consumedBerry; // 记录用于 Harvest 回收
-                logs.push(`<span style="color:#27ae60">🍇 ${pokemon.cnName} 吃掉了${berryName}，回复了 ${heal} 点体力！</span>`);
+                logs.push(`<span style="color:#27ae60">🍇 ${pokemon.cnName} 吃掉了${berryName}，回复了 ${actualHeal} 点体力！</span>`);
                 
                 // 触发吃树果相关特性钩子
                 this._triggerBerryAbilityHooks(pokemon, consumedBerry, logs);
@@ -2609,11 +2623,20 @@ const ItemEffects = {
         const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         if (itemId !== 'shellbell') return 0;
         
-        const heal = Math.max(1, Math.floor(damage / 8));
-        const actualHeal = Math.min(heal, pokemon.maxHp - pokemon.currHp);
+        const baseHeal = Math.max(1, Math.floor(damage / 8));
+        
+        // 【Smog 化学屏障】使用统一治愈函数
+        let actualHeal = 0;
+        if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+            actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Shell Bell' });
+        } else {
+            actualHeal = Math.min(baseHeal, pokemon.maxHp - pokemon.currHp);
+            if (actualHeal > 0) {
+                pokemon.currHp += actualHeal;
+            }
+        }
         
         if (actualHeal > 0) {
-            pokemon.currHp += actualHeal;
             logs.push(`🔔 ${pokemon.cnName} 的贝壳之铃恢复了 ${actualHeal} HP!`);
         }
         
@@ -2775,15 +2798,21 @@ function triggerBerryEffect(pokemon, berry, logs = []) {
     
     // 回复类树果
     if (itemData.effect === 'healOnLowHP') {
-        let heal = 0;
+        let baseHeal = 0;
         if (itemData.healPercent) {
-            heal = Math.floor(pokemon.maxHp * itemData.healPercent);
+            baseHeal = Math.floor(pokemon.maxHp * itemData.healPercent);
         } else if (itemData.healAmount) {
-            heal = itemData.healAmount;
+            baseHeal = itemData.healAmount;
         }
-        if (heal > 0) {
-            pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
-            logs.push(`<span style="color:#27ae60">回复了 ${heal} 点体力！</span>`);
+        if (baseHeal > 0) {
+            // 【Smog 化学屏障】使用统一治愈函数
+            let actualHeal = baseHeal;
+            if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Cud Chew Berry' });
+            } else {
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
+            }
+            logs.push(`<span style="color:#27ae60">回复了 ${actualHeal} 点体力！</span>`);
         }
     }
     

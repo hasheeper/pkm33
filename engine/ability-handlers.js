@@ -136,10 +136,16 @@ export const AbilityHandlers = {
         onImmunity: (atkType, move) => atkType === 'Water',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Water') {
-                const heal = Math.floor(pokemon.maxHp / 4);
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
-                logs.push(`💧 ${pokemon.cnName} 的蓄水回复了 ${heal} HP！`);
-                return { absorbed: true, heal };
+                const baseHeal = Math.floor(pokemon.maxHp / 4);
+                // 【Smog 化学屏障】使用统一治愈函数
+                let actualHeal = baseHeal;
+                if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                    actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Water Absorb' });
+                } else {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
+                }
+                logs.push(`💧 ${pokemon.cnName} 的蓄水回复了 ${actualHeal} HP！`);
+                return { absorbed: true, heal: actualHeal };
             }
             return { absorbed: false };
         }
@@ -163,10 +169,15 @@ export const AbilityHandlers = {
         onImmunity: (atkType, move) => atkType === 'Electric',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Electric') {
-                const heal = Math.floor(pokemon.maxHp / 4);
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
-                logs.push(`⚡ ${pokemon.cnName} 的蓄电回复了 ${heal} HP！`);
-                return { absorbed: true, heal };
+                const baseHeal = Math.floor(pokemon.maxHp / 4);
+                let actualHeal = baseHeal;
+                if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                    actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Volt Absorb' });
+                } else {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
+                }
+                logs.push(`⚡ ${pokemon.cnName} 的蓄电回复了 ${actualHeal} HP！`);
+                return { absorbed: true, heal: actualHeal };
             }
             return { absorbed: false };
         }
@@ -216,10 +227,15 @@ export const AbilityHandlers = {
         onImmunity: (atkType, move) => atkType === 'Water',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Water') {
-                const heal = Math.floor(pokemon.maxHp / 4);
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
-                logs.push(`💧 ${pokemon.cnName} 的干燥皮肤回复了 ${heal} HP！`);
-                return { absorbed: true, heal };
+                const baseHeal = Math.floor(pokemon.maxHp / 4);
+                let actualHeal = baseHeal;
+                if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                    actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Dry Skin' });
+                } else {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
+                }
+                logs.push(`💧 ${pokemon.cnName} 的干燥皮肤回复了 ${actualHeal} HP！`);
+                return { absorbed: true, heal: actualHeal };
             }
             return { absorbed: false };
         },
@@ -398,22 +414,17 @@ export const AbilityHandlers = {
     // 【降雨】
     'Drizzle': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) {
-                // 【修复】始源天气不可被覆盖
-                if (['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
-                    logs.push(`<span style="color:#9b59b6">神秘的气流极其强劲，${self.cnName} 的降雨无法生效！</span>`);
-                    console.log(`[WEATHER] Drizzle blocked by primal weather: ${battle.weather}`);
-                    return;
-                }
-                battle.weather = 'rain'; // 标准值: rain
-                // 【修复】设置天气持续回合，检查 Damp Rock 延长
-                const itemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                battle.weatherTurns = (itemId === 'damprock') ? 8 : 5;
-                console.log(`[WEATHER] Drizzle: 设置雨天 ${battle.weatherTurns} 回合`);
-                // 更新天气视觉效果
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('rain');
-                }
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'rain', {
+                    itemId: self.item,
+                    weatherName: '降雨',
+                    visualKey: 'rain'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return;
+            } else if (battle) {
+                battle.weather = 'rain';
+                battle.weatherTurns = 5;
             }
             logs.push(`🌧️ ${self.cnName} 带来了降雨!`);
         }
@@ -421,22 +432,17 @@ export const AbilityHandlers = {
     // 【日照】
     'Drought': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) {
-                // 【修复】始源天气不可被覆盖
-                if (['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
-                    logs.push(`<span style="color:#9b59b6">神秘的气流极其强劲，${self.cnName} 的日照无法生效！</span>`);
-                    console.log(`[WEATHER] Drought blocked by primal weather: ${battle.weather}`);
-                    return;
-                }
-                battle.weather = 'sun'; // 标准值: sun
-                // 【修复】设置天气持续回合，检查 Heat Rock 延长
-                const itemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                battle.weatherTurns = (itemId === 'heatrock') ? 8 : 5;
-                console.log(`[WEATHER] Drought: 设置晴天 ${battle.weatherTurns} 回合`);
-                // 更新天气视觉效果
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('sun');
-                }
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'sun', {
+                    itemId: self.item,
+                    weatherName: '日照',
+                    visualKey: 'sun'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return;
+            } else if (battle) {
+                battle.weather = 'sun';
+                battle.weatherTurns = 5;
             }
             logs.push(`☀️ ${self.cnName} 让阳光变得强烈了!`);
         }
@@ -444,22 +450,17 @@ export const AbilityHandlers = {
     // 【扬沙】
     'Sand Stream': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) {
-                // 【修复】始源天气不可被覆盖
-                if (['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
-                    logs.push(`<span style="color:#9b59b6">神秘的气流极其强劲，${self.cnName} 的扬沙无法生效！</span>`);
-                    console.log(`[WEATHER] Sand Stream blocked by primal weather: ${battle.weather}`);
-                    return;
-                }
-                battle.weather = 'sandstorm'; // 标准值: sandstorm
-                // 【修复】设置天气持续回合，检查 Smooth Rock 延长
-                const itemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                battle.weatherTurns = (itemId === 'smoothrock') ? 8 : 5;
-                console.log(`[WEATHER] Sand Stream: 设置沙暴 ${battle.weatherTurns} 回合`);
-                // 更新天气视觉效果
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('sand');
-                }
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'sandstorm', {
+                    itemId: self.item,
+                    weatherName: '沙暴',
+                    visualKey: 'sand'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return;
+            } else if (battle) {
+                battle.weather = 'sandstorm';
+                battle.weatherTurns = 5;
             }
             logs.push(`🌪️ ${self.cnName} 扬起了沙暴!`);
         }
@@ -467,22 +468,17 @@ export const AbilityHandlers = {
     // 【降雪】
     'Snow Warning': {
         onStart: (self, enemy, logs, battle) => {
-            if (battle) {
-                // 【修复】始源天气不可被覆盖
-                if (['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
-                    logs.push(`<span style="color:#9b59b6">神秘的气流极其强劲，${self.cnName} 的降雪无法生效！</span>`);
-                    console.log(`[WEATHER] Snow Warning blocked by primal weather: ${battle.weather}`);
-                    return;
-                }
-                battle.weather = 'snow'; // 标准值: snow
-                // 【修复】设置天气持续回合，检查 Icy Rock 延长
-                const itemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                battle.weatherTurns = (itemId === 'icyrock') ? 8 : 5;
-                console.log(`[WEATHER] Snow Warning: 设置雪天 ${battle.weatherTurns} 回合`);
-                // 更新天气视觉效果
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('snow');
-                }
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'snow', {
+                    itemId: self.item,
+                    weatherName: '降雪',
+                    visualKey: 'snow'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return;
+            } else if (battle) {
+                battle.weather = 'snow';
+                battle.weatherTurns = 5;
             }
             logs.push(`❄️ ${self.cnName} 让天空开始下雪了!`);
         }
@@ -670,6 +666,7 @@ export const AbilityHandlers = {
     
     // 【夸克充能】Quark Drive - 未来悖谬种
     // 电气场地或携带驱劲能量时，提升最高能力 30%（速度为 50%）
+    // 【Chronal Rift】时空裂隙中自动激活
     'Quark Drive': {
         onStart: (self, enemy, logs, battle) => {
             // 检查是否有电气场地
@@ -679,7 +676,18 @@ export const AbilityHandlers = {
             const selfItemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
             const hasBoosterEnergy = selfItemId === 'boosterenergy';
             
-            if (hasElectricTerrain || hasBoosterEnergy) {
+            // 【Chronal Rift 古今悖论】时空裂隙中自动激活
+            let chronalRiftActivate = false;
+            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkParadoxResonance) {
+                const weather = battle?.weather || battle?.environmentWeather || '';
+                const resonance = window.WeatherEffects.checkParadoxResonance(weather, self);
+                if (resonance.shouldActivate) {
+                    chronalRiftActivate = true;
+                    logs.push(resonance.message);
+                }
+            }
+            
+            if (hasElectricTerrain || hasBoosterEnergy || chronalRiftActivate) {
                 // 找最高能力
                 const stats = { atk: self.atk, def: self.def, spa: self.spa, spd: self.spd, spe: self.spe };
                 let bestStat = 'atk';
@@ -695,8 +703,9 @@ export const AbilityHandlers = {
                 self.quarkDriveActive = true;
                 self.quarkDriveStat = bestStat;
                 
-                // 消耗驱劲能量（如果是通过道具激活）
-                if (hasBoosterEnergy && !hasElectricTerrain) {
+                // 消耗驱劲能量（如果是通过道具激活，且不是时空裂隙供能）
+                // 【Chronal Rift】时空裂隙中由环境供能，不消耗道具
+                if (hasBoosterEnergy && !hasElectricTerrain && !chronalRiftActivate) {
                     self.item = null;
                     logs.push(`${self.cnName} 消耗了驱劲能量！`);
                 }
@@ -718,6 +727,7 @@ export const AbilityHandlers = {
     
     // 【古代活性】Protosynthesis - 古代悖谬种
     // 大晴天或携带驱劲能量时，提升最高能力 30%（速度为 50%）
+    // 【Chronal Rift】时空裂隙中自动激活
     'Protosynthesis': {
         onStart: (self, enemy, logs, battle) => {
             // 检查是否有大晴天
@@ -728,7 +738,18 @@ export const AbilityHandlers = {
             const selfItemId = (self.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
             const hasBoosterEnergy = selfItemId === 'boosterenergy';
             
-            if (hasSun || hasBoosterEnergy) {
+            // 【Chronal Rift 古今悖论】时空裂隙中自动激活
+            let chronalRiftActivate = false;
+            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkParadoxResonance) {
+                const weather = battle?.weather || battle?.environmentWeather || '';
+                const resonance = window.WeatherEffects.checkParadoxResonance(weather, self);
+                if (resonance.shouldActivate) {
+                    chronalRiftActivate = true;
+                    logs.push(resonance.message);
+                }
+            }
+            
+            if (hasSun || hasBoosterEnergy || chronalRiftActivate) {
                 // 找最高能力
                 const stats = { atk: self.atk, def: self.def, spa: self.spa, spd: self.spd, spe: self.spe };
                 let bestStat = 'atk';
@@ -744,8 +765,9 @@ export const AbilityHandlers = {
                 self.protosynthesisActive = true;
                 self.protosynthesisstat = bestStat;
                 
-                // 消耗驱劲能量（如果是通过道具激活）
-                if (hasBoosterEnergy && !hasSun) {
+                // 消耗驱劲能量（如果是通过道具激活，且不是时空裂隙供能）
+                // 【Chronal Rift】时空裂隙中由环境供能，不消耗道具
+                if (hasBoosterEnergy && !hasSun && !chronalRiftActivate) {
                     self.item = null;
                     logs.push(`${self.cnName} 消耗了驱劲能量！`);
                 }
@@ -847,8 +869,13 @@ export const AbilityHandlers = {
     'Regenerator': {
         onSwitchOut: (pokemon) => {
             if (pokemon.currHp < pokemon.maxHp && pokemon.currHp > 0) {
-                const heal = Math.floor(pokemon.maxHp / 3);
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
+                const baseHeal = Math.floor(pokemon.maxHp / 3);
+                // 【Smog 化学屏障】使用统一治愈函数
+                if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                    window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Regenerator' });
+                } else {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
+                }
             }
         }
     },
@@ -1024,13 +1051,17 @@ export const AbilityHandlers = {
     // 代表：掘掘兔、咬咬龟
     'Cheek Pouch': {
         onEatBerry: (pokemon, berry, logs) => {
-            const healAmount = Math.floor(pokemon.maxHp / 3);
-            if (typeof pokemon.heal === 'function') {
-                pokemon.heal(healAmount);
+            const baseHeal = Math.floor(pokemon.maxHp / 3);
+            let actualHeal = baseHeal;
+            // 【Smog 化学屏障】使用统一治愈函数
+            if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Cheek Pouch' });
+            } else if (typeof pokemon.heal === 'function') {
+                actualHeal = pokemon.heal(baseHeal);
             } else {
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
             }
-            logs.push(`<b style="color:#f39c12">🐹 ${pokemon.cnName} 的颊囊发动！额外回复了 ${healAmount} HP！</b>`);
+            logs.push(`<b style="color:#f39c12">🐹 ${pokemon.cnName} 的颊囊发动！额外回复了 ${actualHeal} HP！</b>`);
         }
     },
     
@@ -1602,10 +1633,15 @@ export const AbilityHandlers = {
         onImmunity: (atkType, move) => atkType === 'Ground',
         onAbsorbHit: (pokemon, move, logs) => {
             if (move.type === 'Ground') {
-                const heal = Math.floor(pokemon.maxHp / 4);
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + heal);
-                logs.push(`🌍 ${pokemon.cnName} 的食土回复了 ${heal} HP！`);
-                return { absorbed: true, heal };
+                const baseHeal = Math.floor(pokemon.maxHp / 4);
+                let actualHeal = baseHeal;
+                if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                    actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Earth Eater' });
+                } else {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
+                }
+                logs.push(`🌍 ${pokemon.cnName} 的食土回复了 ${actualHeal} HP！`);
+                return { absorbed: true, heal: actualHeal };
             }
             return { absorbed: false };
         }
@@ -1649,16 +1685,20 @@ export const AbilityHandlers = {
         onStatusDamage: (pokemon, status) => {
             if (status === 'psn' || status === 'tox') {
                 // 回复 1/8 HP
-                const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 8));
-                if (typeof pokemon.heal === 'function') {
-                    pokemon.heal(healAmount);
+                const baseHeal = Math.max(1, Math.floor(pokemon.maxHp / 8));
+                let actualHeal = baseHeal;
+                // 【Smog 化学屏障】使用统一治愈函数
+                if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                    actualHeal = window.WeatherEffects.applyHeal(pokemon, baseHeal, { source: 'Poison Heal' });
+                } else if (typeof pokemon.heal === 'function') {
+                    actualHeal = pokemon.heal(baseHeal);
                 } else {
-                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + baseHeal);
                 }
                 return { 
                     blocked: true, 
                     healed: true,
-                    message: `<span style="color:#4cd137">💚 ${pokemon.cnName} 的毒疗特性发动，回复了 ${healAmount} 点体力!</span>`
+                    message: `<span style="color:#4cd137">💚 ${pokemon.cnName} 的毒疗特性发动，回复了 ${actualHeal} 点体力!</span>`
                 };
             }
             return { blocked: false };

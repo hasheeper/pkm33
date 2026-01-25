@@ -28,100 +28,217 @@
  */
 function getDefaultBattleData() {
     return {
+  "difficulty": "expert",
   "settings": {
-    "enableAVS": false,
-    "enableCommander": true, 
+    "enableAVS": true,
+    "enableCommander": true,
+    "enableEVO": true,
+    "enableEnvironment": true,
     "enableSFX": true,
-    "enableEnvironment": true   // 环境天气系统开关
+    "enableClash": true,
+    "enableStyles": true
   },
-  
-  // ============================================
-  // 环境天气配置 (地图模块接口)
-  // ============================================
-  // 可选值: "none" | "rain" | "sun" | "sandstorm" | "snow" | "hail"
-  // 开局自动触发，不依赖宝可梦特性
-  // 宝可梦天气技能/特性结束后会回归环境天气
   "environment": {
-    "weather": "rain",      // 当前测试：雨天
-    "weatherTurns": 0       // 0 = 永久持续，>0 = 指定回合数（暂未实现）
+    "weather": "chronalrift",
+    "weatherTurns": 0,
+    "suppressionTier": 3,
+    "revertMessage": "Space distorts violently, rejecting the enforced order.",
+    "effects": {
+      "autoParadox": true,
+      "unboundArts": true,
+      "speedEntropy": true,
+      "digitalGlitch": true,
+      "weatherLock": true
+    }
   },
-  
   "player": {
-    "name": "Weather_Tester",
-    "trainerProficiency": 100,
+    "name": "Subject_Delta",
+    "trainerProficiency": 230,
+    "comment": "测试未来种自动充能、人造宝可梦的数据溢出/丢失",
+    "unlocks": {
+      "enable_mega": true,
+      "enable_tera": true,
+      "enable_dynamax": true
+    },
+    // Subject_Delta 也是一个生化/机械改造狂热者
     "party": [
       {
         "slot": 1,
-        "name": "Politoed",
-        "species": "Politoed",
-        "gender": "F",
-        "lv": 50,
-        "ability": "Drizzle",
-        "item": "Damp Rock",
-        "moves": ["Scald", "Ice Beam", "Hypnosis", "Protect"],
-        "stats_meta": { "ev_level": 200 },
-        "notes": "雨天：登场即发动降雨"
+        "name": "Iron Valiant",
+        "nickname": "铁武者",
+        "lv": 90,
+        "isLead": true,
+        "ability": "Quark Drive",
+        "nature": "Naive",
+        "item": "Booster Energy",
+        "mechanic": "tera",
+        "teraType": "Fairy",
+        "moves": ["Moonblast", "Close Combat", "Spirit Break", "Shadow Sneak"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 200 } },
+        "test_objective": "验证[Auto-Paradox]: 进场时无需电气场地，Quark Drive 应自动激活 (Resonance with Rift)。道具 Booster Energy 不应被消耗(环境供能)。"
       },
       {
         "slot": 2,
-        "name": "Ninetales",
-        "species": "Ninetales",
-        "gender": "F",
-        "lv": 50,
-        "ability": "Drought",
-        "item": "Heat Rock",
-        "moves": ["Flamethrower", "Solar Beam", "Will-O-Wisp", "Protect"],
-        "stats_meta": { "ev_level": 200 },
-        "notes": "晴天：登场即发动日照"
+        "name": "Porygon-Z",
+        "nickname": "多边兽Z-故障测试",
+        "lv": 90,
+        "ability": "Adaptability",
+        "nature": "Modest",
+        "item": "Choice Scarf",
+        "isAce": true,
+        "moves": ["Hyper Beam", "Tri Attack", "Thunderbolt", "Conversion"],
+        "stats_meta": { "ev_level": 252 },
+        "test_objective": "验证[Move Glitch]: 作为 Artificial Pokemon 使用科技招式，检查是否有概率触发 dmg x2.0 (CRIT OVERFLOW) 或 dmg x0 (SEGFAULT)。"
       },
       {
         "slot": 3,
-        "name": "Tyranitar",
-        "species": "Tyranitar",
-        "gender": "M",
-        "lv": 50,
-        "ability": "Sand Stream",
-        "item": "Smooth Rock",
-        "moves": ["Stone Edge", "Crunch", "Earthquake", "Dragon Dance"],
-        "stats_meta": { "ev_level": 200 },
-        "notes": "沙暴：登场即发动沙暴"
+        "name": "Genesect",
+        "nickname": "盖诺赛克特",
+        "lv": 90,
+        "ability": "Download",
+        "nature": "Hasty",
+        "item": "Choice Band",
+        "moves": ["Techno Blast", "U-turn", "Iron Head", "Extreme Speed"],
+        "stats_meta": { "ev_level": 255 },
+        "test_objective": "验证[Cyborg Stability]: 半生化单位是否较少受到 Glitch 影响，同时享受钢系对恶劣环境的抗性。"
       },
       {
         "slot": 4,
-        "name": "Abomasnow",
-        "species": "Abomasnow",
-        "gender": "M",
-        "lv": 50,
-        "ability": "Snow Warning",
-        "item": "Icy Rock",
-        "moves": ["Blizzard", "Wood Hammer", "Ice Shard", "Protect"],
-        "stats_meta": { "ev_level": 200 },
-        "notes": "雪天：登场即发动下雪"
+        "name": "Miraidon",
+        "nickname": "密勒顿-模式监视",
+        "lv": 90,
+        "ability": "Hadron Engine",
+        "nature": "Timid",
+        "mechanic": "tera",
+        "teraType": "Dragon",
+        "item": "Life Orb",
+        "moves": ["Electro Drift", "Draco Meteor", "Volt Switch", "Parabolic Charge"],
+        "stats_meta": { "ev_level": 255 },
+        "test_objective": "验证[Tier 3 Dominion]: Hadron Engine 召唤的 Electric Terrain 虽生效，但环境视觉效果应仍为主导的 Chronal Rift。"
+      },
+      {
+        "slot": 5,
+        "name": "Magnezone",
+        "nickname": "自爆磁怪",
+        "lv": 89,
+        "ability": "Analytic",
+        "nature": "Quiet",
+        "item": "Leftovers",
+        "moves": ["Flash Cannon", "Thunderbolt", "Body Press", "Iron Defense"],
+        "stats_meta": { "ev_level": 252 },
+        "test_objective": "验证[Speed Entropy]: 作为超低速单位，在系统随机触发 Trick Room (Dimension Shift) 时的战术地位逆转。"
+      },
+      {
+        "slot": 6,
+        "name": "Dragapult",
+        "nickname": "多龙-速度受害",
+        "lv": 89,
+        "ability": "Infiltrator",
+        "nature": "Jolly",
+        "mechanic": "dynamax",
+        "item": "Spell Tag",
+        "moves": ["Dragon Darts", "Phantom Force", "U-turn", "Will-O-Wisp"],
+        "stats_meta": { "ev_level": 252 },
+        "test_objective": "验证[Entropy Risk]: 超高速单位在 RNG 空间下的暴毙风险。"
       }
-    ],
-    "unlocks": {}
+    ]
   },
   "enemy": {
-    "name": "Weather_Bot",
-    "id": "Test_Dummy_02",
+    "name": "Akari (Time Traveler)",
+    "type": "WARDEN",
+    "trainerProficiency": 260,
+    "unlocks": {
+      "enable_styles": true,
+      "enable_z_move": true,
+      "enable_insight": true
+    },
     "party": [
-        {
-          "name": "Venusaur",
-          "moves": ["Solar Beam", "Sludge Bomb", "Sleep Powder", "Synthesis"], 
-          "item": "Black Sludge",
-          "ability": "Overgrow",
-          "nature": "Modest", "evs": {"spa": 252, "spe": 252}
-        },
-        {
-          "name": "Swampert",
-          "moves": ["Earthquake", "Waterfall", "Ice Punch", "Stealth Rock"],
-          "item": "Leftovers",
-          "ability": "Torrent",
-          "nature": "Adamant", "evs": {"atk": 252, "hp": 252} 
-        }
-    ]
+      {
+        "name": "Samurott-Hisui",
+        "id": "samurotthisui",
+        "lv": 90,
+        "isLead": true,
+        "ability": "Sharpness",
+        "nature": "Jolly",
+        "item": "Focus Sash",
+        "moves": ["Ceaseless Edge", "Razor Shell", "Aqua Jet", "Swords Dance"],
+        "stats_meta": { "ev_level": 255 },
+        "friendship": { "avs": { "insight": 255 } },
+        "test_objective": "验证[Unbound Arts]: 洗翠种使用 Unbound Agile Style (迅疾) 是否优先度+1 且无冷却。Ceaseless Edge 撒菱是否每回合都能用。"
+      },
+      {
+        "name": "Kleavor",
+        "id": "kleavor",
+        "lv": 90,
+        "ability": "Sharpness",
+        "nature": "Adamant",
+        "item": "Choice Scarf",
+        "moves": ["Stone Axe", "X-Scissor", "Close Combat", "Quick Attack"],
+        "stats_meta": { "ev_level": 255 },
+        "test_objective": "验证[Forceful Strike]: Unbound Strong Style (刚猛) 是否威力 x1.5 且无冷却。"
+      },
+      {
+        "name": "Roaring Moon",
+        "id": "roaringmoon",
+        "lv": 91,
+        "isAce": true,
+        "ability": "Protosynthesis",
+        "nature": "Adamant",
+        "mechanic": "tera",
+        "teraType": "Flying",
+        "item": "Booster Energy",
+        "moves": ["Acrobatics", "Dragon Dance", "Crunch", "Earthquake"],
+        "stats_meta": { "ev_level": 255 },
+        "friendship": { "avs": { "passion": 255, "trust": 220 } },
+        "test_objective": "验证[Ancient Resonance]: 在 Chronal Rift 中 Protosynthesis 自动激活攻击提升，且不受 RNG 速度削弱(Paradox Immunity)。"
+      },
+      {
+        "name": "Ursaluna",
+        "id": "ursalunabloodmoon",
+        "lv": 90,
+        "ability": "Mind's Eye",
+        "nature": "Quiet",
+        "item": "Silk Scarf",
+        "moves": ["Blood Moon", "Earth Power", "Hyper Voice", "Calm Mind"],
+        "stats_meta": { "ev_level": 252 },
+        "test_objective": "在 Trick Room 随机开启时的毁灭性测试。"
+      },
+      {
+        "name": "Dialga-Origin",
+        "id": "dialgaorigin",
+        "lv": 92,
+        "ability": "Telepathy",
+        "nature": "Modest",
+        "item": "Adamant Diamond",
+        "moves": ["Roar of Time", "Flash Cannon", "Draco Meteor", "Earth Power"],
+        "stats_meta": { "ev_level": 255 },
+        "test_objective": "验证[Timeline Stability]: 原始形态(Origin Form) 免疫场地的 Entropy Flip / Trick Room 随机翻转效果。"
+      },
+      {
+        "name": "Zoroark-Hisui",
+        "id": "zoroarkhisui",
+        "lv": 89,
+        "ability": "Illusion",
+        "nature": "Timid",
+        "item": "Life Orb",
+        "moves": ["Bitter Malice", "Hyper Voice", "Nasty Plot", "Extrasensory"],
+        "stats_meta": { "ev_level": 252 }
+      }
+    ],
+    "lines": {
+      "start": "不论是神奥还是洗翠...这个裂缝的气息，我再熟悉不过了。在那边，慢一步就会死。",
+      "style_switch": "动作太慢了！让你看看古时的战斗方式！",
+      "time_distortion": "重力反转了吗？呵，正好，刚猛连打的机会来了！",
+      "porygon_glitch": "那些人造的灵体...似乎在裂缝里很不稳定啊。",
+      "win": "在这个错乱的时间里，唯有直觉才是永恒的。",
+      "lose": "原来未来也有如此凌厉的战斗风格吗..."
+    }
   }
 }
+
+
+
 }
 
 // ============================================

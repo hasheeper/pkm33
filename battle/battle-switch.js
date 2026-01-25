@@ -661,6 +661,17 @@ export function triggerEntryAbilities(pokemon, opponent) {
         }
     }
     
+    // === 【Gale 水汽对流】水/飞行系进场速度+1 ===
+    if (typeof window !== 'undefined' && window.battle && 
+        typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getHydroLiftSpeedBoost) {
+        const speedBoost = window.WeatherEffects.getHydroLiftSpeedBoost(window.battle.weather, pokemon);
+        if (speedBoost > 0 && typeof pokemon.applyBoost === 'function') {
+            pokemon.applyBoost('spe', speedBoost);
+            log(`<span style="color:#3b82f6">💨 ${pokemon.cnName} 乘着水汽对流，速度提升了！</span>`);
+            updateAllVisuals();
+        }
+    }
+    
     // === 入场特性 ===
     if (typeof AbilityHandlers === 'undefined') return;
     

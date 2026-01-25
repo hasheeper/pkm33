@@ -28,12 +28,18 @@ const CONFIG = {
     // ---------------- N/A/S/B 特色 ----------------
     smog:       { count: 200, speed: -0.5, angle: 0.1, color: '160, 80, 200' }, // N区: 深紫色毒气
     ashfall:    { count: 500, speed: 4,   angle: 0.2, color: '120, 120, 120' },// A区: 灰色重火山灰
-    fog:        { count: 50,  speed: 0.5, angle: 1,   color: '240, 240, 255' }, // S区: 巨大白色雾块
+    fog:        { count: 60,  speed: 0.15, angle: 0.8, color: '235, 240, 250' }, // S区: 巨大柔边雾团
     gale:       { count: 300, speed: 45,  angle: 0,   color: '180, 230, 255' }, // B区: 极速青色风线
 
     // ---------------- 剧情/BOSS ----------------
     ambrosia:   { count: 150, speed: -1.5, angle: 0,   color: '255, 20, 147' },  // 粉色能量上浮
-    distortion: { count: 100, speed: 0,    angle: 0,   color: '50, 255, 50' }    // 故障/Glitch 色块
+    distortion: { 
+        count: 60,   // 不需要太多，重点是单个粒子的质量
+        speed: 0, 
+        angle: 0, 
+        // 赛博霓虹色：亮青色(未来)、洋红色(过去)、纯白(数据)、石灰绿(矩阵)
+        colors: ['0, 255, 255', '255, 0, 255', '255, 255, 255', '50, 205, 50']
+    }
 };
 
 class Particle {
@@ -88,8 +94,13 @@ class Particle {
                 this.size = Math.random() * 20 + 10;
                 this.opacity = Math.random() * 0.15 + 0.05; // 淡淡的烟圈
             } else if (type === 'fog') {
-                this.size = Math.random() * 100 + 50; // 巨大的雾块
-                this.opacity = Math.random() * 0.08 + 0.02; // 非常淡的叠加
+                // 暗影迷雾：巨大柔边雾团，越大越淡
+                let scale = Math.random();
+                this.size = scale * 180 + 100;  // 100-280px 的超大粒子
+                this.opacity = (1 - scale) * 0.5 + 0.4; // 极低透明度(0.02-0.08)，靠叠加产生浓度
+                this.vx = (Math.random() - 0.5) * 0.5; // 极缓慢蠕动
+                this.vy = (Math.random() - 0.5) * 0.15;
+                this.isRadialFog = true; // 标记使用径向渐变渲染
             } else if (type === 'ambrosia') {
                 this.sideOscillation = Math.random() * 100; // 前后摆动相位
             } else if (type === 'sun') {
@@ -100,13 +111,28 @@ class Particle {
                 this.opacity = Math.random() * 0.5 + 0.3;
             }
         }
-        /* --- 故障系 (Distortion) --- */
+        /* --- 故障系 (Distortion / Chronal Rift) --- */
         else if (type === 'distortion') {
-            this.size = Math.random() * 20 + 5;
-            this.glitchTimer = 0;
-            // 随机 RGB 色块
-            const colors = ['255,0,0', '0,255,0', '0,0,255', '255,0,255'];
-            this.randomColor = colors[Math.floor(Math.random() * colors.length)];
+            this.x = Math.random() * this.w;
+            this.y = Math.random() * this.h;
+            this.size = Math.random() * 30 + 10;
+            
+            // 三种形态：0=乱码文字, 1=空心碎片, 2=闪烁横条
+            this.subType = Math.floor(Math.random() * 3);
+            
+            // 赛博霓虹色
+            const colorArray = CONFIG.distortion.colors;
+            this.colorStr = colorArray[Math.floor(Math.random() * colorArray.length)];
+            
+            // 乱码字符库（片假名、卢恩字母、西里尔字母）
+            const charSets = [0x30A0, 0x16A0, 0x0400];
+            const set = charSets[Math.floor(Math.random() * charSets.length)];
+            this.glitchChar = String.fromCharCode(set + Math.floor(Math.random() * 50));
+            
+            // 控制"跳变"频率，模拟电子接触不良
+            this.refreshRate = Math.floor(Math.random() * 20) + 5;
+            this.tick = 0;
+            this.opacity = Math.random() * 0.8 + 0.2;
         }
     }
 
@@ -150,28 +176,107 @@ class Particle {
             if (this.x < -100) this.x = this.w + 100;
             else if (this.x > this.w + 100) this.x = -100;
         }
-        // [故障] 随机瞬移跳动 (Static Noise)
+        // [故障] 瞬移与突变 (Chronal Rift)
         else if (this.type === 'distortion') {
-             // 并不是一直移动，而是产生"闪烁"和"坐标突变"
-             // 模拟电子信号故障
-             if (Math.random() > 0.8) { // 20%概率跳变
-                 this.x = Math.random() * this.w;
-                 this.y = Math.random() * this.h;
-                 this.w_scaling = Math.random() * 10; // 随机拉长
-                 this.h_scaling = Math.random() * 2;
-                 this.opacity = Math.random(); // 随机显隐
-             }
+            this.tick++;
+            
+            // 核心思路：并不是平滑移动，而是"瞬移"和"突变"
+            if (this.tick % this.refreshRate === 0) {
+                // 1. 位置突变 (Teleport)
+                if (Math.random() > 0.5) {
+                    this.x = Math.random() * this.w;
+                } else {
+                    // 偶尔横向拉伸突变，模拟坏点光栅
+                    this.x += (Math.random() - 0.5) * 50;
+                }
+                
+                // 2. 只有横条会上下扫描
+                if (this.subType === 2) {
+                    this.y = Math.random() * this.h;
+                }
+                
+                // 3. 乱码字符变化
+                if (this.subType === 0) {
+                    const charSets = [0x30A0, 0x16A0, 0x0400];
+                    const set = charSets[Math.floor(Math.random() * charSets.length)];
+                    this.glitchChar = String.fromCharCode(set + Math.floor(Math.random() * 50));
+                }
+                
+                // 4. 重随机计时器，让节奏不规律
+                this.refreshRate = Math.floor(Math.random() * 10) + 2;
+                
+                // 5. 随机显隐 (Strobe effect)
+                this.opacity = Math.random() > 0.3 ? Math.random() : 0;
+            }
         }
     }
 
     draw(ctx) {
+        // ============ 时空裂隙专属渲染 ============
+        if (this.type === 'distortion') {
+            const visualAlpha = this.opacity * transitionProgress;
+            if (visualAlpha < 0.05) return;
+            
+            ctx.save();
+            ctx.shadowBlur = 0;
+            
+            // 模拟 RGB 色散：如果是碎片，加一点红/蓝阴影
+            if (Math.random() > 0.8) {
+                ctx.shadowColor = 'rgba(255, 0, 0, 0.8)';
+                ctx.shadowOffsetX = 2;
+            } else if (Math.random() > 0.8) {
+                ctx.shadowColor = 'rgba(0, 0, 255, 0.8)';
+                ctx.shadowOffsetX = -2;
+            }
+            
+            ctx.fillStyle = `rgba(${this.colorStr}, ${visualAlpha})`;
+            ctx.strokeStyle = `rgba(${this.colorStr}, ${visualAlpha})`;
+            
+            /* === 子类型A: 乱码字符 (The Code) === */
+            if (this.subType === 0) {
+                ctx.font = `${this.size}px "Courier New", monospace`;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fillText(this.glitchChar, this.x, this.y);
+            }
+            /* === 子类型B: 空心碎片 (The Shard) === */
+            else if (this.subType === 1) {
+                ctx.lineWidth = 1.5;
+                const s = this.size;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x + s, this.y);
+                ctx.lineTo(this.x + s, this.y + s);
+                if (Math.random() > 0.5) {
+                    ctx.stroke();
+                } else {
+                    ctx.strokeRect(this.x, this.y, this.size, this.size);
+                }
+                
+                // 有概率加一条贯穿屏幕的极细线来模拟裂痕
+                if (Math.random() > 0.98) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, this.y + s/2);
+                    ctx.lineTo(this.w, this.y + s/2);
+                    ctx.strokeStyle = `rgba(${this.colorStr}, ${visualAlpha * 0.3})`;
+                    ctx.stroke();
+                }
+            }
+            /* === 子类型C: 数据坏块 (The Glitch Block) === */
+            else if (this.subType === 2) {
+                ctx.fillRect(this.x, this.y, this.size * (Math.random() * 5 + 1), 2);
+            }
+            
+            ctx.restore();
+            return;
+        }
+        
+        // ============ 其他天气类型的原有渲染逻辑 ============
         ctx.beginPath();
         let cfg = CONFIG[this.type] || CONFIG.rain;
-        // 如果是Distortion用自己的随机色，否则用配置色
-        let colorStr = (this.type === 'distortion') ? this.randomColor : cfg.color;
+        let colorStr = cfg.color;
         
         let visualAlpha = (['sun','harshsun','ambrosia'].includes(this.type)) ? this.alpha * 0.5 : this.opacity;
-        // 应用渐变过渡透明度
         visualAlpha *= transitionProgress;
 
         ctx.fillStyle = `rgba(${colorStr}, ${visualAlpha})`;
@@ -180,16 +285,15 @@ class Particle {
         switch(this.type) {
             case 'rain': 
             case 'heavyrain':
-            case 'gale': // Gale 用画线方式
+            case 'gale':
                 ctx.moveTo(this.x, this.y);
-                // 烈风是横向的线，雨是纵向的
                 if (this.type === 'gale') { ctx.lineTo(this.x + this.length, this.y); } 
                 else { ctx.lineTo(this.x + this.vx, this.y + this.length); }
                 ctx.lineWidth = (this.type === 'gale') ? 2 : 1.5; 
                 ctx.stroke();
                 break;
                 
-            case 'ashfall': // 方形小颗粒
+            case 'ashfall':
                 ctx.fillRect(this.x, this.y, this.size, this.size);
                 break;
 
@@ -204,21 +308,26 @@ class Particle {
                 break;
                 
             case 'sand':
-            case 'deltastream': // 沙粒线段
+            case 'deltastream':
                 ctx.fillRect(this.x, this.y, this.size * 5, 2);
                 break;
 
-            case 'smog': // 巨大柔和圆球
-            case 'fog':
+            case 'smog':
             case 'ambrosia': 
             case 'harshsun': 
             case 'sun':
-                ctx.arc(this.x, this.y, this.side === 'fog' ? this.size*2 : this.size, 0, Math.PI*2);
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
                 ctx.fill();
                 break;
-
-            case 'distortion': // 矩形噪音块
-                ctx.fillRect(this.x, this.y, this.size * (Math.random()*5), this.size/2);
+                
+            case 'fog':
+                let fogGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+                fogGradient.addColorStop(0, `rgba(${colorStr}, ${visualAlpha})`);
+                fogGradient.addColorStop(0.3, `rgba(${colorStr}, ${visualAlpha * 0.7})`);
+                fogGradient.addColorStop(0.6, `rgba(${colorStr}, ${visualAlpha * 0.3})`);
+                fogGradient.addColorStop(1, `rgba(${colorStr}, 0)`);
+                ctx.fillStyle = fogGradient;
+                ctx.fillRect(this.x - this.size, this.y - this.size, this.size * 2, this.size * 2);
                 break;
         }
     }
@@ -253,10 +362,38 @@ function animate() {
         p.draw(ctx);
     }
     
-    // 故障天气专属：全屏随机产生扫描线干扰
-    if (weatherType === 'distortion' && Math.random() > 0.95) {
-        ctx.fillStyle = `rgba(50, 255, 50, 0.1)`;
-        ctx.fillRect(0, Math.random() * canvas.height, canvas.width, 2);
+    // ============ Chronal Rift 专属：屏幕撕裂与 RGB 错位 ============
+    if (weatherType === 'distortion' && !isTransitioning) {
+        // 每隔随机时间触发一次猛烈的干扰
+        if (Math.random() > 0.96) { // 4% 的帧会有严重故障
+            const sliceH = Math.random() * 50 + 10;
+            const sliceY = Math.random() * canvas.height;
+            const displaceX = (Math.random() - 0.5) * 20; // 左右错位 20px
+            
+            try {
+                // 获取这一条的像素数据
+                const imageData = ctx.getImageData(0, sliceY, canvas.width, sliceH);
+                // 错位放回去
+                ctx.putImageData(imageData, displaceX, sliceY);
+                
+                // 可以在这里加一个纯色块覆盖，模拟信号丢失
+                if (Math.random() > 0.5) {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+                    ctx.fillRect(0, sliceY, canvas.width, 2);
+                }
+            } catch (e) {
+                // 防止 getImageData 越界错误
+            }
+        }
+        
+        // 额外的全屏扫描线干扰（更频繁但更轻微）
+        if (Math.random() > 0.92) {
+            const scanY = Math.random() * canvas.height;
+            const colors = CONFIG.distortion.colors;
+            const scanColor = colors[Math.floor(Math.random() * colors.length)];
+            ctx.fillStyle = `rgba(${scanColor}, 0.15)`;
+            ctx.fillRect(0, scanY, canvas.width, 1);
+        }
     }
 
     animationFrameId = requestAnimationFrame(animate);
@@ -356,13 +493,14 @@ function setWeatherVisuals(type) {
             'bg-rain', 'bg-heavyrain', 'bg-sand', 'bg-snow', 'bg-hail', 
             'bg-harshsun', 'bg-sun', 'bg-deltastream',
             // 新增的
-            'bg-smog', 'bg-ashfall', 'bg-fog', 'bg-gale', 'bg-ambrosia', 'bg-distortion'
+            'bg-smog', 'bg-ashfall', 'bg-fog', 'bg-gale', 'bg-ambrosia', 'bg-distortion', 'bg-chronalrift'
         ];
         bgLayer.classList.remove(...allClasses);
         
         // 添加新 Class
         if (weatherType !== 'none') {
-            const cssClass = `bg-${weatherType}`; // 确保css类名和key一致
+            // chronalrift 使用 distortion 的视觉效果
+            const cssClass = `bg-${weatherType}`;
             bgLayer.classList.add(cssClass);
         }
     }

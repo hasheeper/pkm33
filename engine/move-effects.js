@@ -135,9 +135,17 @@ function compareActionOrder(action1, action2) {
         return pri2 - pri1;
     }
     
-    // 同优先级比速度
-    const spe1 = action1.pokemon.getStat('spe');
-    const spe2 = action2.pokemon.getStat('spe');
+    // 同优先级比速度（考虑天气修正）
+    let spe1 = action1.pokemon.getStat('spe');
+    let spe2 = action2.pokemon.getStat('spe');
+    
+    // 【Ashfall 积灰迟滞】接地宝可梦速度降低
+    if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getAshfallSpeedMultiplier) {
+        const mult1 = window.WeatherEffects.getAshfallSpeedMultiplier(action1.pokemon, window.battle.weather);
+        const mult2 = window.WeatherEffects.getAshfallSpeedMultiplier(action2.pokemon, window.battle.weather);
+        if (mult1 < 1) spe1 = Math.floor(spe1 * mult1);
+        if (mult2 < 1) spe2 = Math.floor(spe2 * mult2);
+    }
     
     if (spe1 !== spe2) {
         return spe2 - spe1; // 速度高的先动
@@ -640,143 +648,58 @@ function checkOHKOMove(attacker, defender, move) {
 }
 
 // ========== 天气系统 (Weather) ==========
-// 【天气统一】标准天气值定义
-// - sun: 晴天 (招式/特性统一使用)
-// - rain: 雨天 (招式/特性统一使用)
-// - sandstorm: 沙暴
-// - hail: 冰雹
-// - snow: 雪天
-// - harshsun: 大日照 (原始固拉多)
-// - heavyrain: 大雨 (原始盖欧卡)
+// 【重构】天气逻辑已迁移到 engine/weather-effects.js
+// 此处保留兼容性包装函数，调用新模块
 
-const WEATHER_TYPES = {
-    // 标准天气
-    sun: { name: '大晴天', fireBoost: 1.5, waterNerf: 0.5, solarBeamCharge: false },
-    rain: { name: '下雨', waterBoost: 1.5, fireNerf: 0.5, thunderAccuracy: true },
-    sandstorm: { name: '沙暴', dotTypes: ['Rock', 'Ground', 'Steel'], spDefBoost: ['Rock'] },
-    hail: { name: '冰雹', dotExcept: ['Ice'], blizzardAccuracy: true },
-    snow: { name: '下雪', defBoost: ['Ice'] },
-    // 极端天气
-    harshsun: { name: '大日照', fireBoost: 1.5, waterNerf: 0, solarBeamCharge: false, blockWater: true },
-    heavyrain: { name: '大雨', waterBoost: 1.5, fireNerf: 0, thunderAccuracy: true, blockFire: true }
-};
+// 兼容性：从 weather-effects.js 获取配置
+const WEATHER_TYPES = (typeof window !== 'undefined' && window.WeatherEffects) 
+    ? window.WeatherEffects.WEATHER_CONFIG 
+    : {};
 
 /**
- * 获取天气对技能威力的修正（完整版）
+ * 获取天气对技能威力的修正（兼容性包装）
  * @param {string} weather 当前天气
  * @param {string} moveType 技能属性
  * @param {string} moveName 技能名称（用于特例判断）
  * @returns {{ modifier: number, log: string|null }} 威力倍率和日志
  */
 function getWeatherModifier(weather, moveType, moveName = '') {
-    if (!weather || weather === 'none') {
-        return { modifier: 1, log: null };
+    // 调用 weather-effects.js 模块
+    if (typeof window !== 'undefined' && window.WeatherEffects) {
+        return window.WeatherEffects.getWeatherPowerModifier(weather, moveType, moveName);
     }
-    
-    let modifier = 1;
-    let log = null;
-    
-    // === 1. 基础天气属性修正 ===
-    if (weather === 'sun' || weather === 'harshsun') {
-        if (moveType === 'Fire') {
-            modifier = 1.5;
-            log = `☀️ 晴天增强了火系技能的威力！`;
-        } else if (moveType === 'Water') {
-            // 【特判】水蒸气 (Hydro Steam) 在晴天下威力 x1.5 而非 x0.5
-            if (moveName === 'Hydro Steam') {
-                modifier = 1.5;
-                log = `☀️ 水蒸气在晴天下威力增强！`;
-            } else if (weather === 'harshsun') {
-                // 大日照完全阻止水系技能
-                modifier = 0;
-                log = `🔥 大日照完全蒸发了水系技能！`;
-            } else {
-                modifier = 0.5;
-                log = `☀️ 晴天削弱了水系技能的威力...`;
-            }
-        }
-    } else if (weather === 'rain' || weather === 'heavyrain') {
-        if (moveType === 'Water') {
-            modifier = 1.5;
-            log = `🌧️ 雨天增强了水系技能的威力！`;
-        } else if (moveType === 'Fire') {
-            if (weather === 'heavyrain') {
-                // 大雨完全阻止火系技能
-                modifier = 0;
-                log = `🌧️ 大雨完全浇灭了火系技能！`;
-            } else {
-                modifier = 0.5;
-                log = `🌧️ 雨天削弱了火系技能的威力...`;
-            }
-        }
-    }
-    
-    // === 2. Solar Beam / Solar Blade 在恶劣天气威力减半 ===
-    const solarMoves = ['Solar Beam', 'Solar Blade'];
-    if (solarMoves.includes(moveName)) {
-        const weakenedWeathers = ['rain', 'heavyrain', 'sandstorm', 'hail', 'snow'];
-        if (weakenedWeathers.includes(weather)) {
-            modifier = 0.5;
-            log = `天气影响削弱了 ${moveName} 的威力...`;
-        }
-    }
-    
-    return { modifier, log };
+    // Fallback: 无修正
+    return { modifier: 1, log: null };
 }
 
 /**
- * 获取天气对命中率的修正
+ * 获取天气对命中率的修正（兼容性包装）
  * @param {string} weather 当前天气
  * @param {string} moveName 技能名称
  * @returns {{ accuracy: number|null, log: string|null }} 修正后的命中率（null表示不修改）
  */
 function getWeatherAccuracyModifier(weather, moveName) {
-    if (!weather || weather === 'none') {
-        return { accuracy: null, log: null };
+    // 调用 weather-effects.js 模块
+    if (typeof window !== 'undefined' && window.WeatherEffects) {
+        return window.WeatherEffects.getWeatherAccuracyModifier(weather, moveName);
     }
-    
-    const rainMoves = ['Thunder', 'Hurricane', 'Sandsear Storm', 'Bleakwind Storm', 'Wildbolt Storm'];
-    const sunAccDropMoves = ['Thunder', 'Hurricane'];
-    
-    if (weather === 'rain' || weather === 'heavyrain') {
-        if (rainMoves.includes(moveName)) {
-            return { accuracy: 100, log: `🌧️ 雨天使 ${moveName} 必中！` };
-        }
-    } else if (weather === 'sun' || weather === 'harshsun') {
-        if (sunAccDropMoves.includes(moveName)) {
-            return { accuracy: 50, log: `☀️ 晴天使 ${moveName} 命中率降至 50%` };
-        }
-    } else if (weather === 'snow' || weather === 'hail') {
-        if (moveName === 'Blizzard') {
-            return { accuracy: 100, log: `❄️ 雪天使 Blizzard 必中！` };
-        }
-    }
-    
+    // Fallback: 无修正
     return { accuracy: null, log: null };
 }
 
 /**
- * 获取天气对防御的加成
+ * 获取天气对防御的加成（兼容性包装）
  * @param {string} weather 当前天气
  * @param {Array} defenderTypes 防御方属性
  * @param {boolean} isSpecial 是否特殊攻击
  * @returns {{ multiplier: number, log: string|null }} 防御倍率
  */
 function getWeatherDefenseBoost(weather, defenderTypes, isSpecial) {
-    if (!weather || weather === 'none' || !defenderTypes) {
-        return { multiplier: 1, log: null };
+    // 调用 weather-effects.js 模块
+    if (typeof window !== 'undefined' && window.WeatherEffects) {
+        return window.WeatherEffects.getWeatherDefenseBoost(weather, defenderTypes, isSpecial);
     }
-    
-    // 沙暴：岩石系特防 x1.5
-    if (weather === 'sandstorm' && isSpecial && defenderTypes.includes('Rock')) {
-        return { multiplier: 1.5, log: `🏜️ 沙暴增强了岩石系的特防！` };
-    }
-    
-    // 下雪：冰系物防 x1.5
-    if ((weather === 'snow' || weather === 'hail') && !isSpecial && defenderTypes.includes('Ice')) {
-        return { multiplier: 1.5, log: `❄️ 下雪增强了冰系的物防！` };
-    }
-    
+    // Fallback: 无修正
     return { multiplier: 1, log: null };
 }
 
@@ -1747,15 +1670,28 @@ function processEndTurnItemEffects(pokemon) {
     
     // === 黑色淤泥 (Black Sludge) ===
     if (itemId === 'blacksludge') {
+        // 【Ashfall 覆盖失效】检查道具是否被火山灰封锁
+        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.isItemBlanketed) {
+            if (window.WeatherEffects.isItemBlanketed(itemId, window.battle.weather)) {
+                logs.push(`<span style="color:#8b8b8b">🌋 ${pokemon.cnName} 的黑色淤泥被火山灰覆盖，无法使用!</span>`);
+                return logs;
+            }
+        }
         if (pokemon.types && pokemon.types.includes('Poison')) {
             // 毒系回复 1/16 HP
-            const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 16));
+            const baseHeal = Math.max(1, Math.floor(pokemon.maxHp / 16));
+            let actualHeal = baseHeal;
             if (typeof pokemon.heal === 'function') {
-                pokemon.heal(healAmount);
+                actualHeal = pokemon.heal(baseHeal); // heal() 返回实际回复量（已应用 Smog 减半）
             } else {
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+                // Fallback: 手动应用 Smog 减半
+                if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getHealingMultiplier) {
+                    const mult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
+                    actualHeal = Math.floor(baseHeal * mult);
+                }
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + actualHeal);
             }
-            logs.push(`<span style="color:#4cd137">${pokemon.cnName} 通过黑色淤泥回复了 ${healAmount} 点体力!</span>`);
+            logs.push(`<span style="color:#4cd137">${pokemon.cnName} 通过黑色淤泥回复了 ${actualHeal} 点体力!</span>`);
         } else {
             // 非毒系受到 1/8 HP 伤害
             const damage = Math.max(1, Math.floor(pokemon.maxHp / 8));
@@ -1766,14 +1702,27 @@ function processEndTurnItemEffects(pokemon) {
     
     // === 剩饭 (Leftovers) ===
     if (itemId === 'leftovers') {
-        if (pokemon.currHp < pokemon.maxHp) {
-            const healAmount = Math.max(1, Math.floor(pokemon.maxHp / 16));
-            if (typeof pokemon.heal === 'function') {
-                pokemon.heal(healAmount);
-            } else {
-                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + healAmount);
+        // 【Ashfall 覆盖失效】检查道具是否被火山灰封锁
+        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.isItemBlanketed) {
+            if (window.WeatherEffects.isItemBlanketed(itemId, window.battle.weather)) {
+                logs.push(`<span style="color:#8b8b8b">🌋 ${pokemon.cnName} 的剩饭被火山灰覆盖，无法食用!</span>`);
+                return logs;
             }
-            logs.push(`<span style="color:#4cd137">${pokemon.cnName} 通过剩饭回复了 ${healAmount} 点体力!</span>`);
+        }
+        if (pokemon.currHp < pokemon.maxHp) {
+            const baseHeal = Math.max(1, Math.floor(pokemon.maxHp / 16));
+            let actualHeal = baseHeal;
+            if (typeof pokemon.heal === 'function') {
+                actualHeal = pokemon.heal(baseHeal); // heal() 返回实际回复量（已应用 Smog 减半）
+            } else {
+                // Fallback: 手动应用 Smog 减半
+                if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getHealingMultiplier) {
+                    const mult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
+                    actualHeal = Math.floor(baseHeal * mult);
+                }
+                pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + actualHeal);
+            }
+            logs.push(`<span style="color:#4cd137">${pokemon.cnName} 通过剩饭回复了 ${actualHeal} 点体力!</span>`);
         }
     }
     

@@ -343,25 +343,85 @@ body {
     background-color: rgba(80, 80, 90, 0.55) !important;
 }
 
-/* Fog (S区): 极高亮度的乳白色迷雾，自带高斯模糊 */
+/* Fog (S区): 暗影迷雾 - 浅灰蓝色隧道视觉 */
+@keyframes fog-breathe {
+    0% { backdrop-filter: blur(2px) grayscale(20%); }
+    50% { backdrop-filter: blur(5px) grayscale(40%); }
+    100% { backdrop-filter: blur(2px) grayscale(20%); }
+}
+
 .bg-fog {
-    background-color: rgba(220, 225, 230, 0.85) !important;
-    backdrop-filter: blur(3px) !important;
+    /* 浅灰蓝色径向渐变：中心清晰，四周浓重 */
+    background: radial-gradient(
+        ellipse 70% 80% at center, 
+        rgba(0, 110, 255, 0.25) 20%, 
+        rgba(32, 90, 176, 0.55) 55%, 
+        rgba(31, 85, 167, 0.9) 100%
+    ) !important;
+    
+    /* 动态模糊呼吸效果 */
+    backdrop-filter: blur(3px) grayscale(25%);
+    animation: fog-breathe 6s ease-in-out infinite;
 }
 
-/* Gale (B区): 清冽但锐利的青色热带气旋 */
+/* Gale (B区): 湿润热带飓风 - 充满花粉与生命力 */
+@keyframes gale-sway {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 .bg-gale {
-    background-color: rgba(135, 206, 235, 0.3) !important;
+    /* 渐变：青绿色到粉色花瓣色调 */
+    background: linear-gradient(
+        135deg,
+        rgba(100, 200, 150, 0.35) 0%,
+        rgba(135, 206, 235, 0.25) 40%,
+        rgba(255, 182, 193, 0.3) 70%,
+        rgba(144, 238, 144, 0.35) 100%
+    ) !important;
+    background-size: 200% 200%;
+    animation: gale-sway 8s ease-in-out infinite;
+    
+    /* 轻微模糊增加湿润感 */
+    backdrop-filter: blur(1px) saturate(120%);
 }
 
-/* Ambrosia (粉雾): 诡异、高饱和度的亮粉/洋红色神馔能量 */
+/* Ambrosia (神之琼浆): 诡异、高饱和度的亮粉/洋红色神馔能量 */
+@keyframes ambrosia-pulse {
+    0% { 
+        background-position: 0% 50%;
+        filter: brightness(1) saturate(1.2);
+    }
+    50% { 
+        background-position: 100% 50%;
+        filter: brightness(1.1) saturate(1.4);
+    }
+    100% { 
+        background-position: 0% 50%;
+        filter: brightness(1) saturate(1.2);
+    }
+}
+
 .bg-ambrosia {
-    background-color: rgba(255, 50, 150, 0.45) !important;
+    /* 渐变：亮粉色到洋红色到紫色 */
+    background: linear-gradient(
+        135deg,
+        rgba(255, 105, 180, 0.5) 0%,
+        rgba(255, 20, 147, 0.45) 30%,
+        rgba(219, 112, 219, 0.4) 60%,
+        rgba(186, 85, 211, 0.45) 100%
+    ) !important;
+    background-size: 200% 200%;
+    animation: ambrosia-pulse 6s ease-in-out infinite;
+    
+    /* 轻微模糊增加神秘感 */
+    backdrop-filter: blur(2px) saturate(130%);
 }
 
-/* Distortion (时空裂隙): 极不稳定的暗紫色/黑洞色调 */
+/* ================== Chronal Rift (时空裂隙) ================== */
 .bg-distortion {
-    background-color: rgba(30, 0, 50, 0.6) !important;
+    background-color: #f5f5f5 !important;
 }
 
 

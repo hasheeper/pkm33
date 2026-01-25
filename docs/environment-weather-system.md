@@ -86,11 +86,34 @@
 
 | 文件 | 职责 |
 |-----|-----|
+| `engine/weather-effects.js` | **天气效果核心模块** - 统一管理天气配置、伤害、免疫、修正 |
 | `systems/data-loader.js` | 定义 JSON 配置格式和默认值 |
 | `index.js` | 读取配置并初始化环境天气 |
 | `engine/battle-engine.js` | 天气回合递减和回归逻辑 |
 | `battle/battle-weather.js` | Canvas 粒子天气视觉效果 |
 | `index.css` | 天气背景色调样式 |
+
+## 天气效果模块 API
+
+`engine/weather-effects.js` 提供以下函数：
+
+| 函数 | 说明 |
+|-----|-----|
+| `normalizeWeatherId(id)` | 标准化天气 ID（冰雹 → 雪天） |
+| `getWeatherConfig(weather)` | 获取天气配置对象 |
+| `isPrimalWeather(weather)` | 检查是否为始源天气 |
+| `isWeatherDamageImmune(pokemon, weather)` | 检查宝可梦是否免疫天气伤害 |
+| `getWeatherDamage(pokemon, weather)` | 计算天气回合末伤害 |
+| `getWeatherPowerModifier(weather, moveType)` | 获取天气对招式威力的修正 |
+| `getWeatherAccuracyModifier(weather, moveName)` | 获取天气对命中率的修正 |
+| `getWeatherDefenseBoost(weather, types, isSpecial)` | 获取天气对防御的加成 |
+| `checkWeatherBlocksMove(weather, moveType, power)` | 检查招式是否被天气阻止 |
+| `canUseAuroraVeil(weather)` | 检查是否可以使用极光幕 |
+| `isSolarBeamInstant(weather)` | 检查日光束是否可以瞬发 |
+| `getWeatherBallStats(weather)` | 获取天气球的属性和威力 |
+| `getRecoveryRatio(weather, moveName)` | 获取回复技能的回复比例 |
+
+全局访问: `window.WeatherEffects.函数名()`
 
 ## 关键变量
 

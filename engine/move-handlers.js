@@ -22,6 +22,39 @@
 // ============================================
 
 /**
+ * 【统一回复函数】处理 HP 回复，自动应用 Smog 减半效果
+ * @param {Pokemon} pokemon 要回复的宝可梦
+ * @param {number} baseAmount 基础回复量
+ * @returns {number} 实际回复量
+ */
+function applyHeal(pokemon, baseAmount) {
+    if (baseAmount <= 0) return 0;
+    
+    const maxHeal = pokemon.maxHp - pokemon.currHp;
+    if (maxHeal <= 0) return 0;
+    
+    let actualHeal = Math.min(baseAmount, maxHeal);
+    
+    // 使用 pokemon.heal() 方法（会自动应用 Smog 减半）
+    if (typeof pokemon.heal === 'function') {
+        actualHeal = pokemon.heal(baseAmount);
+    } else {
+        // Fallback: 手动应用 Smog 减半
+        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getHealingMultiplier) {
+            const mult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
+            if (mult < 1) {
+                actualHeal = Math.floor(baseAmount * mult);
+                console.log(`[SMOG] 🏭 化学屏障：回复量 ${baseAmount} -> ${actualHeal} (x${mult})`);
+            }
+        }
+        actualHeal = Math.min(actualHeal, maxHeal);
+        pokemon.currHp += actualHeal;
+    }
+    
+    return actualHeal;
+}
+
+/**
  * 处理蓄力技能的 onUse 钩子
  * 统一处理天气联动、强力香草、蓄力状态等逻辑
  * @param {Pokemon} attacker 攻击方
@@ -1157,23 +1190,18 @@ export const MoveHandlers = {
     
     'Rain Dance': {
         onUse: (attacker, defender, logs, battle) => {
-            // 【修复】始源天气不可被覆盖
-            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
-                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
-                console.log('[WEATHER] Rain Dance failed: primal weather active');
-                return { failed: true };
-            }
-            // 【修复】如果已经是雨天，技能失败
-            if (battle && (battle.weather === 'rain' || battle.weather === 'heavyrain')) {
-                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
-                console.log('[WEATHER] Rain Dance failed: already raining');
-                return { failed: true };
-            }
-            if (battle) {
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'rain', {
+                    itemId: attacker.item,
+                    weatherName: '雨天',
+                    visualKey: 'rain'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return { failed: true };
+            } else if (battle) {
+                if (battle.weather === 'rain') return { failed: true };
                 battle.weather = 'rain';
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('rain');
-                }
+                battle.weatherTurns = 5;
             }
             logs.push('天空下起了大雨!');
             logs.push('<span style="color:#3498db">水系技能威力提升，火系技能威力下降!</span>');
@@ -1184,23 +1212,18 @@ export const MoveHandlers = {
     
     'Sunny Day': {
         onUse: (attacker, defender, logs, battle) => {
-            // 【修复】始源天气不可被覆盖
-            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
-                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
-                console.log('[WEATHER] Sunny Day failed: primal weather active');
-                return { failed: true };
-            }
-            // 【修复】如果已经是晴天，技能失败
-            if (battle && (battle.weather === 'sun' || battle.weather === 'harshsun')) {
-                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
-                console.log('[WEATHER] Sunny Day failed: already sunny');
-                return { failed: true };
-            }
-            if (battle) {
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'sun', {
+                    itemId: attacker.item,
+                    weatherName: '晴天',
+                    visualKey: 'sun'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return { failed: true };
+            } else if (battle) {
+                if (battle.weather === 'sun') return { failed: true };
                 battle.weather = 'sun';
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('sun');
-                }
+                battle.weatherTurns = 5;
             }
             logs.push('阳光变得强烈了!');
             logs.push('<span style="color:#e67e22">火系技能威力提升，水系技能威力下降!</span>');
@@ -1211,23 +1234,18 @@ export const MoveHandlers = {
     
     'Sandstorm': {
         onUse: (attacker, defender, logs, battle) => {
-            // 【修复】始源天气不可被覆盖
-            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
-                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
-                console.log('[WEATHER] Sandstorm failed: primal weather active');
-                return { failed: true };
-            }
-            // 【修复】如果已经是沙暴，技能失败
-            if (battle && battle.weather === 'sandstorm') {
-                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
-                console.log('[WEATHER] Sandstorm failed: already sandstorm');
-                return { failed: true };
-            }
-            if (battle) {
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'sandstorm', {
+                    itemId: attacker.item,
+                    weatherName: '沙暴',
+                    visualKey: 'sand'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return { failed: true };
+            } else if (battle) {
+                if (battle.weather === 'sandstorm') return { failed: true };
                 battle.weather = 'sandstorm';
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('sand');
-                }
+                battle.weatherTurns = 5;
             }
             logs.push('沙暴刮起来了!');
             logs.push('<span style="color:#d4ac0d">岩石系特防提升，非岩/地/钢系每回合受伤!</span>');
@@ -1238,23 +1256,18 @@ export const MoveHandlers = {
     
     'Hail': {
         onUse: (attacker, defender, logs, battle) => {
-            // 【修复】始源天气不可被覆盖
-            if (battle && ['deltastream', 'harshsun', 'heavyrain'].includes(battle.weather)) {
-                logs.push('<span style="color:#e74c3c">但是神秘的气流极其强劲，天气无法改变！</span>');
-                console.log('[WEATHER] Hail failed: primal weather active');
-                return { failed: true };
-            }
-            // 【修复】如果已经是冰雹，技能失败
-            if (battle && battle.weather === 'hail') {
-                logs.push('<span style="color:#e74c3c">但是失败了！</span>');
-                console.log('[WEATHER] Hail failed: already hailing');
-                return { failed: true };
-            }
-            if (battle) {
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'hail', {
+                    itemId: attacker.item,
+                    weatherName: '冰雹',
+                    visualKey: 'hail'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return { failed: true };
+            } else if (battle) {
+                if (battle.weather === 'hail') return { failed: true };
                 battle.weather = 'hail';
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('hail');
-                }
+                battle.weatherTurns = 5;
             }
             logs.push('开始下冰雹了!');
             logs.push('<span style="color:#5dade2">非冰系每回合受伤!</span>');
@@ -1308,6 +1321,16 @@ export const MoveHandlers = {
         onModifyType: (move, attacker, battle) => {
             if (!battle || !battle.weather || battle.weather === 'none') return 'Normal';
             
+            // 优先使用 WeatherEffects 的配置
+            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getWeatherBallType) {
+                const wbData = window.WeatherEffects.getWeatherBallType(battle.weather);
+                if (wbData && wbData.type !== 'Normal') {
+                    console.log(`[Weather Ball] 天气 ${battle.weather} -> 属性 ${wbData.type}`);
+                    return wbData.type;
+                }
+            }
+            
+            // 回退到硬编码逻辑
             switch (battle.weather) {
                 case 'sun':
                 case 'harshsun':
@@ -1316,10 +1339,17 @@ export const MoveHandlers = {
                 case 'heavyrain':
                     return 'Water';
                 case 'sandstorm':
+                case 'ashfall':  // 火山灰 -> 岩石
                     return 'Rock';
                 case 'hail':
                 case 'snow':
                     return 'Ice';
+                case 'fog':      // 暗影迷雾 -> 幽灵
+                    return 'Ghost';
+                case 'smog':     // 烟霾 -> 毒
+                    return 'Poison';
+                case 'gale':     // 香风 -> 草
+                    return 'Grass';
                 default:
                     return 'Normal';
             }
@@ -1990,10 +2020,9 @@ export const MoveHandlers = {
     
     'Recover': {
         onHit: (attacker, defender, damage, logs) => {
-            const healAmount = Math.floor(attacker.maxHp / 2);
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = Math.floor(attacker.maxHp / 2);
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
@@ -2005,10 +2034,9 @@ export const MoveHandlers = {
     
     'Soft-Boiled': {
         onHit: (attacker, defender, damage, logs) => {
-            const healAmount = Math.floor(attacker.maxHp / 2);
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = Math.floor(attacker.maxHp / 2);
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
@@ -2020,10 +2048,9 @@ export const MoveHandlers = {
     
     'Slack Off': {
         onHit: (attacker, defender, damage, logs) => {
-            const healAmount = Math.floor(attacker.maxHp / 2);
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = Math.floor(attacker.maxHp / 2);
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 偷懒恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
@@ -2035,10 +2062,9 @@ export const MoveHandlers = {
     
     'Roost': {
         onHit: (attacker, defender, damage, logs) => {
-            const healAmount = Math.floor(attacker.maxHp / 2);
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = Math.floor(attacker.maxHp / 2);
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 降落休息恢复了体力!`);
                 // 羽栖效果：本回合失去飞行属性（简化处理，不实现）
             } else {
@@ -2061,10 +2087,9 @@ export const MoveHandlers = {
                     healRatio = 0.25;
                 }
             }
-            const healAmount = Math.floor(attacker.maxHp * healRatio);
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = Math.floor(attacker.maxHp * healRatio);
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 通过光合作用恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
@@ -2085,10 +2110,9 @@ export const MoveHandlers = {
                     healRatio = 0.25;
                 }
             }
-            const healAmount = Math.floor(attacker.maxHp * healRatio);
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = Math.floor(attacker.maxHp * healRatio);
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 吸收了清晨的露水恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
@@ -2109,10 +2133,9 @@ export const MoveHandlers = {
                     healRatio = 0.25;
                 }
             }
-            const healAmount = Math.floor(attacker.maxHp * healRatio);
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = Math.floor(attacker.maxHp * healRatio);
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 吸收了月光恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
@@ -2367,10 +2390,9 @@ export const MoveHandlers = {
                 logs.push(`${defender.cnName} 的异常状态被治愈了!`);
                 
                 // 自己回复HP
-                const healAmount = Math.floor(attacker.maxHp / 2);
-                const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+                const baseHeal = Math.floor(attacker.maxHp / 2);
+                const actualHeal = applyHeal(attacker, baseHeal);
                 if (actualHeal > 0) {
-                    attacker.currHp += actualHeal;
                     logs.push(`${attacker.cnName} 恢复了体力!`);
                 }
             } else {
@@ -2393,14 +2415,22 @@ export const MoveHandlers = {
                 return { rest: false };
             }
             
-            attacker.currHp = attacker.maxHp;
+            // 【Smog 化学屏障】Rest 也受回复减半影响
+            const baseHeal = attacker.maxHp - attacker.currHp;
+            const actualHeal = applyHeal(attacker, baseHeal);
+            
             attacker.status = 'slp';
             attacker.statusTurns = 0;
             // 睡眠回合数（Rest 固定睡2回合，第3回合醒来）
             attacker.sleepTurns = 3;
             attacker.sleepDuration = 3;
             
-            logs.push(`${attacker.cnName} 睡着了并恢复了全部体力!`);
+            // 根据实际回复量调整日志
+            if (actualHeal < baseHeal) {
+                logs.push(`${attacker.cnName} 睡着了，但烟霾阻碍了恢复!`);
+            } else {
+                logs.push(`${attacker.cnName} 睡着了并恢复了全部体力!`);
+            }
             
             // 【修复】立即检查状态治愈树果（零余果/木子果）
             if (typeof ItemEffects !== 'undefined' && ItemEffects.checkStatusBerry) {
@@ -2442,10 +2472,9 @@ export const MoveHandlers = {
             if (battle && battle.weather === 'sandstorm') {
                 healRatio = 2/3;
             }
-            const healAmount = Math.floor(attacker.maxHp * healRatio);
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = Math.floor(attacker.maxHp * healRatio);
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 集沙恢复了体力!`);
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
@@ -2458,10 +2487,9 @@ export const MoveHandlers = {
     'Strength Sap': {
         onHit: (attacker, defender, damage, logs) => {
             // 回复等于对手攻击力的HP，并降低对手攻击
-            const healAmount = defender.atk;
-            const actualHeal = Math.min(healAmount, attacker.maxHp - attacker.currHp);
+            const baseHeal = defender.atk;
+            const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
-                attacker.currHp += actualHeal;
                 logs.push(`${attacker.cnName} 吸取了 ${defender.cnName} 的力量!`);
             }
             
@@ -2891,10 +2919,15 @@ export const MoveHandlers = {
                 
                 // 文柚果: HP <= 50% 时回复 25%
                 if (itemId === 'sitrusberry' && hpPercent <= 0.5) {
-                    const heal = Math.floor(user.maxHp * 0.25);
-                    user.currHp = Math.min(user.maxHp, user.currHp + heal);
+                    const baseHeal = Math.floor(user.maxHp * 0.25);
+                    let actualHeal = baseHeal;
+                    if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                        actualHeal = window.WeatherEffects.applyHeal(user, baseHeal, { source: 'Sitrus Berry' });
+                    } else {
+                        user.currHp = Math.min(user.maxHp, user.currHp + baseHeal);
+                    }
                     user.item = null;
-                    logs.push(`<span style="color:#27ae60">🍊 ${user.cnName} 吃掉了文柚果，回复了 ${heal} 点体力！</span>`);
+                    logs.push(`<span style="color:#27ae60">🍊 ${user.cnName} 吃掉了文柚果，回复了 ${actualHeal} 点体力！</span>`);
                     if (typeof window.playSFX === 'function') window.playSFX('HEAL');
                 }
                 // 混乱果系列 (勿花果/异奇果/芒芒果/芭亚果/乐芭果): HP <= 25% 时回复 33%
@@ -2904,11 +2937,16 @@ export const MoveHandlers = {
                 const confuseTrigger = isGluttony ? 0.5 : 0.25;
                 
                 if (confuseBerries.includes(itemId) && hpPercent <= confuseTrigger) {
-                    const heal = Math.floor(user.maxHp / 3);
-                    user.currHp = Math.min(user.maxHp, user.currHp + heal);
+                    const baseHeal = Math.floor(user.maxHp / 3);
+                    let actualHeal = baseHeal;
+                    if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                        actualHeal = window.WeatherEffects.applyHeal(user, baseHeal, { source: 'Confuse Berry' });
+                    } else {
+                        user.currHp = Math.min(user.maxHp, user.currHp + baseHeal);
+                    }
                     const berryName = user.item;
                     user.item = null;
-                    logs.push(`<span style="color:#27ae60">🍇 ${user.cnName} 吃掉了${berryName}，回复了 ${heal} 点体力！</span>`);
+                    logs.push(`<span style="color:#27ae60">🍇 ${user.cnName} 吃掉了${berryName}，回复了 ${actualHeal} 点体力！</span>`);
                     if (typeof window.playSFX === 'function') window.playSFX('HEAL');
                     // TODO: 性格不合时混乱判定
                 }
@@ -3329,7 +3367,7 @@ export const MoveHandlers = {
         description: '清除己方场地钉子，速度+1'
     },
 
-    // 【清除浓雾】清除双方场地效果
+    // 【清除浓雾】清除双方场地效果 + 暂时驱散 Shadow Fog 天气
     'Defog': {
         onUse: (user, target, logs, battle, isPlayer) => {
             if (!battle) return { failed: true };
@@ -3352,7 +3390,25 @@ export const MoveHandlers = {
                 if (targetSide.auroraVeil > 0) { targetSide.auroraVeil = 0; cleared = true; }
             }
             
-            if (cleared) {
+            // 【S区特效】Defog 可以暂时驱散 Shadow Fog (fog) 天气 5 回合
+            if (battle.weather === 'fog') {
+                // 保存环境天气信息以便恢复
+                if (!battle.defogCleanse) {
+                    battle.defogCleanse = {
+                        originalWeather: 'fog',
+                        turnsRemaining: 5
+                    };
+                }
+                battle.weather = 'none';
+                battle.weatherTurns = 0;
+                cleared = true;
+                logs.push(`<b style="color:#87ceeb">💨 清除浓雾！视野暂时恢复清晰！</b>`);
+                
+                // 更新天气视觉效果
+                if (typeof setWeatherVisuals === 'function') {
+                    setWeatherVisuals('none');
+                }
+            } else if (cleared) {
                 logs.push(`<b style="color:#87ceeb">💨 浓雾散去，场地效果被清除了！</b>`);
             } else {
                 logs.push(`浓雾散去...但是没有什么效果。`);
@@ -3364,7 +3420,7 @@ export const MoveHandlers = {
             
             return { success: true };
         },
-        description: '清除双方场地效果，降低对手闪避'
+        description: '清除双方场地效果，降低对手闪避，可暂时驱散S区迷雾'
     },
 
     // ============================================
@@ -3792,9 +3848,14 @@ export const MoveHandlers = {
         isGMax: true,
         noWeather: true,
         onHit: (user, target, damage, logs, battle) => {
-            const heal = Math.floor(user.maxHp / 6);
-            user.currHp = Math.min(user.maxHp, user.currHp + heal);
-            logs.push(`<span style="color:#f472b6">🎂 ${user.cnName} 回复了 ${heal} HP！</span>`);
+            const baseHeal = Math.floor(user.maxHp / 6);
+            let actualHeal = baseHeal;
+            if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                actualHeal = window.WeatherEffects.applyHeal(user, baseHeal, { source: 'G-Max Finale' });
+            } else {
+                user.currHp = Math.min(user.maxHp, user.currHp + baseHeal);
+            }
+            logs.push(`<span style="color:#f472b6">🎂 ${user.cnName} 回复了 ${actualHeal} HP！</span>`);
             return {};
         },
         description: '造成伤害并回复己方1/6最大HP'
@@ -4100,10 +4161,16 @@ export const MoveHandlers = {
             
             // 回复量根据蓄力层数：1层=25%, 2层=50%, 3层=100%
             const healPercent = stacks === 1 ? 0.25 : (stacks === 2 ? 0.50 : 1.00);
-            const healAmount = Math.floor(user.maxHp * healPercent);
-            const actualHeal = Math.min(healAmount, user.maxHp - user.currHp);
+            const baseHeal = Math.floor(user.maxHp * healPercent);
             
-            user.currHp = Math.min(user.maxHp, user.currHp + healAmount);
+            // 【Smog 化学屏障】使用统一治愈函数
+            let actualHeal = baseHeal;
+            if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+                actualHeal = window.WeatherEffects.applyHeal(user, baseHeal, { source: 'Swallow' });
+            } else {
+                actualHeal = Math.min(baseHeal, user.maxHp - user.currHp);
+                user.currHp = Math.min(user.maxHp, user.currHp + baseHeal);
+            }
             logs.push(`${user.cnName} 吞下了蓄力！回复了 ${actualHeal} HP！`);
             
             // 消耗蓄力层数并降低对应的防御/特防

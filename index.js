@@ -308,11 +308,21 @@ async function initGame() {
     if (enableEnv && json.environment && json.environment.weather && json.environment.weather !== 'none') {
         const envWeather = json.environment.weather;
         const envTurns = json.environment.weatherTurns || 0;
+        const suppressionTier = json.environment.suppressionTier || 1;
+        const revertMessage = json.environment.revertMessage || null;
         
         // 保存环境天气到 battle 对象，用于天气结束后回归
         battle.environmentWeather = envWeather;
         battle.weather = envWeather;
         battle.weatherTurns = envTurns; // 0 = 永久
+        
+        // 【压制系统】保存环境配置
+        battle.environmentConfig = {
+            weather: envWeather,
+            weatherTurns: envTurns,
+            suppressionTier: suppressionTier,
+            revertMessage: revertMessage
+        };
         
         // 天气名称映射
         const weatherNames = {
@@ -320,16 +330,28 @@ async function initGame() {
             'sun': '阳光变得强烈',
             'sandstorm': '刮起了沙暴',
             'snow': '下起了雪',
-            'hail': '下起了冰雹'
+            'hail': '下起了冰雹',
+            'smog': '烟霾笼罩了战场',
+            'fog': '浓雾弥漫',
+            'ashfall': '火山灰飘落',
+            'gale': '狂风呼啸'
         };
         const weatherName = weatherNames[envWeather] || envWeather;
-        log(`<span style="color:#9b59b6">🌍 环境效果：${weatherName}！</span>`);
+        
+        // 根据压制等级显示不同提示
+        let tierHint = '';
+        if (suppressionTier === 2) {
+            tierHint = ' <span style="color:#f59e0b">[抑制区域]</span>';
+        } else if (suppressionTier === 3) {
+            tierHint = ' <span style="color:#dc2626">[绝对领域]</span>';
+        }
+        log(`<span style="color:#9b59b6">🌍 环境效果：${weatherName}！${tierHint}</span>`);
         
         // 触发天气视觉效果
         if (typeof window.setWeatherVisuals === 'function') {
             window.setWeatherVisuals(envWeather);
         }
-        console.log(`[ENVIRONMENT] 初始化环境天气: ${envWeather}, 持续: ${envTurns || '永久'}`);
+        console.log(`[ENVIRONMENT] 初始化环境天气: ${envWeather}, 持续: ${envTurns || '永久'}, 压制等级: ${suppressionTier}`);
     }
     
     // === 触发双方入场特性 (威吓、天气等) ===
@@ -766,6 +788,18 @@ async function handleAttack(moveIndex, options = {}) {
                 category: zMoveData.category || 'Special'
             };
             
+            // === 【Ambrosia 时空醉】标记下回合混乱 ===
+            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkNeuroBacklash) {
+                const currentWeather = battle?.weather || '';
+                const neuroResult = window.WeatherEffects.checkNeuroBacklash(currentWeather, 'zmove', p, null);
+                if (neuroResult.shouldTrigger) {
+                    p.volatile = p.volatile || {};
+                    p.volatile.neuroBacklash = true;
+                    console.log(`[AMBROSIA] ⚡ 时空醉：${p.name} 使用Z招式后被标记，下回合将混乱`);
+                    log(neuroResult.message);
+                }
+            }
+            
             console.log(`[Z-MOVE] 自动推导 Z 招式: ${playerMove.name} (威力: ${playerMove.power})`);
         }
     }
@@ -778,8 +812,17 @@ async function handleAttack(moveIndex, options = {}) {
     // 【平衡性改动】使用后进入 1 回合冷却
     // =========================================================
     if (currentMoveStyle !== 'normal' && battle.playerUnlocks?.enable_styles) {
-        // 【冷却检查】如果在冷却中，强制使用普通风格
-        if (battle.playerStyleCooldown > 0) {
+        // 【Chronal Rift 洗翠无法】检查是否在时空裂隙中
+        let isUnboundArts = false;
+        let unboundModifier = null;
+        if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getUnboundArtsModifier) {
+            const weather = battle?.weather || battle?.environmentWeather || '';
+            unboundModifier = window.WeatherEffects.getUnboundArtsModifier(weather, currentMoveStyle, p, e);
+            isUnboundArts = unboundModifier.active;
+        }
+        
+        // 【冷却检查】如果在冷却中且不是洗翠无法，强制使用普通风格
+        if (battle.playerStyleCooldown > 0 && !isUnboundArts) {
             log(`<span style="color:#aaa">风格系统冷却中，本回合只能使用普通风格</span>`);
             currentMoveStyle = 'normal';
         } else {
@@ -805,9 +848,39 @@ async function handleAttack(moveIndex, options = {}) {
             }
             
             // ============================================
-            // ⚡ 迅疾风格 (Agile Style)
+            // 【Chronal Rift 洗翠无法】时空裂隙中的古武规则
             // ============================================
-            if (currentMoveStyle === 'agile') {
+            if (isUnboundArts && unboundModifier) {
+                playerMove = { ...playerMove };
+                playerMove.styleUsed = currentMoveStyle;
+                
+                if (currentMoveStyle === 'agile') {
+                    // 迅疾・瞬身模式：优先度+1，速度快无损/速度慢威力x0.9
+                    playerMove.priority = originalPriority + unboundModifier.priorityMod;
+                    playerMove.basePower = Math.floor(originalPower * unboundModifier.damageMultiplier);
+                    playerMove.power = playerMove.basePower;
+                    log(unboundModifier.message);
+                    console.log(`[CHRONAL RIFT] 洗翠无法・迅疾: priority +${unboundModifier.priorityMod}, power x${unboundModifier.damageMultiplier}`);
+                } else if (currentMoveStyle === 'strong') {
+                    // 刚猛・破坏神模式：伤害x1.5，命中x0.85，优先度-1
+                    playerMove.priority = originalPriority + unboundModifier.priorityMod;
+                    playerMove.basePower = Math.floor(originalPower * unboundModifier.damageMultiplier);
+                    playerMove.power = playerMove.basePower;
+                    playerMove.breaksProtect = true;
+                    const oldAcc = (typeof originalAccuracy === 'number') ? originalAccuracy : 100;
+                    // 必中技无视命中惩罚
+                    if (originalAccuracy !== true && oldAcc < 101) {
+                        playerMove.accuracy = Math.floor(oldAcc * unboundModifier.accuracyMultiplier);
+                    }
+                    log(unboundModifier.message);
+                    console.log(`[CHRONAL RIFT] 洗翠无法・刚猛: power x${unboundModifier.damageMultiplier}, acc x${unboundModifier.accuracyMultiplier}`);
+                }
+                // 洗翠无法无冷却
+            }
+            // ============================================
+            // ⚡ 迅疾风格 (Agile Style) - 普通模式
+            // ============================================
+            else if (currentMoveStyle === 'agile') {
                 // 【平衡性改动】变化技禁止使用迅疾
                 if (isStatus) {
                     log(`<span style="color:#aaa">变化类招式无法使用迅疾风格！(自动切换回普通)</span>`);
@@ -839,7 +912,7 @@ async function handleAttack(moveIndex, options = {}) {
                 }
             } 
             // ============================================
-            // 💪 刚猛风格 (Strong Style)
+            // 💪 刚猛风格 (Strong Style) - 普通模式
             // ============================================
             else if (currentMoveStyle === 'strong') {
                 playerMove = { ...playerMove };
@@ -1023,6 +1096,18 @@ async function handleAttack(moveIndex, options = {}) {
         p.isTerastallized = true;
         p.originalTypes = oldTypes; // 保存原始属性（用于 STAB 回溯）
         p.types = [teraType]; // 属性变为单一太晶属性
+        
+        // === 【Ambrosia 时空醉】标记下回合混乱 ===
+        if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkNeuroBacklash) {
+            const currentWeather = battle?.weather || '';
+            const neuroResult = window.WeatherEffects.checkNeuroBacklash(currentWeather, 'terastal', p, null);
+            if (neuroResult.shouldTrigger) {
+                p.volatile = p.volatile || {};
+                p.volatile.neuroBacklash = true;
+                console.log(`[AMBROSIA] ⚡ 时空醉：${p.name} 太晶化后被标记，下回合将混乱`);
+                log(neuroResult.message);
+            }
+        }
         
         log(`<b style="color:#22d3ee">${oldName} 太晶化了！</b>`);
         log(`<span style="color:#67e8f9">属性变化: ${oldTypes.join('/')} → <b>${teraType}</b></span>`);
@@ -1208,6 +1293,19 @@ async function handleAttack(moveIndex, options = {}) {
         e.isTerastallized = true;
         e.originalTypes = oldTypes;
         e.types = [teraType];
+        
+        // === 【Ambrosia 时空醉】标记下回合混乱 ===
+        if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkNeuroBacklash) {
+            const currentWeather = battle?.weather || '';
+            const trainer = battle?.enemyTrainer || battle?.trainer;
+            const neuroResult = window.WeatherEffects.checkNeuroBacklash(currentWeather, 'terastal', e, trainer);
+            if (neuroResult.shouldTrigger) {
+                e.volatile = e.volatile || {};
+                e.volatile.neuroBacklash = true;
+                console.log(`[AMBROSIA] ⚡ 时空醉：${e.name} 太晶化后被标记，下回合将混乱`);
+                log(neuroResult.message);
+            }
+        }
         
         log(`<b style="color:#22d3ee">${trainerName} 的 ${oldEnemyName} 太晶化了！</b>`);
         log(`<span style="color:#67e8f9">属性变化: ${oldTypes.join('/')} → <b>${teraType}</b></span>`);
@@ -1470,6 +1568,19 @@ async function handleAttack(moveIndex, options = {}) {
                     isZ: true,
                     baseMove: zBaseMove.name // 保留原始招式名
                 };
+                
+                // === 【Ambrosia 时空醉】标记下回合混乱 ===
+                if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkNeuroBacklash) {
+                    const currentWeather = battle?.weather || '';
+                    const trainer = battle?.enemyTrainer || battle?.trainer;
+                    const neuroResult = window.WeatherEffects.checkNeuroBacklash(currentWeather, 'zmove', e, trainer);
+                    if (neuroResult.shouldTrigger) {
+                        e.volatile = e.volatile || {};
+                        e.volatile.neuroBacklash = true;
+                        console.log(`[AMBROSIA] ⚡ 时空醉：${e.name} 使用Z招式后被标记，下回合将混乱`);
+                        log(neuroResult.message);
+                    }
+                }
             }
         }
         
@@ -1482,8 +1593,21 @@ async function handleAttack(moveIndex, options = {}) {
         // 【平衡性改动】使用后进入 1 回合冷却
         const enemyUnlocksForStyles = battle.enemyUnlocks || {};
         if (enemyUnlocksForStyles.enable_styles && enemyMove && !enemyMove.isZ) {
-            // 【冷却检查】如果在冷却中，AI 不使用风格
-            if (battle.enemyStyleCooldown > 0) {
+            // 【Chronal Rift 洗翠无法】检查是否在时空裂隙中
+            let isEnemyUnboundArts = false;
+            let enemyUnboundModifier = null;
+            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getUnboundArtsModifier) {
+                const weather = battle?.weather || battle?.environmentWeather || '';
+                // 预检查是否会使用风格
+                const potentialStyle = (enemyAction && enemyAction.style) ? enemyAction.style : 'normal';
+                if (potentialStyle !== 'normal') {
+                    enemyUnboundModifier = window.WeatherEffects.getUnboundArtsModifier(weather, potentialStyle, e, p);
+                    isEnemyUnboundArts = enemyUnboundModifier.active;
+                }
+            }
+            
+            // 【冷却检查】如果在冷却中且不是洗翠无法，AI 不使用风格
+            if (battle.enemyStyleCooldown > 0 && !isEnemyUnboundArts) {
                 console.log(`[AI STYLES] 敌方风格系统冷却中，本回合使用普通风格`);
             } else {
                 const originalPower = enemyMove.basePower || enemyMove.power || 0;
@@ -1515,9 +1639,38 @@ async function handleAttack(moveIndex, options = {}) {
                 }
                 
                 // ============================================
-                // ⚡ AI 迅疾风格 (Agile Style)
+                // 【Chronal Rift 洗翠无法】时空裂隙中的古武规则
                 // ============================================
-                if (aiStyle === 'agile') {
+                if (isEnemyUnboundArts && enemyUnboundModifier) {
+                    enemyMove = { ...enemyMove };
+                    enemyMove.styleUsed = aiStyle;
+                    
+                    if (aiStyle === 'agile') {
+                        // 迅疾・瞬身模式：优先度+1，速度快无损/速度慢威力x0.9
+                        enemyMove.priority = originalPriority + enemyUnboundModifier.priorityMod;
+                        enemyMove.basePower = Math.floor(originalPower * enemyUnboundModifier.damageMultiplier);
+                        enemyMove.power = enemyMove.basePower;
+                        log(enemyUnboundModifier.message.replace('洗翠无法', '敌方洗翠无法'));
+                        console.log(`[CHRONAL RIFT] 敌方洗翠无法・迅疾: priority +${enemyUnboundModifier.priorityMod}, power x${enemyUnboundModifier.damageMultiplier}`);
+                    } else if (aiStyle === 'strong') {
+                        // 刚猛・破坏神模式：伤害x1.5，命中x0.85，优先度-1
+                        enemyMove.priority = originalPriority + enemyUnboundModifier.priorityMod;
+                        enemyMove.basePower = Math.floor(originalPower * enemyUnboundModifier.damageMultiplier);
+                        enemyMove.power = enemyMove.basePower;
+                        enemyMove.breaksProtect = true;
+                        const oldAcc = (typeof originalAccuracy === 'number') ? originalAccuracy : 100;
+                        if (originalAccuracy !== true && oldAcc < 101) {
+                            enemyMove.accuracy = Math.floor(oldAcc * enemyUnboundModifier.accuracyMultiplier);
+                        }
+                        log(enemyUnboundModifier.message.replace('洗翠无法', '敌方洗翠无法'));
+                        console.log(`[CHRONAL RIFT] 敌方洗翠无法・刚猛: power x${enemyUnboundModifier.damageMultiplier}, acc x${enemyUnboundModifier.accuracyMultiplier}`);
+                    }
+                    // 洗翠无法无冷却
+                }
+                // ============================================
+                // ⚡ AI 迅疾风格 (Agile Style) - 普通模式
+                // ============================================
+                else if (aiStyle === 'agile') {
                     // 【平衡性改动】变化技禁止使用迅疾
                     if (isStatus) {
                         console.log(`[AI STYLES] 变化技无法使用迅疾，改用普通风格`);
@@ -1548,7 +1701,7 @@ async function handleAttack(moveIndex, options = {}) {
                     }
                 } 
                 // ============================================
-                // 💪 AI 刚猛风格 (Strong Style)
+                // 💪 AI 刚猛风格 (Strong Style) - 普通模式
                 // ============================================
                 else if (aiStyle === 'strong') {
                     enemyMove = { ...enemyMove };
@@ -2602,6 +2755,28 @@ async function executeEndPhase(p, e) {
                 log(`<span style="color:#a78bfa">${txt}</span>`);
             }
             await wait(300);
+        }
+    }
+    
+    // =========================================================
+    // 【S区特效】Defog 清除迷雾效果倒计时 - 3回合后恢复
+    // =========================================================
+    if (battle.defogCleanse && battle.defogCleanse.turnsRemaining > 0) {
+        battle.defogCleanse.turnsRemaining--;
+        if (battle.defogCleanse.turnsRemaining <= 0) {
+            // 恢复迷雾天气
+            battle.weather = battle.defogCleanse.originalWeather || 'fog';
+            battle.weatherTurns = 0; // 环境天气无限持续
+            delete battle.defogCleanse;
+            log(`<span style="color:#6b7280">🌫️ 暗影再次凝聚...迷雾重新笼罩了战场！</span>`);
+            
+            // 更新天气视觉效果
+            if (typeof setWeatherVisuals === 'function') {
+                setWeatherVisuals('fog');
+            }
+            await wait(500);
+        } else {
+            log(`<span style="color:#94a3b8">（迷雾将在 ${battle.defogCleanse.turnsRemaining} 回合后恢复...）</span>`);
         }
     }
     

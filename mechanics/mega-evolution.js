@@ -256,6 +256,18 @@ function performMegaEvolution(pokemon) {
         return null;
     }
     
+    // === 【Ambrosia 时空醉】标记下回合混乱 ===
+    if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkNeuroBacklash) {
+        const currentWeather = window.battle?.weather || '';
+        const trainer = window.battle?.isPlayerTurn ? null : window.battle?.enemyTrainer;
+        const neuroResult = window.WeatherEffects.checkNeuroBacklash(currentWeather, 'mega', pokemon, trainer);
+        if (neuroResult.shouldTrigger) {
+            pokemon.volatile = pokemon.volatile || {};
+            pokemon.volatile.neuroBacklash = true;
+            console.log(`[AMBROSIA] ⚡ 时空醉：${pokemon.name} Mega进化后被标记，下回合将混乱`);
+        }
+    }
+    
     const megaData = typeof getPokemonData === 'function' 
         ? getPokemonData(pokemon.megaTargetId)
         : null;

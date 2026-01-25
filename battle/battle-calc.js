@@ -145,6 +145,32 @@ export function calcDamage(attacker, defender, move, options = {}) {
         console.log(`[ATE BOOST] 皮肤系特性威力加成 x${move._ateBoost}`);
     }
     
+    // === 【Chronal Rift 技能黑箱】科技类招式RNG ===
+    let moveGlitchLog = null;
+    if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkMoveGlitch) {
+        const weather = (typeof battle !== 'undefined' && battle) ? (battle.weather || battle.environmentWeather || '') : '';
+        const glitchResult = window.WeatherEffects.checkMoveGlitch(weather, move, attacker);
+        if (glitchResult.triggered) {
+            if (glitchResult.effect === 'fail') {
+                // 招式失败
+                moveGlitchLog = glitchResult.message;
+                return {
+                    damage: 0,
+                    effectiveness: 1,
+                    isCrit: false,
+                    miss: false,
+                    hitCount: 0,
+                    moveGlitchLog: moveGlitchLog
+                };
+            } else if (glitchResult.effect === 'critical') {
+                // 威力翻倍
+                basePower = Math.floor(basePower * glitchResult.powerMultiplier);
+                moveGlitchLog = glitchResult.message;
+                console.log(`[CHRONAL RIFT] 💥 技能黑箱：威力 x${glitchResult.powerMultiplier} -> ${basePower}`);
+            }
+        }
+    }
+    
     // === 【充电 Charge】电系招式威力翻倍 ===
     const chargeMoveType = move.type || fullMoveData.type || 'Normal';
     if (attacker.volatile && attacker.volatile.charge && chargeMoveType === 'Electric') {
@@ -191,6 +217,47 @@ export function calcDamage(attacker, defender, move, options = {}) {
             const oldPower = basePower;
             basePower = 100;
             console.log(`[WEATHER BALL] 天气 ${currentWeather}，威力翻倍！(${oldPower} -> ${basePower})`);
+        }
+    }
+    
+    // === 【Shadow Fog 必中技特化】必中技威力 x1.25 ===
+    if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getGuidedStrikePowerMultiplier) {
+        const guidedStrikeMult = window.WeatherEffects.getGuidedStrikePowerMultiplier(currentWeather, move);
+        if (guidedStrikeMult > 1) {
+            const oldPower = basePower;
+            basePower = Math.floor(basePower * guidedStrikeMult);
+            console.log(`[FOG] 🎯 必中技特化：${move.name} 威力 x${guidedStrikeMult} (${oldPower} -> ${basePower})`);
+        }
+    }
+    
+    // === 【Shadow Fog 光线折射】Beam类招式威力降低 ===
+    if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getRefractionPowerMultiplier) {
+        const refractionMult = window.WeatherEffects.getRefractionPowerMultiplier(currentWeather, move);
+        if (refractionMult < 1) {
+            const oldPower = basePower;
+            basePower = Math.floor(basePower * refractionMult);
+            console.log(`[FOG] 🔦 光线折射：${move.name} 威力 x${refractionMult} (${oldPower} -> ${basePower})`);
+        }
+    }
+    
+    // === 【Gale 过和湿气】火系威力减半 ===
+    if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getSaturatedAirPowerMultiplier) {
+        const moveType = move.type || fullMoveData?.type || 'Normal';
+        const saturatedMult = window.WeatherEffects.getSaturatedAirPowerMultiplier(currentWeather, moveType);
+        if (saturatedMult < 1) {
+            const oldPower = basePower;
+            basePower = Math.floor(basePower * saturatedMult);
+            console.log(`[GALE] 💧 过和湿气：${move.name} 威力 x${saturatedMult} (${oldPower} -> ${basePower})`);
+        }
+    }
+    
+    // === 【Gale 生机传导】吸取类招式威力增强 ===
+    if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getVitalitySurgePowerMultiplier) {
+        const vitalityMult = window.WeatherEffects.getVitalitySurgePowerMultiplier(currentWeather, move);
+        if (vitalityMult > 1) {
+            const oldPower = basePower;
+            basePower = Math.floor(basePower * vitalityMult);
+            console.log(`[GALE] 🌿 生机传导：${move.name} 威力 x${vitalityMult} (${oldPower} -> ${basePower})`);
         }
     }
     
@@ -474,6 +541,19 @@ export function calcDamage(attacker, defender, move, options = {}) {
         
         // 变化技命中判定
         let statusAcc = (accuracy === true || accuracy === undefined) ? 100 : accuracy;
+        
+        // === 【Gale 孢子传媒】粉末/孢子类变化技必中 ===
+        const weatherForStatus = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';
+        let pollenCarrierStatusHit = false;
+        if (weatherForStatus && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getPollenCarrierEffect) {
+            const pollenEffect = window.WeatherEffects.getPollenCarrierEffect(weatherForStatus, move);
+            if (pollenEffect.alwaysHit) {
+                pollenCarrierStatusHit = true;
+                statusAcc = 100;
+                console.log(`[GALE] 🌸 孢子传媒(变化技)：${move.name} 必中！`);
+            }
+        }
+        
         const accStage = attacker.boosts.accuracy;
         const evaStage = defender.boosts.evasion;
         const finalStage = Math.min(6, Math.max(-6, accStage - evaStage));
@@ -482,7 +562,7 @@ export function calcDamage(attacker, defender, move, options = {}) {
         else accMult = 3 / (3 + Math.abs(finalStage));
         const finalAcc = statusAcc * accMult;
         
-        if (statusAcc < 100 && Math.random() * 100 >= finalAcc) {
+        if (!pollenCarrierStatusHit && statusAcc < 100 && Math.random() * 100 >= finalAcc) {
             return { damage: 0, effectiveness: 1, isCrit: false, miss: true, hitCount: 0 };
         }
         return { damage: 0, effectiveness: 1, isCrit: false, miss: false, hitCount: 0 };
@@ -492,12 +572,27 @@ export function calcDamage(attacker, defender, move, options = {}) {
     let moveAcc = (accuracy === true || accuracy === undefined) ? 100 : accuracy;
     
     // === 【天气命中率修正】使用 MoveEffects 模块 ===
+    // 【关键】weatherGuaranteedHit 标记天气导致的必中（如雪天暴风雪）
+    let weatherGuaranteedHit = false;
     const weatherForAcc = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';
     if (weatherForAcc && typeof MoveEffects !== 'undefined' && MoveEffects.getWeatherAccuracyModifier) {
         const accResult = MoveEffects.getWeatherAccuracyModifier(weatherForAcc, move.name);
         if (accResult.accuracy !== null) {
             moveAcc = accResult.accuracy;
+            // 如果天气返回 100 命中率，标记为必中
+            if (accResult.accuracy === 100 || accResult.accuracy === true) {
+                weatherGuaranteedHit = true;
+            }
             console.log(`[WEATHER ACC] ${accResult.log}`);
+        }
+    }
+    
+    // === 【Smog 专用】腐蚀气体 - 气体/粉尘招式必中 ===
+    if (weatherForAcc && typeof window.WeatherEffects !== 'undefined') {
+        if (window.WeatherEffects.isGasMoveGuaranteedHit(weatherForAcc, move)) {
+            moveAcc = 100;
+            weatherGuaranteedHit = true;
+            console.log(`[SMOG] 🏭 腐蚀气体：${move.name} 在烟霾中必定命中！`);
         }
     }
     
@@ -511,9 +606,36 @@ export function calcDamage(attacker, defender, move, options = {}) {
         'magicalleaf', 'magnetbomb', 'shadowpunch', 'shockwave', 'smartstrike', 'swift', 'vitalthrow'];
     const isNeverMiss = neverMissMoves.includes(moveId);
     
+    // === 【Shadow Fog 视觉遮断】非幽灵/恶系命中率 x0.8 ===
+    let fogAccuracyMod = 1;
+    if (weatherForAcc && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getHazedVisionAccuracyMultiplier) {
+        fogAccuracyMod = window.WeatherEffects.getHazedVisionAccuracyMultiplier(weatherForAcc, attacker);
+        if (fogAccuracyMod < 1) {
+            console.log(`[FOG] 🌫️ 视觉遮断：${attacker.cnName || attacker.name} 命中率 x${fogAccuracyMod}`);
+        }
+    }
+    
+    // === 【Gale 孢子传媒】粉末/孢子类招式必中+穿透替身 ===
+    let pollenCarrierHit = false;
+    if (weatherForAcc && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getPollenCarrierEffect) {
+        const pollenEffect = window.WeatherEffects.getPollenCarrierEffect(weatherForAcc, move);
+        if (pollenEffect.alwaysHit) {
+            pollenCarrierHit = true;
+        }
+    }
+    
     // 命中/闪避修正
     const accStage = attacker.boosts.accuracy || 0;
-    const evaStage = defender.boosts.evasion || 0;
+    let evaStage = defender.boosts.evasion || 0;
+    
+    // === 【Shadow Fog 夜之民】幽灵/恶系闪避 +1 ===
+    if (weatherForAcc && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getNocturnalPredatorEvasionBoost) {
+        const fogEvasionBoost = window.WeatherEffects.getNocturnalPredatorEvasionBoost(weatherForAcc, defender);
+        if (fogEvasionBoost > 0) {
+            evaStage += fogEvasionBoost;
+            console.log(`[FOG] 🌙 夜之民：${defender.cnName || defender.name} 闪避等级 +${fogEvasionBoost}`);
+        }
+    }
     
     const getAccuracyMultiplier = (stage) => {
         const clampedStage = Math.min(6, Math.max(-6, stage));
@@ -530,9 +652,10 @@ export function calcDamage(attacker, defender, move, options = {}) {
         itemAccMod = ItemEffects.getAccuracyMod(attacker);
     }
     
-    let hitRate = moveAcc * accMult / evaMult * itemAccMod;
+    // 【Shadow Fog 视觉遮断】应用命中率惩罚
+    let hitRate = moveAcc * accMult / evaMult * itemAccMod * fogAccuracyMod;
     
-    if (alwaysHit || isNeverMiss) {
+    if (alwaysHit || isNeverMiss || pollenCarrierHit) {
         hitRate = 100;
     }
     
@@ -549,7 +672,8 @@ export function calcDamage(attacker, defender, move, options = {}) {
         move.name.startsWith('Max ') ||
         move.name.startsWith('G-Max ')
     ));
-    const isSureHit = isZMove || isMaxMove || accuracy === true;
+    // 【关键修复】加入 weatherGuaranteedHit 判断天气必中
+    const isSureHit = isZMove || isMaxMove || accuracy === true || weatherGuaranteedHit;
     
     // === Insight 奇迹闪避 ===
     if (isSureHit && defender.isAce && defender.avs && defender.avs.insight >= 250) {
@@ -569,6 +693,7 @@ export function calcDamage(attacker, defender, move, options = {}) {
     // === AVs: Insight 闪避加成 ===
     // 【线性机制】闪避加成 = (effectiveInsight / 255) * 20
     // 满值 255 时 20% 闪避加成，100 时约 8% 闪避加成
+    // 【Ambrosia】神之琼浆天气下 AVS 效果 x2
     if (defender.isAce && defender.avs && !isSureHit) {
         const baseInsight = defender.getEffectiveAVs('insight');
         // 【全局开关】AVS 关闭时 getEffectiveAVs 返回 0，跳过计算
@@ -576,6 +701,15 @@ export function calcDamage(attacker, defender, move, options = {}) {
             const effectiveInsight = defender.avsEvolutionBoost ? baseInsight * 2 : baseInsight;
             // 线性闪避加成：满值 10%（从 20% 下调），最低 1%
             let evasionBonus = Math.max(1, Math.floor((Math.min(effectiveInsight, 255) / 255) * 10));
+            
+            // 【Ambrosia 神之琼浆】AVS 效果 x2
+            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getAVSMultiplier) {
+                const avsMultiplier = window.WeatherEffects.getAVSMultiplier(weatherForAcc);
+                if (avsMultiplier > 1) {
+                    evasionBonus = Math.floor(evasionBonus * avsMultiplier);
+                    console.log(`[AMBROSIA] 💫 神之琼浆：Insight 闪避加成 x${avsMultiplier}`);
+                }
+            }
             
             hitRate = Math.max(50, hitRate - evasionBonus); // 最低命中率提高至 50%
             console.log(`[AVs] Insight 闪避加成: -${evasionBonus}% (Insight: ${baseInsight}${defender.avsEvolutionBoost ? ' x2' : ''})`);
@@ -607,10 +741,12 @@ export function calcDamage(attacker, defender, move, options = {}) {
     }
     
     // Miss 检测
-    if (typeof accuracy === 'number' && !isSureHit) {
+    // 【关键】isSureHit 包含 weatherGuaranteedHit，天气必中招式跳过 miss 检测
+    if (!isSureHit && !alwaysHit && !isNeverMiss) {
         if (Math.random() * 100 > hitRate) {
             // 【路痴保险 Blunder Policy】Miss后速度+2
             // 注意：这里只返回 miss 标记，实际触发在 battle-damage.js 中处理
+            console.log(`[MISS] 命中率=${hitRate.toFixed(1)}%, 招式MISS`);
             return { damage: 0, effectiveness: 0, isCrit: false, miss: true, hitCount: 0, insightDodge: defender.avs?.insight >= 100, triggerBlunderPolicy: true };
         }
     }
@@ -688,6 +824,16 @@ export function calcDamage(attacker, defender, move, options = {}) {
     const ignoresBurnDrop = attacker.ability === 'Guts';
     if (!isSpecial && attacker.status === 'brn' && !ignoresBurnDrop) {
         atkStat = Math.floor(atkStat * 0.5);
+    }
+    
+    // === 【Gale 极速解冻】冰系物理防御降低 30% ===
+    if (!isSpecial && weatherForDef && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getRapidThawDefenseMultiplier) {
+        const rapidThawMult = window.WeatherEffects.getRapidThawDefenseMultiplier(weatherForDef, defender);
+        if (rapidThawMult < 1) {
+            const oldDef = defStat;
+            defStat = Math.floor(defStat * rapidThawMult);
+            console.log(`[GALE] ❄️ 极速解冻：${defender.cnName || defender.name} 物理防御 x${rapidThawMult} (${oldDef} -> ${defStat})`);
+        }
     }
     
     // === 防御方属性判定 ===
@@ -875,20 +1021,58 @@ export function calcDamage(attacker, defender, move, options = {}) {
                 }
             }
             
-            // 5. 暴击等级上限为 3
+            // 5. 【Ashfall 扬尘暴击】岩石招式暴击率 +1
+            if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getDustDevilCritBoost) {
+                const dustDevilBoost = window.WeatherEffects.getDustDevilCritBoost(window.battle.weather, move.type);
+                if (dustDevilBoost > 0) {
+                    critStage += dustDevilBoost;
+                    console.log(`[ASHFALL] 🪨 扬尘暴击：岩石招式暴击等级 +${dustDevilBoost}`);
+                }
+            }
+            
+            // 5.5 【Gale 飞叶风暴】草系切斩/风类招式暴击+1
+            if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getRazorWindCritBoost) {
+                const razorWindBoost = window.WeatherEffects.getRazorWindCritBoost(currentWeather, move);
+                if (razorWindBoost > 0) {
+                    critStage += razorWindBoost;
+                    console.log(`[GALE] 🍃 飞叶风暴：${move.name} 暴击等级 +${razorWindBoost}`);
+                }
+            }
+            
+            // 5.6 【Ambrosia 唯心实体化】全员暴击率 +1
+            if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getPsychicMindCritBoost) {
+                const psychicMindBoost = window.WeatherEffects.getPsychicMindCritBoost(currentWeather);
+                if (psychicMindBoost > 0) {
+                    critStage += psychicMindBoost;
+                    console.log(`[AMBROSIA] 🌸 唯心实体化：全员暴击等级 +${psychicMindBoost}`);
+                }
+            }
+            
+            // 6. 暴击等级上限为 3
             critStage = Math.min(3, critStage);
             
-            // 6. 根据暴击等级计算概率
+            // 7. 根据暴击等级计算概率
             // Stage 0: 1/24, 1: 1/8, 2: 1/2, 3+: 1/1
             const critRates = [1/24, 1/8, 1/2, 1];
             let critChance = critRates[critStage] || critRates[0];
             
-            // 7. AVs: Passion 暴击加成（仅限 isAce 宝可梦，额外叠加）
+            // 8. AVs: Passion 暴击加成（仅限 isAce 宝可梦，额外叠加）
+            // 【Ambrosia】神之琼浆天气下 AVS 效果 x2
             if (attacker.isAce && attacker.avs) {
                 const basePassion = attacker.getEffectiveAVs('passion');
                 if (basePassion > 0) {
                     const effectivePassion = attacker.avsEvolutionBoost ? basePassion * 2 : basePassion;
-                    const passionBonus = (Math.min(effectivePassion, 255) / 255) * 0.20;
+                    let passionBonus = (Math.min(effectivePassion, 255) / 255) * 0.20;
+                    
+                    // 【Ambrosia 神之琼浆】AVS 效果 x2
+                    if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getAVSMultiplier) {
+                        const avsMultiplier = window.WeatherEffects.getAVSMultiplier(currentWeather);
+                        if (avsMultiplier > 1) {
+                            passionBonus *= avsMultiplier;
+                            console.log(`[AMBROSIA] 💫 神之琼浆：Passion 暴击加成 x${avsMultiplier}`);
+                        }
+                    }
+                    
                     critChance += passionBonus;
                     console.log(`[AVs] Passion 暴击加成: +${(passionBonus * 100).toFixed(1)}% (Passion: ${basePassion}${attacker.avsEvolutionBoost ? ' x2' : ''})`);
                 }
@@ -966,6 +1150,18 @@ export function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
+    // === 【Chronal Rift 异兽气场】Ultra Beast 伤害减免 ===
+    let beastAuraLog = null;
+    if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkBeastAura) {
+        const weather = (typeof battle !== 'undefined' && battle) ? (battle.weather || battle.environmentWeather || '') : '';
+        const auraResult = window.WeatherEffects.checkBeastAura(weather, defender, attacker);
+        if (auraResult.hasAura) {
+            singleHitDamage = Math.floor(singleHitDamage * auraResult.damageMultiplier);
+            beastAuraLog = auraResult.message;
+            console.log(`[CHRONAL RIFT] 🛡️ 异兽气场：伤害 ${singleHitDamage}`);
+        }
+    }
+    
     // === 双墙/极光幕减伤 ===
     // 【Infiltrator】穿透特性无视光墙/反射壁/极光幕
     const attackerIgnoresScreens = (typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability])
@@ -1035,6 +1231,17 @@ export function calcDamage(attacker, defender, move, options = {}) {
         console.log(`[CLASH] 对冲伤害削减: ${originalDamage} × ${move.clashDamageMultiplier} = ${totalDamage}`);
     }
     
+    // === 【Smog 专用】易爆气体 - 火系招式反冲 ===
+    let smogFireRecoil = 0;
+    const weatherForRecoil = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';
+    if (weatherForRecoil && typeof window.WeatherEffects !== 'undefined' && totalDamage > 0) {
+        const recoilPercent = window.WeatherEffects.getWeatherRecoilPercent(weatherForRecoil, moveType);
+        if (recoilPercent > 0) {
+            smogFireRecoil = Math.max(1, Math.floor(totalDamage * recoilPercent));
+            console.log(`[SMOG] 🔥 易爆气体：火系招式造成 ${totalDamage} 伤害，反冲 ${smogFireRecoil} (${recoilPercent * 100}%)`);
+        }
+    }
+    
     return { 
         damage: totalDamage, 
         singleHitDamage,
@@ -1045,7 +1252,9 @@ export function calcDamage(attacker, defender, move, options = {}) {
         resistBerryTriggered,
         resistBerryMessage,
         commandCritTriggered,
-        defenderAbilityLog
+        defenderAbilityLog,
+        smogFireRecoil,  // Smog 火系反冲伤害
+        moveGlitchLog    // Chronal Rift 技能黑箱日志
     };
 }
 

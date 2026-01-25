@@ -251,7 +251,18 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                     logs.push(`${target.cnName} 的隐密斗篷阻止了状态异常!`);
                 } else {
                     const s = fullMoveData.secondary.status;
-                    if (!target.status) {
+                    
+                    // 【Gale 过和湿气】阻止灼伤
+                    if (s === 'brn' && typeof window !== 'undefined' && window.battle && 
+                        window.WeatherEffects?.doesSaturatedAirPreventBurn?.(window.battle.weather)) {
+                        logs.push(`<span style="color:#3b82f6">💧 空气过于潮湿，无法引燃！</span>`);
+                        console.log(`[GALE] 💧 过和湿气：阻止灼伤附加效果`);
+                    // 【Gale 极速解冻】阻止冰冻
+                    } else if (s === 'frz' && typeof window !== 'undefined' && window.battle && 
+                        window.WeatherEffects?.doesRapidThawPreventFreeze?.(window.battle.weather)) {
+                        logs.push(`<span style="color:#22c55e">🌿 暖湿气流阻止了冰冻！</span>`);
+                        console.log(`[GALE] ❄️ 极速解冻：阻止冰冻附加效果`);
+                    } else if (!target.status) {
                         if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
                             const result = MoveEffects.tryInflictStatus(target, s, user, battle);
                             if (result.success) {
@@ -355,6 +366,39 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         }
     }
     
+    // =========================================================
+    // 【Stench 恶臭】特性 - 攻击招式 10% 畏缩
+    // 【Smog 专用】在烟霾天气下，畏缩率提升至 30%
+    // =========================================================
+    if (damageDealt > 0 && userAbilityId === 'stench' && !hasCovertCloak) {
+        // 检查目标是否有精神力等免疫畏缩的特性
+        const targetAbilityId = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        const immuneToFlinch = ['innerfocus', 'shielddust'].includes(targetAbilityId);
+        
+        if (!immuneToFlinch) {
+            // 基础畏缩率 10%，Smog 下提升至 30%
+            let flinchChance = 0.10;
+            const currentWeather = battle?.weather || (typeof window !== 'undefined' && window.battle?.weather);
+            
+            if (currentWeather && typeof window !== 'undefined' && window.WeatherEffects) {
+                const abilityBoost = window.WeatherEffects.getAbilityWeatherBoost(currentWeather, 'stench');
+                if (abilityBoost && abilityBoost.type === 'flinchChance') {
+                    flinchChance = abilityBoost.value;
+                }
+            }
+            
+            if (Math.random() < flinchChance) {
+                target.volatile = target.volatile || {};
+                target.volatile.flinch = true;
+                if (flinchChance > 0.10) {
+                    logs.push(`<span style="color:#9b59b6">🏭 ${user.cnName} 的恶臭在烟霾中更加刺鼻！${target.cnName} 畏缩了！</span>`);
+                } else {
+                    logs.push(`${user.cnName} 的恶臭让 ${target.cnName} 畏缩了！`);
+                }
+            }
+        }
+    }
+    
     // 1.4 Status 招式直接施加状态
     if (fullMoveData.status) {
         const s = fullMoveData.status;
@@ -397,23 +441,29 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     
     // ========== 2. 吸血 (Drain) - 先于反伤结算 ==========
     // 【Gen 9 正确顺序】吸血回复应在生命宝珠反伤之前结算
+    // 【Smog 化学屏障】吸血回复也受减半影响（通过 user.heal() 自动应用）
     if (fullMoveData.drain && damageDealt > 0) {
         const [num, den] = fullMoveData.drain;
-        const healAmt = Math.max(1, Math.floor(damageDealt * num / den));
-        const actualHeal = Math.min(healAmt, user.maxHp - user.currHp);
-        if (actualHeal > 0) {
-            user.heal(healAmt);
-            logs.push(`${user.cnName} 吸取了对手的体力!`);
+        const baseHeal = Math.max(1, Math.floor(damageDealt * num / den));
+        const maxHeal = user.maxHp - user.currHp;
+        if (maxHeal > 0) {
+            // heal() 返回实际回复量（已应用 Smog 减半）
+            const actualHeal = (typeof user.heal === 'function') ? user.heal(baseHeal) : Math.min(baseHeal, maxHeal);
+            if (actualHeal > 0) {
+                logs.push(`${user.cnName} 吸取了对手的体力!`);
+            }
         }
     } else if (damageDealt > 0) {
         const drainPatches = (typeof DRAIN_MOVES !== 'undefined') ? DRAIN_MOVES : {};
         if (drainPatches[move.name]) {
             const [num, den] = drainPatches[move.name];
-            const healAmt = Math.max(1, Math.floor(damageDealt * num / den));
-            const actualHeal = Math.min(healAmt, user.maxHp - user.currHp);
-            if (actualHeal > 0) {
-                user.heal(healAmt);
-                logs.push(`${user.cnName} 吸取了对手的体力!`);
+            const baseHeal = Math.max(1, Math.floor(damageDealt * num / den));
+            const maxHeal = user.maxHp - user.currHp;
+            if (maxHeal > 0) {
+                const actualHeal = (typeof user.heal === 'function') ? user.heal(baseHeal) : Math.min(baseHeal, maxHeal);
+                if (actualHeal > 0) {
+                    logs.push(`${user.cnName} 吸取了对手的体力!`);
+                }
             }
         }
     }
@@ -462,6 +512,38 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     }
     
     // ========== 4. 特殊技能效果 ==========
+    
+    // 【Ashfall 灼热大地】地面招式 20% 灼伤
+    // 【修复】确保 moveType 有效，优先使用 move.type，回退到 fullMoveData.type
+    const effectiveMoveType = move.type || fullMoveData.type || 'Normal';
+    if (damageDealt > 0 && !target.status && typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getScorchedEarthBurnChance) {
+        const burnChance = window.WeatherEffects.getScorchedEarthBurnChance(window.battle.weather, effectiveMoveType, target);
+        if (burnChance > 0) {
+            console.log(`[ASHFALL] 🔥 灼热大地判定：${move.name} (${effectiveMoveType}) 对 ${target.cnName}，灼伤几率=${(burnChance * 100).toFixed(0)}%`);
+        }
+        if (burnChance > 0 && Math.random() < burnChance) {
+            // 检查灼伤免疫
+            const targetTypes = target.types || [];
+            const targetAbility = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            // 【Gale 过和湿气】阻止灼伤
+            const galePrevents = window.WeatherEffects?.doesSaturatedAirPreventBurn?.(window.battle.weather);
+            const immuneToBurn = targetTypes.includes('Fire') || 
+                                 targetAbility === 'waterveil' || 
+                                 targetAbility === 'waterbubble' ||
+                                 targetAbility === 'thermalexchange' ||
+                                 galePrevents;
+            if (galePrevents) {
+                logs.push(`<span style="color:#3b82f6">💧 空气过于潮湿，无法引燃！</span>`);
+                console.log(`[GALE] 💧 过和湿气：阻止灼伤`);
+            }
+            if (!immuneToBurn) {
+                target.status = 'brn';
+                target.statusTurns = 0;
+                logs.push(`<span style="color:#e74c3c">🌋 灼热的大地烧伤了 ${target.cnName}!</span>`);
+                console.log(`[ASHFALL] 🔥 灼热大地：${target.cnName} 被灼伤 (${(burnChance * 100).toFixed(0)}% 几率)`);
+            }
+        }
+    }
     
     // 寄生种子
     if (move.name === 'Leech Seed') {

@@ -93,6 +93,12 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         return result;
     }
     
+    // 0. 【Chronal Rift 技能黑箱】处理技能崩溃（伤害归零）
+    if (result.moveGlitchLog && result.damage === 0 && result.hitCount === 0) {
+        log(result.moveGlitchLog);
+        return result;
+    }
+    
     // 0. 处理特性免疫 (飘浮、避雷针等)
     if (result.abilityImmune) {
         log(`<b style='color:#9b59b6'>${defender.cnName} 的 ${result.abilityImmune} 吸收/免疫了攻击!</b>`);
@@ -421,6 +427,25 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             }
         }
         
+        // === 【Ambrosia 污染回火】高威力毒/恶招式反噬 ===
+        if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkContaminationRecoil) {
+            const currentWeather = window.battle?.weather || '';
+            const recoilResult = window.WeatherEffects.checkContaminationRecoil(currentWeather, move, attacker);
+            if (recoilResult.triggered) {
+                log(recoilResult.message);
+                // 应用暴击率降低
+                if (recoilResult.effects.critDrop < 0) {
+                    attacker.boosts = attacker.boosts || {};
+                    attacker.boosts.critStage = (attacker.boosts.critStage || 0) + recoilResult.effects.critDrop;
+                }
+                // 应用混乱
+                if (recoilResult.effects.confusion) {
+                    attacker.volatile = attacker.volatile || {};
+                    attacker.volatile.confusion = Math.floor(Math.random() * 4) + 2;
+                }
+            }
+        }
+        
         // === HP 阈值树果检查（文柚果、混乱果等）===
         // 【修复】先检查树果触发，但延迟输出日志，确保在伤害日志之后显示
         // 【关键】传递 attacker 作为 opponent，用于 Unnerve 检查
@@ -434,8 +459,14 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
                 // 这里保留兼容性检查
                 const abilityId = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
                 if (abilityId === 'cheekpouch' && !berryLogs.some(l => l.includes('颊囊'))) {
-                    cheekPouchHeal = Math.floor(defender.maxHp * 0.33);
-                    defender.currHp = Math.min(defender.maxHp, defender.currHp + cheekPouchHeal);
+                    const baseHeal = Math.floor(defender.maxHp * 0.33);
+                    // 【Smog 化学屏障】使用 heal() 方法应用减半
+                    if (typeof defender.heal === 'function') {
+                        cheekPouchHeal = defender.heal(baseHeal);
+                    } else {
+                        cheekPouchHeal = Math.min(baseHeal, defender.maxHp - defender.currHp);
+                        defender.currHp = Math.min(defender.maxHp, defender.currHp + cheekPouchHeal);
+                    }
                     berryLogs.push(`<b style="color:#f39c12">🐹 ${defender.cnName} 的颊囊发动！额外回复了 ${cheekPouchHeal} HP！</b>`);
                 }
             }
@@ -483,6 +514,11 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             delete move._weatherPowerLog; // 清除标记
         }
         
+        // 【Chronal Rift 技能黑箱】暴走日志（威力翻倍）
+        if (result.moveGlitchLog) {
+            log(result.moveGlitchLog);
+        }
+        
         if (result.isCrit) {
             infoParts.push('<b class="hl-crit">击中要害!</b>');
             // 【战术指挥】FOCUS! 指令触发的暴击
@@ -511,6 +547,13 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             let shellBellLogs = [];
             ItemEffects.checkShellBell(attacker, actualDamage, shellBellLogs);
             shellBellLogs.forEach(txt => log(txt));
+        }
+        
+        // === 【Smog 专用】易爆气体 - 火系招式反冲 ===
+        if (result.smogFireRecoil && result.smogFireRecoil > 0 && attacker.isAlive()) {
+            attacker.takeDamage(result.smogFireRecoil);
+            log(`<span style="color:#f97316">🔥 烟霾中的可燃颗粒被点燃！${attacker.cnName} 被爆燃波及！(-${result.smogFireRecoil})</span>`);
+            updateAllVisuals();
         }
         
         // 【修复】在伤害日志之后输出树果触发日志
