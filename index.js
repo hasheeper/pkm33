@@ -117,7 +117,7 @@ async function initGame() {
             const unlocks = json.player.unlocks || {};
             battle.playerUnlocks = {
                 enable_bond: unlocks.enable_bond !== false,        // 羁绊共鸣
-                enable_styles: unlocks.enable_styles !== false,    // 刚猛/迅疾
+                enable_styles: unlocks.enable_styles === true,     // 刚猛/迅疾 (必须显式启用)
                 enable_insight: unlocks.enable_insight !== false,  // 心眼/AVs突破
                 enable_mega: unlocks.enable_mega !== false,        // Mega进化
                 enable_z_move: unlocks.enable_z_move !== false,    // Z招式
