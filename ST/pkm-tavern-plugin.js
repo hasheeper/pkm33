@@ -8911,7 +8911,7 @@ if (typeof window !== 'undefined') {
       
       // 领队标记
       const isLead = pokemon.isLead === true;
-      const leadTag = isLead ? ' [🎯领队]' : '';
+      const leadTag = isLead ? ' ([⭐️]🎯isLead-领队)' : '';
       
       // IVs 和 EVs - 自动补全缺失数据
       const filledStatsMeta = autoFillStatsMeta(pokemon);
