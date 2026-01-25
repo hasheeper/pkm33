@@ -47,37 +47,56 @@ function getDefaultBattleData() {
   },
   
   "player": {
-    "name": "Eiscue_Debugger",
+    "name": "Weather_Tester",
     "trainerProficiency": 100,
     "party": [
       {
         "slot": 1,
-        "name": "Ninetales-Alola",
-        "nickname": "Snow_Setup",
-        "species": "Ninetales-Alola",
+        "name": "Politoed",
+        "species": "Politoed",
         "gender": "F",
         "lv": 50,
-        "ability": "Snow Warning",
-        "item": "Icy Rock",
-        "moves": ["Blizzard", "Aurora Veil", "Freeze-Dry", "Protect"],
+        "ability": "Drizzle",
+        "item": "Damp Rock",
+        "moves": ["Scald", "Ice Beam", "Hypnosis", "Protect"],
         "stats_meta": { "ev_level": 200 },
-        "avs": { "devotion": 100 },
-        "notes": "_STEP 1_: Sets Snow Immediately."
+        "notes": "雨天：登场即发动降雨"
       },
       {
         "slot": 2,
-        "name": "Eiscue",
-        "nickname": "The_Face",
-        "species": "Eiscue",
+        "name": "Ninetales",
+        "species": "Ninetales",
+        "gender": "F",
+        "lv": 50,
+        "ability": "Drought",
+        "item": "Heat Rock",
+        "moves": ["Flamethrower", "Solar Beam", "Will-O-Wisp", "Protect"],
+        "stats_meta": { "ev_level": 200 },
+        "notes": "晴天：登场即发动日照"
+      },
+      {
+        "slot": 3,
+        "name": "Tyranitar",
+        "species": "Tyranitar",
         "gender": "M",
         "lv": 50,
-        "nature": "Jolly",
-        "isAce": true,
-        "ability": "Ice Face",
-        "item": "Leftovers",
-        "moves": ["Liquidation", "Icicle Crash", "Belly Drum", "Protect"],
-        "stats_meta": { "ev_level": 255 },
-        "notes": "Starts in Base (Ice Face). _STEP 2_: Switch In. Take Physical. Break. _STEP 3_: End Turn reform."
+        "ability": "Sand Stream",
+        "item": "Smooth Rock",
+        "moves": ["Stone Edge", "Crunch", "Earthquake", "Dragon Dance"],
+        "stats_meta": { "ev_level": 200 },
+        "notes": "沙暴：登场即发动沙暴"
+      },
+      {
+        "slot": 4,
+        "name": "Abomasnow",
+        "species": "Abomasnow",
+        "gender": "M",
+        "lv": 50,
+        "ability": "Snow Warning",
+        "item": "Icy Rock",
+        "moves": ["Blizzard", "Wood Hammer", "Ice Shard", "Protect"],
+        "stats_meta": { "ev_level": 200 },
+        "notes": "雪天：登场即发动下雪"
       }
     ],
     "unlocks": {}

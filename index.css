@@ -317,40 +317,53 @@ body {
     transition: opacity 1s ease;
 }
 
-/* 天气背景色调滤镜 */
+/* 天气背景色调滤镜容器 - 确保有 blur 或 opacity 过渡 */
 .bg-gradient {
     transition: filter 1.5s ease, background-color 1.5s ease;
+    backdrop-filter: blur(0px); /* 默认无模糊 */
 }
 
-/* 雨天 - 柔和的浅灰蓝色 */
-.bg-rain, .bg-heavyrain {
-    background-color: rgba(160, 180, 200, 0.35) !important;
+/* ================== 原版天气 ================== */
+.bg-rain, .bg-heavyrain { background-color: rgba(160, 180, 200, 0.35) !important; }
+.bg-sand { background-color: rgba(210, 180, 140, 0.4) !important; }
+.bg-snow, .bg-hail { background-color: rgba(166, 198, 230, 0.55) !important; }
+.bg-sun { background-color: rgba(255, 240, 200, 0.5) !important; }
+.bg-harshsun { background-color: rgba(252, 148, 64, 0.5) !important; }
+.bg-deltastream { background-color: rgba(100, 220, 200, 0.35) !important; }
+
+/* ================== 实装的新特殊天气 ================== */
+
+/* Smog (N区): 肮脏的紫绿色霓虹工业废气 */
+.bg-smog {
+    background-color: rgba(120, 80, 140, 0.55) !important;
 }
 
-/* 沙暴 - 柔和的浅土色 */
-.bg-sand {
-    background-color: rgba(210, 180, 140, 0.4) !important;
+/* Ashfall (A区): 沉重压抑的深灰色火山区 */
+.bg-ashfall {
+    background-color: rgba(80, 80, 90, 0.55) !important;
 }
 
-/* 雪天 - 柔和的浅天蓝色 */
-.bg-snow, .bg-hail {
-    background-color: rgba(180, 210, 240, 0.4) !important;
+/* Fog (S区): 极高亮度的乳白色迷雾，自带高斯模糊 */
+.bg-fog {
+    background-color: rgba(220, 225, 230, 0.85) !important;
+    backdrop-filter: blur(3px) !important;
 }
 
-/* 晴天 - 柔和的浅金色 */
-.bg-sun {
-    background-color: rgba(255, 240, 200, 0.35) !important;
+/* Gale (B区): 清冽但锐利的青色热带气旋 */
+.bg-gale {
+    background-color: rgba(135, 206, 235, 0.3) !important;
 }
 
-/* 大日照 - 更强烈的金橙色 */
-.bg-harshsun {
-    background-color: rgba(255, 200, 120, 0.45) !important;
+/* Ambrosia (粉雾): 诡异、高饱和度的亮粉/洋红色神馔能量 */
+.bg-ambrosia {
+    background-color: rgba(255, 50, 150, 0.45) !important;
 }
 
-/* 乱气流 - 诡异的青绿色 */
-.bg-deltastream {
-    background-color: rgba(100, 220, 200, 0.3) !important;
+/* Distortion (时空裂隙): 极不稳定的暗紫色/黑洞色调 */
+.bg-distortion {
+    background-color: rgba(30, 0, 50, 0.6) !important;
 }
+
 
 .sprite-wrapper {
     position: absolute;
