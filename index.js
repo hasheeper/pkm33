@@ -3829,6 +3829,12 @@ window.EvolutionSystem = {
             const nextData = typeof POKEDEX !== 'undefined' ? POKEDEX[nextId] : null;
             if (!nextData) return null;
 
+            // 【特殊进化检查】只有等级进化或亲密度进化才能触发战斗EVO
+            // 道具进化(useItem)、交换进化(trade)、特殊条件进化等不触发
+            // 例如：伊布需要道具进化，不应触发战斗EVO
+            const allowedEvoTypes = [undefined, 'levelFriendship'];
+            if (!allowedEvoTypes.includes(nextData.evoType)) return null;
+
             // 1. 等级锁 (允许越级3级)
             const reqLevel = Math.max(1, (nextData.evoLevel || 1) - 3);
             if (pokemon.level < reqLevel) return null;

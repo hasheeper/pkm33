@@ -938,12 +938,18 @@ export class Pokemon {
     
     /**
      * 检查是否满足羁绊挺住条件（进化拦截）
+     * 【仅限玩家】敌人不触发此机制
      * @returns {boolean}
      */
     _checkBondEndureEligibility() {
         // 【全局开关】EVO 系统关闭时不触发
         if (typeof window !== 'undefined' && window.GAME_SETTINGS && !window.GAME_SETTINGS.enableEVO) {
             return false;
+        }
+        
+        // 【仅限玩家】敌人不触发 Bond Endure
+        if (typeof window !== 'undefined' && window.battle && window.battle.playerParty) {
+            if (!window.battle.playerParty.includes(this)) return false;
         }
         
         if (!this.avs) return false;
@@ -970,6 +976,12 @@ export class Pokemon {
         const nextId = nextFormName.toLowerCase().replace(/[^a-z0-9]/g, '');
         const nextData = typeof POKEDEX !== 'undefined' ? POKEDEX[nextId] : null;
         if (!nextData) return false;
+        
+        // 【特殊进化检查】只有等级进化或亲密度进化才能触发战斗EVO
+        // 道具进化(useItem)、交换进化(trade)、特殊条件进化等不触发
+        // 例如：伊布需要道具进化，不应触发战斗EVO
+        const allowedEvoTypes = [undefined, 'levelFriendship'];
+        if (!allowedEvoTypes.includes(nextData.evoType)) return false;
         
         // 等级检查（允许越级3级）
         const reqLevel = Math.max(1, (nextData.evoLevel || 1) - 3);

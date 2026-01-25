@@ -416,7 +416,9 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         }
         
         // Bond Endure (羁绊挺住) 触发日志 - 进化拦截器
-        if (defender.bondEndureActivated) {
+        // 【仅限玩家】敌人不触发此日志
+        const isPlayerPokemon = window.battle && window.battle.playerParty && window.battle.playerParty.includes(defender);
+        if (defender.bondEndureActivated && isPlayerPokemon) {
             log(`<b style="color:#d4ac0d; text-shadow:0 0 8px gold;">✨ ${defender.cnName} 因为想回应训练家的期待，撑住了！</b>`);
             log(`<span style="color:#fbbf24;">💫 进化的光芒正在涌动...按下 [EVO] 按钮来回应它的意志！</span>`);
             defender.bondEndureActivated = false;
@@ -425,6 +427,9 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             if (typeof updateEvolutionButtonVisuals === 'function') {
                 updateEvolutionButtonVisuals();
             }
+        } else if (defender.bondEndureActivated) {
+            // 敌人的标记直接清除，不显示日志
+            defender.bondEndureActivated = false;
         }
         
         // === 【Ambrosia 污染回火】高威力毒/恶招式反噬 ===
