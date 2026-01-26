@@ -2162,7 +2162,7 @@ export function tryDeployWeather(battle, newWeather, options = {}) {
         window.setWeatherVisuals(visualKey);
     }
     
-    console.log(`[WEATHER] Deployed ${newWeather}: ${finalTurns} turns (tier=${tier})`);
+    console.log(`[WEATHER] Deployed ${newWeather}: ${finalTurns} turns (status=${suppressionStatus.status})`);
     return { success: true, logs, weatherTurns: finalTurns };
 }
 

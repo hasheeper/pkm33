@@ -1290,11 +1290,17 @@ export const MoveHandlers = {
                 console.log('[WEATHER] Snowscape failed: already snowing');
                 return { failed: true };
             }
-            if (battle) {
+            if (battle && typeof window !== 'undefined' && window.WeatherEffects?.tryDeployWeather) {
+                const result = window.WeatherEffects.tryDeployWeather(battle, 'snow', {
+                    itemId: attacker.item,
+                    weatherName: '雪天',
+                    visualKey: 'snow'
+                });
+                result.logs.forEach(l => logs.push(l));
+                if (!result.success) return { failed: true };
+            } else if (battle) {
                 battle.weather = 'snow';
-                if (typeof window !== 'undefined' && window.setWeatherVisuals) {
-                    window.setWeatherVisuals('snow');
-                }
+                battle.weatherTurns = 5;
             }
             logs.push('下起了雪!');
             logs.push('<span style="color:#85c1e9">冰系防御提升!</span>');

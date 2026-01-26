@@ -777,109 +777,101 @@ const DAWN_DATA = {
 
 
 /* 
- * 角色: 美月 (Selene)
- * 身份: 阿罗拉初代冠军 / 从异次元归来的诸岛巡礼者
- * 难度: Expert / Tier 4
+ * 角色: 美月 (Selene) V1.10 Update
+ * 增加：环境适应性配置、双Ace判定、更符合"贪吃冠军"的战术
  */
 const SELENE_DATA = {
-    // 【Tier 4 - 全力姿态·阿罗拉的太阳与月亮】
     4: {
-        "trainerProficiency": 250,
+        "trainerProficiency": 255,
         "unlocks": {
-            "enable_bond": false,
+            "enable_bond": false, 
             "enable_styles": false,
-            "enable_insight": false,
+            "enable_insight": true, 
             "enable_mega": false,
             "enable_z_move": true,
             "enable_dynamax": false,
             "enable_tera": false,
-            "enable_proficiency_cap": true  // 训练度突破155上限
+            "enable_proficiency_cap": true 
         },
         "party": [
+
             {
-                "name": "Decidueye", // 狙射树枭 (ACE - Z招式使用者)
+                "name": "Decidueye", 
                 "lv": 98,
-                "gender": "M",
-                "nature": "Adamant", // 固执
-                "ability": "Long Reach", // 远隔
-                "item": "Decidium Z", // Z纯晶
-                "mechanic": "zmove", // ✅ Z招式机制标记
+                "gender": "F", // 改为雌性符合部分二创（可不改）
+                "nature": "Jolly", // 爽朗 (+速) - 为了在这个拼速的环境下先手Z
+                "ability": "Long Reach", // 远隔 (不接触目标，防凸凸头盔)
+                "item": "Decidium Z", 
+                "mechanic": "zmove", 
                 "isAce": true,
-                "friendship": { "trust": 255, "passion": 180, "insight": 180, "devotion": 120 },
-                "stats_meta": { 
-                    "ev_level": 252,
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V
-                },
-                "moves": ["Spirit Shackle", "Leaf Blade", "Brave Bird", "Sucker Punch"]
+                "friendship": { "trust": 220, "passion": 255, "insight": 200, "devotion": 150 }, // 热情满，必爆
+                "stats_meta": { "ev_level": 255 , "ivs": { "hp":31, "atk":31, "def":31, "spa":31, "spd":31, "spe":31 }},
+                // 配招优化: 缝影(抓人) + 叶刃 + 偷袭(先制) + 剑舞(强化)
+                "moves": ["Spirit Shackle", "Leaf Blade", "Sucker Punch", "Swords Dance"]
             },
+            
             {
-                "name": "Incineroar", // 炽焰咆哮虎
+                "name": "Umbreon",
+                "lv": 98, 
+                "gender": "M",
+                "nature": "Calm", 
+                "ability": "Inner Focus", // 精神力 (防 击掌奇袭/威吓)
+                "item": "Leftovers", // 剩饭
+                "isAce": true, 
+                "friendship": { "trust": 255, "passion": 100, "insight": 255, "devotion": 200 },
+                "stats_meta": { "ev_level": 255 , "ivs": { "hp":31, "atk":0, "def":31, "spa":31, "spd":31, "spe":31 }},
+                "moves": ["Foul Play", "Wish", "Protect", "Yawn"] 
+            },
+
+            {
+                "name": "Incineroar", 
                 "lv": 94,
                 "gender": "M",
                 "nature": "Adamant",
-                "ability": "Intimidate", // 威吓
-                "item": "Sitrus Berry",
-                "stats_meta": { 
-                    "ev_level": 252,
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V
-                },
-                "moves": ["Darkest Lariat", "Flare Blitz", "Fake Out", "Parting Shot"]
+                "ability": "Intimidate", 
+                "item": "Assault Vest", 
+                "stats_meta": { "ev_level": 252, "ivs": { "hp":31, "atk":31, "def":31, "spa":31, "spd":31, "spe":31 },},
+                "moves": ["Darkest Lariat", "Flare Blitz", "U-turn", "Fake Out"]
             },
+
             {
-                "name": "Snorlax", // 卡比兽
-                "lv": 95,
-                "gender": "M",
-                "nature": "Impish", // 淘气 (+防 -特攻)
-                "ability": "Thick Fat", // 厚脂肪
-                "item": "Leftovers", 
-                "stats_meta": { 
-                    "ev_level": 252,
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V
-                },
-                "moves": ["Giga Impact", "Body Slam", "Rest", "Sleep Talk"]
-            },
-            {
-                "name": "Lycanroc-Dusk", // 鬃岩狼人-黄昏
+                "name": "Lycanroc-Dusk", 
                 "lv": 96,
                 "gender": "M",
-                "nature": "Jolly", // 爽朗 (+速 -特攻)
-                "ability": "Tough Claws", // 硬爪
-                "item": "Life Orb",
-                "stats_meta": { 
-                    "ev_level": 252,
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V，虽然特攻无用但为了HP偶数等微调通常拉满
-                },
-                "moves": ["Stone Edge", "Accelerock", "Close Combat", "Psychic Fangs"]
+                "nature": "Jolly", 
+                "ability": "Tough Claws", 
+                "item": "Focus Sash", // 气势披带 (不仅防秒杀，更符合动画里吃一招反杀的设定)
+                "friendship": { "passion": 200 }, // 高暴击
+                "stats_meta": { "ev_level": 252, "ivs": "max" },
+                "moves": ["Accelerock", "Close Combat", "Psychic Fangs", "Drill Run"] // 补盲 Drill Run 打毒/钢/火
             },
+
             {
-                "name": "Scizor", // 巨钳螳螂
-                "lv": 95,
+                "name": "Scizor", 
+                "lv": 97,
                 "gender": "M",
                 "nature": "Adamant",
-                "ability": "Technician", // 技术高手
-                "item": "Choice Band", 
-                "stats_meta": { 
-                    "ev_level": 252,
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 6V
-                },
-                "moves": ["Bullet Punch", "U-turn", "Dual Wingbeat", "Superpower"]
+                "ability": "Technician", 
+                "item": "Occa Berry", // 抗火果 (防止被觉火/非本系火摸死)
+                "stats_meta": { "ev_level": 252, "ivs": "max" },
+                "moves": ["Bullet Punch", "Knock Off", "U-turn", "Roost"] // 拍落道具+羽栖回复
             },
+
             {
-                "name": "Umbreon",
-                "lv": 92,
+                "name": "Snorlax", 
+                "lv": 95,
                 "gender": "M",
-                "nature": "Calm", // 温和 (+特防 -攻)
-                "ability": "Synchronize", // 同步
-                "item": "Rocky Helmet",
-                "stats_meta": { 
-                    "ev_level": 252,
-                    "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 } // 5V0A，为了减少欺诈和混乱伤害
-                },
-                "moves": ["Foul Play", "Moonlight", "Toxic", "Protect"]
+                "nature": "Careful", 
+                "ability": "Gluttony", // 贪吃鬼 (半血就吃果子)
+                "item": "Iapapa Berry", // 回复50%HP的异国果
+                "friendship": { "trust": 200 }, 
+                "stats_meta": { "ev_level": 252, "ivs": "max" },
+                "moves": ["Curse", "Body Slam", "High Horsepower", "Recycle"] // 诅咒强化+回收利用
             }
         ]
     }
 };
+
 
 /* 
  * 角色: 小青 (Juliana)
