@@ -104,13 +104,15 @@ body {
 
 .bg-gradient {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 120vmax;
-    height: 120vmax;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: 0;
     opacity: 0.3;
+    background-size: cover !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
 }
 
 .ui-scale {
@@ -321,26 +323,57 @@ body {
 .bg-gradient {
     transition: filter 1.5s ease, background-color 1.5s ease;
     backdrop-filter: blur(0px); /* 默认无模糊 */
+    background-size: cover !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
 }
 
 /* ================== 原版天气 ================== */
-.bg-rain, .bg-heavyrain { background-color: rgba(160, 180, 200, 0.35) !important; }
-.bg-sand { background-color: rgba(210, 180, 140, 0.4) !important; }
-.bg-snow, .bg-hail { background-color: rgba(166, 198, 230, 0.55) !important; }
-.bg-sun { background-color: rgba(255, 240, 200, 0.5) !important; }
-.bg-harshsun { background-color: rgba(252, 148, 64, 0.5) !important; }
-.bg-deltastream { background-color: rgba(100, 220, 200, 0.35) !important; }
+.bg-rain, .bg-heavyrain { 
+    background-color: rgba(160, 180, 200, 0.35) !important;
+    background-size: cover !important;
+    background-position: center center !important;
+}
+.bg-sand { 
+    background-color: rgba(210, 180, 140, 0.4) !important;
+    background-size: cover !important;
+    background-position: center center !important;
+}
+.bg-snow, .bg-hail { 
+    background-color: rgba(166, 198, 230, 0.55) !important;
+    background-size: cover !important;
+    background-position: center center !important;
+}
+.bg-sun { 
+    background-color: rgba(255, 240, 200, 0.5) !important;
+    background-size: cover !important;
+    background-position: center center !important;
+}
+.bg-harshsun { 
+    background-color: rgba(252, 148, 64, 0.5) !important;
+    background-size: cover !important;
+    background-position: center center !important;
+}
+.bg-deltastream { 
+    background-color: rgba(100, 220, 200, 0.35) !important;
+    background-size: cover !important;
+    background-position: center center !important;
+}
 
 /* ================== 实装的新特殊天气 ================== */
 
 /* Smog (N区): 肮脏的紫绿色霓虹工业废气 */
 .bg-smog {
     background-color: rgba(120, 80, 140, 0.55) !important;
+    background-size: cover !important;
+    background-position: center center !important;
 }
 
 /* Ashfall (A区): 沉重压抑的深灰色火山区 */
 .bg-ashfall {
     background-color: rgba(80, 80, 90, 0.55) !important;
+    background-size: cover !important;
+    background-position: center center !important;
 }
 
 /* Fog (S区): 暗影迷雾 - 浅灰蓝色隧道视觉 */
@@ -422,6 +455,8 @@ body {
 /* ================== Chronal Rift (时空裂隙) ================== */
 .bg-distortion {
     background-color: #f5f5f5 !important;
+    background-size: cover !important;
+    background-position: center center !important;
 }
 
 
