@@ -27,215 +27,7 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {
-  "difficulty": "expert",
-  "settings": {
-    "enableAVS": true,
-    "enableCommander": true,
-    "enableEVO": true,
-    "enableEnvironment": true,
-    "enableSFX": true,
-    "enableClash": true,
-    "enableStyles": true
-  },
-  "environment": {
-    "weather": "chronalrift",
-    "weatherTurns": 0,
-    "suppressionTier": 3,
-    "revertMessage": "Space distorts violently, rejecting the enforced order.",
-    "effects": {
-      "autoParadox": true,
-      "unboundArts": true,
-      "speedEntropy": true,
-      "digitalGlitch": true,
-      "weatherLock": true
-    }
-  },
-  "player": {
-    "name": "Subject_Delta",
-    "trainerProficiency": 230,
-    "comment": "测试未来种自动充能、人造宝可梦的数据溢出/丢失",
-    "unlocks": {
-      "enable_mega": true,
-      "enable_tera": true,
-      "enable_dynamax": true
-    },
-    // Subject_Delta 也是一个生化/机械改造狂热者
-    "party": [
-      {
-        "slot": 1,
-        "name": "Iron Valiant",
-        "nickname": "铁武者",
-        "lv": 90,
-        "isLead": true,
-        "ability": "Quark Drive",
-        "nature": "Naive",
-        "item": "Booster Energy",
-        "mechanic": "tera",
-        "teraType": "Fairy",
-        "moves": ["Moonblast", "Close Combat", "Spirit Break", "Shadow Sneak"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 200 } },
-        "test_objective": "验证[Auto-Paradox]: 进场时无需电气场地，Quark Drive 应自动激活 (Resonance with Rift)。道具 Booster Energy 不应被消耗(环境供能)。"
-      },
-      {
-        "slot": 2,
-        "name": "Porygon-Z",
-        "nickname": "多边兽Z-故障测试",
-        "lv": 90,
-        "ability": "Adaptability",
-        "nature": "Modest",
-        "item": "Choice Scarf",
-        "isAce": true,
-        "moves": ["Hyper Beam", "Tri Attack", "Thunderbolt", "Conversion"],
-        "stats_meta": { "ev_level": 252 },
-        "test_objective": "验证[Move Glitch]: 作为 Artificial Pokemon 使用科技招式，检查是否有概率触发 dmg x2.0 (CRIT OVERFLOW) 或 dmg x0 (SEGFAULT)。"
-      },
-      {
-        "slot": 3,
-        "name": "Genesect",
-        "nickname": "盖诺赛克特",
-        "lv": 90,
-        "ability": "Download",
-        "nature": "Hasty",
-        "item": "Choice Band",
-        "moves": ["Techno Blast", "U-turn", "Iron Head", "Extreme Speed"],
-        "stats_meta": { "ev_level": 255 },
-        "test_objective": "验证[Cyborg Stability]: 半生化单位是否较少受到 Glitch 影响，同时享受钢系对恶劣环境的抗性。"
-      },
-      {
-        "slot": 4,
-        "name": "Miraidon",
-        "nickname": "密勒顿-模式监视",
-        "lv": 90,
-        "ability": "Hadron Engine",
-        "nature": "Timid",
-        "mechanic": "tera",
-        "teraType": "Dragon",
-        "item": "Life Orb",
-        "moves": ["Electro Drift", "Draco Meteor", "Volt Switch", "Parabolic Charge"],
-        "stats_meta": { "ev_level": 255 },
-        "test_objective": "验证[Tier 3 Dominion]: Hadron Engine 召唤的 Electric Terrain 虽生效，但环境视觉效果应仍为主导的 Chronal Rift。"
-      },
-      {
-        "slot": 5,
-        "name": "Magnezone",
-        "nickname": "自爆磁怪",
-        "lv": 89,
-        "ability": "Analytic",
-        "nature": "Quiet",
-        "item": "Leftovers",
-        "moves": ["Flash Cannon", "Thunderbolt", "Body Press", "Iron Defense"],
-        "stats_meta": { "ev_level": 252 },
-        "test_objective": "验证[Speed Entropy]: 作为超低速单位，在系统随机触发 Trick Room (Dimension Shift) 时的战术地位逆转。"
-      },
-      {
-        "slot": 6,
-        "name": "Dragapult",
-        "nickname": "多龙-速度受害",
-        "lv": 89,
-        "ability": "Infiltrator",
-        "nature": "Jolly",
-        "mechanic": "dynamax",
-        "item": "Spell Tag",
-        "moves": ["Dragon Darts", "Phantom Force", "U-turn", "Will-O-Wisp"],
-        "stats_meta": { "ev_level": 252 },
-        "test_objective": "验证[Entropy Risk]: 超高速单位在 RNG 空间下的暴毙风险。"
-      }
-    ]
-  },
-  "enemy": {
-    "name": "Akari (Time Traveler)",
-    "type": "WARDEN",
-    "trainerProficiency": 260,
-    "unlocks": {
-      "enable_styles": true,
-      "enable_z_move": true,
-      "enable_insight": true
-    },
-    "party": [
-      {
-        "name": "Samurott-Hisui",
-        "id": "samurotthisui",
-        "lv": 90,
-        "isLead": true,
-        "ability": "Sharpness",
-        "nature": "Jolly",
-        "item": "Focus Sash",
-        "moves": ["Ceaseless Edge", "Razor Shell", "Aqua Jet", "Swords Dance"],
-        "stats_meta": { "ev_level": 255 },
-        "friendship": { "avs": { "insight": 255 } },
-        "test_objective": "验证[Unbound Arts]: 洗翠种使用 Unbound Agile Style (迅疾) 是否优先度+1 且无冷却。Ceaseless Edge 撒菱是否每回合都能用。"
-      },
-      {
-        "name": "Kleavor",
-        "id": "kleavor",
-        "lv": 90,
-        "ability": "Sharpness",
-        "nature": "Adamant",
-        "item": "Choice Scarf",
-        "moves": ["Stone Axe", "X-Scissor", "Close Combat", "Quick Attack"],
-        "stats_meta": { "ev_level": 255 },
-        "test_objective": "验证[Forceful Strike]: Unbound Strong Style (刚猛) 是否威力 x1.5 且无冷却。"
-      },
-      {
-        "name": "Roaring Moon",
-        "id": "roaringmoon",
-        "lv": 91,
-        "isAce": true,
-        "ability": "Protosynthesis",
-        "nature": "Adamant",
-        "mechanic": "tera",
-        "teraType": "Flying",
-        "item": "Booster Energy",
-        "moves": ["Acrobatics", "Dragon Dance", "Crunch", "Earthquake"],
-        "stats_meta": { "ev_level": 255 },
-        "friendship": { "avs": { "passion": 255, "trust": 220 } },
-        "test_objective": "验证[Ancient Resonance]: 在 Chronal Rift 中 Protosynthesis 自动激活攻击提升，且不受 RNG 速度削弱(Paradox Immunity)。"
-      },
-      {
-        "name": "Ursaluna",
-        "id": "ursalunabloodmoon",
-        "lv": 90,
-        "ability": "Mind's Eye",
-        "nature": "Quiet",
-        "item": "Silk Scarf",
-        "moves": ["Blood Moon", "Earth Power", "Hyper Voice", "Calm Mind"],
-        "stats_meta": { "ev_level": 252 },
-        "test_objective": "在 Trick Room 随机开启时的毁灭性测试。"
-      },
-      {
-        "name": "Dialga-Origin",
-        "id": "dialgaorigin",
-        "lv": 92,
-        "ability": "Telepathy",
-        "nature": "Modest",
-        "item": "Adamant Diamond",
-        "moves": ["Roar of Time", "Flash Cannon", "Draco Meteor", "Earth Power"],
-        "stats_meta": { "ev_level": 255 },
-        "test_objective": "验证[Timeline Stability]: 原始形态(Origin Form) 免疫场地的 Entropy Flip / Trick Room 随机翻转效果。"
-      },
-      {
-        "name": "Zoroark-Hisui",
-        "id": "zoroarkhisui",
-        "lv": 89,
-        "ability": "Illusion",
-        "nature": "Timid",
-        "item": "Life Orb",
-        "moves": ["Bitter Malice", "Hyper Voice", "Nasty Plot", "Extrasensory"],
-        "stats_meta": { "ev_level": 252 }
-      }
-    ],
-    "lines": {
-      "start": "不论是神奥还是洗翠...这个裂缝的气息，我再熟悉不过了。在那边，慢一步就会死。",
-      "style_switch": "动作太慢了！让你看看古时的战斗方式！",
-      "time_distortion": "重力反转了吗？呵，正好，刚猛连打的机会来了！",
-      "porygon_glitch": "那些人造的灵体...似乎在裂缝里很不稳定啊。",
-      "win": "在这个错乱的时间里，唯有直觉才是永恒的。",
-      "lose": "原来未来也有如此凌厉的战斗风格吗..."
-    }
-  }
-}
+    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true,"enableClash":false},"difficulty":"normal","player":{"name":"player","trainerProficiency":0,"party":[{"slot":1,"name":"Eevee","nickname":null,"species":null,"gender":"F","lv":30,"quality":"perfect","nature":"Jolly","ability":"Adaptability","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Return","Quick Attack","Bite","Charm"],"stats_meta":{"ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"ev_level":75,"ev_up":0},"notes":null,"avs":{"trust":100,"passion":60,"insight":60,"devotion":50}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"enemy":{"id":"Nemona","type":"trainer","name":"Nemona","trainerProficiency":0,"lines":{"start":"手加減なしでいくよ！キミの全力、見せてみて！（不会手下留情的哦！让我看看你的全力！）","win":"うわぁ……すごい！やっぱり私の目に狂いはなかった！（哇啊……好厉害！果然我的眼光没错！）","lose":"あれれ？調子悪かった？もう一回！もう一回やろうよ！（阿勒勒？状态不好吗？再来一次！再来一次嘛！）","escape":"えっ！？どこ行くの！？勝負はまだ終わってないよー！（诶！？去哪里！？胜负还没结束呢——！）"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":true,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":true,"enable_proficiency_cap":false}},"party":[{"name":"Pawmot","gender":"F","lv":31,"nature":"Lonely","ability":null,"shiny":false,"item":"Oran Berry","mechanic":"tera","teraType":"Electric","stats_meta":{"ivs":{"hp":12,"atk":11,"def":2,"spa":14,"spd":7,"spe":8},"ev_level":9},"moves":["Spark","Arm Thrust","Nuzzle","Dig"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null}
 
 
 
@@ -315,6 +107,107 @@ function parseUnlocks(unlocks = {}) {
 }
 
 /**
+ * 解析环境天气配置
+ * 
+ * 新版 JSON 格式:
+ * {
+ *   "environment": {
+ *     "weather": "chronalrift",      // 环境天气 ID
+ *     "weatherTurns": 0,             // 持续回合 (0 = 无限)
+ *     "revertMessage": "...",        // 天气回归时的消息
+ *     "suppression": {
+ *       // 方式一: 全局设置
+ *       "all": "blocked" | "suppressed" | "normal",
+ *       // 方式二: 按天气设置 (优先级高于 all)
+ *       "blocked": ["rain", "sun"],      // 完全阻止的天气
+ *       "suppressed": ["sandstorm"]      // 回合减半的天气
+ *     },
+ *     "effects": { ... }             // 环境特效开关
+ *   }
+ * }
+ * 
+ * 旧版兼容:
+ * {
+ *   "environment": {
+ *     "suppressionTier": 3           // 1=normal, 2=suppressed, 3=blocked
+ *   }
+ * }
+ * 
+ * @param {Object} envConfig 环境配置对象
+ * @returns {Object} 标准化的环境配置
+ */
+function parseEnvironmentConfig(envConfig = {}) {
+    const result = {
+        weather: envConfig.weather || null,
+        weatherTurns: envConfig.weatherTurns ?? 0,
+        revertMessage: envConfig.revertMessage || null,
+        suppression: {},
+        effects: envConfig.effects || {}
+    };
+    
+    // 解析 suppression 配置
+    if (envConfig.suppression) {
+        const supp = envConfig.suppression;
+        
+        // all 字段: 全局设置
+        if (supp.all) {
+            result.suppression.all = supp.all;
+        }
+        
+        // blocked 数组: 完全阻止的天气
+        if (Array.isArray(supp.blocked)) {
+            result.suppression.blocked = supp.blocked.map(w => w.toLowerCase());
+        }
+        
+        // suppressed 数组: 回合减半的天气
+        if (Array.isArray(supp.suppressed)) {
+            result.suppression.suppressed = supp.suppressed.map(w => w.toLowerCase());
+        }
+    }
+    // 旧版兼容: suppressionTier
+    else if (envConfig.suppressionTier !== undefined) {
+        const tier = envConfig.suppressionTier;
+        if (tier === 3) {
+            result.suppression.all = 'blocked';
+        } else if (tier === 2) {
+            result.suppression.all = 'suppressed';
+        }
+        // tier 1 = normal, 不需要设置
+    }
+    
+    console.log('[DATA-LOADER] 环境配置解析:', result);
+    return result;
+}
+
+/**
+ * 应用环境配置到战斗实例
+ * @param {Object} battle 战斗实例
+ * @param {Object} envConfig 环境配置 (已解析)
+ */
+function applyEnvironmentConfig(battle, envConfig) {
+    if (!battle || !envConfig) return;
+    
+    // 设置环境天气
+    if (envConfig.weather) {
+        battle.environmentWeather = envConfig.weather;
+        battle.environmentConfig = envConfig;
+        
+        // 如果没有普通天气，环境天气也作为当前天气
+        if (!battle.weather) {
+            battle.weather = envConfig.weather;
+            battle.weatherTurns = envConfig.weatherTurns;
+        }
+        
+        // 更新视觉效果
+        if (typeof window !== 'undefined' && window.setWeatherVisuals) {
+            window.setWeatherVisuals(envConfig.weather);
+        }
+        
+        console.log(`[DATA-LOADER] 环境天气已设置: ${envConfig.weather}`);
+    }
+}
+
+/**
  * 验证战斗 JSON 格式
  * @param {Object} json 战斗数据
  * @returns {Object} { valid: boolean, errors: string[] }
@@ -365,6 +258,8 @@ if (typeof window !== 'undefined') {
     window.getDefaultBattleData = getDefaultBattleData;
     window.loadBattleFromJSON = loadBattleFromJSON;
     window.parseUnlocks = parseUnlocks;
+    window.parseEnvironmentConfig = parseEnvironmentConfig;
+    window.applyEnvironmentConfig = applyEnvironmentConfig;
     window.validateBattleJSON = validateBattleJSON;
 }
 
@@ -374,6 +269,8 @@ if (typeof module !== 'undefined' && module.exports) {
         getDefaultBattleData,
         loadBattleFromJSON,
         parseUnlocks,
+        parseEnvironmentConfig,
+        applyEnvironmentConfig,
         validateBattleJSON
     };
 }

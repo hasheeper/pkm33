@@ -1970,9 +1970,10 @@ export const SUPPRESSION_TIER = {
 };
 
 /**
- * 获取环境天气的压制等级
+ * 获取环境天气的压制等级 (旧版兼容)
  * @param {object} battle 战斗实例
  * @returns {number} 压制等级 (1/2/3)
+ * @deprecated 使用 getWeatherSuppressionStatus 代替
  */
 export function getEnvironmentSuppressionTier(battle) {
     if (!battle || !battle.environmentWeather) return SUPPRESSION_TIER.NORMAL;
@@ -1980,6 +1981,11 @@ export function getEnvironmentSuppressionTier(battle) {
     // 优先从 battle.environmentConfig 读取配置
     if (battle.environmentConfig && battle.environmentConfig.suppressionTier) {
         return battle.environmentConfig.suppressionTier;
+    }
+    
+    // 新版格式: suppression 对象
+    if (battle.environmentConfig?.suppression?.all === 'blocked') {
+        return SUPPRESSION_TIER.ABSOLUTE;
     }
     
     // 默认根据天气类型推断
@@ -2001,6 +2007,93 @@ export function getEnvironmentSuppressionTier(battle) {
 }
 
 /**
+ * 【新版】获取特定天气的压制状态
+ * @param {object} battle 战斗实例
+ * @param {string} targetWeather 要展开的天气 ID
+ * @returns {{ status: 'normal'|'suppressed'|'blocked', reason: string }}
+ */
+export function getWeatherSuppressionStatus(battle, targetWeather) {
+    const normalResult = { status: 'normal', reason: '' };
+    
+    if (!battle || !battle.environmentWeather) return normalResult;
+    
+    const envConfig = battle.environmentConfig || {};
+    const suppression = envConfig.suppression || {};
+    const weatherId = (targetWeather || '').toLowerCase();
+    
+    // 标准化天气 ID (hail -> snow)
+    const normalizedWeather = normalizeWeatherId(weatherId);
+    
+    // 新版格式: suppression 对象
+    // 1. 检查 all 字段 (全局设置)
+    if (suppression.all === 'blocked') {
+        return { 
+            status: 'blocked', 
+            reason: `环境天气完全压制所有宝可梦天气` 
+        };
+    }
+    if (suppression.all === 'suppressed') {
+        return { 
+            status: 'suppressed', 
+            reason: `环境天气抑制所有宝可梦天气` 
+        };
+    }
+    
+    // 2. 检查 blocked 数组 (完全阻止)
+    if (Array.isArray(suppression.blocked)) {
+        const blockedList = suppression.blocked.map(w => normalizeWeatherId(w.toLowerCase()));
+        if (blockedList.includes(normalizedWeather)) {
+            return { 
+                status: 'blocked', 
+                reason: `${targetWeather} 被环境天气完全阻止` 
+            };
+        }
+    }
+    
+    // 3. 检查 suppressed 数组 (回合减半)
+    if (Array.isArray(suppression.suppressed)) {
+        const suppressedList = suppression.suppressed.map(w => normalizeWeatherId(w.toLowerCase()));
+        if (suppressedList.includes(normalizedWeather)) {
+            return { 
+                status: 'suppressed', 
+                reason: `${targetWeather} 被环境天气抑制` 
+            };
+        }
+    }
+    
+    // 4. 旧版兼容: suppressionTier 数字
+    if (envConfig.suppressionTier === 3 || envConfig.suppressionTier === SUPPRESSION_TIER.ABSOLUTE) {
+        return { 
+            status: 'blocked', 
+            reason: `环境天气完全压制所有宝可梦天气 (tier 3)` 
+        };
+    }
+    if (envConfig.suppressionTier === 2 || envConfig.suppressionTier === SUPPRESSION_TIER.SUPPRESSED) {
+        return { 
+            status: 'suppressed', 
+            reason: `环境天气抑制所有宝可梦天气 (tier 2)` 
+        };
+    }
+    
+    // 5. 默认根据环境天气类型推断
+    const envWeatherConfig = getWeatherConfig(battle.environmentWeather);
+    if (envWeatherConfig?.isPrimal) {
+        return { 
+            status: 'blocked', 
+            reason: `始源天气完全压制所有宝可梦天气` 
+        };
+    }
+    if (envWeatherConfig?.isRegional) {
+        return { 
+            status: 'suppressed', 
+            reason: `区域天气抑制所有宝可梦天气` 
+        };
+    }
+    
+    return normalResult;
+}
+
+/**
  * 【核心函数】尝试展开宝可梦天气（统一入口）
  * @param {object} battle 战斗实例
  * @param {string} newWeather 要展开的天气 ID
@@ -2012,14 +2105,16 @@ export function getEnvironmentSuppressionTier(battle) {
  */
 export function tryDeployWeather(battle, newWeather, options = {}) {
     const logs = [];
-    const tier = getEnvironmentSuppressionTier(battle);
     
-    // Tier 3: 绝对领域 - 无法展开
-    if (tier === SUPPRESSION_TIER.ABSOLUTE) {
+    // 【新版】使用按天气的压制状态检查
+    const suppressionStatus = getWeatherSuppressionStatus(battle, newWeather);
+    
+    // blocked: 完全阻止
+    if (suppressionStatus.status === 'blocked') {
         const envConfig = getWeatherConfig(battle.environmentWeather);
         const envName = envConfig?.name || battle.environmentWeather;
-        logs.push(`<span style="color:#dc2626">⛔ ${envName}的力量太过强大，天气技能无法生效！</span>`);
-        console.log(`[WEATHER] ${newWeather} blocked by suppression tier 3 (absolute)`);
+        logs.push(`<span style="color:#dc2626">⛔ ${envName}的力量太过强大，${options.weatherName || newWeather}无法生效！</span>`);
+        console.log(`[WEATHER] ${newWeather} blocked: ${suppressionStatus.reason}`);
         return { success: false, logs, weatherTurns: 0 };
     }
     
@@ -2050,8 +2145,8 @@ export function tryDeployWeather(battle, newWeather, options = {}) {
     let baseTurns = (extendRock && itemId === extendRock) ? 8 : 5;
     let finalTurns = baseTurns;
     
-    // Tier 2: 回合数减半
-    if (tier === SUPPRESSION_TIER.SUPPRESSED) {
+    // suppressed: 回合数减半
+    if (suppressionStatus.status === 'suppressed') {
         finalTurns = Math.floor(baseTurns / 2);
         const weatherName = options.weatherName || newWeather;
         logs.push(`<span style="color:#f59e0b">⚠️ 环境天气的压制使${weatherName}持续时间减半！(${baseTurns}→${finalTurns}回合)</span>`);
@@ -2162,7 +2257,8 @@ if (typeof window !== 'undefined') {
         checkMoveGlitch,
         // 压制系统
         SUPPRESSION_TIER,
-        getEnvironmentSuppressionTier,
+        getEnvironmentSuppressionTier,  // 旧版兼容
+        getWeatherSuppressionStatus,    // 新版：按天气检查压制状态
         tryDeployWeather,  // 统一入口函数
         getWeatherRevertMessage,
         WEATHER_CONFIG
