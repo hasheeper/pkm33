@@ -354,6 +354,12 @@ class EnvironmentOverlay {
             return { type: 'hasAbility', value: abilityMatch[1] };
         }
         
+        // Flag:X (技能标记，如 Contact, Pulse, Sound, Punch, Bite, Slicing, Bullet)
+        const flagMatch = t.match(/^flag\s*[:：]\s*(.+)$/i);
+        if (flagMatch) {
+            return { type: 'moveFlag', value: flagMatch[1].toLowerCase().trim() };
+        }
+        
         // 默认当作属性处理
         const maybeType = this._normalizeType(t);
         if (maybeType) {
@@ -446,8 +452,14 @@ class EnvironmentOverlay {
                         multiplier *= rule.effects?.dmgMod ?? 1;
                     }
                 }
+                // 检查 MoveFlag 目标 (如 Flag:Contact, Flag:Pulse)
+                else if (rule.target?.type === 'moveFlag') {
+                    if (this._matchTarget(rule.target, attacker, move)) {
+                        multiplier *= rule.effects?.dmgMod ?? 1;
+                    }
+                }
                 // 检查攻击方属性
-                else if (this._matchTarget(rule.target, attacker, null)) {
+                else if (this._matchTarget(rule.target, attacker, move)) {
                     multiplier *= rule.effects?.dmgMod ?? 1;
                 }
             }
@@ -647,6 +659,13 @@ class EnvironmentOverlay {
                 const abilityId = (pokemon.ability || '').toLowerCase().replace(/[^a-z]/g, '');
                 const targetAbility = (selector.value || '').toLowerCase().replace(/[^a-z]/g, '');
                 return abilityId === targetAbility;
+            
+            case 'moveFlag':
+                // 检查技能是否具有指定的 flag (如 contact, pulse, sound, punch, bite, slicing, bullet)
+                if (!move) return false;
+                const moveFlags = move.flags || {};
+                const targetFlag = selector.value;
+                return !!moveFlags[targetFlag];
                 
             default:
                 return false;

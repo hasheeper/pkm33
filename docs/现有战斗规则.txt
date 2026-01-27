@@ -102,8 +102,16 @@ PKM引擎协议是一个宝可梦对战的场景模拟器，用在实际发生�
 // "ALL"              - 所有宝可梦
 // "Type:Fire"        - 指定属性的宝可梦 (Fire/Water/Grass/Electric/Ice/Fighting/Poison/Ground/Flying/Psychic/Bug/Rock/Ghost/Dragon/Dark/Steel/Fairy)
 // "MoveType:Water"   - 指定属性的技能
+// "Flag:Contact"     - 接触类招式 (如 Tackle, Close Combat)
+// "Flag:Pulse"       - 脉冲类招式 (如 Aura Sphere, Dragon Pulse, Water Pulse)
+// "Flag:Sound"       - 声音类招式 (如 Hyper Voice, Boomburst)
+// "Flag:Punch"       - 拳类招式 (如 Thunder Punch, Mach Punch)
+// "Flag:Bite"        - 咬类招式 (如 Crunch, Psychic Fangs)
+// "Flag:Slicing"     - 斩击类招式 (如 Leaf Blade, Sacred Sword)
+// "Flag:Bullet"      - 子弹/波动弹类招式 (如 Shadow Ball, Aura Sphere)
 // "Side:Player"      - 玩家方
 // "Side:Enemy"       - 敌方
+// "HasAbility:X"     - 拥有特定特性的宝可梦
 // "NOT:Type:Ghost"   - 取反选择
 
 // --- 效果原子 (EFFECT_ATOM) ---

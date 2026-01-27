@@ -7196,6 +7196,23 @@ if (typeof window !== 'undefined') {
       }
     }
     
+    // ========== 保留其他顶层字段 ==========
+    // 保留 environment（环境配置）
+    if (battleData.environment) {
+      normalized.environment = battleData.environment;
+      console.log(`${PLUGIN_NAME} [ENV] 保留 AI 传入的环境配置:`, battleData.environment.overlay?.env_name || battleData.environment.weather || 'none');
+    }
+    
+    // 保留 script（脚本）
+    if (battleData.script) {
+      normalized.script = battleData.script;
+    }
+    
+    // 保留 settings（设置）
+    if (battleData.settings) {
+      normalized.settings = battleData.settings;
+    }
+    
     console.log(`${PLUGIN_NAME} ========== 双打模式转换完成 ==========`);
     return normalized;
   }
