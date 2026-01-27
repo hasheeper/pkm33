@@ -354,6 +354,43 @@ async function initGame() {
         console.log(`[ENVIRONMENT] 初始化环境天气: ${envWeather}, 持续: ${envTurns || '永久'}, 压制等级: ${suppressionTier}`);
     }
     
+    // === 【环境图层系统】初始化 ===
+    // 从 JSON 的 environment.overlay 加载环境效果
+    console.log(`[ENV OVERLAY] 检查: enableEnv=${enableEnv}, hasEnv=${!!json.environment}, hasOverlay=${!!(json.environment && json.environment.overlay)}`);
+    if (enableEnv && json.environment && json.environment.overlay) {
+        console.log(`[ENV OVERLAY] 开始加载环境图层...`);
+        const overlay = json.environment.overlay;
+        
+        // 先清除旧环境
+        if (typeof window.clearEnvironmentOverlay === 'function') {
+            window.clearEnvironmentOverlay();
+        }
+        
+        // 注入新环境
+        if (typeof window.injectEnvironmentOverlay === 'function') {
+            const env = window.injectEnvironmentOverlay(overlay);
+            
+            if (env) {
+                // 显示环境效果说明
+                log(`<span style="color:#a855f7">🌍 <b>${env.env_name}</b></span>`);
+                if (env.narrative) {
+                    log(`<span style="color:#a855f7; font-style:italic">${env.narrative}</span>`);
+                }
+                
+                // 显示具体规则效果
+                for (const rule of env.rules || []) {
+                    const targetDesc = _getTargetDescription(rule.target);
+                    const effectsDesc = _getEffectsDescription(rule.effects);
+                    if (effectsDesc) {
+                        log(`<span style="color:#c084fc">  → ${targetDesc}: ${effectsDesc}</span>`);
+                    }
+                }
+                
+                console.log(`[ENV OVERLAY] 初始化环境图层: ${env.env_name}, 规则数: ${env.rules?.length || 0}`);
+            }
+        }
+    }
+    
     // === 触发双方入场特性 (威吓、天气等) ===
     if (openingEnemy) {
         triggerEntryAbilities(openingEnemy, openingPoke);
@@ -576,6 +613,16 @@ function updateAllVisuals(forceSpriteAnim = false) {
                     console.log(`[GRUDGE UI] ${m.name} 被怨恨封印，按钮禁用`);
                 }
                 
+                // 【环境图层系统】检查技能是否被环境禁用
+                let envBanned = false;
+                if (typeof window.envOverlay !== 'undefined' && window.envOverlay.isMoveBanned) {
+                    if (window.envOverlay.isMoveBanned(p, m)) {
+                        isDisabled = true;
+                        envBanned = true;
+                        console.log(`[ENV BAN UI] ${m.name} 被环境禁用，按钮变灰`);
+                    }
+                }
+                
                 // 获取显示名称和类型
                 let displayName = m.cn || m.name;
                 let displayType = m.type || 'Normal';
@@ -659,6 +706,25 @@ function updateAllVisuals(forceSpriteAnim = false) {
                 btn.innerHTML = '<span class="move-name">---</span><span class="move-type">---</span>';
             }
         });
+        
+        // 【环境图层系统】检查是否所有技能都被禁用，如果是则启用"挣扎"
+        const allBtns = btnIds.map(id => document.getElementById(id)).filter(b => b);
+        const allDisabled = allBtns.every(btn => btn.disabled || btn.style.visibility === 'hidden');
+        if (allDisabled && p.moves.length > 0) {
+            // 启用第一个按钮作为"挣扎"
+            const struggleBtn = allBtns[0];
+            if (struggleBtn) {
+                struggleBtn.disabled = false;
+                struggleBtn.style.visibility = 'visible';
+                struggleBtn.style.opacity = '0.7';
+                struggleBtn.innerHTML = `
+                    <span class="move-name" style="color:#ef4444">挣扎</span>
+                    <span class="badge-type type-Normal">一般</span>
+                `;
+                struggleBtn.onclick = () => handleStruggle();
+                console.log('[ENV BAN] 所有技能被禁用，启用挣扎');
+            }
+        }
     }
     
     // 6. 更新进化按钮可见性
@@ -683,6 +749,64 @@ function updateAllVisuals(forceSpriteAnim = false) {
 // 【已迁移】精灵图加载 -> ui/ui-sprites.js
 // 【已迁移】血条/精灵球槽渲染 -> ui/ui-renderer.js
 // ============================================
+
+/**
+ * 处理"挣扎"技能（当所有技能被禁用时）
+ */
+async function handleStruggle() {
+    if (typeof window.playSFX === 'function') window.playSFX('CONFIRM');
+    if (battle.locked) return;
+    battle.locked = true;
+    
+    showMainMenu();
+    
+    const p = battle.getPlayer();
+    const e = battle.getEnemy();
+    
+    // 挣扎技能数据
+    const struggleMove = { 
+        name: 'Struggle', 
+        cn: '挣扎', 
+        power: 50, 
+        type: 'Normal', 
+        cat: 'phys',
+        accuracy: 100,
+        flags: { contact: 1 }
+    };
+    
+    log(`<span style="color:#ef4444">🌍 ${p.cnName} 被环境压制，无技可用，只能挣扎!</span>`);
+    
+    // 执行挣扎攻击
+    if (typeof window.executePlayerTurn === 'function') {
+        await window.executePlayerTurn(p, e, struggleMove);
+    }
+    
+    // 挣扎反伤：扣除自身 1/4 最大 HP
+    const recoil = Math.floor(p.maxHp / 4);
+    p.takeDamage(recoil);
+    log(`<span style="color:#e74c3c">${p.cnName} 因挣扎受到了 ${recoil} 点反作用力伤害!</span>`);
+    
+    updateAllVisuals();
+    
+    // 检查战斗结束
+    if (battle.checkBattleEnd()) {
+        battle.locked = false;
+        return;
+    }
+    
+    // AI 回合
+    if (typeof window.handleAITurn === 'function') {
+        await window.handleAITurn();
+    }
+    
+    // 回合结束阶段
+    if (typeof window.executeEndPhase === 'function') {
+        await window.executeEndPhase();
+    }
+    
+    battle.locked = false;
+    showMovesMenu();
+}
 
 /**
  * 核心逻辑：发起攻击处理 (支持先制技优先级)
@@ -714,6 +838,15 @@ async function handleAttack(moveIndex, options = {}) {
         const canUseResult = MoveEffects.canUseMove(p, playerMove);
         if (!canUseResult.canUse) {
             log(`<span style="color:#e74c3c">${canUseResult.reason}</span>`);
+            battle.locked = false;
+            return;
+        }
+    }
+    
+    // === 【环境图层系统】检查技能是否被环境禁用 ===
+    if (typeof window.envOverlay !== 'undefined' && window.envOverlay.isMoveBanned) {
+        if (window.envOverlay.isMoveBanned(p, playerMove)) {
+            log(`<span style="color:#a855f7">🌍 ${playerMove.cn || playerMove.name} 在当前环境下无法使用！</span>`);
             battle.locked = false;
             return;
         }
@@ -4562,9 +4695,74 @@ function clearCommandEffects() {
     }
 }
 
+// ============================================
+// 【环境图层系统】辅助函数 - 生成描述文字
+// ============================================
+
+/**
+ * 获取目标选择器的中文描述
+ * @private
+ */
+function _getTargetDescription(target) {
+    if (!target) return '全体';
+    
+    switch (target.type) {
+        case 'all': return '全体';
+        case 'pokemonType': return `${target.value}系宝可梦`;
+        case 'moveType': return `${target.value}系技能`;
+        case 'side': return target.value === 'player' ? '玩家方' : '敌方';
+        case 'not': return `非${_getTargetDescription(target.inner)}`;
+        case 'hasAbility': return `拥有${target.value}特性`;
+        default: return '全体';
+    }
+}
+
+/**
+ * 获取效果的中文描述
+ * @private
+ */
+function _getEffectsDescription(effects) {
+    if (!effects) return '';
+    
+    const parts = [];
+    
+    // 数值修正
+    const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+    for (const [stat, mult] of Object.entries(effects.statMods || {})) {
+        const name = statNames[stat] || stat;
+        if (mult > 1) parts.push(`${name}+${Math.round((mult - 1) * 100)}%`);
+        else if (mult < 1) parts.push(`${name}-${Math.round((1 - mult) * 100)}%`);
+    }
+    
+    // HP 跳动
+    if (effects.hpChange > 0) parts.push(`每回合回复${Math.round(effects.hpChange * 100)}%HP`);
+    if (effects.hpChange < 0) parts.push(`每回合损失${Math.round(Math.abs(effects.hpChange) * 100)}%HP`);
+    
+    // 伤害修正
+    if (effects.dmgMod && effects.dmgMod !== 1) {
+        if (effects.dmgMod > 1) parts.push(`伤害+${Math.round((effects.dmgMod - 1) * 100)}%`);
+        else parts.push(`伤害-${Math.round((1 - effects.dmgMod) * 100)}%`);
+    }
+    
+    // 回复修正
+    if (effects.healMod && effects.healMod !== 1) {
+        if (effects.healMod > 1) parts.push(`回复+${Math.round((effects.healMod - 1) * 100)}%`);
+        else parts.push(`回复-${Math.round((1 - effects.healMod) * 100)}%`);
+    }
+    
+    // 类型效果
+    if (effects.immuneTypes?.length) parts.push(`免疫${effects.immuneTypes.join('/')}`);
+    if (effects.weakTypes?.length) parts.push(`弱点${effects.weakTypes.join('/')}`);
+    if (effects.banTypes?.length) parts.push(`禁用${effects.banTypes.join('/')}系技能`);
+    
+    return parts.join(', ');
+}
+
 // 导出到全局
 window.initCommanderSystem = initCommanderSystem;
 window.shouldShowCommanderMenu = shouldShowCommanderMenu;
 window.showCommanderMenu = showCommanderMenu;
 window.closeCommanderMenu = closeCommanderMenu;
 window.clearCommandEffects = clearCommandEffects;
+window._getTargetDescription = _getTargetDescription;
+window._getEffectsDescription = _getEffectsDescription;

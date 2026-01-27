@@ -28,9 +28,8 @@ export function normalizeWeatherId(weatherId) {
     if (!weatherId) return null;
     const id = weatherId.toLowerCase();
     
-    // 冰雹统一转换为雪天
+    // 冰雹统一转换为雪天 (SV机制)
     if (id === 'hail') {
-        console.log('[WEATHER] 冰雹 (hail) 已转换为雪天 (snow)');
         return 'snow';
     }
     
@@ -939,19 +938,33 @@ export function applyHeal(pokemon, baseAmount, options = {}) {
     if (maxHeal <= 0) return 0;
     
     let actualHeal = Math.min(baseAmount, maxHeal);
+    let totalMult = 1;
     
-    // 应用 Smog 化学屏障减半（除非 bypassWeather = true）
+    // 1. 应用 Smog 化学屏障减半（除非 bypassWeather = true）
     if (!options.bypassWeather && typeof window !== 'undefined' && window.battle) {
         const weather = window.battle.weather;
-        const mult = getHealingMultiplier(weather);
-        if (mult < 1) {
-            actualHeal = Math.floor(baseAmount * mult);
-            actualHeal = Math.min(actualHeal, maxHeal);
-            if (options.source) {
-                console.log(`[SMOG] 🏭 化学屏障：${options.source} 回复量 ${baseAmount} -> ${actualHeal} (x${mult})`);
-            } else {
-                console.log(`[SMOG] 🏭 化学屏障：回复量 ${baseAmount} -> ${actualHeal} (x${mult})`);
-            }
+        const weatherMult = getHealingMultiplier(weather);
+        if (weatherMult !== 1) {
+            totalMult *= weatherMult;
+        }
+    }
+    
+    // 2. 【环境图层系统】应用环境回复修正
+    if (!options.bypassEnv && typeof window !== 'undefined' && window.envOverlay) {
+        const envMult = window.envOverlay.getHealMod(pokemon);
+        if (envMult !== 1) {
+            totalMult *= envMult;
+        }
+    }
+    
+    // 应用总倍率
+    if (totalMult !== 1) {
+        actualHeal = Math.floor(baseAmount * totalMult);
+        actualHeal = Math.min(actualHeal, maxHeal);
+        if (options.source) {
+            console.log(`[HEAL MOD] ${options.source} 回复量 ${baseAmount} -> ${actualHeal} (x${totalMult.toFixed(2)})`);
+        } else {
+            console.log(`[HEAL MOD] 回复量 ${baseAmount} -> ${actualHeal} (x${totalMult.toFixed(2)})`);
         }
     }
     

@@ -851,8 +851,35 @@ export function calcDamage(attacker, defender, move, options = {}) {
     // 属性克制
     // 【修复】确保 moveType 有效，优先使用 move.type，回退到 fullMoveData.type
     // 注意：moveType 已在天气威力修正处声明，此处直接使用
-    const effectiveMoveType = move.type || fullMoveData.type || 'Normal';
+    let effectiveMoveType = move.type || fullMoveData.type || 'Normal';
+    
+    // === 【环境图层系统】类型转换 (ToType:Src>Dest) ===
+    if (typeof window !== 'undefined' && window.envOverlay && window.envOverlay.getMoveTypeConversion) {
+        const convertedType = window.envOverlay.getMoveTypeConversion(move);
+        if (convertedType !== effectiveMoveType) {
+            console.log(`[ENV OVERLAY] 🔄 技能类型转换: ${move.cn || move.name} ${effectiveMoveType} → ${convertedType}`);
+            effectiveMoveType = convertedType;
+        }
+    }
+    
     let effectiveness = getTypeEffectiveness(effectiveMoveType, defensiveTypes, move.name);
+    
+    // === 【环境图层系统】类型覆盖 (免疫/弱点) ===
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        const typeOverrides = window.envOverlay.getTypeOverrides(defender);
+        
+        // 免疫覆盖：如果环境赋予免疫，effectiveness = 0
+        if (typeOverrides.immuneTypes.includes(effectiveMoveType)) {
+            console.log(`[ENV OVERLAY] 🛡️ 环境免疫: ${defender.cnName || defender.name} 免疫 ${effectiveMoveType}`);
+            effectiveness = 0;
+        }
+        // 弱点追加：如果环境追加弱点，effectiveness x2
+        else if (typeOverrides.weakTypes.includes(effectiveMoveType)) {
+            const oldEff = effectiveness;
+            effectiveness *= 2;
+            console.log(`[ENV OVERLAY] ⚡ 环境弱点: ${defender.cnName || defender.name} 对 ${effectiveMoveType} 弱点 (${oldEff} -> ${effectiveness})`);
+        }
+    }
     
     // =========================================================
     // 【Delta Stream 德尔塔气流】飞行系克制伤害变为 1 倍
@@ -1124,6 +1151,16 @@ export function calcDamage(attacker, defender, move, options = {}) {
     
     if (effectiveness > 0 && singleHitDamage < 1) singleHitDamage = 1;
     if (effectiveness === 0) singleHitDamage = 0;
+    
+    // === 【环境图层系统】伤害修正 ===
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        const envDmgMod = window.envOverlay.getDamageMod(attacker, defender, move);
+        if (envDmgMod !== 1) {
+            const oldDmg = singleHitDamage;
+            singleHitDamage = Math.floor(singleHitDamage * envDmgMod);
+            console.log(`[ENV OVERLAY] 🌍 伤害修正: ${oldDmg} × ${envDmgMod} = ${singleHitDamage}`);
+        }
+    }
     
     // === 防御方特性伤害修正 ===
     // 【重要】传递 isSimulation 标记，避免 AI 模拟时触发形态变化等副作用

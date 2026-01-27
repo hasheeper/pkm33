@@ -762,6 +762,21 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     }
 
     // ----------------------------------------
+    // 8.5 【环境图层系统】HP 跳动
+    // ----------------------------------------
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        const envResult = window.envOverlay.processTurnEnd(poke);
+        if (envResult.hpChange !== 0) {
+            if (envResult.hpChange > 0) {
+                poke.heal(envResult.hpChange);
+            } else {
+                poke.takeDamage(Math.abs(envResult.hpChange));
+            }
+            envResult.logs.forEach(log => logs.push(`<span style="color:#a855f7">🌍 ${log}</span>`));
+        }
+    }
+
+    // ----------------------------------------
     // 9. 天气伤害 (Weather Damage)
     // 【重构】使用 weather-effects.js 模块
     // ----------------------------------------

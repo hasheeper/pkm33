@@ -1172,6 +1172,15 @@ function rankMovesByScore(attacker, defender, aiParty = null) {
     
     return attacker.moves.map(move => {
         const mergedMove = getMergedMoveData(move);
+        
+        // === 【环境图层系统】检查技能是否被环境禁用 ===
+        if (typeof window !== 'undefined' && window.envOverlay && window.envOverlay.isMoveBanned) {
+            if (window.envOverlay.isMoveBanned(attacker, mergedMove)) {
+                console.log(`[AI ENV BAN] ${move.name} 被环境禁用`);
+                return { move, score: -10000 }; // 极低分数，AI 不会选择
+            }
+        }
+        
         return {
             move,
             score: calcMoveScore(attacker, defender, mergedMove, aiParty)

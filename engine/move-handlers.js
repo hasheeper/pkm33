@@ -22,34 +22,47 @@
 // ============================================
 
 /**
- * 【统一回复函数】处理 HP 回复，自动应用 Smog 减半效果
+ * 【统一回复函数】处理 HP 回复，自动应用 Smog 减半效果和环境图层修正
  * @param {Pokemon} pokemon 要回复的宝可梦
  * @param {number} baseAmount 基础回复量
+ * @param {string} source 回复来源（用于日志）
  * @returns {number} 实际回复量
  */
-function applyHeal(pokemon, baseAmount) {
+function applyHeal(pokemon, baseAmount, source = 'move') {
     if (baseAmount <= 0) return 0;
     
     const maxHeal = pokemon.maxHp - pokemon.currHp;
     if (maxHeal <= 0) return 0;
     
-    let actualHeal = Math.min(baseAmount, maxHeal);
-    
-    // 使用 pokemon.heal() 方法（会自动应用 Smog 减半）
-    if (typeof pokemon.heal === 'function') {
-        actualHeal = pokemon.heal(baseAmount);
-    } else {
-        // Fallback: 手动应用 Smog 减半
-        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getHealingMultiplier) {
-            const mult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
-            if (mult < 1) {
-                actualHeal = Math.floor(baseAmount * mult);
-                console.log(`[SMOG] 🏭 化学屏障：回复量 ${baseAmount} -> ${actualHeal} (x${mult})`);
-            }
-        }
-        actualHeal = Math.min(actualHeal, maxHeal);
-        pokemon.currHp += actualHeal;
+    // 优先使用 WeatherEffects.applyHeal（包含环境图层修正）
+    if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
+        return window.WeatherEffects.applyHeal(pokemon, baseAmount, { source });
     }
+    
+    // Fallback: 手动应用修正
+    let actualHeal = baseAmount;
+    
+    // 1. 天气修正 (Smog)
+    if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getHealingMultiplier) {
+        const weatherMult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
+        if (weatherMult !== 1) {
+            actualHeal = Math.floor(actualHeal * weatherMult);
+            console.log(`[SMOG] 🏭 化学屏障：回复量 ${baseAmount} -> ${actualHeal} (x${weatherMult})`);
+        }
+    }
+    
+    // 2. 环境图层修正
+    if (typeof window !== 'undefined' && window.envOverlay?.getHealMod) {
+        const envMult = window.envOverlay.getHealMod(pokemon);
+        if (envMult !== 1) {
+            const before = actualHeal;
+            actualHeal = Math.floor(actualHeal * envMult);
+            console.log(`[ENV OVERLAY] 🌍 环境回复修正: ${before} -> ${actualHeal} (x${envMult})`);
+        }
+    }
+    
+    actualHeal = Math.min(actualHeal, maxHeal);
+    pokemon.currHp += actualHeal;
     
     return actualHeal;
 }

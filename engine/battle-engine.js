@@ -1127,6 +1127,16 @@ export class Pokemon {
             
             let val = Math.floor(base * multiplier);
             
+            // === 【环境图层系统】Environment Overlay 数值修正 ===
+            if (typeof window !== 'undefined' && window.envOverlay) {
+                const envMod = window.envOverlay.getStatMod(this, statName);
+                if (envMod !== 1) {
+                    const oldVal = val;
+                    val = Math.floor(val * envMod);
+                    console.log(`[ENV OVERLAY] 🌍 ${this.cnName} ${statName}: ${oldVal} → ${val} (x${envMod})`);
+                }
+            }
+            
             // === 特性加成 Hook (大力士、毛皮大衣、天气加速等) ===
             if (typeof AbilityHandlers !== 'undefined' && this.ability && AbilityHandlers[this.ability]) {
                 const ah = AbilityHandlers[this.ability];

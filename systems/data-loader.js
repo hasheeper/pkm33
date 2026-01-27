@@ -27,7 +27,7 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true,"enableClash":false,"enableEnvironment":true},"difficulty":"hard","player":{"name":"player","trainerProficiency":128,"party":[{"slot":1,"name":"Brionne","nickname":null,"species":null,"gender":"F","lv":21,"quality":"high","nature":"Modest","ability":"Torrent","shiny":false,"item":null,"mechanic":"tera","teraType":"Water","isAce":true,"isLead":true,"moves":["Icy Wind","Aqua Jet","Growl","Disarming Voice"],"stats_meta":{"ivs":{"hp":28,"atk":7,"def":27,"spa":30,"spd":30,"spe":28},"ev_level":74,"ev_up":0},"notes":null,"avs":{"trust":149,"passion":117,"insight":39,"devotion":97}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"enemy":{"id":"Nessa","type":"trainer","name":"Nessa","trainerProficiency":0,"lines":{"start":"さあ、見せてみなさい。アンタの『青』を。(来吧，让我看看。你的『蓝』。)","win":"悪くない……けど、『深さ』が足りないわ。(还不错……但是，『深度』还不够。)","lose":"……ハッ。私の流れを、断ち切るなんてね。(……哈。竟然斩断了我的水流。)","escape":"逃げるの？ 陸に上がった魚みたいね。(要逃吗？就像离开水的鱼一样呢。)"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"party":[{"name":"Drednaw","gender":"F","lv":28,"nature":"Rash","ability":"Strong Jaw","shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":4,"atk":31,"def":19,"spa":31,"spd":13,"spe":31},"ev_level":42},"moves":["Razor Shell","Bite","Headbutt","Rain Dance"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null,"environment":{"weather":"clear","weatherTurns":0,"suppression":{"suppressed":["snow"]}}}
+    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true,"enableClash":false,"enableEnvironment":true},"difficulty":"expert","player":{"name":"Ice Queen","trainerProficiency":160,"party":[{"name":"Kyurem","lv":88,"gender":null,"nature":"Timid","ability":"Pressure","item":"Choice Specs","isAce":true,"isLead":true,"stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":10,"def":31,"spa":31,"spd":31,"spe":31}},"moves":["Ice Beam","Draco Meteor","Earth Power","Flash Cannon"],"avs":{"trust":200,"passion":180,"insight":140,"devotion":160}},{"name":"Weavile","lv":85,"gender":"F","nature":"Jolly","ability":"Pressure","item":"Focus Sash","isAce":true,"stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31}},"moves":["Triple Axel","Knock Off","Ice Shard","Low Kick"],"avs":{"trust":160,"passion":220,"insight":100,"devotion":120}}],"unlocks":{"enable_bond":false,"enable_styles":true,"enable_insight":true,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":true,"enable_proficiency_cap":true}},"enemy":{"id":"Flame Emperor","type":"trainer","name":"Flame Emperor","trainerProficiency":155,"lines":{"intro":"绝对零度领域？火焰的意志不会被冻结！"},"unlocks":{"enable_bond":false,"enable_styles":true,"enable_insight":true,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"party":[{"name":"Blaziken","lv":85,"gender":"M","nature":"Adamant","ability":"Speed Boost","item":"Life Orb","stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31}},"moves":["Flare Blitz","Close Combat","Thunder Punch","Swords Dance"]},{"name":"Volcarona","lv":83,"gender":"F","nature":"Timid","ability":"Flame Body","item":"Heavy-Duty Boots","stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":10,"def":31,"spa":31,"spd":31,"spe":31}},"moves":["Quiver Dance","Fire Blast","Bug Buzz","Giga Drain"]},{"name":"Heatran","lv":85,"gender":"M","nature":"Modest","ability":"Flash Fire","item":"Leftovers","stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":10,"def":31,"spa":31,"spd":31,"spe":31}},"moves":["Magma Storm","Earth Power","Flash Cannon","Stealth Rock"]}],"script":null,"environment":{"weather":"hail","weatherTurns":0,"overlay":{"env_name":"绝对零度","narrative":"极寒的冰霜覆盖一切，火焰在此处被压制...","rules":[{"target":"Type:Ice","eff":["SpA:1.5","Spe:1.3","Def:1.2","HP:0.0625"]},{"target":"Type:Fire","eff":["SpA:0.5","Atk:0.5","Spe:0.7","HP:-0.125"]},{"target":"MoveType:Ice","eff":["Dmg:1.5","Crit:1.5"]},{"target":"MoveType:Fire","eff":["Dmg:0.3"]},{"target":"ALL","eff":["Heal:0.7"]}]}}}
 
 }
 
@@ -205,6 +205,38 @@ function applyEnvironmentConfig(battle, envConfig) {
     }
 }
 
+// ============================================
+// 环境图层 API
+// ============================================
+
+/**
+ * 注入环境图层效果
+ * @param {Object|string} envJSON - 环境 JSON 对象或字符串
+ * @returns {Object|null} 解析后的环境对象
+ */
+function injectEnvironmentOverlay(envJSON) {
+    if (typeof window === 'undefined' || !window.envOverlay) {
+        console.error('[ENV OVERLAY] envOverlay 未初始化');
+        return null;
+    }
+    
+    const env = window.envOverlay.inject(envJSON);
+    if (env) {
+        console.log(`[ENV OVERLAY] 注入环境: ${env.env_name}`);
+    }
+    return env;
+}
+
+/**
+ * 清除所有环境图层
+ */
+function clearEnvironmentOverlay() {
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        window.envOverlay.clear();
+        console.log('[ENV OVERLAY] 已清除所有环境');
+    }
+}
+
 /**
  * 验证战斗 JSON 格式
  * @param {Object} json 战斗数据
@@ -259,6 +291,9 @@ if (typeof window !== 'undefined') {
     window.parseEnvironmentConfig = parseEnvironmentConfig;
     window.applyEnvironmentConfig = applyEnvironmentConfig;
     window.validateBattleJSON = validateBattleJSON;
+    // 环境图层 API
+    window.injectEnvironmentOverlay = injectEnvironmentOverlay;
+    window.clearEnvironmentOverlay = clearEnvironmentOverlay;
 }
 
 // Node.js 环境
@@ -269,6 +304,8 @@ if (typeof module !== 'undefined' && module.exports) {
         parseUnlocks,
         parseEnvironmentConfig,
         applyEnvironmentConfig,
-        validateBattleJSON
+        validateBattleJSON,
+        injectEnvironmentOverlay,
+        clearEnvironmentOverlay
     };
 }

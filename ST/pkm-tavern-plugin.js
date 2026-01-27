@@ -8302,21 +8302,18 @@ if (typeof window !== 'undefined') {
         });
       }
       
-      // 自动检测 mechanic 字段并设置 unlock 权限
-      const autoDetectedUnlocks = detectUnlocksFromParty(finalParty);
-      
       // 合并各个训练家自带的 unlocks（从 _trainersData 中提取）
       const trainerUnlocks = aiTrainerConfig._trainersData
         .map(t => t.unlocks)
         .filter(Boolean);
       
-      // 合并：aiTrainerConfig.unlocks（来自 normalizeP1P2Format）> 训练家自带 > 自动检测
-      // 注意：aiTrainerConfig.unlocks 已经在 normalizeP1P2Format 中合并过了
-      const mergedUnlocks = mergeUnlocks(aiTrainerConfig.unlocks, autoDetectedUnlocks, ...trainerUnlocks);
+      // 合并：aiTrainerConfig.unlocks > 训练家自带 unlocks
+      // 注意：不再使用自动检测，因为玩家方的 unlocks 应该由训练家数据明确定义
+      // 自动检测会导致宝可梦的 mechanic 字段覆盖训练家的权限设置
+      const mergedUnlocks = mergeUnlocks(aiTrainerConfig.unlocks, ...trainerUnlocks);
       
       console.log(`${PLUGIN_NAME} [${role}] aiTrainerConfig.unlocks:`, aiTrainerConfig.unlocks);
       console.log(`${PLUGIN_NAME} [${role}] 训练家 unlocks:`, trainerUnlocks);
-      console.log(`${PLUGIN_NAME} [${role}] 自动检测 unlocks:`, autoDetectedUnlocks);
       console.log(`${PLUGIN_NAME} [${role}] 最终合并 unlocks:`, mergedUnlocks);
       
       // 调试：检查 finalParty 中的 mechanic 字段
@@ -8595,11 +8592,34 @@ if (typeof window !== 'undefined') {
     const resolvedProficiency = resolvedPlayer.trainerProficiency || 0;
     const trainerProficiency = Math.min(255, Math.max(0, Math.max(eraProficiency, resolvedProficiency)));
 
-    // === 处理环境天气 (从 ERA weather_grid 读取) ===
+    // === 处理环境配置 ===
+    // 优先级: AI 传入的 environment > ERA weather_grid
     const eraVars = await getEraVars();
     let environmentConfig = null;
     
-    if (eraVars) {
+    // 1. 检查 AI 是否传入了自定义环境 (包含 overlay)
+    if (aiBattleData.environment) {
+      environmentConfig = {
+        weather: aiBattleData.environment.weather || null,
+        weatherTurns: aiBattleData.environment.weatherTurns || 0
+      };
+      
+      // 处理环境图层 (overlay)
+      if (aiBattleData.environment.overlay) {
+        environmentConfig.overlay = aiBattleData.environment.overlay;
+        console.log(`${PLUGIN_NAME} [ENV OVERLAY] AI 传入自定义环境: ${environmentConfig.overlay.env_name}`);
+        console.log(`${PLUGIN_NAME} [ENV OVERLAY] 规则数: ${environmentConfig.overlay.rules?.length || 0}`);
+      }
+      
+      // 添加 suppression（如果有）
+      if (aiBattleData.environment.suppression) {
+        environmentConfig.suppression = aiBattleData.environment.suppression;
+      }
+      
+      console.log(`${PLUGIN_NAME} [ENVIRONMENT] AI 传入环境配置:`, environmentConfig);
+    }
+    // 2. 如果 AI 没有传入，从 ERA weather_grid 读取
+    else if (eraVars) {
       // 获取当前位置
       const locationData = getEraValue(eraVars, 'world_state.location', null);
       const weatherGrid = getEraValue(eraVars, 'world_state.weather_grid', null);
