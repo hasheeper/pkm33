@@ -139,12 +139,12 @@ function compareActionOrder(action1, action2) {
     let spe1 = action1.pokemon.getStat('spe');
     let spe2 = action2.pokemon.getStat('spe');
     
-    // 【Ashfall 积灰迟滞】接地宝可梦速度降低
-    if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getAshfallSpeedMultiplier) {
-        const mult1 = window.WeatherEffects.getAshfallSpeedMultiplier(action1.pokemon, window.battle.weather);
-        const mult2 = window.WeatherEffects.getAshfallSpeedMultiplier(action2.pokemon, window.battle.weather);
-        if (mult1 < 1) spe1 = Math.floor(spe1 * mult1);
-        if (mult2 < 1) spe2 = Math.floor(spe2 * mult2);
+    // 【环境图层系统】速度修正
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        const mult1 = window.envOverlay.getStatMod(action1.pokemon, 'spe');
+        const mult2 = window.envOverlay.getStatMod(action2.pokemon, 'spe');
+        if (mult1 !== 1) spe1 = Math.floor(spe1 * mult1);
+        if (mult2 !== 1) spe2 = Math.floor(spe2 * mult2);
     }
     
     if (spe1 !== spe2) {
@@ -1670,23 +1670,16 @@ function processEndTurnItemEffects(pokemon) {
     
     // === 黑色淤泥 (Black Sludge) ===
     if (itemId === 'blacksludge') {
-        // 【Ashfall 覆盖失效】检查道具是否被火山灰封锁
-        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.isItemBlanketed) {
-            if (window.WeatherEffects.isItemBlanketed(itemId, window.battle.weather)) {
-                logs.push(`<span style="color:#8b8b8b">🌋 ${pokemon.cnName} 的黑色淤泥被火山灰覆盖，无法使用!</span>`);
-                return logs;
-            }
-        }
         if (pokemon.types && pokemon.types.includes('Poison')) {
             // 毒系回复 1/16 HP
             const baseHeal = Math.max(1, Math.floor(pokemon.maxHp / 16));
             let actualHeal = baseHeal;
             if (typeof pokemon.heal === 'function') {
-                actualHeal = pokemon.heal(baseHeal); // heal() 返回实际回复量（已应用 Smog 减半）
+                actualHeal = pokemon.heal(baseHeal);
             } else {
-                // Fallback: 手动应用 Smog 减半
-                if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getHealingMultiplier) {
-                    const mult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
+                // Fallback: 应用环境图层修正
+                if (typeof window !== 'undefined' && window.envOverlay?.getHealMod) {
+                    const mult = window.envOverlay.getHealMod(pokemon);
                     actualHeal = Math.floor(baseHeal * mult);
                 }
                 pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + actualHeal);
@@ -1702,22 +1695,15 @@ function processEndTurnItemEffects(pokemon) {
     
     // === 剩饭 (Leftovers) ===
     if (itemId === 'leftovers') {
-        // 【Ashfall 覆盖失效】检查道具是否被火山灰封锁
-        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.isItemBlanketed) {
-            if (window.WeatherEffects.isItemBlanketed(itemId, window.battle.weather)) {
-                logs.push(`<span style="color:#8b8b8b">🌋 ${pokemon.cnName} 的剩饭被火山灰覆盖，无法食用!</span>`);
-                return logs;
-            }
-        }
         if (pokemon.currHp < pokemon.maxHp) {
             const baseHeal = Math.max(1, Math.floor(pokemon.maxHp / 16));
             let actualHeal = baseHeal;
             if (typeof pokemon.heal === 'function') {
-                actualHeal = pokemon.heal(baseHeal); // heal() 返回实际回复量（已应用 Smog 减半）
+                actualHeal = pokemon.heal(baseHeal);
             } else {
-                // Fallback: 手动应用 Smog 减半
-                if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getHealingMultiplier) {
-                    const mult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
+                // Fallback: 应用环境图层修正
+                if (typeof window !== 'undefined' && window.envOverlay?.getHealMod) {
+                    const mult = window.envOverlay.getHealMod(pokemon);
                     actualHeal = Math.floor(baseHeal * mult);
                 }
                 pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + actualHeal);

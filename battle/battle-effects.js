@@ -252,17 +252,17 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                 } else {
                     const s = fullMoveData.secondary.status;
                     
-                    // 【Gale 过和湿气】阻止灼伤
-                    if (s === 'brn' && typeof window !== 'undefined' && window.battle && 
-                        window.WeatherEffects?.doesSaturatedAirPreventBurn?.(window.battle.weather)) {
-                        logs.push(`<span style="color:#3b82f6">💧 空气过于潮湿，无法引燃！</span>`);
-                        console.log(`[GALE] 💧 过和湿气：阻止灼伤附加效果`);
-                    // 【Gale 极速解冻】阻止冰冻
-                    } else if (s === 'frz' && typeof window !== 'undefined' && window.battle && 
-                        window.WeatherEffects?.doesRapidThawPreventFreeze?.(window.battle.weather)) {
-                        logs.push(`<span style="color:#22c55e">🌿 暖湿气流阻止了冰冻！</span>`);
-                        console.log(`[GALE] ❄️ 极速解冻：阻止冰冻附加效果`);
-                    } else if (!target.status) {
+                    // 【环境图层系统】检查状态阻止
+                    let statusPrevented = false;
+                    if (typeof window !== 'undefined' && window.envOverlay) {
+                        statusPrevented = window.envOverlay.isStatusPrevented(target, s);
+                        if (statusPrevented) {
+                            const statusName = window.envOverlay._getStatusName ? window.envOverlay._getStatusName(s) : s;
+                            logs.push(`<span style="color:#3b82f6">环境效果阻止了${statusName}状态！</span>`);
+                            console.log(`[ENV OVERLAY] 状态阻止: ${s} (${statusName})`);
+                        }
+                    }
+                    if (!statusPrevented && !target.status) {
                         if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
                             const result = MoveEffects.tryInflictStatus(target, s, user, battle);
                             if (result.success) {
@@ -368,33 +368,17 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     
     // =========================================================
     // 【Stench 恶臭】特性 - 攻击招式 10% 畏缩
-    // 【Smog 专用】在烟霾天气下，畏缩率提升至 30%
     // =========================================================
     if (damageDealt > 0 && userAbilityId === 'stench' && !hasCovertCloak) {
-        // 检查目标是否有精神力等免疫畏缩的特性
         const targetAbilityId = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
         const immuneToFlinch = ['innerfocus', 'shielddust'].includes(targetAbilityId);
         
         if (!immuneToFlinch) {
-            // 基础畏缩率 10%，Smog 下提升至 30%
-            let flinchChance = 0.10;
-            const currentWeather = battle?.weather || (typeof window !== 'undefined' && window.battle?.weather);
-            
-            if (currentWeather && typeof window !== 'undefined' && window.WeatherEffects) {
-                const abilityBoost = window.WeatherEffects.getAbilityWeatherBoost(currentWeather, 'stench');
-                if (abilityBoost && abilityBoost.type === 'flinchChance') {
-                    flinchChance = abilityBoost.value;
-                }
-            }
-            
+            const flinchChance = 0.10;
             if (Math.random() < flinchChance) {
                 target.volatile = target.volatile || {};
                 target.volatile.flinch = true;
-                if (flinchChance > 0.10) {
-                    logs.push(`<span style="color:#9b59b6">🏭 ${user.cnName} 的恶臭在烟霾中更加刺鼻！${target.cnName} 畏缩了！</span>`);
-                } else {
-                    logs.push(`${user.cnName} 的恶臭让 ${target.cnName} 畏缩了！`);
-                }
+                logs.push(`${user.cnName} 的恶臭让 ${target.cnName} 畏缩了！`);
             }
         }
     }
@@ -441,13 +425,21 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     
     // ========== 2. 吸血 (Drain) - 先于反伤结算 ==========
     // 【Gen 9 正确顺序】吸血回复应在生命宝珠反伤之前结算
-    // 【Smog 化学屏障】吸血回复也受减半影响（通过 user.heal() 自动应用）
     if (fullMoveData.drain && damageDealt > 0) {
         const [num, den] = fullMoveData.drain;
-        const baseHeal = Math.max(1, Math.floor(damageDealt * num / den));
+        let baseHeal = Math.max(1, Math.floor(damageDealt * num / den));
+        
+        // 【环境图层系统】吸血效率修正
+        if (typeof window !== 'undefined' && window.envOverlay) {
+            const drainMod = window.envOverlay.getDrainMod(user, move);
+            if (drainMod !== 1) {
+                baseHeal = Math.floor(baseHeal * drainMod);
+                console.log(`[ENV OVERLAY] 吸血效率修正: x${drainMod}`);
+            }
+        }
+        
         const maxHeal = user.maxHp - user.currHp;
         if (maxHeal > 0) {
-            // heal() 返回实际回复量（已应用 Smog 减半）
             const actualHeal = (typeof user.heal === 'function') ? user.heal(baseHeal) : Math.min(baseHeal, maxHeal);
             if (actualHeal > 0) {
                 logs.push(`${user.cnName} 吸取了对手的体力!`);
@@ -457,7 +449,16 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         const drainPatches = (typeof DRAIN_MOVES !== 'undefined') ? DRAIN_MOVES : {};
         if (drainPatches[move.name]) {
             const [num, den] = drainPatches[move.name];
-            const baseHeal = Math.max(1, Math.floor(damageDealt * num / den));
+            let baseHeal = Math.max(1, Math.floor(damageDealt * num / den));
+            
+            // 【环境图层系统】吸血效率修正
+            if (typeof window !== 'undefined' && window.envOverlay) {
+                const drainMod = window.envOverlay.getDrainMod(user, move);
+                if (drainMod !== 1) {
+                    baseHeal = Math.floor(baseHeal * drainMod);
+                }
+            }
+            
             const maxHeal = user.maxHp - user.currHp;
             if (maxHeal > 0) {
                 const actualHeal = (typeof user.heal === 'function') ? user.heal(baseHeal) : Math.min(baseHeal, maxHeal);
@@ -482,7 +483,17 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     if (!noRecoilAbility && !noIndirectDamage) {
         if (fullMoveData.recoil && damageDealt > 0) {
             const [num, den] = fullMoveData.recoil;
-            const recoilDmg = Math.max(1, Math.floor(damageDealt * num / den));
+            let recoilDmg = Math.max(1, Math.floor(damageDealt * num / den));
+            
+            // 【环境图层系统】反伤修正
+            if (typeof window !== 'undefined' && window.envOverlay) {
+                const recoilMod = window.envOverlay.getRecoilMod(user, move);
+                if (recoilMod !== 1) {
+                    recoilDmg = Math.max(1, Math.floor(recoilDmg * recoilMod));
+                    console.log(`[ENV OVERLAY] 反伤修正: x${recoilMod}`);
+                }
+            }
+            
             user.takeDamage(recoilDmg);
             logs.push(`${user.cnName} 受到了 ${recoilDmg} 点反作用力伤害!`);
         } else if (damageDealt > 0) {
@@ -513,35 +524,26 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     
     // ========== 4. 特殊技能效果 ==========
     
-    // 【Ashfall 灼热大地】地面招式 20% 灼伤
-    // 【修复】确保 moveType 有效，优先使用 move.type，回退到 fullMoveData.type
-    const effectiveMoveType = move.type || fullMoveData.type || 'Normal';
-    if (damageDealt > 0 && !target.status && typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getScorchedEarthBurnChance) {
-        const burnChance = window.WeatherEffects.getScorchedEarthBurnChance(window.battle.weather, effectiveMoveType, target);
-        if (burnChance > 0) {
-            console.log(`[ASHFALL] 🔥 灼热大地判定：${move.name} (${effectiveMoveType}) 对 ${target.cnName}，灼伤几率=${(burnChance * 100).toFixed(0)}%`);
+    // 【环境图层系统】检查环境状态施加 (基于技能类型)
+    // 注意：需要传入完整的技能数据（包含 type），用于 MoveType:X 规则匹配
+    if (damageDealt > 0 && !target.status && typeof window !== 'undefined' && window.envOverlay) {
+        const moveWithType = { ...move, type: move.type || fullMoveData.type || 'Normal' };
+        const statusResult = window.envOverlay.tryInflictStatus(target, moveWithType);
+        if (statusResult && statusResult.applied) {
+            target.status = statusResult.status;
+            target.statusTurns = 0;
+            logs.push(`<span style="color:#e74c3c">${statusResult.log}</span>`);
+            console.log(`[ENV OVERLAY] 环境状态施加: ${statusResult.status} (技能类型: ${moveWithType.type})`);
         }
-        if (burnChance > 0 && Math.random() < burnChance) {
-            // 检查灼伤免疫
-            const targetTypes = target.types || [];
-            const targetAbility = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-            // 【Gale 过和湿气】阻止灼伤
-            const galePrevents = window.WeatherEffects?.doesSaturatedAirPreventBurn?.(window.battle.weather);
-            const immuneToBurn = targetTypes.includes('Fire') || 
-                                 targetAbility === 'waterveil' || 
-                                 targetAbility === 'waterbubble' ||
-                                 targetAbility === 'thermalexchange' ||
-                                 galePrevents;
-            if (galePrevents) {
-                logs.push(`<span style="color:#3b82f6">💧 空气过于潮湿，无法引燃！</span>`);
-                console.log(`[GALE] 💧 过和湿气：阻止灼伤`);
-            }
-            if (!immuneToBurn) {
-                target.status = 'brn';
-                target.statusTurns = 0;
-                logs.push(`<span style="color:#e74c3c">🌋 灼热的大地烧伤了 ${target.cnName}!</span>`);
-                console.log(`[ASHFALL] 🔥 灼热大地：${target.cnName} 被灼伤 (${(burnChance * 100).toFixed(0)}% 几率)`);
-            }
+    }
+    
+    // 【环境图层系统】检查环境反伤 (对攻击方造成概率反伤)
+    if (damageDealt > 0 && user.isAlive() && typeof window !== 'undefined' && window.envOverlay) {
+        const moveWithData = { ...move, type: move.type || fullMoveData.type || 'Normal', flags: move.flags || fullMoveData.flags || {} };
+        const recoilResult = window.envOverlay.tryApplyEnvRecoil(user, moveWithData);
+        if (recoilResult && recoilResult.applied) {
+            user.takeDamage(recoilResult.damage);
+            logs.push(`<span style="color:#a855f7">🌍 ${recoilResult.log}</span>`);
         }
     }
     

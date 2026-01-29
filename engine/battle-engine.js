@@ -1010,17 +1010,16 @@ export class Pokemon {
     }
     
     // 回复
-    // 【Smog 专用】化学屏障 - 所有回复效果减半
+    // 【环境图层系统】应用回复修正
     heal(amount, options = {}) {
         let finalAmount = amount;
         
-        // 检查天气回复减半（Smog 化学屏障）
-        // options.bypassWeather = true 可以跳过（用于治愈之愿等更替技能）
-        if (!options.bypassWeather && typeof window !== 'undefined' && window.battle && window.WeatherEffects) {
-            const healMult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
-            if (healMult < 1) {
+        // 应用环境图层回复修正
+        if (!options.bypassEnv && typeof window !== 'undefined' && window.envOverlay) {
+            const healMult = window.envOverlay.getHealMod(this);
+            if (healMult !== 1) {
                 finalAmount = Math.floor(amount * healMult);
-                console.log(`[SMOG] 🏭 化学屏障：回复量 ${amount} -> ${finalAmount} (x${healMult})`);
+                console.log(`[ENV OVERLAY] 回复修正：${amount} -> ${finalAmount} (x${healMult})`);
             }
         }
         
@@ -1280,12 +1279,12 @@ export function checkCanMove(pokemon, move = null) {
     
     // 4. 冰冻 (Frozen) - 20% 几率解冻，否则无法行动
     if (pokemon.status === 'frz') {
-        // 4a. 【Gale 极速解冻】香风天气下立即解冻
-        if (typeof window !== 'undefined' && window.battle && 
-            typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkRapidThawCure) {
-            const thawResult = window.WeatherEffects.checkRapidThawCure(window.battle.weather, pokemon);
-            if (thawResult.thawed) {
-                return { can: true, msg: thawResult.message };
+        // 4a. 【环境图层系统】检查环境是否治愈冰冻
+        if (typeof window !== 'undefined' && window.envOverlay) {
+            const statusEffects = window.envOverlay.getStatusEffects(pokemon);
+            if (statusEffects.cureStatus.includes('freeze') || statusEffects.cureStatus.includes('frz')) {
+                pokemon.status = null;
+                return { can: true, msg: `<span style="color:#22c55e">🌿 环境效果融化了 ${pokemon.cnName} 身上的冰块！</span>` };
             }
         }
         

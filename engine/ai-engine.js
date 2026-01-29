@@ -1422,11 +1422,11 @@ function getEffectiveSpeed(pokemon) {
         spe = Math.floor(spe * 0.5);
     }
     
-    // 【Ashfall 积灰迟滞】接地宝可梦速度降低
-    if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getAshfallSpeedMultiplier) {
-        const ashfallMult = window.WeatherEffects.getAshfallSpeedMultiplier(pokemon, window.battle.weather);
-        if (ashfallMult < 1) {
-            spe = Math.floor(spe * ashfallMult);
+    // 【环境图层系统】速度修正
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        const envSpeMult = window.envOverlay.getStatMod(pokemon, 'spe');
+        if (envSpeMult !== 1) {
+            spe = Math.floor(spe * envSpeMult);
         }
     }
     

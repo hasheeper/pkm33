@@ -22,7 +22,7 @@
 // ============================================
 
 /**
- * 【统一回复函数】处理 HP 回复，自动应用 Smog 减半效果和环境图层修正
+ * 【统一回复函数】处理 HP 回复，自动应用环境图层修正
  * @param {Pokemon} pokemon 要回复的宝可梦
  * @param {number} baseAmount 基础回复量
  * @param {string} source 回复来源（用于日志）
@@ -42,16 +42,7 @@ function applyHeal(pokemon, baseAmount, source = 'move') {
     // Fallback: 手动应用修正
     let actualHeal = baseAmount;
     
-    // 1. 天气修正 (Smog)
-    if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getHealingMultiplier) {
-        const weatherMult = window.WeatherEffects.getHealingMultiplier(window.battle.weather);
-        if (weatherMult !== 1) {
-            actualHeal = Math.floor(actualHeal * weatherMult);
-            console.log(`[SMOG] 🏭 化学屏障：回复量 ${baseAmount} -> ${actualHeal} (x${weatherMult})`);
-        }
-    }
-    
-    // 2. 环境图层修正
+    // 环境图层修正
     if (typeof window !== 'undefined' && window.envOverlay?.getHealMod) {
         const envMult = window.envOverlay.getHealMod(pokemon);
         if (envMult !== 1) {

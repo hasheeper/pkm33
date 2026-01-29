@@ -8610,39 +8610,21 @@ if (typeof window !== 'undefined') {
     const trainerProficiency = Math.min(255, Math.max(0, Math.max(eraProficiency, resolvedProficiency)));
 
     // === 处理环境配置 ===
-    // 优先级: AI 传入的 environment > ERA weather_grid
+    // 合并逻辑:
+    //   - AI 指定 weather → 使用 AI 的天气
+    //   - AI 没指定 weather → 从 ERA weather_grid 补充
+    //   - AI 指定 overlay → 始终保留（与天气来源无关）
     const eraVars = await getEraVars();
     let environmentConfig = null;
     
-    // 1. 检查 AI 是否传入了自定义环境 (包含 overlay)
-    if (aiBattleData.environment) {
-      environmentConfig = {
-        weather: aiBattleData.environment.weather || null,
-        weatherTurns: aiBattleData.environment.weatherTurns || 0
-      };
-      
-      // 处理环境图层 (overlay)
-      if (aiBattleData.environment.overlay) {
-        environmentConfig.overlay = aiBattleData.environment.overlay;
-        console.log(`${PLUGIN_NAME} [ENV OVERLAY] AI 传入自定义环境: ${environmentConfig.overlay.env_name}`);
-        console.log(`${PLUGIN_NAME} [ENV OVERLAY] 规则数: ${environmentConfig.overlay.rules?.length || 0}`);
-      }
-      
-      // 添加 suppression（如果有）
-      if (aiBattleData.environment.suppression) {
-        environmentConfig.suppression = aiBattleData.environment.suppression;
-      }
-      
-      console.log(`${PLUGIN_NAME} [ENVIRONMENT] AI 传入环境配置:`, environmentConfig);
-    }
-    // 2. 如果 AI 没有传入，从 ERA weather_grid 读取
-    else if (eraVars) {
-      // 获取当前位置
+    // 1. 从 ERA weather_grid 获取当前位置天气
+    let eraWeather = null;
+    let eraSuppression = null;
+    if (eraVars) {
       const locationData = getEraValue(eraVars, 'world_state.location', null);
       const weatherGrid = getEraValue(eraVars, 'world_state.weather_grid', null);
       
       if (locationData && weatherGrid && typeof locationData.x === 'number') {
-        // 计算格子键（与 tavern-inject.js 一致）
         const MAP_CENTER_X = 26;
         const MAP_CENTER_Y = 26;
         let gx = locationData.x;
@@ -8656,20 +8638,44 @@ if (typeof window !== 'undefined') {
         const gridWeather = weatherGrid[gridKey];
         
         if (gridWeather) {
-          // 按 ENVIRONMENT_WEATHER_FORMAT.md 格式构建 environment
-          environmentConfig = {
-            weather: gridWeather.weather,
-            weatherTurns: 0
-          };
-          
-          // 添加 suppression（如果有）
-          if (gridWeather.suppression) {
-            environmentConfig.suppression = gridWeather.suppression;
-          }
-          
-          console.log(`${PLUGIN_NAME} [WEATHER] 当前格子天气: ${gridWeather.weather} @ ${gridKey}`);
+          eraWeather = gridWeather.weather;
+          eraSuppression = gridWeather.suppression || null;
+          console.log(`${PLUGIN_NAME} [ERA WEATHER] 当前格子天气: ${eraWeather} @ ${gridKey}`);
         }
       }
+    }
+    
+    // 2. 构建最终环境配置
+    const aiEnv = aiBattleData.environment || {};
+    
+    // 天气优先级: AI 指定有效天气 > ERA weather_grid
+    // 注意: AI 传入 null 视为"未指定"，应从 ERA 补充
+    const finalWeather = aiEnv.weather ? aiEnv.weather : eraWeather;
+    const finalWeatherTurns = aiEnv.weatherTurns || 0;
+    const finalSuppression = aiEnv.suppression || eraSuppression;
+    
+    // 只要有天气或 overlay，就创建 environmentConfig
+    if (finalWeather || aiEnv.overlay) {
+      environmentConfig = {
+        weather: finalWeather,
+        weatherTurns: finalWeatherTurns
+      };
+      
+      // 保留 AI 传入的 overlay（自定义场地规则）
+      if (aiEnv.overlay) {
+        environmentConfig.overlay = aiEnv.overlay;
+        console.log(`${PLUGIN_NAME} [ENV OVERLAY] AI 传入自定义环境: ${aiEnv.overlay.env_name}`);
+        console.log(`${PLUGIN_NAME} [ENV OVERLAY] 规则数: ${aiEnv.overlay.rules?.length || 0}`);
+      }
+      
+      // 添加 suppression
+      if (finalSuppression) {
+        environmentConfig.suppression = finalSuppression;
+      }
+      
+      // 日志：显示最终配置来源
+      const weatherSource = aiEnv.weather !== undefined ? 'AI' : (eraWeather ? 'ERA' : 'none');
+      console.log(`${PLUGIN_NAME} [ENVIRONMENT] 最终配置 - 天气: ${finalWeather || 'none'} (来源: ${weatherSource}), overlay: ${aiEnv.overlay ? 'AI' : 'none'}`);
     }
 
     // 构建最终的战斗 JSON（前端 player/enemy 格式）

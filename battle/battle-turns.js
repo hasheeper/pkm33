@@ -630,10 +630,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
             // 毒疗：回复 1/8 HP
             const baseHeal = Math.max(1, Math.floor(poke.maxHp / 8));
             let actualHeal = baseHeal;
-            // 【Smog 化学屏障】使用统一治愈函数
-            if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
-                actualHeal = window.WeatherEffects.applyHeal(poke, baseHeal, { source: 'Poison Heal' });
-            } else if (typeof poke.heal === 'function') {
+            if (typeof poke.heal === 'function') {
                 actualHeal = poke.heal(baseHeal);
             } else {
                 poke.currHp = Math.min(poke.maxHp, poke.currHp + baseHeal);
@@ -652,21 +649,27 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     }
 
     // ----------------------------------------
-    // 3. 寄生种子 (Leech Seed): 被对方吸血 1/8 (Gale: 1/6)
+    // 3. 寄生种子 (Leech Seed): 被对方吸血 1/8
     // ----------------------------------------
     if (poke.volatile && poke.volatile['leechseed'] && opponent && opponent.isAlive()) {
-        // 【Gale 生机传导】寄生种子伤害从 1/8 提升至 1/6
-        let leechRatio = 1/8;
-        if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getVitalitySurgeLeechSeedRatio) {
-            leechRatio = window.WeatherEffects.getVitalitySurgeLeechSeedRatio(window.battle.weather);
+        const baseDrain = Math.max(1, Math.floor(poke.maxHp / 8));
+        let actualHeal = baseDrain;
+        
+        // 【环境图层系统】吸血效率修正
+        if (typeof window !== 'undefined' && window.envOverlay) {
+            const drainMod = window.envOverlay.getDrainMod(opponent, null);
+            if (drainMod !== 1) {
+                actualHeal = Math.max(1, Math.floor(baseDrain * drainMod));
+                console.log(`[ENV OVERLAY] 寄生种子吸血效率修正: ${baseDrain} × ${drainMod} = ${actualHeal}`);
+            }
         }
-        const drain = Math.max(1, Math.floor(poke.maxHp * leechRatio));
-        poke.takeDamage(drain);
-        opponent.heal(drain);
-        if (leechRatio > 1/8) {
-            logs.push(`<span style="color:#22c55e">🌿 ${poke.cnName} 的体力被强化的寄生种子吸取了! (-${drain})</span>`);
+        
+        poke.takeDamage(baseDrain);
+        opponent.heal(actualHeal);
+        if (actualHeal !== baseDrain) {
+            logs.push(`${poke.cnName} 的体力被寄生种子吸取了! (-${baseDrain}, 回复${actualHeal})`);
         } else {
-            logs.push(`${poke.cnName} 的体力被寄生种子吸取了! (-${drain})`);
+            logs.push(`${poke.cnName} 的体力被寄生种子吸取了! (-${baseDrain})`);
         }
     }
 
@@ -762,18 +765,28 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     }
 
     // ----------------------------------------
-    // 8.5 【环境图层系统】HP 跳动
+    // 8.5 【环境图层系统】HP 跳动 + 状态治愈
     // ----------------------------------------
     if (typeof window !== 'undefined' && window.envOverlay) {
         const envResult = window.envOverlay.processTurnEnd(poke);
+        
+        // HP 变化
         if (envResult.hpChange !== 0) {
             if (envResult.hpChange > 0) {
                 poke.heal(envResult.hpChange);
             } else {
                 poke.takeDamage(Math.abs(envResult.hpChange));
             }
-            envResult.logs.forEach(log => logs.push(`<span style="color:#a855f7">🌍 ${log}</span>`));
         }
+        
+        // 状态治愈
+        if (envResult.curedStatus) {
+            poke.status = null;
+            poke.statusTurns = 0;
+        }
+        
+        // 输出日志
+        envResult.logs.forEach(log => logs.push(`<span style="color:#a855f7">🌍 ${log}</span>`));
     }
 
     // ----------------------------------------
@@ -939,9 +952,8 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
                 if (itemId === 'sitrusberry') {
                     const baseHeal = Math.floor(poke.maxHp * 0.25);
                     let actualHeal = baseHeal;
-                    // 【Smog 化学屏障】使用统一治愈函数
-                    if (typeof window !== 'undefined' && window.WeatherEffects?.applyHeal) {
-                        actualHeal = window.WeatherEffects.applyHeal(poke, baseHeal, { source: 'Cud Chew Sitrus' });
+                    if (typeof poke.heal === 'function') {
+                        actualHeal = poke.heal(baseHeal);
                     } else {
                         poke.currHp = Math.min(poke.maxHp, poke.currHp + baseHeal);
                     }

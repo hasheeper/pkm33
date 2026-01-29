@@ -183,231 +183,10 @@ export const WEATHER_CONFIG = {
         visualKey: 'deltastream'
     },
     
-    // ========== 区域天气 (Regional Weather) ==========
-    // N区 - Neon 需虹区
-    
-    smog: {
-        name: '烟霾',
-        icon: '🏭',
-        isRegional: true,  // 区域天气标记
-        
-        // A. 呼吸道腐蚀 (Respiratory Breakdown)
-        // 回合末伤害 1/16 HP
-        endTurnDamage: {
-            fraction: 1/16,
-            immuneTypes: ['Poison', 'Steel', 'Electric'],  // 毒/钢/电免疫
-            immuneAbilities: ['overcoat', 'magicguard', 'whitesmoke', 'clearbody', 'fullmetalbody']  // 防尘/魔防/白色烟雾/清净之躯
-        },
-        
-        // D. 易爆气体 (Volatile Fumes)
-        // 火系威力 x1.2，但有 10% 反冲
-        powerModifiers: {
-            Fire: 1.2
-        },
-        
-        // 特殊效果
-        effects: {
-            // B. 化学屏障 (Chemical Inertia) - 回复效果减半
-            healingReduction: 0.5,
-            
-            // C. 腐蚀气体 (Toxic Rain) - 气体/粉尘招式必中
-            gasMovesAlwaysHit: true,
-            
-            // D. 火系反冲
-            fireRecoilPercent: 0.10,  // 10% 反冲
-            
-            // 天气球变为毒系
-            weatherBallType: 'Poison',
-            weatherBallPower: 100,
-            
-            // 特性增强
-            stenchFlinchBoost: 0.30,  // 恶臭畸缩率提升至 30%
-        },
-        
-        visualKey: 'smog'
-    },
-    
-    // ========== A区 - Apex 极诣区 ==========
-    // 火山灰天气 - 地面 vs 空中 的二元对立
-    
-    ashfall: {
-        name: '火山灰',
-        icon: '🌋',
-        isRegional: true,  // 区域天气标记
-        
-        // A. 积灰迟滞 (Clogged Gears) - 核心 Debuff
-        // 接地宝可梦速度 x0.67，钢系 x0.5
-        effects: {
-            // 速度惩罚配置
-            cloggedGears: {
-                // 基础速度倍率（接地宝可梦）
-                baseSpeedMultiplier: 0.67,
-                // 钢系额外惩罚
-                steelSpeedMultiplier: 0.50,
-                // 免疫类型（不受速度惩罚）
-                immuneTypes: ['Flying', 'Fire', 'Rock', 'Ground'],
-                // 免疫特性
-                immuneAbilities: ['levitate', 'magicguard'],
-                // 免疫道具
-                immuneItems: ['airballoon']
-            },
-            
-            // B. 覆盖失效 (Blanketed) - 食用类道具失效
-            blanketed: true,  // 树果和剩饭失效
-            
-            // C. 灼热大地 (Scorched Earth) - 地面招式 20% 灼伤
-            scorchedEarth: {
-                burnChance: 0.20,  // 20% 灼伤几率
-                immuneTypes: ['Fire']  // 火系免疫灼伤
-            },
-            
-            // D. 扬尘暴击 (Dust Devil) - 岩石招式暴击+1
-            dustDevil: {
-                critBoost: 1  // 暴击率 +1 级
-            },
-            
-            // 天气球变为岩石系
-            weatherBallType: 'Rock',
-            weatherBallPower: 100
-        },
-        
-        visualKey: 'ashfall'
-    },
-    
-    // ========== S区 - Shadow 暗影区 ==========
-    // 暗影迷雾天气 - 鬼影幢幢、都市怪谈、偷袭
-    
-    fog: {
-        name: '暗影迷雾',
-        icon: '🌫️',
-        isRegional: true,  // 区域天气标记
-        
-        effects: {
-            // A. 视觉遮断 (Hazed Vision) - 命中率惩罚
-            hazedVision: {
-                // 命中率倍率 (非幽灵/恶系)
-                accuracyMultiplier: 0.8,
-                // 免疫类型（不受命中率惩罚）
-                immuneTypes: ['Ghost', 'Dark'],
-                // 免疫特性（锐利目光等）
-                immuneAbilities: ['keeneye', 'mindseye', 'victorystar']
-            },
-            
-            // B. 夜之民 (Nocturnal Predator) - 幽灵/恶系闪避+1
-            nocturnalPredator: {
-                // 受益类型
-                benefitTypes: ['Ghost', 'Dark'],
-                // 闪避等级加成
-                evasionBoost: 1
-            },
-            
-            // C. 必中技特化 (Guided Strike) - 必中技威力x1.25
-            guidedStrike: {
-                powerMultiplier: 1.25
-            },
-            
-            // D. 光线折射 (Refraction) - 光束类招式威力降低
-            refraction: {
-                // Solar Beam / Solar Blade: 威力 x0.5
-                solarMoves: {
-                    moves: ['solarbeam', 'solarblade'],
-                    powerMultiplier: 0.5
-                },
-                // 其他 Beam 类招式: 威力 x0.8
-                beamMoves: {
-                    // 招式名包含 "beam" 的（排除 Solar Beam）
-                    powerMultiplier: 0.8
-                }
-            },
-            
-            // 天气球变为幽灵系
-            weatherBallType: 'Ghost',
-            weatherBallPower: 100
-        },
-        
-        visualKey: 'fog'
-    },
-    
-    // ========== B区 - Bloom 盛放区 ==========
-    // 香风天气 - 湿润的热带飓风，充满花粉与生命力
-    // 莉佳 (Erika - 草) 和 露璃娜 (Nessa - 水) 的大本营
-    
-    gale: {
-        name: '香风',
-        icon: '🌸',
-        isRegional: true,  // 区域天气标记
-        
-        // 天气压制关系：与雨天兼容，压制晴天
-        suppressesSun: true,  // 压制晴天（太湿润了）
-        compatibleWith: ['rain'],  // 与雨天兼容
-        
-        effects: {
-            // A. 孢子传媒 (Pollen Carrier) - 粉末/孢子类招式必中+穿透替身
-            pollenCarrier: {
-                // 受影响的招式 flag
-                affectedFlags: ['powder'],
-                // 额外受影响的招式（气味类）
-                affectedMoves: [
-                    'sleeppowder', 'stunspore', 'poisonpowder', 'spore',
-                    'ragepowder', 'cottonspore', 'sweetscent', 'aromatherapy'
-                ],
-                // 效果：必中
-                alwaysHit: true,
-                // 效果：穿透替身
-                bypassSubstitute: true
-            },
-            
-            // B. 过和湿气 (Saturated Air) - 火系威力减半，无法灼伤
-            saturatedAir: {
-                // 火系威力倍率
-                firePowerMultiplier: 0.5,
-                // 阻止灼伤
-                preventBurn: true
-            },
-            
-            // C. 生机传导 (Vitality Surge) - 吸取类招式增强
-            vitalitySurge: {
-                // 吸取类招式威力倍率
-                drainPowerMultiplier: 1.2,
-                // 吸取回复比率 (原本50%，现在66%)
-                drainHealRatio: 2/3,
-                // 寄生种子伤害比率 (原本1/8，现在1/6)
-                leechSeedRatio: 1/6
-            },
-            
-            // D. 水汽对流 (Hydro-Lift) - 飞行系水属性进场速度+1
-            hydroLift: {
-                // 受益条件：水属性 + (飞行属性 或 漂浮特性)
-                benefitTypes: ['Water'],
-                requiresFlying: true,  // 需要飞行属性或漂浮
-                speedBoost: 1  // 进场速度+1
-            },
-            
-            // E. 飞叶风暴 (Razor Wind) - 草系切斩/风类招式暴击+1
-            razorWind: {
-                // 受益类型
-                benefitType: 'Grass',
-                // 受益 flag
-                benefitFlags: ['slicing', 'wind'],
-                // 暴击等级加成
-                critBoost: 1
-            },
-            
-            // G. 极速解冻 (Rapid Thaw) - 冰系防御降低，冰冻状态无效
-            rapidThaw: {
-                // 冰系防御倍率
-                iceDefenseMultiplier: 0.7,
-                // 冰冻状态自动解除
-                preventFreeze: true
-            },
-            
-            // 天气球变为草系
-            weatherBallType: 'Grass',
-            weatherBallPower: 100
-        },
-        
-        visualKey: 'gale'
-    },
+    // ========== 特殊环境天气 ==========
+    // 以下天气为硬编码的特殊环境，具有复杂的游戏机制
+    // 普通区域天气（如 Smog、Ashfall、Fog、Gale）已迁移至 AI 自定义 JSON 接口
+    // 参见 docs/ENVIRONMENT_OVERLAY_TEMPLATES.md 获取模板示例
     
     // ========== Ambrosia 神之琼浆 (C区 - 神秘区) ==========
     ambrosia: {
@@ -566,6 +345,79 @@ export const WEATHER_CONFIG = {
         },
         
         visualKey: 'chronalrift'
+    },
+    
+    // ========== 区域天气 (N/A/S/B) ==========
+    // 简化版：仅提供招式威力修正
+    
+    // N 区 (Neon) - Smog (烟霾) 🏭
+    // 【科技过载】电系和毒系招式威力 x1.3
+    smog: {
+        name: '烟霾',
+        icon: '🏭',
+        isEnvironmental: true,
+        powerModifiers: {
+            Electric: 1.3,
+            Poison: 1.3
+        },
+        effects: {
+            weatherBallType: 'Poison',
+            weatherBallPower: 100
+        },
+        visualKey: 'smog'
+    },
+    
+    // A 区 (Apex) - Ashfall (火山灰) 🌋
+    // 【极热荒原】火/地面威力 x1.3，冰系威力 x0.7
+    ashfall: {
+        name: '火山灰',
+        icon: '🌋',
+        isEnvironmental: true,
+        powerModifiers: {
+            Fire: 1.3,
+            Ground: 1.3,
+            Ice: 0.7
+        },
+        effects: {
+            weatherBallType: 'Fire',
+            weatherBallPower: 100
+        },
+        visualKey: 'ashfall'
+    },
+    
+    // B 区 (Bloom) - Gale (香风) 🌿
+    // 【原始增生】草/虫威力 x1.3，火系威力 x0.7
+    gale: {
+        name: '香风',
+        icon: '🌿',
+        isEnvironmental: true,
+        powerModifiers: {
+            Grass: 1.3,
+            Bug: 1.3,
+            Fire: 0.7
+        },
+        effects: {
+            weatherBallType: 'Grass',
+            weatherBallPower: 100
+        },
+        visualKey: 'gale'
+    },
+    
+    // S 区 (Shadow) - Fog (迷雾) 👻
+    // 【暗物质】幽灵/恶威力 x1.3
+    fog: {
+        name: '迷雾',
+        icon: '👻',
+        isEnvironmental: true,
+        powerModifiers: {
+            Ghost: 1.3,
+            Dark: 1.3
+        },
+        effects: {
+            weatherBallType: 'Ghost',
+            weatherBallPower: 100
+        },
+        visualKey: 'fog'
     }
 };
 
@@ -974,76 +826,22 @@ export function applyHeal(pokemon, baseAmount, options = {}) {
     return actualHeal;
 }
 
-/**
- * 检查招式是否在当前天气下必中
- * 【Smog 专用】腐蚀气体 - 气体/粉尘招式必中
- * @param {string} weather 天气 ID
- * @param {object} move 招式对象
- * @returns {boolean}
- */
-export function isGasMoveGuaranteedHit(weather, move) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.gasMovesAlwaysHit) return false;
-    
-    // 检查是否为气体/粉尘类招式
-    const moveId = (move.name || '').toLowerCase().replace(/[^a-z]/g, '');
-    const gasMoves = [
-        'toxic', 'poisongas', 'sleeppowder', 'stunspore', 'poisonpowder',
-        'spore', 'ragepowder', 'cottonspore', 'smog', 'clearsmog',
-        'acidspray', 'venomdrench', 'gastroacid'
-    ];
-    
-    // 也检查 flags.powder
-    if (move.flags?.powder) return true;
-    
-    return gasMoves.includes(moveId);
-}
-
-/**
- * 获取天气对火系招式的反冲比例
- * 【Smog 专用】易爆气体 - 火系招式 10% 反冲
- * @param {string} weather 天气 ID
- * @param {string} moveType 招式属性
- * @returns {number} 反冲比例 (0 = 无反冲)
- */
-export function getWeatherRecoilPercent(weather, moveType) {
-    const config = getWeatherConfig(weather);
-    if (moveType === 'Fire' && config?.effects?.fireRecoilPercent) {
-        return config.effects.fireRecoilPercent;
-    }
-    return 0;
-}
-
-/**
- * 获取特性在当前天气下的增强效果
- * 【Smog 专用】恶臭特性畸缩率提升至 30%
- * @param {string} weather 天气 ID
- * @param {string} abilityId 特性 ID
- * @returns {object|null} 增强效果配置
- */
-export function getAbilityWeatherBoost(weather, abilityId) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects) return null;
-    
-    const ability = abilityId.toLowerCase().replace(/[^a-z]/g, '');
-    
-    // Smog: 恶臭特性畸缩率提升
-    if (ability === 'stench' && config.effects.stenchFlinchBoost) {
-        return {
-            type: 'flinchChance',
-            value: config.effects.stenchFlinchBoost
-        };
-    }
-    
-    return null;
-}
-
 // ============================================
-// Ashfall 专用函数 (火山灰天气)
+// 区域天气专用函数已迁移至 Environment Overlay API
+// 参见: systems/environment-overlay.js
+// 文档: docs/ENVIRONMENT_OVERLAY_TEMPLATES.md
+// 
+// 已删除的硬编码天气函数：
+// - Smog (烟霾) 相关函数
+// - Ashfall (火山灰) 相关函数
+// - Shadow Fog (暗影迷雾) 相关函数
+// - Gale (香风) 相关函数
+// 
+// 这些天气效果现在通过 environment.overlay 系统实现
 // ============================================
 
 /**
- * 检查宝可梦是否接地（受积灰迟滞影响）
+ * 检查宝可梦是否接地（通用函数，用于地面招式判定等）
  * @param {object} pokemon 宝可梦对象
  * @returns {boolean} 是否接地
  */
@@ -1072,469 +870,10 @@ export function isGrounded(pokemon) {
     return true;
 }
 
-/**
- * 获取 Ashfall 积灰迟滞的速度倍率
- * @param {object} pokemon 宝可梦对象
- * @param {string} weather 天气 ID
- * @returns {number} 速度倍率 (1 = 无修正)
- */
-export function getAshfallSpeedMultiplier(pokemon, weather) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.cloggedGears) return 1;
-    
-    const cg = config.effects.cloggedGears;
-    const types = pokemon.types || [];
-    const abilityId = (pokemon.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-    const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    
-    // 检查免疫类型
-    for (const immuneType of (cg.immuneTypes || [])) {
-        if (types.includes(immuneType)) return 1;
-    }
-    
-    // 检查免疫特性
-    if ((cg.immuneAbilities || []).includes(abilityId)) return 1;
-    
-    // 检查免疫道具
-    if ((cg.immuneItems || []).includes(itemId)) return 1;
-    
-    // 检查是否接地
-    if (!isGrounded(pokemon)) return 1;
-    
-    // 钢系特殊惩罚（无火/地/岩副属性）
-    if (types.includes('Steel')) {
-        const hasImmuneSubtype = types.some(t => ['Fire', 'Ground', 'Rock'].includes(t));
-        if (!hasImmuneSubtype) {
-            console.log(`[ASHFALL] ⚙️ 积灰迟滞：${pokemon.cnName || pokemon.name} 钢系速度 x${cg.steelSpeedMultiplier}`);
-            return cg.steelSpeedMultiplier;
-        }
-    }
-    
-    // 普通接地惩罚
-    console.log(`[ASHFALL] 🌋 积灰迟滞：${pokemon.cnName || pokemon.name} 速度 x${cg.baseSpeedMultiplier}`);
-    return cg.baseSpeedMultiplier;
-}
-
-/**
- * 检查道具是否被 Ashfall 覆盖失效
- * @param {string} itemId 道具 ID
- * @param {string} weather 天气 ID
- * @returns {boolean} 是否失效
- */
-export function isItemBlanketed(itemId, weather) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.blanketed) return false;
-    
-    const id = (itemId || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    
-    // 树果类全部失效
-    if (id.endsWith('berry')) return true;
-    
-    // 剩饭失效
-    if (id === 'leftovers') return true;
-    
-    // 黑色淤泥失效
-    if (id === 'blacksludge') return true;
-    
-    return false;
-}
-
-/**
- * 获取 Ashfall 灼热大地的灼伤几率
- * @param {string} weather 天气 ID
- * @param {string} moveType 招式属性
- * @param {object} target 目标宝可梦
- * @returns {number} 灼伤几率 (0-1)
- */
-export function getScorchedEarthBurnChance(weather, moveType, target) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.scorchedEarth) return 0;
-    if (moveType !== 'Ground') return 0;
-    
-    const se = config.effects.scorchedEarth;
-    const targetTypes = target?.types || [];
-    
-    // 火系免疫灼伤
-    for (const immuneType of (se.immuneTypes || [])) {
-        if (targetTypes.includes(immuneType)) return 0;
-    }
-    
-    return se.burnChance || 0;
-}
-
-/**
- * 获取 Ashfall 扬尘暴击的暴击加成
- * @param {string} weather 天气 ID
- * @param {string} moveType 招式属性
- * @returns {number} 暴击等级加成
- */
-export function getDustDevilCritBoost(weather, moveType) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.dustDevil) return 0;
-    if (moveType !== 'Rock') return 0;
-    
-    return config.effects.dustDevil.critBoost || 0;
-}
-
 // ============================================
-// Shadow Fog (暗影迷雾) 辅助函数
+// Gale 极速解冻已迁移至 Environment Overlay API
+// 使用 envOverlay.getStatusEffects().cureStatus 检查
 // ============================================
-
-/**
- * 获取 Shadow Fog 视觉遮断的命中率倍率
- * @param {string} weather 天气 ID
- * @param {object} attacker 攻击方宝可梦
- * @returns {number} 命中率倍率 (1 = 无修正, 0.8 = 降低)
- */
-export function getHazedVisionAccuracyMultiplier(weather, attacker) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.hazedVision) return 1;
-    
-    const hv = config.effects.hazedVision;
-    const attackerTypes = attacker?.types || [];
-    const attackerAbility = (attacker?.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-    
-    // 检查类型免疫
-    for (const immuneType of (hv.immuneTypes || [])) {
-        if (attackerTypes.includes(immuneType)) {
-            console.log(`[FOG] 👁️ ${attacker?.cnName || attacker?.name} 是${immuneType}系，免疫视觉遮断`);
-            return 1;
-        }
-    }
-    
-    // 检查特性免疫
-    if ((hv.immuneAbilities || []).includes(attackerAbility)) {
-        console.log(`[FOG] 👁️ ${attacker?.cnName || attacker?.name} 的特性免疫视觉遮断`);
-        return 1;
-    }
-    
-    return hv.accuracyMultiplier || 1;
-}
-
-/**
- * 获取 Shadow Fog 夜之民的闪避加成
- * @param {string} weather 天气 ID
- * @param {object} defender 防御方宝可梦
- * @returns {number} 闪避等级加成 (0 = 无加成)
- */
-export function getNocturnalPredatorEvasionBoost(weather, defender) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.nocturnalPredator) return 0;
-    
-    const np = config.effects.nocturnalPredator;
-    const defenderTypes = defender?.types || [];
-    
-    // 检查是否为受益类型
-    for (const benefitType of (np.benefitTypes || [])) {
-        if (defenderTypes.includes(benefitType)) {
-            console.log(`[FOG] 🌙 ${defender?.cnName || defender?.name} 是${benefitType}系，获得夜之民闪避加成 +${np.evasionBoost}`);
-            return np.evasionBoost || 0;
-        }
-    }
-    
-    return 0;
-}
-
-/**
- * 获取 Shadow Fog 必中技特化的威力倍率
- * @param {string} weather 天气 ID
- * @param {object} move 招式数据
- * @returns {number} 威力倍率 (1 = 无修正, 1.25 = 增强)
- */
-export function getGuidedStrikePowerMultiplier(weather, move) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.guidedStrike) return 1;
-    
-    // 【修复】从 MOVES 数据中获取完整招式信息
-    const moveId = (move?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : null;
-    
-    // 检查是否为必中技 (accuracy === true)
-    const isAlwaysHit = fullMoveData?.accuracy === true || move?.accuracy === true;
-    
-    if (isAlwaysHit) {
-        // 排除变化技（威力为0的招式不加成）
-        const basePower = fullMoveData?.basePower || move?.basePower || 0;
-        if (basePower > 0) {
-            console.log(`[FOG] 🎯 必中技检测：${move.name} (${moveId}) accuracy=true, basePower=${basePower}`);
-            return config.effects.guidedStrike.powerMultiplier || 1;
-        }
-    }
-    
-    return 1;
-}
-
-/**
- * 获取 Shadow Fog 光线折射的威力倍率
- * @param {string} weather 天气 ID
- * @param {object} move 招式数据
- * @returns {number} 威力倍率 (1 = 无修正, 0.5/0.8 = 降低)
- */
-export function getRefractionPowerMultiplier(weather, move) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.refraction) return 1;
-    
-    const ref = config.effects.refraction;
-    // 【修复】使用招式 ID 匹配（moves-data.js 的 key 如 icebeam, hyperbeam）
-    const moveId = (move?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    
-    // 检查 Solar Beam / Solar Blade (x0.5)
-    if (ref.solarMoves && (ref.solarMoves.moves || []).includes(moveId)) {
-        console.log(`[FOG] 🔦 光线折射：${move.name} 威力 x${ref.solarMoves.powerMultiplier}`);
-        return ref.solarMoves.powerMultiplier || 1;
-    }
-    
-    // 【修复】检查其他 Beam 类招式 - 用招式 ID 匹配（icebeam, hyperbeam, chargebeam 等）
-    if (ref.beamMoves && moveId.includes('beam')) {
-        console.log(`[FOG] 🔦 光线折射：${move.name} (${moveId}) 威力 x${ref.beamMoves.powerMultiplier}`);
-        return ref.beamMoves.powerMultiplier || 1;
-    }
-    
-    return 1;
-}
-
-/**
- * 检查攻击者是否免疫 Shadow Fog 的命中率惩罚
- * @param {string} weather 天气 ID
- * @param {object} attacker 攻击方宝可梦
- * @returns {boolean} 是否免疫
- */
-export function isImmuneToHazedVision(weather, attacker) {
-    return getHazedVisionAccuracyMultiplier(weather, attacker) >= 1;
-}
-
-// ============================================
-// Gale (香风 - B区盛放区) 辅助函数
-// ============================================
-
-/**
- * 检查招式是否受孢子传媒影响（必中+穿透替身）
- * @param {string} weather 天气 ID
- * @param {object} move 招式数据
- * @returns {{ alwaysHit: boolean, bypassSub: boolean }}
- */
-export function getPollenCarrierEffect(weather, move) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.pollenCarrier) return { alwaysHit: false, bypassSub: false };
-    
-    const pc = config.effects.pollenCarrier;
-    const moveId = (move?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    
-    // 从 MOVES 获取完整招式数据
-    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : move;
-    const flags = fullMoveData?.flags || move?.flags || {};
-    
-    // 检查是否有 powder flag
-    let isPowderMove = false;
-    for (const flag of (pc.affectedFlags || [])) {
-        if (flags[flag]) {
-            isPowderMove = true;
-            break;
-        }
-    }
-    
-    // 检查是否在受影响招式列表中
-    if (!isPowderMove && (pc.affectedMoves || []).includes(moveId)) {
-        isPowderMove = true;
-    }
-    
-    if (isPowderMove) {
-        console.log(`[GALE] 🌸 孢子传媒：${move.name} 获得必中+穿透替身`);
-        return { 
-            alwaysHit: pc.alwaysHit || false, 
-            bypassSub: pc.bypassSubstitute || false 
-        };
-    }
-    
-    return { alwaysHit: false, bypassSub: false };
-}
-
-/**
- * 获取过和湿气的火系威力倍率
- * @param {string} weather 天气 ID
- * @param {string} moveType 招式属性
- * @returns {number} 威力倍率 (1 = 无修正, 0.5 = 减半)
- */
-export function getSaturatedAirPowerMultiplier(weather, moveType) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.saturatedAir) return 1;
-    
-    if (moveType === 'Fire') {
-        const mult = config.effects.saturatedAir.firePowerMultiplier || 1;
-        console.log(`[GALE] 💧 过和湿气：火系招式威力 x${mult}`);
-        return mult;
-    }
-    
-    return 1;
-}
-
-/**
- * 检查过和湿气是否阻止灼伤
- * @param {string} weather 天气 ID
- * @returns {boolean} 是否阻止灼伤
- */
-export function doesSaturatedAirPreventBurn(weather) {
-    const config = getWeatherConfig(weather);
-    return config?.effects?.saturatedAir?.preventBurn || false;
-}
-
-/**
- * 获取生机传导的吸取招式威力倍率
- * @param {string} weather 天气 ID
- * @param {object} move 招式数据
- * @returns {number} 威力倍率 (1 = 无修正, 1.2 = 增强)
- */
-export function getVitalitySurgePowerMultiplier(weather, move) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.vitalitySurge) return 1;
-    
-    const moveId = (move?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : move;
-    const flags = fullMoveData?.flags || move?.flags || {};
-    
-    // 检查是否是吸取类招式（有 drain 属性，如 Giga Drain, Drain Punch）
-    // 注意：heal flag 包括自我回复技如 Roost，不应被增强
-    // drain 属性格式为 [numerator, denominator]，如 [1, 2] 表示回复伤害的 50%
-    const hasDrain = fullMoveData?.drain || flags.drain;
-    if (hasDrain) {
-        const mult = config.effects.vitalitySurge.drainPowerMultiplier || 1;
-        console.log(`[GALE] 🌿 生机传导：${move.name} 威力 x${mult}`);
-        return mult;
-    }
-    
-    return 1;
-}
-
-/**
- * 获取生机传导的吸取回复比率
- * @param {string} weather 天气 ID
- * @returns {number} 回复比率 (0.5 = 默认, 0.666 = 增强)
- */
-export function getVitalitySurgeDrainRatio(weather) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.vitalitySurge) return 0.5;
-    return config.effects.vitalitySurge.drainHealRatio || 0.5;
-}
-
-/**
- * 获取生机传导的寄生种子伤害比率
- * @param {string} weather 天气 ID
- * @returns {number} 伤害比率 (1/8 = 默认, 1/6 = 增强)
- */
-export function getVitalitySurgeLeechSeedRatio(weather) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.vitalitySurge) return 1/8;
-    return config.effects.vitalitySurge.leechSeedRatio || 1/8;
-}
-
-/**
- * 检查宝可梦是否获得水汽对流速度加成
- * @param {string} weather 天气 ID
- * @param {object} pokemon 宝可梦
- * @returns {number} 速度等级加成 (0 = 无加成)
- */
-export function getHydroLiftSpeedBoost(weather, pokemon) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.hydroLift) return 0;
-    
-    const hl = config.effects.hydroLift;
-    const types = pokemon?.types || [];
-    const ability = (pokemon?.ability || '').toLowerCase().replace(/[^a-z]/g, '');
-    
-    // 检查是否为水属性
-    const isWaterType = types.includes('Water');
-    if (!isWaterType) return 0;
-    
-    // 检查是否有飞行属性或漂浮特性
-    const isFlying = types.includes('Flying') || ability === 'levitate';
-    if (hl.requiresFlying && !isFlying) return 0;
-    
-    console.log(`[GALE] 💨 水汽对流：${pokemon?.cnName || pokemon?.name} 进场速度 +${hl.speedBoost}`);
-    return hl.speedBoost || 0;
-}
-
-/**
- * 获取飞叶风暴的暴击等级加成
- * @param {string} weather 天气 ID
- * @param {object} move 招式数据
- * @returns {number} 暴击等级加成 (0 = 无加成)
- */
-export function getRazorWindCritBoost(weather, move) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.razorWind) return 0;
-    
-    const rw = config.effects.razorWind;
-    const moveId = (move?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : move;
-    
-    // 检查招式属性
-    const moveType = fullMoveData?.type || move?.type;
-    if (moveType !== rw.benefitType) return 0;
-    
-    // 检查是否有受益 flag（slicing 或 wind）
-    const flags = fullMoveData?.flags || move?.flags || {};
-    for (const flag of (rw.benefitFlags || [])) {
-        if (flags[flag]) {
-            console.log(`[GALE] 🍃 飞叶风暴：${move.name} 暴击率 +${rw.critBoost}`);
-            return rw.critBoost || 0;
-        }
-    }
-    
-    return 0;
-}
-
-/**
- * 获取极速解冻的冰系防御倍率
- * @param {string} weather 天气 ID
- * @param {object} defender 防御方宝可梦
- * @returns {number} 防御倍率 (1 = 无修正, 0.7 = 降低)
- */
-export function getRapidThawDefenseMultiplier(weather, defender) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.rapidThaw) return 1;
-    
-    const types = defender?.types || [];
-    if (types.includes('Ice')) {
-        const mult = config.effects.rapidThaw.iceDefenseMultiplier || 1;
-        console.log(`[GALE] ❄️ 极速解冻：${defender?.cnName || defender?.name} 是冰系，防御 x${mult}`);
-        return mult;
-    }
-    
-    return 1;
-}
-
-/**
- * 检查极速解冻是否阻止冰冻状态
- * @param {string} weather 天气 ID
- * @returns {boolean} 是否阻止冰冻
- */
-export function doesRapidThawPreventFreeze(weather) {
-    const config = getWeatherConfig(weather);
-    return config?.effects?.rapidThaw?.preventFreeze || false;
-}
-
-/**
- * 检查并解除冰冻状态（回合开始时调用）
- * @param {string} weather 天气 ID
- * @param {object} pokemon 宝可梦
- * @returns {{ thawed: boolean, message: string }}
- */
-export function checkRapidThawCure(weather, pokemon) {
-    const config = getWeatherConfig(weather);
-    if (!config?.effects?.rapidThaw?.preventFreeze) return { thawed: false, message: '' };
-    
-    if (pokemon?.status === 'frz') {
-        pokemon.status = null;
-        pokemon.statusTurns = 0;
-        console.log(`[GALE] ❄️ 极速解冻：${pokemon?.cnName || pokemon?.name} 的冰冻被融化`);
-        return { 
-            thawed: true, 
-            message: `<span style="color:#22c55e">🌿 暖湿气流瞬间融化了 ${pokemon?.cnName || pokemon?.name} 身上的冰块！</span>` 
-        };
-    }
-    
-    return { thawed: false, message: '' };
-}
 
 // ============================================
 // Ambrosia (神之琼浆 - C区神秘区) 辅助函数
@@ -2224,36 +1563,10 @@ if (typeof window !== 'undefined') {
         isSolarBeamInstant,
         getWeatherBallStats,
         getRecoveryRatio,
-        // Smog 专用函数
+        // 通用函数
         getHealingMultiplier,
         applyHeal,  // 【统一治愈函数】所有回复来源都应使用此函数
-        isGasMoveGuaranteedHit,
-        getWeatherRecoilPercent,
-        getAbilityWeatherBoost,
-        // Ashfall 专用函数
-        isGrounded,
-        getAshfallSpeedMultiplier,
-        isItemBlanketed,
-        getScorchedEarthBurnChance,
-        getDustDevilCritBoost,
-        // Shadow Fog 专用函数
-        getHazedVisionAccuracyMultiplier,
-        getNocturnalPredatorEvasionBoost,
-        getGuidedStrikePowerMultiplier,
-        getRefractionPowerMultiplier,
-        isImmuneToHazedVision,
-        // Gale (香风) 专用函数
-        getPollenCarrierEffect,
-        getSaturatedAirPowerMultiplier,
-        doesSaturatedAirPreventBurn,
-        getVitalitySurgePowerMultiplier,
-        getVitalitySurgeDrainRatio,
-        getVitalitySurgeLeechSeedRatio,
-        getHydroLiftSpeedBoost,
-        getRazorWindCritBoost,
-        getRapidThawDefenseMultiplier,
-        doesRapidThawPreventFreeze,
-        checkRapidThawCure,
+        isGrounded, // 检查宝可梦是否接地
         // Ambrosia (神之琼浆) 专用函数
         getPsychicMindCritBoost,
         getAVSMultiplier,

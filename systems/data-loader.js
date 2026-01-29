@@ -27,7 +27,105 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true,"enableClash":false,"enableEnvironment":true},"difficulty":"expert","player":{"name":"Ice Queen","trainerProficiency":160,"party":[{"name":"Kyurem","lv":88,"gender":null,"nature":"Timid","ability":"Pressure","item":"Choice Specs","isAce":true,"isLead":true,"stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":10,"def":31,"spa":31,"spd":31,"spe":31}},"moves":["Ice Beam","Draco Meteor","Earth Power","Flash Cannon"],"avs":{"trust":200,"passion":180,"insight":140,"devotion":160}},{"name":"Weavile","lv":85,"gender":"F","nature":"Jolly","ability":"Pressure","item":"Focus Sash","isAce":true,"stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31}},"moves":["Triple Axel","Knock Off","Ice Shard","Low Kick"],"avs":{"trust":160,"passion":220,"insight":100,"devotion":120}}],"unlocks":{"enable_bond":false,"enable_styles":true,"enable_insight":true,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":true,"enable_proficiency_cap":true}},"enemy":{"id":"Flame Emperor","type":"trainer","name":"Flame Emperor","trainerProficiency":155,"lines":{"intro":"绝对零度领域？火焰的意志不会被冻结！"},"unlocks":{"enable_bond":false,"enable_styles":true,"enable_insight":true,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"party":[{"name":"Blaziken","lv":85,"gender":"M","nature":"Adamant","ability":"Speed Boost","item":"Life Orb","stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":31,"def":31,"spa":10,"spd":31,"spe":31}},"moves":["Flare Blitz","Close Combat","Thunder Punch","Swords Dance"]},{"name":"Volcarona","lv":83,"gender":"F","nature":"Timid","ability":"Flame Body","item":"Heavy-Duty Boots","stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":10,"def":31,"spa":31,"spd":31,"spe":31}},"moves":["Quiver Dance","Fire Blast","Bug Buzz","Giga Drain"]},{"name":"Heatran","lv":85,"gender":"M","nature":"Modest","ability":"Flash Fire","item":"Leftovers","stats_meta":{"ev_level":252,"ivs":{"hp":31,"atk":10,"def":31,"spa":31,"spd":31,"spe":31}},"moves":["Magma Storm","Earth Power","Flash Cannon","Stealth Rock"]}],"script":null,"environment":{"weather":"hail","weatherTurns":0,"overlay":{"env_name":"绝对零度","narrative":"极寒的冰霜覆盖一切，火焰在此处被压制...","rules":[{"target":"Type:Ice","eff":["SpA:1.5","Spe:1.3","Def:1.2","HP:0.0625"]},{"target":"Type:Fire","eff":["SpA:0.5","Atk:0.5","Spe:0.7","HP:-0.125"]},{"target":"MoveType:Ice","eff":["Dmg:1.5","Crit:1.5"]},{"target":"MoveType:Fire","eff":["Dmg:0.3"]},{"target":"ALL","eff":["Heal:0.7"]}]}}}
+    return {
+  "player": {
+    "name": "测试玩家",
+    "trainerProficiency": 100,
+    "party": [
+      {
+        "name": "Gyarados",
+        "lv": 70,
+        "gender": "M",
+        "nature": "Adamant",
+        "ability": "Intimidate",
+        "item": "Sitrus Berry",
+        "isLead": true,
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 } },
+        "moves": ["Waterfall", "Crunch", "Ice Fang", "Dragon Dance"]
+      },
+      {
+        "name": "Ferrothorn",
+        "lv": 100,
+        "gender": "M",
+        "nature": "Relaxed",
+        "item": "Sitrus Berry",
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 0 } },
+        "moves": ["Power Whip", "Gyro Ball", "Leech Seed", "Stealth Rock"]
+      }
+    ],
+    "unlocks": {
+      "enable_bond": true,
+      "enable_styles": true,
+      "enable_insight": true,
+      "enable_mega": false,
+      "enable_z_move": false,
+      "enable_dynamax": false,
+      "enable_tera": true
+    }
+  },
+  "enemy": {
+    "id": "magma_tester",
+    "type": "trainer",
+    "name": "熔岩领主",
+    "trainerProficiency": 110,
+    "lines": { "intro": "在这片炽热的领域，只有火焰才能生存！" }
+  },
+  "party": [
+    {
+      "name": "Heatran",
+      "lv": 40,
+      "gender": "M",
+      "nature": "Modest",
+      "ability": "Flash Fire",
+      "item": "Air Balloon",
+      "isLead": true,
+      "isAce": true,
+      "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 10, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+      "moves": ["Magma Storm", "Flash Cannon", "Earth Power", "Stealth Rock"]
+    },
+    {
+      "name": "Volcarona",
+      "lv": 50,
+      "gender": "F",
+      "nature": "Timid",
+      "ability": "Flame Body",
+      "item": "Heavy-Duty Boots",
+      "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 10, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+      "moves": ["Fiery Dance", "Bug Buzz", "Giga Drain", "Quiver Dance"]
+    },
+    {
+      "name": "Coalossal",
+      "lv": 50,
+      "gender": "M",
+      "nature": "Modest",
+      "ability": "Steam Engine",
+      "item": "Weakness Policy",
+      "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 10, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+      "moves": ["Heat Wave", "Power Gem", "Scorching Sands", "Rapid Spin"]
+    }
+  ],
+  "environment": {
+    "weather": null,
+    "weatherTurns": 0,
+    "overlay": {
+      "env_name": "熔岩洞穴 (Magma Cavern)",
+      "narrative": "炽热的岩浆在脚下流淌，空气中弥漫着硫磺的气息...",
+      "rules": [
+        { "target": "Grounded", "eff": ["HP:-0.0625"] },
+        { "target": "Grounded+Type:Steel", "eff": ["HP:-0.125", "Spe:0.5"] },
+        { "target": "Type:Fire+HasAbility:FlashFire", "eff": ["Dmg:1.5", "HP:0.0625"] },
+        { "target": "MoveType:Water+Flag:Contact", "eff": ["Dmg:0.5", "Recoil:0.5"] },
+        { "target": "MoveType:Fire+Flag:Pulse", "eff": ["Dmg:1.3"] },
+        { "target": "HasItem:AirBalloon", "eff": ["Immune:Ground"] },
+        { "target": "ALL", "eff": ["BanItem:Berry", "Drain:0.5"] }
+      ]
+    }
+  },
+  "settings": {
+    "enableAVS": true,
+    "enableEnvironment": true
+  }
+}
 
 }
 

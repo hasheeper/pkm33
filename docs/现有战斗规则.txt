@@ -32,17 +32,7 @@ PKM引擎协议是一个宝可梦对战的场景模拟器，用在实际发生�
 [模块：实体 (ENTITY) 数据结构]
 必须根据数据来源，选择下方**模式 A** 或 **模式 B** 中的一种，严格遵守键值类型：
 
-// 模式 A：库数据引用 (Library Filter)
-// 适用：玩家队伍(变量)、本地数据库库内 NPC。
-// 核心：仅提供 ID 引用，具体数值由系统预设决定。
-{
-  "name": "Unique_DB_Key",  // e.g., "{{user}}", "Cynthia"
-  "type": "trainer",        // 玩家 ({{user}}) 时可省略
-  "tier": 1~4,              // 仅 NPC 有效 (Int)
-  "party": ["SpeciesID_A", "SpeciesID_B", …………] // (可选) String数组。筛选指定成员；若省略则全队加载。
-}
-
-// 模式 B：现场实例化 (Constructor)
+// 模式 A：现场实例化 (Constructor)
 // 适用：野生生物、临时敌人、需要定制数值的 Boss。
 // 核心：party 必须是 Object 数组，现场定义所有数值。
 {
@@ -77,63 +67,96 @@ PKM引擎协议是一个宝可梦对战的场景模拟器，用在实际发生�
   ]
 }
 
-[模块：环境 (ENVIRONMENT) 数据结构]
+[模块：环境数据结构]
 // 可选模块，用于创建特殊战场环境，影响战斗机制
-// 适用：Boss 战、剧情战斗、特殊地形等需要独特战斗规则的场景
+// 适用：Boss 战、剧情战斗、区域特色地形、试炼等需要独特规则的场景
 
 {
   // 天气 ID (全部小写)
   // 普通天气: "sun" (晴天), "rain" (雨天), "sandstorm" (沙暴), "snow" (雪天)
   // 始源天气: "harshsun" (大日照), "heavyrain" (大雨), "deltastream" (乱气流)
-  // 区域天气: "smog" (烟霾), "ashfall" (火山灰), "fog" (暗影迷雾)
-  // 无天气: null 或 "clear"
-  "weather": "sun" | "rain" | "sandstorm" | "snow" | "harshsun" | "heavyrain" | "deltastream" | "smog" | "ashfall" | "fog" | null,
-  "weatherTurns": 0,  // 天气持续回合 (0=永久)
+  // 区域天气: "smog"(N区), "ashfall"(A区), "gale"(B区), "fog"(S区)
+  // 无天气:  "clear"
+  // 不指定: 使用 null 调用当地默认天气
+  "weather": "sun" | ... | "fog" | null,
+  "weatherTurns": 0,  // 天气持续回合 (0=无限，>0 会在场地管理器倒计时)
   "overlay": {
-    "env_name": "环境名称",           // 显示名称
-    "narrative": "环境描述文字...",    // 战斗开始时显示的描述
+    "env_name": "环境名称",
+    "narrative": "环境描述文字...",
     "rules": [
-      { "target": "TARGET_SELECTOR", "eff": ["EFFECT_ATOM", ...] }
+      {
+        "target": "TARGET_SELECTOR",
+        "eff": ["EFFECT_ATOM", ...]
+      }
     ]
   }
 }
 
-// --- 目标选择器 (TARGET_SELECTOR) ---
-// "ALL"              - 所有宝可梦
-// "Type:Fire"        - 指定属性的宝可梦 (Fire/Water/Grass/Electric/Ice/Fighting/Poison/Ground/Flying/Psychic/Bug/Rock/Ghost/Dragon/Dark/Steel/Fairy)
-// "MoveType:Water"   - 指定属性的技能
-// "Flag:Contact"     - 接触类招式 (如 Tackle, Close Combat)
-// "Flag:Pulse"       - 脉冲类招式 (如 Aura Sphere, Dragon Pulse, Water Pulse)
-// "Flag:Sound"       - 声音类招式 (如 Hyper Voice, Boomburst)
-// "Flag:Punch"       - 拳类招式 (如 Thunder Punch, Mach Punch)
-// "Flag:Bite"        - 咬类招式 (如 Crunch, Psychic Fangs)
-// "Flag:Slicing"     - 斩击类招式 (如 Leaf Blade, Sacred Sword)
-// "Flag:Bullet"      - 子弹/波动弹类招式 (如 Shadow Ball, Aura Sphere)
-// "Side:Player"      - 玩家方
-// "Side:Enemy"       - 敌方
-// "HasAbility:X"     - 拥有特定特性的宝可梦
-// "NOT:Type:Ghost"   - 取反选择
+// ========== 目标选择器 (TARGET_SELECTOR) ==========
+// 语法：以 "+" 连接多个条件 (AND)，以 "," 或 单独规则拆分 (OR)
+// 可嵌套 NOT: 前缀 (如 "NOT:Grounded", "NOT:Type:Ghost")
+// 支持的原子：
+//   "ALL" / "Side:Player" / "Side:Enemy"
+//   "Grounded" / "Flying" / "HasItem:AirBalloon" 等地面判定
+//   "Type:Fire" / "Type:Water+Grounded" / "HasAbility:FlashFire"
+//   "MoveType:Water" / "MoveType:Water+Flag:Contact"
+//   "Flag:Contact" / "Flag:Sound" / "Flag:Slicing" ... (对应 moves-data.js 中的 flags)
+//   "Weather:Rain" / "Status:brn" / "HP<=0.5"（条件式目前用于数据预留，默认不启用）
 
-// --- 效果原子 (EFFECT_ATOM) ---
-// 数值修正 (倍率 0.1~6.0):
-//   "Atk:1.5"   - 物攻 x1.5
-//   "Def:0.7"   - 物防 x0.7
-//   "SpA:1.3"   - 特攻 x1.3
-//   "SpD:0.8"   - 特防 x0.8
-//   "Spe:0.5"   - 速度 x0.5
-//   "Dmg:1.2"   - 伤害 x1.2
-//   "Crit:2.0"  - 暴击率 x2.0
-//   "Heal:0.5"  - 回复效果 x0.5
+// ========== 效果原子 (EFFECT_ATOM) ==========
+// 统一本地化解析，全部写成字符串，不区分大小写；冒号支持中/英文
 
-// HP 跳动 (每回合，比例 -0.5~0.5):
-//   "HP:0.0625"   - 每回合回复 1/16 最大HP
-//   "HP:-0.125"   - 每回合扣除 1/8 最大HP
+// 1) 数值倍率 (范围 0.1~10)：
+//   "Atk:1.5" / "Def:0.7" / "SpA:1.3" / "SpD:0.8" / "Spe:0.5"
+//   "Dmg:1.2" (伤害倍率) / "Accuracy:0.8" / "Crit:2.0"
+//   "Heal:0.5" (回复效率) / "Drain:0.5" (吸血效率)
 
-// 类型控制:
-//   "Immune:Ice"          - 免疫冰系伤害
-//   "Weak:Fairy"          - 对妖精系追加弱点 (x2)
-//   "Ban:Fire"            - 禁用火系技能
-//   "ToType:Normal>Electric"  - 普通系技能转换为电系
+// 2) HP 持续跳动 (每回合，比例 -0.5~0.5)：
+//   "HP:0.0625" (回血 1/16) / "HP:-0.125" (扣血 1/8)
+//   "HP:0.25:once" 仅在入场时结算一次
+
+// 3) 类型控制：
+//   "Immune:Ice" / "Weak:Fairy" / "Ban:Fire" / "Grant:Ghost"
+//   "ToType:Normal>Electric"  (进场后将普通系攻击判定为电系)
+
+// 4) 道具 / 技能 / 属性禁用：
+//   "BanItem:Leftovers" / "BanItem:Berry"
+//   "BanMove:SwordsDance" (或直接使用 "Ban:MoveName")
+
+// 5) 状态相关：
+//   "Status:burn:0.3" (30% 概率附加灼伤)
+//   "ImmuneStatus:freeze" / "Prevent:poison"
+//   "Cure:freeze:0.5" (50% 概率治愈冰冻) / "Cure:all" (一次写入所有主状态)
+
+// 6) 优先度 / 闪避 / 暴击等级：
+//   "CritStage:+1" / "Evasion:+2" / "Priority:+1"
+
+// 7) 环境反伤 / Drain 扩展：
+//   "Recoil:0.5"            → 50% 概率对攻击方造成 10% MaxHP 反伤
+//   "Recoil:0.3:0.15"       → 30% 概率造成 15% MaxHP
+//   "Drain:0.5"             → 所有吸血/寄生吸取类恢复量 x0.5
+
+// 8) 其他：
+//   "GrantType:Grass" 为进场宝可梦额外赋予属性 (配合 envOverlay.getGrantedTypes 使用)
+//   "Immune:Ground" 常用于气球环境 (“HasItem:AirBalloon” 目标 + Immune:Ground)
+
+// ========== JSON 规则示例 ==========
+// 例：熔岩洞穴 (Magma Cavern)
+// {
+//   "env_name": "熔岩洞穴 (Magma Cavern)",
+//   "narrative": "炽热的岩浆在脚下流淌...",
+//   "rules": [
+//     { "target": "Grounded", "eff": ["HP:-0.0625"] },
+//     { "target": "Grounded+Type:Steel", "eff": ["HP:-0.125", "Spe:0.5"] },
+//     { "target": "Type:Fire+HasAbility:FlashFire", "eff": ["Dmg:1.5", "HP:0.0625"] },
+//     { "target": "MoveType:Water+Flag:Contact", "eff": ["Dmg:0.5", "Recoil:0.5"] },
+//     { "target": "MoveType:Fire+Flag:Pulse", "eff": ["Dmg:1.3"] },
+//     { "target": "HasItem:AirBalloon", "eff": ["Immune:Ground"] },
+//     { "target": "ALL", "eff": ["BanItem:Berry", "Drain:0.5"] }
+//   ]
+// }
+
+// 将 JSON 直接写入 environment.overlay.rules。
 
 示例（2v2）：
 <PKM_BATTLE>
@@ -249,7 +272,7 @@ PKM引擎协议是一个宝可梦对战的场景模拟器，用在实际发生�
     }
   },
   "environment": {
-    "weather": null,
+    "weather": null,   // 不指定
     "weatherTurns": 0,
     "overlay": {
       "env_name": "反转世界",
@@ -257,8 +280,7 @@ PKM引擎协议是一个宝可梦对战的场景模拟器，用在实际发生�
       "rules": [
         { "target": "ALL", "eff": ["Spe:0.7"] },
         { "target": "Type:Ghost", "eff": ["SpA:1.4", "Def:1.2"] },
-        { "target": "Type:Dragon", "eff": ["Dmg:0.8"] },
-        { "target": "MoveType:Normal", "eff": ["Dmg:0"] }
+        { "target": "Type:Dragon", "eff": ["Dmg:0.8"] }
       ]
     }
   }

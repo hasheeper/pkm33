@@ -220,46 +220,8 @@ export function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
-    // === 【Shadow Fog 必中技特化】必中技威力 x1.25 ===
-    if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getGuidedStrikePowerMultiplier) {
-        const guidedStrikeMult = window.WeatherEffects.getGuidedStrikePowerMultiplier(currentWeather, move);
-        if (guidedStrikeMult > 1) {
-            const oldPower = basePower;
-            basePower = Math.floor(basePower * guidedStrikeMult);
-            console.log(`[FOG] 🎯 必中技特化：${move.name} 威力 x${guidedStrikeMult} (${oldPower} -> ${basePower})`);
-        }
-    }
-    
-    // === 【Shadow Fog 光线折射】Beam类招式威力降低 ===
-    if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getRefractionPowerMultiplier) {
-        const refractionMult = window.WeatherEffects.getRefractionPowerMultiplier(currentWeather, move);
-        if (refractionMult < 1) {
-            const oldPower = basePower;
-            basePower = Math.floor(basePower * refractionMult);
-            console.log(`[FOG] 🔦 光线折射：${move.name} 威力 x${refractionMult} (${oldPower} -> ${basePower})`);
-        }
-    }
-    
-    // === 【Gale 过和湿气】火系威力减半 ===
-    if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getSaturatedAirPowerMultiplier) {
-        const moveType = move.type || fullMoveData?.type || 'Normal';
-        const saturatedMult = window.WeatherEffects.getSaturatedAirPowerMultiplier(currentWeather, moveType);
-        if (saturatedMult < 1) {
-            const oldPower = basePower;
-            basePower = Math.floor(basePower * saturatedMult);
-            console.log(`[GALE] 💧 过和湿气：${move.name} 威力 x${saturatedMult} (${oldPower} -> ${basePower})`);
-        }
-    }
-    
-    // === 【Gale 生机传导】吸取类招式威力增强 ===
-    if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getVitalitySurgePowerMultiplier) {
-        const vitalityMult = window.WeatherEffects.getVitalitySurgePowerMultiplier(currentWeather, move);
-        if (vitalityMult > 1) {
-            const oldPower = basePower;
-            basePower = Math.floor(basePower * vitalityMult);
-            console.log(`[GALE] 🌿 生机传导：${move.name} 威力 x${vitalityMult} (${oldPower} -> ${basePower})`);
-        }
-    }
+    // === 【区域天气威力修正已迁移至 Environment Overlay API】===
+    // 参见: systems/environment-overlay.js 的 getDamageMod()
     
     // === 【磨砺 Laser Focus】下回合必定暴击 ===
     // 在暴击判定处处理，这里只做标记检查
@@ -542,18 +504,6 @@ export function calcDamage(attacker, defender, move, options = {}) {
         // 变化技命中判定
         let statusAcc = (accuracy === true || accuracy === undefined) ? 100 : accuracy;
         
-        // === 【Gale 孢子传媒】粉末/孢子类变化技必中 ===
-        const weatherForStatus = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';
-        let pollenCarrierStatusHit = false;
-        if (weatherForStatus && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getPollenCarrierEffect) {
-            const pollenEffect = window.WeatherEffects.getPollenCarrierEffect(weatherForStatus, move);
-            if (pollenEffect.alwaysHit) {
-                pollenCarrierStatusHit = true;
-                statusAcc = 100;
-                console.log(`[GALE] 🌸 孢子传媒(变化技)：${move.name} 必中！`);
-            }
-        }
-        
         const accStage = attacker.boosts.accuracy;
         const evaStage = defender.boosts.evasion;
         const finalStage = Math.min(6, Math.max(-6, accStage - evaStage));
@@ -562,7 +512,7 @@ export function calcDamage(attacker, defender, move, options = {}) {
         else accMult = 3 / (3 + Math.abs(finalStage));
         const finalAcc = statusAcc * accMult;
         
-        if (!pollenCarrierStatusHit && statusAcc < 100 && Math.random() * 100 >= finalAcc) {
+        if (statusAcc < 100 && Math.random() * 100 >= finalAcc) {
             return { damage: 0, effectiveness: 1, isCrit: false, miss: true, hitCount: 0 };
         }
         return { damage: 0, effectiveness: 1, isCrit: false, miss: false, hitCount: 0 };
@@ -587,14 +537,6 @@ export function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
-    // === 【Smog 专用】腐蚀气体 - 气体/粉尘招式必中 ===
-    if (weatherForAcc && typeof window.WeatherEffects !== 'undefined') {
-        if (window.WeatherEffects.isGasMoveGuaranteedHit(weatherForAcc, move)) {
-            moveAcc = 100;
-            weatherGuaranteedHit = true;
-            console.log(`[SMOG] 🏭 腐蚀气体：${move.name} 在烟霾中必定命中！`);
-        }
-    }
     
     // 无防守 (No Guard)
     const attackerHasNoGuard = attackerAbilityId === 'noguard';
@@ -606,34 +548,16 @@ export function calcDamage(attacker, defender, move, options = {}) {
         'magicalleaf', 'magnetbomb', 'shadowpunch', 'shockwave', 'smartstrike', 'swift', 'vitalthrow'];
     const isNeverMiss = neverMissMoves.includes(moveId);
     
-    // === 【Shadow Fog 视觉遮断】非幽灵/恶系命中率 x0.8 ===
-    let fogAccuracyMod = 1;
-    if (weatherForAcc && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getHazedVisionAccuracyMultiplier) {
-        fogAccuracyMod = window.WeatherEffects.getHazedVisionAccuracyMultiplier(weatherForAcc, attacker);
-        if (fogAccuracyMod < 1) {
-            console.log(`[FOG] 🌫️ 视觉遮断：${attacker.cnName || attacker.name} 命中率 x${fogAccuracyMod}`);
-        }
-    }
-    
-    // === 【Gale 孢子传媒】粉末/孢子类招式必中+穿透替身 ===
-    let pollenCarrierHit = false;
-    if (weatherForAcc && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getPollenCarrierEffect) {
-        const pollenEffect = window.WeatherEffects.getPollenCarrierEffect(weatherForAcc, move);
-        if (pollenEffect.alwaysHit) {
-            pollenCarrierHit = true;
-        }
-    }
-    
     // 命中/闪避修正
     const accStage = attacker.boosts.accuracy || 0;
     let evaStage = defender.boosts.evasion || 0;
     
-    // === 【Shadow Fog 夜之民】幽灵/恶系闪避 +1 ===
-    if (weatherForAcc && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getNocturnalPredatorEvasionBoost) {
-        const fogEvasionBoost = window.WeatherEffects.getNocturnalPredatorEvasionBoost(weatherForAcc, defender);
-        if (fogEvasionBoost > 0) {
-            evaStage += fogEvasionBoost;
-            console.log(`[FOG] 🌙 夜之民：${defender.cnName || defender.name} 闪避等级 +${fogEvasionBoost}`);
+    // === 【环境图层系统】闪避等级修正 ===
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        const envEvasionBoost = window.envOverlay.getEvasionStage(defender);
+        if (envEvasionBoost !== 0) {
+            evaStage += envEvasionBoost;
+            console.log(`[ENV OVERLAY] 闪避等级修正: ${defender.cnName || defender.name} +${envEvasionBoost}`);
         }
     }
     
@@ -652,10 +576,19 @@ export function calcDamage(attacker, defender, move, options = {}) {
         itemAccMod = ItemEffects.getAccuracyMod(attacker);
     }
     
-    // 【Shadow Fog 视觉遮断】应用命中率惩罚
-    let hitRate = moveAcc * accMult / evaMult * itemAccMod * fogAccuracyMod;
+    // 【环境图层系统】命中率修正
+    let envAccMod = 1;
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        envAccMod = window.envOverlay.getAccuracyMod(attacker, move);
+        if (envAccMod !== 1) {
+            console.log(`[ENV OVERLAY] 命中率修正: x${envAccMod}`);
+        }
+    }
     
-    if (alwaysHit || isNeverMiss || pollenCarrierHit) {
+    // 计算命中率
+    let hitRate = moveAcc * accMult / evaMult * itemAccMod * envAccMod;
+    
+    if (alwaysHit || isNeverMiss) {
         hitRate = 100;
     }
     
@@ -826,13 +759,14 @@ export function calcDamage(attacker, defender, move, options = {}) {
         atkStat = Math.floor(atkStat * 0.5);
     }
     
-    // === 【Gale 极速解冻】冰系物理防御降低 30% ===
-    if (!isSpecial && weatherForDef && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getRapidThawDefenseMultiplier) {
-        const rapidThawMult = window.WeatherEffects.getRapidThawDefenseMultiplier(weatherForDef, defender);
-        if (rapidThawMult < 1) {
+    // === 【环境图层系统】防御修正 ===
+    if (typeof window !== 'undefined' && window.envOverlay) {
+        const statKey = isSpecial ? 'spd' : 'def';
+        const envDefMod = window.envOverlay.getStatMod(defender, statKey);
+        if (envDefMod !== 1) {
             const oldDef = defStat;
-            defStat = Math.floor(defStat * rapidThawMult);
-            console.log(`[GALE] ❄️ 极速解冻：${defender.cnName || defender.name} 物理防御 x${rapidThawMult} (${oldDef} -> ${defStat})`);
+            defStat = Math.floor(defStat * envDefMod);
+            console.log(`[ENV OVERLAY] 防御修正: ${defender.cnName || defender.name} ${statKey} x${envDefMod} (${oldDef} -> ${defStat})`);
         }
     }
     
@@ -1048,21 +982,14 @@ export function calcDamage(attacker, defender, move, options = {}) {
                 }
             }
             
-            // 5. 【Ashfall 扬尘暴击】岩石招式暴击率 +1
-            if (typeof window !== 'undefined' && window.battle && window.WeatherEffects?.getDustDevilCritBoost) {
-                const dustDevilBoost = window.WeatherEffects.getDustDevilCritBoost(window.battle.weather, move.type);
-                if (dustDevilBoost > 0) {
-                    critStage += dustDevilBoost;
-                    console.log(`[ASHFALL] 🪨 扬尘暴击：岩石招式暴击等级 +${dustDevilBoost}`);
-                }
-            }
-            
-            // 5.5 【Gale 飞叶风暴】草系切斩/风类招式暴击+1
-            if (currentWeather && typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.getRazorWindCritBoost) {
-                const razorWindBoost = window.WeatherEffects.getRazorWindCritBoost(currentWeather, move);
-                if (razorWindBoost > 0) {
-                    critStage += razorWindBoost;
-                    console.log(`[GALE] 🍃 飞叶风暴：${move.name} 暴击等级 +${razorWindBoost}`);
+            // 5. 【环境图层系统】暴击等级修正
+            if (typeof window !== 'undefined' && window.envOverlay) {
+                // 确保 move 对象包含完整的 flags 数据
+                const moveWithFlags = { ...move, flags: move.flags || fullMoveData.flags || {} };
+                const envCritBoost = window.envOverlay.getCritStage(attacker, moveWithFlags);
+                if (envCritBoost !== 0) {
+                    critStage += envCritBoost;
+                    console.log(`[ENV OVERLAY] 暴击等级修正: +${envCritBoost}`);
                 }
             }
             
@@ -1154,7 +1081,9 @@ export function calcDamage(attacker, defender, move, options = {}) {
     
     // === 【环境图层系统】伤害修正 ===
     if (typeof window !== 'undefined' && window.envOverlay) {
-        const envDmgMod = window.envOverlay.getDamageMod(attacker, defender, move);
+        // 确保 move 对象包含完整的 flags 数据（用于 Flag:Pulse 等选择器）
+        const moveWithFlags = { ...move, flags: move.flags || fullMoveData.flags || {} };
+        const envDmgMod = window.envOverlay.getDamageMod(attacker, defender, moveWithFlags);
         if (envDmgMod !== 1) {
             const oldDmg = singleHitDamage;
             singleHitDamage = Math.floor(singleHitDamage * envDmgMod);
@@ -1268,17 +1197,6 @@ export function calcDamage(attacker, defender, move, options = {}) {
         console.log(`[CLASH] 对冲伤害削减: ${originalDamage} × ${move.clashDamageMultiplier} = ${totalDamage}`);
     }
     
-    // === 【Smog 专用】易爆气体 - 火系招式反冲 ===
-    let smogFireRecoil = 0;
-    const weatherForRecoil = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';
-    if (weatherForRecoil && typeof window.WeatherEffects !== 'undefined' && totalDamage > 0) {
-        const recoilPercent = window.WeatherEffects.getWeatherRecoilPercent(weatherForRecoil, moveType);
-        if (recoilPercent > 0) {
-            smogFireRecoil = Math.max(1, Math.floor(totalDamage * recoilPercent));
-            console.log(`[SMOG] 🔥 易爆气体：火系招式造成 ${totalDamage} 伤害，反冲 ${smogFireRecoil} (${recoilPercent * 100}%)`);
-        }
-    }
-    
     return { 
         damage: totalDamage, 
         singleHitDamage,
@@ -1290,7 +1208,6 @@ export function calcDamage(attacker, defender, move, options = {}) {
         resistBerryMessage,
         commandCritTriggered,
         defenderAbilityLog,
-        smogFireRecoil,  // Smog 火系反冲伤害
         moveGlitchLog    // Chronal Rift 技能黑箱日志
     };
 }

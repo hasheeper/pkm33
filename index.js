@@ -4710,9 +4710,16 @@ function _getTargetDescription(target) {
         case 'all': return '全体';
         case 'pokemonType': return `${target.value}系宝可梦`;
         case 'moveType': return `${target.value}系技能`;
+        case 'moveFlag': return `${target.value}类技能`;
         case 'side': return target.value === 'player' ? '玩家方' : '敌方';
-        case 'not': return `非${_getTargetDescription(target.inner)}`;
+        case 'not': return `非(${_getTargetDescription(target.inner)})`;
         case 'hasAbility': return `拥有${target.value}特性`;
+        case 'hasItem': return `持有${target.value}`;
+        case 'grounded': return '接地宝可梦';
+        case 'and': 
+            return target.conditions?.map(c => _getTargetDescription(c)).join('且') || '全体';
+        case 'or':
+            return target.conditions?.map(c => _getTargetDescription(c)).join('/') || '全体';
         default: return '全体';
     }
 }
@@ -4725,6 +4732,17 @@ function _getEffectsDescription(effects) {
     if (!effects) return '';
     
     const parts = [];
+    
+    // 状态名映射
+    const statusNames = {
+        'brn': '灼伤', 'burn': '灼伤',
+        'psn': '中毒', 'poison': '中毒',
+        'tox': '剧毒', 'toxic': '剧毒',
+        'par': '麻痹', 'paralysis': '麻痹',
+        'frz': '冰冻', 'freeze': '冰冻',
+        'slp': '睡眠', 'sleep': '睡眠',
+        'confusion': '混乱'
+    };
     
     // 数值修正
     const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
@@ -4744,16 +4762,81 @@ function _getEffectsDescription(effects) {
         else parts.push(`伤害-${Math.round((1 - effects.dmgMod) * 100)}%`);
     }
     
+    // 暴击等级修正
+    if (effects.critStage && effects.critStage !== 0) {
+        if (effects.critStage > 0) parts.push(`暴击率+${effects.critStage}级`);
+        else parts.push(`暴击率${effects.critStage}级`);
+    }
+    
+    // 闪避等级修正
+    if (effects.evasionStage && effects.evasionStage !== 0) {
+        if (effects.evasionStage > 0) parts.push(`闪避+${effects.evasionStage}级`);
+        else parts.push(`闪避${effects.evasionStage}级`);
+    }
+    
+    // 命中修正
+    if (effects.accMod && effects.accMod !== 1) {
+        if (effects.accMod > 1) parts.push(`命中+${Math.round((effects.accMod - 1) * 100)}%`);
+        else parts.push(`命中-${Math.round((1 - effects.accMod) * 100)}%`);
+    }
+    
     // 回复修正
     if (effects.healMod && effects.healMod !== 1) {
         if (effects.healMod > 1) parts.push(`回复+${Math.round((effects.healMod - 1) * 100)}%`);
         else parts.push(`回复-${Math.round((1 - effects.healMod) * 100)}%`);
     }
     
+    // 吸血效率修正
+    if (effects.drainMod && effects.drainMod !== 1) {
+        if (effects.drainMod > 1) parts.push(`吸血+${Math.round((effects.drainMod - 1) * 100)}%`);
+        else parts.push(`吸血-${Math.round((1 - effects.drainMod) * 100)}%`);
+    }
+    
+    // 环境反伤
+    if (effects.envRecoil) {
+        const chance = Math.round(effects.envRecoil.chance * 100);
+        const damage = Math.round(effects.envRecoil.damage * 100);
+        parts.push(`${chance}%概率${damage}%反伤`);
+    }
+    
+    // 禁用道具
+    if (effects.banItems?.length) {
+        parts.push(`禁用${effects.banItems.join('/')}`);
+    }
+    
     // 类型效果
     if (effects.immuneTypes?.length) parts.push(`免疫${effects.immuneTypes.join('/')}`);
     if (effects.weakTypes?.length) parts.push(`弱点${effects.weakTypes.join('/')}`);
     if (effects.banTypes?.length) parts.push(`禁用${effects.banTypes.join('/')}系技能`);
+    
+    // 状态治愈
+    if (effects.cureStatus?.length) {
+        const cureDescs = effects.cureStatus.map(c => {
+            const statusName = statusNames[c.status] || c.status;
+            const chance = Math.round(c.chance * 100);
+            return chance === 100 ? statusName : `${statusName}(${chance}%)`;
+        });
+        parts.push(`治愈${cureDescs.join('/')}`);
+    }
+    
+    // 状态阻止
+    if (effects.preventStatus?.length) {
+        const preventNames = effects.preventStatus.map(s => statusNames[s] || s).join('/');
+        parts.push(`阻止${preventNames}`);
+    }
+    
+    // 状态免疫
+    if (effects.immuneStatus?.length) {
+        const immuneNames = effects.immuneStatus.map(s => statusNames[s] || s).join('/');
+        parts.push(`免疫${immuneNames}`);
+    }
+    
+    // 状态施加
+    if (effects.inflictStatus && effects.inflictChance > 0) {
+        const statusName = statusNames[effects.inflictStatus] || effects.inflictStatus;
+        const chance = Math.round(effects.inflictChance * 100);
+        parts.push(`${chance}%几率施加${statusName}`);
+    }
     
     return parts.join(', ');
 }
