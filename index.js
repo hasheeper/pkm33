@@ -1924,6 +1924,18 @@ async function handleAttack(moveIndex, options = {}) {
         console.log('[handleAttack] Enemy switched, player attacks only');
         // 玩家攻击换入的宝可梦
         const playerResult = await executePlayerTurn(p, e, playerMove);
+        
+        // 【BUG修复】检查玩家是否因反伤倒下（闪焰冲锋/勇鸟/疯狂伏特等）
+        if (!p.isAlive()) {
+            console.log('[handleAttack] Player fainted from recoil in enemySwitch branch');
+            // 先检查是否双方同时倒下
+            if (!e.isAlive()) {
+                await handleEnemyFainted(e);
+            }
+            await handlePlayerFainted(p);
+            return;
+        }
+        
         if (!e.isAlive()) {
             await handleEnemyFainted(e);
             return;

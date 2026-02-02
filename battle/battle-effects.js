@@ -254,10 +254,10 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                     
                     // 【环境图层系统】检查状态阻止
                     let statusPrevented = false;
-                    if (typeof window !== 'undefined' && window.envOverlay) {
+                    if (typeof window !== 'undefined' && window.envOverlay && typeof window.envOverlay.isStatusPrevented === 'function') {
                         statusPrevented = window.envOverlay.isStatusPrevented(target, s);
                         if (statusPrevented) {
-                            const statusName = window.envOverlay._getStatusName ? window.envOverlay._getStatusName(s) : s;
+                            const statusName = (typeof window.envOverlay._getStatusName === 'function') ? window.envOverlay._getStatusName(s) : s;
                             logs.push(`<span style="color:#3b82f6">环境效果阻止了${statusName}状态！</span>`);
                             console.log(`[ENV OVERLAY] 状态阻止: ${s} (${statusName})`);
                         }
@@ -386,6 +386,29 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     // 1.4 Status 招式直接施加状态
     if (fullMoveData.status) {
         const s = fullMoveData.status;
+        
+        // 【BUG修复】粉末类招式免疫检查（草系/防尘护目镜/防尘特性）
+        const powderMoves = ['spore', 'sleeppowder', 'poisonpowder', 'stunspore', 'ragepowder', 'cottonspore', 'powder'];
+        if (powderMoves.includes(moveId)) {
+            // 草系免疫
+            if (target.types && target.types.includes('Grass')) {
+                logs.push(`${target.cnName} 的草属性免疫了粉末类招式!`);
+                return { logs, pivot: pivotTriggered };
+            }
+            // 防尘护目镜免疫
+            const targetItemId = (target.item || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (targetItemId === 'safetygoggles') {
+                logs.push(`${target.cnName} 的防尘护目镜免疫了粉末类招式!`);
+                return { logs, pivot: pivotTriggered };
+            }
+            // 防尘特性免疫
+            const targetAbilityId = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (targetAbilityId === 'overcoat') {
+                logs.push(`${target.cnName} 的防尘特性免疫了粉末类招式!`);
+                return { logs, pivot: pivotTriggered };
+            }
+        }
+        
         if (!target.status) {
             if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
                 const result = MoveEffects.tryInflictStatus(target, s, user, battle);
@@ -430,7 +453,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         let baseHeal = Math.max(1, Math.floor(damageDealt * num / den));
         
         // 【环境图层系统】吸血效率修正
-        if (typeof window !== 'undefined' && window.envOverlay) {
+        if (typeof window !== 'undefined' && window.envOverlay && typeof window.envOverlay.getDrainMod === 'function') {
             const drainMod = window.envOverlay.getDrainMod(user, move);
             if (drainMod !== 1) {
                 baseHeal = Math.floor(baseHeal * drainMod);
@@ -452,7 +475,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             let baseHeal = Math.max(1, Math.floor(damageDealt * num / den));
             
             // 【环境图层系统】吸血效率修正
-            if (typeof window !== 'undefined' && window.envOverlay) {
+            if (typeof window !== 'undefined' && window.envOverlay && typeof window.envOverlay.getDrainMod === 'function') {
                 const drainMod = window.envOverlay.getDrainMod(user, move);
                 if (drainMod !== 1) {
                     baseHeal = Math.floor(baseHeal * drainMod);
@@ -486,7 +509,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             let recoilDmg = Math.max(1, Math.floor(damageDealt * num / den));
             
             // 【环境图层系统】反伤修正
-            if (typeof window !== 'undefined' && window.envOverlay) {
+            if (typeof window !== 'undefined' && window.envOverlay && typeof window.envOverlay.getRecoilMod === 'function') {
                 const recoilMod = window.envOverlay.getRecoilMod(user, move);
                 if (recoilMod !== 1) {
                     recoilDmg = Math.max(1, Math.floor(recoilDmg * recoilMod));
@@ -526,7 +549,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     
     // 【环境图层系统】检查环境状态施加 (基于技能类型)
     // 注意：需要传入完整的技能数据（包含 type），用于 MoveType:X 规则匹配
-    if (damageDealt > 0 && !target.status && typeof window !== 'undefined' && window.envOverlay) {
+    if (damageDealt > 0 && !target.status && typeof window !== 'undefined' && window.envOverlay && typeof window.envOverlay.tryInflictStatus === 'function') {
         const moveWithType = { ...move, type: move.type || fullMoveData.type || 'Normal' };
         const statusResult = window.envOverlay.tryInflictStatus(target, moveWithType);
         if (statusResult && statusResult.applied) {
@@ -538,7 +561,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     }
     
     // 【环境图层系统】检查环境反伤 (对攻击方造成概率反伤)
-    if (damageDealt > 0 && user.isAlive() && typeof window !== 'undefined' && window.envOverlay) {
+    if (damageDealt > 0 && user.isAlive() && typeof window !== 'undefined' && window.envOverlay && typeof window.envOverlay.tryApplyEnvRecoil === 'function') {
         const moveWithData = { ...move, type: move.type || fullMoveData.type || 'Normal', flags: move.flags || fullMoveData.flags || {} };
         const recoilResult = window.envOverlay.tryApplyEnvRecoil(user, moveWithData);
         if (recoilResult && recoilResult.applied) {

@@ -499,6 +499,8 @@ function processMoveStatusEffects(user, target, move) {
     }
     
     // 检查必定触发的状态效果
+    // 【BUG修复】粉末类招式的草系免疫检查已在上方（第464-484行）处理
+    // 如果代码执行到这里，说明已经通过了免疫检查，可以安全施加状态
     if (fullMoveData.status) {
         const result = tryInflictStatus(target, fullMoveData.status);
         if (result.message) logs.push(result.message);
