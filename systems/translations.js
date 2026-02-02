@@ -5,299 +5,6 @@
  * ===========================================
  */
 var translations={
-    "Sort:":"排序方式",
-    "you have no pokemon lol":"你的队伍里还没有宝可梦",
-    "Import from text":"从文本导入",
-    "Select a format":"选择一个分级",
-    "Backup/Restore all teams":"备份所有队伍",
-    "Backup all teams from this folder":"备份该文件夹里的所有队伍",
-    "Base":"种族值",
-    "Import":"导入",
-    "Types":"属性",
-    "(automatic type)":"自动对应的属性",
-    "Hidden Power:":"觉醒力量属性：",
-    "You can also set natures by typing \"+\" and \"-\" next to a stat.":"你可以在基础点数框内输入+和-来设定性格",
-    "Protip:":"提示：",
-    "Nature:":"性格：",
-    "Sort":"排序方法",
-    "Hide":"隐藏",
-    "Dark mode":"夜间模式",
-    "Minimum Elo:":"最低Elo积分：",
-    "None":"无限制",
-    "Search":"搜索",
-    "(muted)":"（已静音）",
-    "Mute sounds":"全部静音",
-    "Effect volume:":"宝可梦叫声音量：",
-    "Music volume:":"背景音乐音量：",
-    "Notification volume:":"通知提醒音量",
-    "(Offline)":"（离线）",
-    "Rated battle":"计分战斗",
-    "Battle Options":"战斗选项",
-    "In this battle":"在这场战斗中",
-    "Ignore Spectators":"忽略来自观战者的消息",
-    "Ignore Opponent":"忽略来自对手的消息",
-    "All battles":"所有战斗中",
-    "Ignore nicknames":"忽略宝可梦昵称",
-    "Open new battles on the right side":"在右侧开启新战斗窗口",
-    "Close":"关闭",
-    "Hardcore mode (hide info not shown in-game) (beta)":"硬核模式(隐藏实机无法看到的信息)(测试)",
-    "Item:":"道具：",
-    "Ability:":"特性：",
-    "(before items/abilities/modifiers)":"（不计算道具/特性/加成）",
-    "(fainted)":"",
-    "Waiting for players...":"等待选手行动...",
-    "Spectators ignored.":"观战者消息已经被忽略",
-    "Spectators no longer ignored.":"观战者的消息已经不再忽略",
-    "Opponent ignored.":"对手的消息已经被忽略",
-    "Opponent no longer ignored.":"对手的消息已经不再忽略",
-    "Hardcore mode ON: Information not available in-game is now hidden.":"硬核模式开启，实机无法看到的信息已经被隐藏",
-    "Hardcore mode OFF: Information not available in-game is now shown.":"硬核模式关闭，实机无法看到的信息将会显示",
-    "Nicknames ignored.":"昵称已经被忽略",
-    "Nicknames no longer ignored.":"昵称不再被忽略",
-    "(fainted)":"（濒死）",
-    "Turn":"回合",
-    "PSN":"中毒",
-    "SLP":"睡眠",
-    "PAR":"麻痹",
-    "BRN":"灼伤",
-    "TOX":"中剧毒",
-    "Attack":"攻击",
-    "Defense":"防御",
-    "Speed":"速度",
-    "Speed:":"速度：",
-    "Hyperfast":"极快",
-    "Fast":"快",
-    "Slow":"慢",
-    "Really Slow":"极慢",
-    "Music:":"音乐：",
-    "Play (music off)":"播放（关闭音乐）",
-    "Reset":"重置",
-    "Next turn":"下一回合",
-    "Go to turn...":"跳至...回合",
-    "Resume":"恢复",
-    "Battle timer is ON: inactive players will automatically lose when time's up.":"战斗机计时器已经开启：玩家若不行动则在时间耗尽后会输掉比赛",
-
-    "EVs":"基础点数",
-    "IVs":"个体值",
-    "IV spreads":"个体值分配",
-    "Remaining:":"剩余点数：",
-    "Prompt on refresh":"刷新页面时弹出提醒窗口",
-    "(Others will be able to see your name change. To change name privately, use \"Log out\")":"其他人可以看到你更改了用户名，想要私下地更改用户名，点击‘登出’按钮",
-    "Power":"威力",
-    "Accuracy":"命中",
-    "Tournaments:":"房间比赛信息",
-    "Notifications":"接收消息",
-    "No Notifications":"不接收消息",
-    "Block PMs":"屏蔽私聊信息",
-    "Block Challenges":"屏蔽挑战",
-    "Choose an avatar or":"选择一个头像或者",
-    "Text formatting":"文本格式",
-    "You have been logged out and disconnected.":"你已经登出并且断开了连接",
-    "If you wanted to change your name while staying connected, use the 'Change Name' button or the '/nick' command.":"如果你想要在保持连接的情况下更改用户名，点击‘更改用户名’按钮或者使用/nick 命令",
-    "Suppressed":"被消除",
-    "Possible abilities:":"可能的特性：",
-    "The name you chose is registered.":"你选择的用户名已经被注册了",
-    "If this is your account:":"如果这是你的账号：",
-    "If this is someone else's account:":"如果这是别人的账号：",
-    "Choose another name":"选择另一个用户名",
-    "[Gen 7] Random Battle":"[第七世代] 随机对战",
-    "Add game":"新对战",
-    "Format:":"分级",
-    "Team:":"队伍",
-    "Battle!":"战斗！",
-    "Find a random opponent":"随机寻找一位对手",
-    "Teambuilder":"队伍编辑器",
-    "Ladder":"排行榜",
-    "Watch a battle":"观看对战",
-    "Find a user":"查找用户",
-    "Choose name":"输入用户名",
-    "Did you have a good day?":"你今天过的还好吗?",
-    "[Gen 7] OU battle started between":"[第七世代] OU比赛开始：",
-    "and":" 和",
-    "used ":"使用了",
-    "The opposing":"对手的",
-    "restored a little HP using its Leftovers!":"通过剩饭恢复了一点HP！",
-    "forfeited":"认输了",
-    "fainted!":"倒下了！",
-    "Random team":"随机队伍",
-    "Abilities":"特性",
-    "Hidden Ability":"隐藏特性",
-    "Will be":"Mega进化之后，特性将会变为",
-    "after Mega Evolving.":"",
-    "Nickname":"昵称",
-    "Item":"道具",
-    "The opposing ":"对手的",
-    "the opposing ":"对手的",
-    "Ability":"特性",
-    "Level":"等级",
-    "Gender":"性别",
-    "Happiness":"亲密度",
-    "Shiny":"闪光",
-    "Level:":"等级:",
-    "Gender:":"性别:",
-    "Happiness:":"亲密度:",
-    "Shiny:":"闪光:",
-    "Moves":"招式",
-    "Copy":"复制",
-    "Import/Export":"导入/导出",
-    "Move":"移动",
-    "Delete":"删除",
-    "Team":"队伍",
-    "Validate":"确认是否合法",
-    "Add Pokemon":"添加宝可梦",
-    "New Team":"新的队伍",
-    "Male":"雄性",
-    "Female":"雌性",
-    "Random":"随机",
-    "Format List":"分级列表",
-    "List":"列表",
-    "Edit":"编辑",
-    "Save":"保存",
-    "Switch":"交换",
-    "It's super effective!":"这非常有效！",
-    "It's not very effective...":"这不是很有效…",
-    "lost":"失去了 ",
-    "of its health!":"的生命值!",
-    ", come back!":",回来吧！",
-    "(exists)":"(存在)",
-    "Go!":"去吧！",
-    "withdrew":"收回了",
-    "sent out":"放出了",
-    "Change avatar":"更改头像",
-    "Password change":"更改密码",
-    "Graphics":"界面:",
-    "Layout:":"布局:",
-    "◫ Left and right panels":"◫ 双面板",
-    "◻ Single panel":"◻ 单面板",
-    "Background:":"背景:",
-    "Change background":"更改背景",
-    "Disable animations":"禁止战斗动画",
-    "Use BW sprites instead of XY models":"使用黑/白系列的宝可梦图像替代X/Y建模",
-    "Use modern sprites for past generations":"当战斗分级为旧世代时，使用最新的宝可梦图像",
-    "Chat":"聊天",
-    "Ignore tournaments":"忽略联赛（信息）",
-    "Show PMs in chat rooms":"在聊天室显示私聊信息",
-    "Highlight when your name is said in chat":"当你的名字出现在聊天窗口时，你的名字颜色会高亮",
-    "Notifications disappear automatically":"通知自动消失",
-    "Timestamps in chat rooms:":"聊天室中的时间显示:",
-    "Off":"不开启",
-    "Timestamps in PMs:":"私聊中的时间显示:",
-    "Chat preferences:":"聊天偏好:",
-    "Edit formatting":"改变格式",
-    "You can choose to display formatted text as normal text":"你可以选择显示文字的布局为普通布局",
-    "Change name":"更改用户名",
-    "Log out":"登出",
-    "News":"新闻",
-    "Join chat":"加入聊天室",
-    "Ground":"地面",
-    "Poison":"毒",
-    "Rock":"岩石",
-    "Steel":"钢",
-    "Water":"水",
-    "Hi":"嗨！",
-    "All teams":"所有队伍",
-    "Sp. Def.":"特防",
-    "Sp. Atk.":"特攻",
-    "Details":"细节",
-    "Stats":"能力值",
-    "Challenge":"挑战",
-    "Work offline":"离线模式",
-    "You have been disconnected – possibly because the server was restarted.":"您已断开连接-可能是因为服务器已重启",
-    "Username":"用户名",
-    "Open":"查找",
-    "Battles":"观战",
-    "Couldn't connect to server!":"无法连接服务器!",
-    "Retry":"重试",
-    "Retry with HTTP":"以HTTP方式重试",
-    "Normal":"一般",
-    "Log in":"登录",
-    "The server is restarting soon.":"服务器即将重新启动",
-    "Please finish your battles quickly. No new battles can be started until the server resets in a few minutes.":"请尽快结束战斗！在服务器几分钟重启之前，无法启动任何新的战斗",
-    "Fairy":"妖精",
-    "joined.":"加入了房间",
-    "Official chat rooms":"官方聊天室",
-    "Chat rooms":"聊天室",
-    "Lobby":"大厅",
-    "Help":"帮助",
-    "Tournaments":"锦标赛",
-    "users online":"在线用户",
-    "active battles":"正在对战",
-    "Home":"主页",
-    "Bug":"虫",
-    "Dark":"恶",
-    "Dragon":"龙",
-    "Electric":"电",
-    "Fighting":"格斗",
-    "Fire":"火",
-    "Flying":"飞行",
-    "Ghost":"幽灵",
-    "Grass":"草",
-    "Ice":"冰",
-    "Ignore":"忽略",
-    "Unignore":"取消忽略",
-    "Report":"举报",
-    "Main menu":"返回主页",
-    "Rematch":"重新挑战",
-    "closes this battle":"关闭这场战斗",
-    "Pause":"暂停",
-    "Play":"继续",
-    "Last turn":"前一回合",
-    "Skip turn":"后一回合",
-    "First turn":"第一回合",
-    "Skip to end":"最后一回合",
-    "users":"位用户",
-    "PLEASE DON'T USE ONLINE TRANSLATORS":"请不要使用在线翻译",
-    "Welcome To Lobby!":"欢迎来到大厅！",
-    "PS! Help Room":"PS!帮助室",
-    "For PS and Smogon help only.":"仅用于PS和Smogon帮助",
-    "Welcome to Tournaments!":"欢迎参加锦标赛！",
-    "Smogon University - Official Server":"Smogon大学 - 官方服务器",
-    "A UNO game is currently in progress.":"目前在举行一个UNO游戏",
-    "A new game of":"一个新的",
-    "is starting!":"游戏开始了!",
-    "Game messages will be shown to only players.":"游戏信息将只显示给玩家",
-    "Or use":"或者使用",
-    "to join the game.":"加入游戏",
-    "The game of UNO has ended.":"UNO的游戏已经结束",
-    "The game of UNO has started.":"UMO的游戏已经开始",
-    "All formats":"全部分级",
-    "Sleep Clause Mod:":"催眠条款：",
-    "Limit one foe put to sleep":"限制对手一只宝可梦进入睡眠状态",
-    "Species Clause:":"物种条款：",
-    "Limit one of each Pokemon":"限制使用相同宝可梦",
-    "OHKO Clause:":"一击必杀条款：",
-    "OHKO moves are banned":"限制使用一击濒死z招式",
-    "Moody Clause:":"心情不定条款：",
-    "Moody is banned":"限制使用心情不定特性",
-    "Evasion Moves Clause:":"闪避招式条款：",
-    "Evasion moves are banned":"限制使用提升闪避率招式",
-    "Endless Battle Clause:":"无限战斗条款：",
-    "Forcing endless battles is banned":"限制无休止战斗",
-    "HP Percentage Mod:":"血量百分比模式：",
-    "HP is shown in percentages":"HP以百分比显示",
-    "Mega Rayquaza Clause:":"Mega烈空坐禁止使用条款：",
-    "You cannot mega evolve Rayquaza":"禁止使用Mega烈空坐",
-    "Swagger Clause:":"虚张声势条款：",
-    "Swagger is banned":"限制使用虚张声势招式",
-    "Same Type Clause:":"同属性条款：",
-    "Pokemon in a team must share a type":"在队伍中的宝可梦必须拥有某个相同的属性",
-    "Accuracy Moves Clause:":"命中条款：",
-    "Accuracy-lowering moves are banned":"限制使用降低命中的招式",
-    "Item Clause:":"物品条款：",
-    "Limit one of each item":"限制使用重复道具",
-    "Evasion Abilities Clause:":"闪避条款：",
-    "Evasion abilities are banned":"限制使用提高闪避率的招式",
-    "CFZ Clause:":"CFZ条款：",
-    "Crystal-free Z-Moves are banned":"限制不携带Z纯晶使用Z招式",
-    "Freeze Clause Mod:":"冻结条款模式：",
-    "Limit one foe frozen":"限制对手一只宝可梦进入冰冻状态",
-    "Ability Clause:":"特性条款：",
-    "Limit two of each ability":"限制队伍最多有两个相同特性",
-    "Switch Priority Clause Mod:":"交换条款模式：",
-    "Faster Pokemon switch first":"速度快的宝可梦优先执行交换",
-    "Baton Pass Clause:":"接力棒条款：",
-    "Limit one Baton Passer, can't pass Spe and other stats simultaneously":"限制只可携带一只习得接力棒招式的宝可梦，不可将速度以及其他能力等级传递给其他宝可梦，不能同时将速度和其他强化属性通过接力棒接走",
-
     // Abilities Translations
 
     "Stench":"恶臭",
@@ -3145,40 +2852,6 @@ var translations={
     "Torch Song": "闪焰高歌",
     "Aqua Step": "流水旋舞",
 
-    // --- Gen 9 核心热门对战招式 ---
-    "Gigaton Hammer": "巨力锤",
-    "Salt Cure": "盐腌",
-    "Population Bomb": "鼠数儿",
-    "Tera Blast": "太晶爆发",
-    "Rage Fist": "愤怒之拳",
-    "Armor Cannon": "铠农炮",
-    "Bitter Blade": "悔念剑",
-    "Double Shock": "电光双击",
-    "Glaive Rush": "巨剑突击",
-    "Kowtow Cleave": "仆刀",
-    "Last Respects": "不扫而祭",
-    "Lumina Crash": "琉光冲激",
-    "Make It Rain": "淘金潮",
-    "Mortal Spin": "晶光转转",
-    "Order Up": "上菜",
-    "Revival Blessing": "复生祈祷",
-    "Shed Tail": "断尾",
-    "Silk Trap": "线阱",
-    "Spicy Extract": "香辛料提取",
-    "Spin Out": "疾速转轮",
-    "Tidy Up": "大扫除",
-    "Twin Beam": "双光束",
-    "Chilly Reception": "冷笑话",
-    "Doodle": "描绘",
-    "Fillet Away": "去肉",
-    "Hyper Drill": "强力钻",
-    "Jet Punch": "喷射拳",
-    "Raging Bull": "怒牛",
-    "Snowscape": "雪景",
-    "Trailblaze": "起草",
-    "Pounce": "虫扑",
-    "Chilling Water": "泼冷水",
-
     // --- Paradox / 悖谬宝可梦 ---
     "Collision Course": "全开猛撞",
     "Electro Drift": "闪电猛冲",
@@ -3325,7 +2998,290 @@ var translations={
     "Venusaur-Gmax": "超极巨妙蛙花",
     "Inteleon-Gmax": "超极巨千面避役",
     "Cinderace-Gmax": "超极巨闪焰王牌",
-    "Rillaboom-Gmax": "超极巨轰擂金刚猩"
+    "Rillaboom-Gmax": "超极巨轰擂金刚猩",
+
+
+    // ============================================
+    // Gen 8 - 剑盾 (DLC新增 & PLA洗翠) 全补完
+    // ============================================
+
+    // --- 铠之孤岛 (Isle of Armor) 教授技 & 新增 ---
+    "Expanding Force": "广域战力",
+    "Steel Roller": "铁滚轮",
+    "Scale Shot": "鳞射",
+    "Meteor Beam": "流星光束",
+    "Shell Side Arm": "臂贝武器",
+    "Misty Explosion": "薄雾炸裂",
+    "Grassy Glide": "青草滑梯",
+    "Rising Voltage": "电力上升",
+    "Terrain Pulse": "大地波动",
+    "Skitter Smack": "爬击",
+    "Burning Jealousy": "妒火",
+    "Lash Out": "泄愤",
+    "Poltergeist": "灵骚",
+    "Corrosive Gas": "腐蚀气体",
+    "Coaching": "指导",
+    "Flip Turn": "快速折返",
+    "Triple Axel": "三旋击",
+    "Dual Wingbeat": "双翼",       // 原名
+    "Dual Wing": "双翼",           // PS平台常见简写
+    "Scorching Sands": "热沙大地",
+    "Jungle Healing": "丛林治疗",
+    "Wicked Blow": "暗冥强击",      // 武道熊师-一击
+    "Surging Strikes": "水流连打",  // 武道熊师-连击
+
+    // --- 铠之孤岛 & G-Max 补充 ---
+    "G-Max Drum Solo": "超极巨狂擂乱打",
+    "G-Max Fireball": "超极巨破阵火球",
+    "G-Max Hydrosnipe": "超极巨狙击神射",
+    "G-Max Vine Lash": "超极巨灰飞鞭灭",
+    "G-Max Cannonade": "超极巨水炮轰灭",
+    "G-Max One Blow": "超极巨夺命一击",
+    "G-Max Rapid Flow": "超极巨流水连击",
+
+    // --- 冠之雪原 (Crown Tundra) 教授技 & 新增 ---
+    "Thunder Cage": "雷电囚笼",
+    "Dragon Energy": "巨龙威能",
+    "Freezing Glare": "冰冷视线",
+    "Fiery Wrath": "怒火中烧",
+    "Thunderous Kick": "雷鸣蹴击",
+    "Glacial Lance": "雪矛",
+    "Astral Barrage": "星碎",
+    "Eerie Spell": "诡异咒语",
+
+    // --- 传说：阿尔宙斯 (PLA/洗翠) 官方修正译名 ---
+    "Dire Claw": "克命爪",
+    "Psyshield Bash": "屏障猛攻",
+    "Power Shift": "力量转换",
+    "Stone Axe": "岩斧",
+    "Springtide Storm": "阳春风暴",
+    "Mystical Power": "神秘之力",
+    "Raging Fury": "大愤慨",
+    "Wave Crash": "波动冲",
+    "Chloroblast": "叶绿爆震",
+    "Mountain Gale": "冰山风",     // 修正：百科确认为冰山风，而非冰山之风
+    "Victory Dance": "胜利之舞", 
+    "Headlong Rush": "突飞猛扑",
+    "Barb Barrage": "毒千针",
+    "Esper Wing": "气场之翼",
+    "Bitter Malice": "冤冤相报",
+    "Shelter": "闭关",
+    "Triple Arrows": "三连箭",
+    "Infernal Parade": "群魔乱舞",
+    "Ceaseless Edge": "秘剑・千重涛", // 修正：注意中间是点，且是涛不是波
+    "Bleakwind Storm": "枯叶风暴",
+    "Wildbolt Storm": "鸣雷风暴",
+    "Sandsear Storm": "热沙风暴",
+    "Lunar Blessing": "新月祈祷",
+    "Take Heart": "勇气填充",     // 修正：区别于民译“力发千钧”
+
+    // --- 剑盾漏网之鱼检测 ---
+    "No Retreat": "背水一战",
+    "Tar Shot": "沥青射击",
+    "Magic Powder": "魔法粉",
+    "Dragon Darts": "龙箭",
+    "Teatime": "茶会",
+    "Octolock": "蛸固",
+    "Bolt Beak": "电喙",
+    "Fishious Rend": "鳃咬",
+    "Court Change": "换场",
+    "Clangorous Soul": "魂舞烈音爆",
+    "Body Press": "扑击",
+    "Decorate": "装饰",
+    "Drum Beating": "鼓击",
+    "Snap Trap": "捕兽夹",
+    "Pyro Ball": "火焰球",
+    "Behemoth Blade": "巨兽斩",
+    "Behemoth Bash": "巨兽弹",
+    "Aura Wheel": "气场轮",
+    "Breaking Swipe": "广域破坏",
+    "Branch Poke": "木枝突刺",
+    "Overdrive": "破音",
+    "Apple Acid": "苹果酸",
+    "Grav Apple": "万有引力",    // 早期一度叫重力苹果列表准确
+    "Spirit Break": "灵魂冲击",
+    "Strange Steam": "神奇蒸汽",
+    "Life Dew": "生命水滴",
+    "Obstruct": "拦堵",
+    "False Surrender": "假跪真撞",
+    "Meteor Assault": "流星突击",
+    "Eternabeam": "无极光束",
+    "Steel Beam": "铁蹄光线",
+
+
+    // ============================================
+    // Gen 9 帕底亚 - 基础篇 (官方官方译名修正版)
+    // ============================================
+
+    "Tera Blast": "太晶爆发",
+    "Silk Trap": "线阱",
+    "Axe Kick": "下压踢",
+    "Last Respects": "扫墓",           // 修正了习惯性翻译“不扫而祭”
+    "Lumina Crash": "琉光冲激",
+    "Order Up": "上菜",
+    "Jet Punch": "喷射拳",
+    "Spicy Extract": "辣椒精华",
+    "Spin Out": "疾速转轮",
+    "Population Bomb": "鼠数儿",
+    "Ice Spinner": "冰旋",
+    "Glaive Rush": "巨剑突击",
+    "Revival Blessing": "复生祈祷",
+    "Salt Cure": "盐腌",
+    "Triple Dive": "三连钻",
+    "Mortal Spin": "晶光转转",
+    "Doodle": "描绘",
+    "Fillet Away": "甩肉",
+    "Kowtow Cleave": "仆刀",
+    "Flower Trick": "千变万花",
+    "Torch Song": "闪焰高歌",
+    "Aqua Step": "流水旋舞",
+    "Raging Bull": "怒牛",
+    "Make It Rain": "淘金潮",
+    "Psyblade": "精神剑",
+    "Hydro Steam": "水蒸气",
+    "Ruination": "大灾难",
+    "Collision Course": "全开猛撞",
+    "Electro Drift": "闪电猛冲",
+    "Shed Tail": "断尾",
+    "Chilly Reception": "冷笑话",
+    "Tidy Up": "大扫除",
+    "Snowscape": "雪景",
+    "Pounce": "虫扑",
+    "Trailblaze": "起草",
+    "This move currently has no name.": "泼冷水", 
+    "Chilling Water": "泼冷水",
+    "Hyper Drill": "强力钻",
+    "Twin Beam": "双光束",
+    "Rage Fist": "愤怒之拳",
+    "Armor Cannon": "铠农炮",
+    "Bitter Blade": "悔念剑",
+    "Double Shock": "电光双击",
+    "Gigaton Hammer": "巨力锤",
+    "Comeuppance": "复仇",
+    "Aqua Cutter": "水波刀",
+
+    // --- 天星队(Team Star) 专属改造毒气车技能 ---
+    "Blazing Torque": "灼热暴冲",
+    "Wicked Torque": "黑暗暴冲",
+    "Noxious Torque": "剧毒暴冲",
+    "Combat Torque": "格斗暴冲",
+    "Magical Torque": "魔法暴冲",
+
+    // ============================================
+    // Gen 9 DLC 前篇 - 碧之假面
+    // ============================================
+
+    "Blood Moon": "血月",
+    "Matcha Gotcha": "刷刷茶炮",
+    "Syrup Bomb": "糖浆炸弹",
+    "Ivy Cudgel": "棘藤棒",
+
+    // ============================================
+    // Gen 9 DLC 后篇 - 蓝之圆盘 (官方最终修正)
+    // ============================================
+
+    "Electro Shot": "电光束",
+    "Tera Starstorm": "晶光星群",
+    "Fickle Beam": "随机光",
+    "Burning Bulwark": "火焰守护",
+    "Thunderclap": "迅雷",
+    "Mighty Cleave": "强刃攻击",
+    "Tachyon Cutter": "迅子利刃",      // 修正：区别于常见的“迅子光炮”
+    "Hard Press": "硬压",
+    "Dragon Cheer": "龙声鼓舞",
+    "Alluring Voice": "魅诱之声",
+    "Temper Flare": "豁出去",          // 修正：区别于民译“发泄”、“愤恨”
+    "Supercell Slam": "闪电强袭",      // 修正：区别于民译“晶光雷电”
+    "Psychic Noise": "精神噪音",
+    "Upper Hand": "快手还击",          // 修正：区别于民译“迅疾还击”
+    "Malignant Chain": "邪毒锁链",     // 修正：官方增加了“邪”字
+
+    // ============================================
+    // 状态/环境效果补充
+    // ============================================
+    "Salt Cure (status)": "盐腌(状态)",
+    "Snow (weather)": "下雪(天气)",
+    "Tidying up": "大扫除",
+    "Dopamine": "大愤慨(状态)",
+
+    // ============================================
+    // Gen 8 - 剑盾 DLC (包含神兽特性补充)
+    // ============================================
+
+    // 之前缺失的伽勒尔呆尾兽特性
+    "Quick Draw": "速击",
+    
+    // 铠之孤岛 - 武道熊师
+    "Unseen Fist": "无形拳",
+    
+    // 伽勒尔急冻鸟/闪电鸟/火焰鸟 (原本多为压迫感/好胜/只是单纯没列出?)
+    // 实际上三神鸟隐藏特性已经在Gen6/7存在，Gen8变种特性不计入新ID
+    
+    // 伽勒尔呆壳兽
+    "Curious Medicine": "怪药",
+    
+    // 雷吉艾勒奇 / 雷吉铎拉戈
+    "Transistor": "电晶体",
+    "Dragon's Maw": "龙颚",
+    
+    // 雪暴马 / 灵幽马
+    "Chilling Neigh": "苍白嘶鸣",
+    "Grim Neigh": "漆黑嘶鸣",
+    
+    // 蕾冠王合体特性
+    "As One": "人马一体",
+    "As One (Glastrier)": "人马一体", // 白马
+    "As One (Spectrier)": "人马一体", // 黑马
+
+    // ============================================
+    // Gen 9 - 帕底亚 (含四灾 / 悖谬 / DLC)
+    // ============================================
+
+    "Lingering Aroma": "甩不掉的气味", // 对战常见：飘香豚
+    "Seed Sower": "掉出种子",        // 奥利瓦
+    "Thermal Exchange": "热交换",    // 戟脊龙 (防烧伤+攻)
+    "Anger Shell": "愤怒甲壳",      // 毛崖蟹
+    "Purifying Salt": "洁净之盐",    // 盐石巨灵 (神特性)
+    "Well-Baked Body": "焦香之躯",  // 狗仔包
+    "Wind Rider": "乘风",          // 怖纳噬草 (免疫风+攻)
+    "Guard Dog": "看门犬",         // 獒教父/一家鼠 (防威吓，防吹飞)
+    "Rocky Payload": "搬岩",       // 拖拖蚓没有这个，是毛崖蟹. wait... 岩石下是搬岩
+    "Wind Power": "风力发电",      // 大电海燕
+    "Zero to Hero": "全能变身",    // 变身为海豚侠
+    "Commander": "发号施令",       // 吃吼霸-米立龙合体
+    "Electromorphosis": "电力转换", // Bellibolt
+    "Protosynthesis": "古代活性",  // 古代种 (过去悖谬)
+    "Quark Drive": "夸克充能",     //哪怕是电更佳，官方译名也是充能 (未来悖谬)
+    "Good as Gold": "黄金之躯",    // 赛富豪 (顶级特性)
+    "Vessel of Ruin": "灾祸之鼎",  // 古鼎鹿
+    "Sword of Ruin": "灾祸之剑",   // 古剑豹
+    "Tablets of Ruin": "灾祸之简", // 古简蜗
+    "Beads of Ruin": "灾祸之玉",   // 古玉鱼
+    "Orichalcum Pulse": "绯红脉动", // 故勒顿
+    "Hadron Engine": "强子引擎",    // 密勒顿
+    "Opportunist": "跟风",         // 艳鸵/机变骰子
+    "Cud Chew": "反刍",           // 奇麒麟 (吃双倍果子)
+    "Sharpness": "锋锐",           // 仆刀将军 (切割增伤)
+    "Supreme Overlord": "大将",    // 仆刀将军 (根据倒下队友增伤)
+    "Costar": "同台共演",         // 缠红鹤
+    "Toxic Debris": "毒满地",      // 晶光花 (撒毒菱)
+    "Armor Tail": "尾甲",          // 奇麒麟 (防先制)
+    "Earth Eater": "食土",         // 普隆隆姆
+    "Mycelium Might": "菌丝之力",  // 陆地水母
+    "Hospitality": "款待",         // 斯魔茶
+    "Mind's Eye": "心眼",          // 赫月月月熊
+    "Embody Aspect": "面影辉映",   // 厄鬼椪全形态通用
+    "Embody Aspect (Teal)": "面影辉映",
+    "Embody Aspect (Hearthflame)": "面影辉映",
+    "Embody Aspect (Wellspring)": "面影辉映",
+    "Embody Aspect (Cornerstone)": "面影辉映",
+    "Toxic Chain": "毒锁链",       // 吉雉鸡等
+    "Supersweet Syrup": "甘露之蜜", // 裹蜜虫进化型
+    "Tera Shift": "太晶变形",      // 太乐巴戈斯 (龟形态进入战斗)
+    "Tera Shell": "太晶甲壳",      // 太乐巴戈斯 (满血减伤)
+    "Teraform Zero": "归零化境",   // 太乐巴戈斯 (星晶，抹消天气场地)
+    "Poison Puppeteer": "毒傀儡",  // 桃歹郎
+
 
 };
 
