@@ -3291,6 +3291,34 @@ var translations={
  * ===========================================
  * 提供简单的API来获取中文翻译
  */
+
+const translationLookupCache = {
+    normalizedMap: null
+};
+
+function normalizeTranslationKey(key) {
+    return String(key || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '');
+}
+
+function getNormalizedTranslationValue(key) {
+    if (!key || typeof translations === 'undefined') return null;
+    if (!translationLookupCache.normalizedMap) {
+        const map = {};
+        for (const originalKey in translations) {
+            const normalizedKey = normalizeTranslationKey(originalKey);
+            if (!(normalizedKey in map)) {
+                map[normalizedKey] = translations[originalKey];
+            }
+        }
+        translationLookupCache.normalizedMap = map;
+    }
+
+    return translationLookupCache.normalizedMap[normalizeTranslationKey(key)] || null;
+}
+
 if (typeof window !== 'undefined') {
     window.Locale = {
         // 缓存翻译结果，提升性能
@@ -3322,6 +3350,12 @@ if (typeof window !== 'undefined') {
                 if (k.toLowerCase() === lowerKey) {
                     return this._updateCache(cleanKey, translations[k]);
                 }
+            }
+
+            // 3.5 归一化匹配（忽略空格/符号差异）
+            const normalizedResult = getNormalizedTranslationValue(cleanKey);
+            if (normalizedResult) {
+                return this._updateCache(cleanKey, normalizedResult);
             }
             
             // 4. 智能后缀解析 - 处理 "Zoroark-Hisui" 这类形态
