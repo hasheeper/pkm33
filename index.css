@@ -3846,135 +3846,179 @@ body {
 }
 
 /* =========================================
-   [Z-MOVE] Z招式按钮样式
+   [Z-MOVE] Z招式按钮样式 - 改良版
+   Theme: 全息晶体 (Holographic Crystal)
+   风格：洁白底色 + 高饱和度棱镜折射光，强调锋锐感
    ========================================= */
 
-/* Z招式按钮基础样式 (模拟晶体光泽) */
+/* Z招式按钮基础样式 */
 .action-btn.z-move-btn {
-    background: linear-gradient(135deg, #FFF 0%, #f3f4f6 40%, rgba(255,255,255,0.8) 100%);
+    /* 背景改为更纯净的珠光渐变，减少浑浊彩度 */
+    background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 50%, #e2e8f0 100%);
+    position: relative;
     border: 2px solid transparent !important;
-    box-shadow: 0 4px 6px rgba(99,102,241,0.2);
+    background-clip: padding-box; /* 关键：防止背景干扰边框区 */
+    box-shadow: 
+        0 8px 20px -5px rgba(99, 102, 241, 0.4), 
+        inset 0 0 15px rgba(255, 255, 255, 0.8);
+    overflow: hidden;
 }
 
-/* 动态彩虹边框 (用伪元素裁切) */
+/* 动态化边框 - 改为棱镜色谱 (Cyan/Magenta/Yellow/Light) */
 .action-btn.z-move-btn::after {
     content: '';
     position: absolute;
     inset: -2px;
-    background: linear-gradient(45deg, #6366f1, #a855f7, #ec4899, #f59e0b, #10b981, #06b6d4, #6366f1);
-    background-size: 300% 300%;
-    border-radius: 10px;
     z-index: -1;
-    animation: rainbow-border 3s ease infinite;
+    border-radius: 12px; /* 稍微加大圆角适配新风格 */
+    
+    /* 更加锋利的“激光”配色 */
+    background: linear-gradient(
+        60deg,
+        #22d3ee, /* 青色 */
+        #c084fc, /* 紫色 */
+        #f472b6, /* 粉色 */
+        #fbbf24, /* 金色 */
+        #22d3ee  /* 循环回青色 */
+    );
+    background-size: 200% 200%;
+    animation: z-prism-border 2.5s linear infinite;
 }
 
-/* Z招式特殊样式：文字渐变 */
+@keyframes z-prism-border {
+    0% { background-position: 0% 50%; filter: brightness(1); }
+    50% { background-position: 100% 50%; filter: brightness(1.2); }
+    100% { background-position: 0% 50%; filter: brightness(1); }
+}
+
+/* Z招式文字特效 - 深邃宇宙色 */
 .action-btn.z-move-btn .move-name {
     font-weight: 800;
     font-style: italic;
-    background: linear-gradient(90deg, #333, #666);
+    /* 使用深紫到深青的渐变，更有科幻感，对比度更高 */
+    background: linear-gradient(90deg, #312e81, #4c1d95); 
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.1); /* 微弱修饰 */
 }
 
-/* 右上角打标 Z */
+/* 右上角打标 Z - 晶体质感徽章 */
 .action-btn.z-move-btn .z-badge-icon {
     position: absolute;
     top: 8px;
-    right: 8px;
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, #6366f1, #a855f7);
-    color: white;
+    right: 20px;
+    width: 34px;
+    height: 34px;
+    /* 使用通透的晶体渐变 */
+    background: linear-gradient(135deg, #a855f7, #6366f1, #06b6d4);
+    color: #fff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 1.1rem; /* Z字加大 */
+    font-family: 'Exo 2', sans-serif;
     font-weight: 900;
-    box-shadow: 0 2px 8px rgba(99,102,241,0.5);
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.6);
     z-index: 10;
-    border: 2px solid white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* 已使用状态 (Burned Out) */
-.action-btn.z-move-used {
-    background: #e5e7eb !important;
-    border: 2px solid #d1d5db !important;
-    opacity: 0.6;
-    cursor: not-allowed;
-    animation: none;
-}
-.action-btn.z-move-used::after { display: none; }
-.action-btn.z-move-used .move-name {
-    -webkit-text-fill-color: #9ca3af;
-    text-decoration: line-through;
-}
-
-@keyframes z-border-spin {
-    0% { filter: hue-rotate(0deg); }
-    100% { filter: hue-rotate(360deg); }
-}
 
 /* =========================================
-   [MAX-MOVE] 极巨招式按钮样式
+   [MAX-MOVE] 极巨招式按钮样式 - 改良版
+   Theme: 极巨风暴 (Dynamax Storm)
+   风格：极巨粉红(#ff0055) + 暗云红，强调力量感与能量溢出
    ========================================= */
 
-/* 极巨招式按钮 (红色主题) */
+/* 极巨招式按钮基础 */
 .action-btn.max-move-btn {
-    background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 40%, rgba(255,255,255,0.9) 100%);
+    /* 白红渐变，底部带一点暗影，增加重量感 */
+    background: linear-gradient(160deg, #ffffff 30%, #fff1f2 70%, #ffe4e6 100%);
+    position: relative;
     border: 2px solid transparent !important;
-    box-shadow: 0 4px 6px rgba(255,0,85,0.2);
+    background-clip: padding-box;
+    box-shadow: 
+        0 8px 20px -5px rgba(225, 29, 72, 0.5), /* 红色投影 */
+        inset 0 0 20px rgba(255, 0, 85, 0.05);
 }
 
+/* 动态边框 - 加深，加上极巨化特征性的洋红色高光 */
 .action-btn.max-move-btn::after {
     content: '';
     position: absolute;
     inset: -2px;
-    background: linear-gradient(45deg, #e11d48, #f43f5e, #fb923c, #fbbf24);
-    border-radius: 10px;
     z-index: -1;
-    animation: max-border-pulse 2s ease-in-out infinite;
+    border-radius: 12px;
+    
+    /* 极巨化标准配色：暗玫红 -> 霓虹粉 -> 暗红 */
+    background: linear-gradient(
+        45deg, 
+        #be123c, /* 暗红 */
+        #ff0055, /* 极巨粉 (特征色) */
+        #db2777, /* 玫红 */
+        #9f1239  /* 深紫红 */
+    );
+    background-size: 300% 300%;
+    animation: max-surge-border 2s ease infinite alternate;
 }
 
+@keyframes max-surge-border {
+    0% { background-position: 0% 50%; filter: drop-shadow(0 0 2px rgba(255,0,85,0.4)); }
+    100% { background-position: 100% 50%; filter: drop-shadow(0 0 6px rgba(255,0,85,0.8)); }
+}
+
+/* 极巨招式文字 - 暗红渐变，强调破坏力 */
 .action-btn.max-move-btn .move-name {
     font-weight: 800;
-    background: linear-gradient(90deg, #e11d48, #be123c);
+    font-style: italic;
+    /* 从暗红到霓虹粉的渐变 */
+    background: linear-gradient(90deg, #be123c, #ff0055);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    /* 增加一个稍微“抖动”错位的文字阴影感觉 */
+    filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.1));
 }
 
+/* 右上角打标 Max - 暗云图腾 */
 .action-btn.max-move-btn .z-badge-icon {
     position: absolute;
     top: 8px;
-    right: 8px;
+    right: 20px;
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, #e11d48, #be123c);
-    color: white;
+    /* 模拟极巨云漩涡的颜色 */
+    background: linear-gradient(135deg, #be123c, #881337); 
+    color: #fff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.85rem;
+    font-size: 0.9rem; /* 字体改小一点以容纳图标或 MAX 字样 */
     font-weight: 900;
-    box-shadow: 0 2px 8px rgba(225,29,72,0.5);
-    z-index: 10;
+    font-family: 'Rubik', sans-serif;
     border: 2px solid white;
+    /* 这种洋红色的光晕是灵魂 */
+    box-shadow: 0 0 10px #ff0055, inset 0 0 6px rgba(0,0,0,0.3);
+    z-index: 10;
 }
 
-@keyframes max-border-pulse {
-    0%, 100% { 
-        filter: brightness(1);
-        opacity: 1;
-    }
-    50% { 
-        filter: brightness(1.2);
-        opacity: 0.9;
-    }
+/* 在 Max 标记内增加一个小小的粒子动画 (伪装成能量点) */
+.action-btn.max-move-btn .z-badge-icon::before {
+    content: '✖'; /* 极巨化的叉号特征 */
+    font-size: 1.2rem;
+    position: absolute;
+    animation: max-symbol-pulse 1.5s infinite;
 }
+
+@keyframes max-symbol-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.2); opacity: 1; text-shadow: 0 0 5px white; }
+}
+
 
 /* =========================================================
    太晶化 (Terastallization) 样式系统

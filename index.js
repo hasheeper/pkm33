@@ -676,7 +676,7 @@ function updateAllVisuals(forceSpriteAnim = false) {
                         btn.classList.add('z-move-used');
                     }
                     
-                    const labelText = showZStyle ? 'Z' : 'MAX';
+                    const labelText = showZStyle ? 'Z' : '';
                     btn.innerHTML = `
                         <div class="deco-bar"></div>
                         <div class="content-unskew">

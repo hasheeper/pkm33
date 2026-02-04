@@ -28,108 +28,204 @@
  */
 function getDefaultBattleData() {
     return {
+  "difficulty": "expert", 
+  "settings": {
+    "enableAVS": true,
+    "enableCommander": true,
+    "enableEVO": true,
+    "enableBGM": true,
+    "enableSFX": true,
+    "enableClash": true
+  },
   "player": {
-    "name": "粉末测试玩家",
-    "trainerProficiency": 100,
+    "name": "Champion",
+    "trainerProficiency": 255,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_styles": true,
+      "enable_bond": true,
+      "enable_tera": true,
+      "enable_dynamax": true
+    },
     "party": [
       {
-        "name": "Venusaur",
-        "lv": 50,
-        "gender": "M",
-        "nature": "Modest",
-        "ability": "Chlorophyll",
-        "item": null,
+        "slot": 1,
+        "name": "Dragapult",
+        "nickname": "幽影",
+        "lv": 88,
         "isLead": true,
-        "stats_meta": {
-          "ev_level": 252,
-          "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
-        },
-        "moves": ["Sleep Powder", "Giga Drain", "Sludge Bomb", "Synthesis"]
-      },
-      {
-        "name": "Pikachu",
-        "lv": 50,
-        "gender": "M",
+        "ability": "Infiltrator",
         "nature": "Timid",
-        "ability": "Static",
-        "item": "Safety Goggles",
-        "stats_meta": {
-          "ev_level": 252,
-          "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
-        },
-        "moves": ["Thunderbolt", "Volt Switch", "Grass Knot", "Nuzzle"]
+        "item": "Choice Specs",
+        "isAce": true,
+        "moves": ["Shadow Ball", "Draco Meteor", "U-turn", "Flamethrower"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 200, "insight": 220 } }
       },
       {
-        "name": "Forretress",
-        "lv": 50,
-        "gender": "M",
+        "slot": 2,
+        "name": "Beedrill",
+        "nickname": "蜂皇",
+        "lv": 88,
+        "item": "Beedrillite",
+        "mechanic": "mega",
+        "mega_target": "beedrillmega",
+        "nature": "Jolly",
+        "isAce": true,
+        "moves": ["Poison Jab", "U-turn", "Drill Run", "Fell Stinger"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 255 } }
+      },
+      {
+        "slot": 3,
+        "name": "Coalossal",
+        "nickname": "熔炉",
+        "lv": 88,
+        "mechanic": "dynamax",
+        "ability": "Steam Engine",
         "nature": "Relaxed",
-        "ability": "Overcoat",
-        "item": "Leftovers",
-        "stats_meta": {
-          "ev_level": 252,
-          "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 0 }
-        },
-        "moves": ["Stealth Rock", "Spikes", "Rapid Spin", "Volt Switch"]
+        "item": "Weakness Policy",
+        "isAce": true,
+        "moves": ["Heat Crash", "Stone Edge", "Scald", "Rapid Spin"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 255, "insight": 180 } }
+      },
+      {
+        "slot": 4,
+        "name": "Kommo-o",
+        "nickname": "战龙",
+        "lv": 88,
+        "mechanic": "zmove",
+        "ability": "Bulletproof",
+        "item": "Kommonium Z",
+        "nature": "Naive",
+        "isAce": true,
+        "moves": ["Clanging Scales", "Close Combat", "Poison Jab", "Clangorous Soul"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "devotion": 200 } }
+      },
+      {
+        "slot": 5,
+        "name": "Mimikyu",
+        "nickname": "谜拟Q",
+        "lv": 88,
+        "isAce": true,
+        "ability": "Disguise",
+        "item": "Life Orb",
+        "isAce": true,
+        "moves": ["Play Rough", "Shadow Claw", "Shadow Sneak", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 240, "passion": 240, "insight": 255 } }
+      },
+      {
+        "slot": 6,
+        "name": "Dragonite",
+        "nickname": "快龙",
+        "lv": 88,
+        "ability": "Multiscale",
+        "mechanic": "tera",
+        "teraType": "Normal",
+        "item": "Heavy-Duty Boots",
+        "isAce": true,
+        "moves": ["Extreme Speed", "Earthquake", "Dragon Claw", "Roost"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 200 } }
       }
-    ],
-    "unlocks": {}
+    ]
   },
   "enemy": {
-    "id": "powder_test_trainer",
-    "type": "trainer",
-    "name": "粉末测试训练家",
-    "trainerProficiency": 100,
+    "name": "Leon (Ultimate)",
+    "type": "CHAMPION",
+    "trainerProficiency": 255,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_bond": true,
+      "enable_styles": true,
+      "enable_tera": true,
+      "enable_dynamax": true
+    },
+    "party": [
+      {
+        "name": "Meowscarada",
+        "lv": 88,
+        "isLead": true,
+        "gender": "F",
+        "ability": "Protean",
+        "nature": "Jolly",
+        "item": "Focus Sash",
+        "mechanic": "tera",
+        "teraType": "Grass",
+        "moves": ["Flower Trick", "Knock Off", "U-turn", "Play Rough"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "insight": 200 } }
+      },
+      {
+        "name": "Garganacl",
+        "lv": 88,
+        "ability": "Purifying Salt",
+        "item": "Leftovers",
+        "nature": "Careful",
+        "moves": ["Salt Cure", "Recover", "Earthquake", "Body Press"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 150, "devotion": 150 } }
+      },
+      {
+        "name": "Lucario",
+        "lv": 88,
+        "gender": "M",
+        "ability": "Justified",
+        "nature": "Jolly",
+        "mechanic": "mega",
+        "mega_target": "lucariomega",
+        "item": "Lucarionite",
+        "moves": ["Close Combat", "Bullet Punch", "Meteor Mash", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 220, "insight": 180 } }
+      },
+      {
+        "name": "Charizard",
+        "lv": 89,
+        "mechanic": "dynamax",
+        "mega_target": "charizardgmax",
+        "ability": "Solar Power",
+        "nature": "Timid",
+        "item": "Heavy-Duty Boots",
+        "moves": ["Heat Wave", "Air Slash", "Solar Beam", "Ancient Power"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 180, "trust": 100 } }
+      },
+      {
+        "name": "Necrozma",
+        "lv": 90,
+        "isAce": true,
+        "ability": "Prism Armor",
+        "nature": "Adamant",
+        "mechanic": "zmove",
+        "item": "Ultranecrozium Z",
+        "moves": ["Photon Geyser", "Poltergeist", "Earthquake", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { 
+            "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 } 
+        }
+      },
+      {
+        "name": "Solgaleo",
+        "lv": 89,
+        "ability": "Full Metal Body",
+        "nature": "Adamant",
+        "item": "Leftovers",
+        "moves": ["Sunsteel Strike", "Psychic Fangs", "Earthquake", "Flare Blitz"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 220, "devotion": 220 } }
+      }
+    ],
     "lines": {
-      "intro": "来测试粉末类招式免疫吧！",
-      "win": "粉末测试完成！",
-      "lose": "你通过了测试！"
+      "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
+      "lose": "这就是……传说中的英雄吗……精彩绝伦！",
+      "win": "看来你的冠军时刻还没有到来啊！"
     }
-  },
-  "party": [
-    {
-      "name": "Breloom",
-      "lv": 50,
-      "gender": "M",
-      "nature": "Jolly",
-      "ability": "Technician",
-      "item": "Focus Sash",
-      "stats_meta": {
-        "ev_level": 252,
-        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
-      },
-      "moves": ["Spore", "Mach Punch", "Bullet Seed", "Rock Tomb"]
-    },
-    {
-      "name": "Vileplume",
-      "lv": 50,
-      "gender": "F",
-      "nature": "Bold",
-      "ability": "Effect Spore",
-      "item": "Black Sludge",
-      "stats_meta": {
-        "ev_level": 252,
-        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
-      },
-      "moves": ["Sleep Powder"]
-    },
-    {
-      "name": "Butterfree",
-      "lv": 50,
-      "gender": "F",
-      "nature": "Timid",
-      "ability": "Compound Eyes",
-      "item": null,
-      "stats_meta": {
-        "ev_level": 252,
-        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 }
-      },
-      "moves": ["Sleep Powder", "Stun Spore", "Poison Powder", "Bug Buzz"]
-    }
-  ],
-  "settings": {
-    "enableAVS": false,
-    "enableEnvironment": false
   }
 }
 
