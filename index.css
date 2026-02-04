@@ -817,10 +817,6 @@ body {
     text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.08);
     opacity: 0;
 }
-
-/* =========================================
-   结算画面 (RESULT SCREEN)
-   ========================================= */
 /* =========================================
    MODERN RESULT CARD (Switch / SV style)
    ========================================= */
@@ -2098,74 +2094,121 @@ body {
     font-family: var(--font-main);
 }
 
-/* 技能按钮 - 重写 */
+/* 技能按钮 - 极简科幻风格 */
 .action-btn {
-    display: flex;
-    /* 改为左右横排，左边彩条右边字，更省高 */
-    flex-direction: row; 
-    align-items: center; 
-    justify-content: space-between; /* 名字靠左，标签靠右 */
-  
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
     position: relative;
-    overflow: hidden; /* 关键：切掉溢出的颜色条 */
-  
-    /* 基础样式 */
-    background: #f8fafc;
-    /* 边框细一点 */
-    border: 1px solid rgba(55, 65, 81, 0.3);
-    border-radius: 10px; /* 稍微方一点 */
-  
-    transition: all 0.15s ease-out;
-    padding: 0 12px 0 0; /* 右边留空给胶囊 */
-  
-    /* 
-      关键修正：高度自适应填满 Grid Cell，
-      避免固定 padding 导致的撑破 
-    */
+    background: #ffffff;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    outline: none;
+    overflow: hidden;
+    
+    /* Switch平面风格 */
+    border-radius: 8px;
+    box-shadow: 
+        4px 4px 0 rgba(0,0,0,0.15),
+        inset 0 0 0 1px rgba(255,255,255,0.8);
+    
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.2s;
+    
+    /* 弹性布局：左图右字 */
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    
     width: 100%;
-    height: 100%; 
+    height: 100%;
     box-sizing: border-box;
     font-family: var(--font-main);
 }
 
-/* 按钮内部的内容容器 - 用来修正 Skew */
-/* 
-   因为父级 skew 了 -15deg，.moves-menu 没有 skew(反向)，
-   所以 .action-btn 是斜的（如您所愿）。
-   但里面的 文本 必须直立。
-*/
-.action-btn .move-name, 
-.action-btn .badge-type {
-    /* 再次把文字扶正，便于阅读 */
+/* 类型颜色定义 (CSS变量) */
+.action-btn[data-type="bug"]      { --type-color: #92BC2C; }
+.action-btn[data-type="dark"]     { --type-color: #595761; }
+.action-btn[data-type="dragon"]   { --type-color: #0C69C8; }
+.action-btn[data-type="electric"] { --type-color: #F2D94E; }
+.action-btn[data-type="fire"]     { --type-color: #FBA54C; }
+.action-btn[data-type="fairy"]    { --type-color: #EE90E6; }
+.action-btn[data-type="fighting"] { --type-color: #D3425F; }
+.action-btn[data-type="flying"]   { --type-color: #A1BBEC; }
+.action-btn[data-type="ghost"]    { --type-color: #5F6DBC; }
+.action-btn[data-type="grass"]    { --type-color: #5FBD58; }
+.action-btn[data-type="ground"]   { --type-color: #DA7C4D; }
+.action-btn[data-type="ice"]      { --type-color: #75D0C1; }
+.action-btn[data-type="normal"]   { --type-color: #A0A29F; }
+.action-btn[data-type="poison"]   { --type-color: #B763CF; }
+.action-btn[data-type="psychic"]  { --type-color: #FA8581; }
+.action-btn[data-type="rock"]     { --type-color: #C9BB8A; }
+.action-btn[data-type="steel"]    { --type-color: #5695A3; }
+.action-btn[data-type="water"]    { --type-color: #539DDF; }
+
+/* 悬停效果：轻微上浮 + 按下的颜色反馈 */
+.action-btn:hover:enabled {
+    transform: translateY(-2px);
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
+    background: white;
+    z-index: 10;
+}
+.action-btn:active {
+    transform: translateY(1px);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+}
+
+/* 左侧装饰条 (Sci-fi Chip Look) */
+.action-btn .deco-bar {
+    width: 6px;
+    height: 100%;
+    background: var(--type-color);
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/* 内部容器：负责反向倾斜 (Un-skew) */
+.action-btn .content-unskew {
+    width: 100%;
+    height: 100%;
     transform: skewX(15deg);
+    display: flex;
+    align-items: center;
+    padding-left: 32px;
+}
+
+/* 图标容器：圆形 + 居中 */
+.action-btn .icon-circle {
+    width: 44px;
+    height: 44px;
+    background: var(--type-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: 12px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
     position: relative;
     z-index: 2;
-    font-family: var(--font-main);
 }
 
-/* [改动] 左侧装饰条 - 变为真正的斜切色块填充 */
-.action-btn::before {
-    content: '';
-    position: absolute;
-    left: -1px;
-    top: -1px;
-    bottom: -1px;
-    width: 20px; 
-    background: hsl(var(--hue, 0), 75%, 65%);
-    border: 1px solid rgba(55, 65, 81, 0.3); 
-    border-right: 1px solid rgba(55, 65, 81, 0.3);
-    opacity: 1; 
-    box-sizing: content-box;
+.action-btn .icon-circle img {
+    width: 65%;
+    height: 65%;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
 }
 
-/* 定义三个槽位的色相 */
-.moves-menu .action-btn:nth-child(1) { --hue: 0;   /* 红 */ } 
-.moves-menu .action-btn:nth-child(2) { --hue: 200; /* 蓝 */ }
-.moves-menu .action-btn:nth-child(3) { --hue: 45;  /* 金色 */ }
-.moves-menu .action-btn:nth-child(4) { --hue: 280; /* 紫 */ }
+/* 文字区域 */
+.action-btn .text-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    flex: 1;
+    position: relative;
+    z-index: 2;
+}
 
 .back-btn-pill {
     position: absolute;
@@ -2251,48 +2294,39 @@ body {
     display: none;
 }
 
-/* 左侧留白给文字，避开色块 */
 .action-btn .move-name {
-    margin-left: 22px; /* 让开色条 */
-    font-size: 1.15rem;   /* 中文字号增大 */
-    font-weight: 700;
-    color: #374151; /* 更柔和的深灰，中文阅读更友好 */
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-    text-align: left;
-    font-family: var(--font-main);
-    white-space: nowrap; /* 不允许换行撑开高度 */
-}
-
-/* [改动] 技能右侧的小标签 - 恢复为小胶囊 */
-.action-btn .badge-type {
-    font-size: 0.85rem; /* 属性标签字号再加大 */
+    font-size: 1.25rem;
     font-weight: 800;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: 6px;
-    background: rgba(100, 116, 139, 0.15);
-    color: #475569;
-    letter-spacing: 0.5px;
-    position: absolute;
-    bottom: 8px;
-    right: 12px;
-    font-family: var(--font-main);
-    z-index: 3;
+    color: #333;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
 }
 
-/* 悬停效果: 整体稍微变亮并上浮 */
-.action-btn:hover:enabled {
-    border-color: #334155; 
-    background: #fff;
-    transform: translateY(-2px); 
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
+.action-btn .move-type-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
 }
-.action-btn:hover:enabled::before {
-    filter: brightness(1.1); /* 色条变亮 */
-    width: 25px; /* 色条变宽一点点作为互动反馈 */
-    transition: 0.2s;
+
+/* 背景水印 (装饰性) */
+.action-btn .bg-watermark {
+    position: absolute;
+    right: -10px;
+    bottom: -15px;
+    width: 80px;
+    height: 80px;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
 }
+.action-btn .bg-watermark img {
+    width: 100%;
+    height: 100%;
+}
+
 
 /* ======================
    Back (返回) 按钮特殊样式
@@ -3819,9 +3853,7 @@ body {
 .action-btn.z-move-btn {
     background: linear-gradient(135deg, #FFF 0%, #f3f4f6 40%, rgba(255,255,255,0.8) 100%);
     border: 2px solid transparent !important;
-    position: relative;
-    overflow: visible;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(99,102,241,0.2);
 }
 
 /* 动态彩虹边框 (用伪元素裁切) */
@@ -3829,67 +3861,41 @@ body {
     content: '';
     position: absolute;
     inset: -2px;
-    background: linear-gradient(45deg, 
-        #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+    background: linear-gradient(45deg, #6366f1, #a855f7, #ec4899, #f59e0b, #10b981, #06b6d4, #6366f1);
+    background-size: 300% 300%;
+    border-radius: 10px;
     z-index: -1;
-    border-radius: 9px;
-    animation: z-border-spin 3s linear infinite;
+    animation: rainbow-border 3s ease infinite;
 }
 
-/* 彩虹内容底板 */
-.action-btn.z-move-btn .z-bg-overlay {
-    position: absolute;
-    inset: 2px;
-    background: white;
-    border-radius: 8px;
-    z-index: 0;
-}
-
-/* 名字和属性标签提高层级 */
-.action-btn.z-move-btn span {
-    position: relative;
-    z-index: 2;
-}
-
+/* Z招式特殊样式：文字渐变 */
 .action-btn.z-move-btn .move-name {
     font-weight: 800;
     font-style: italic;
     background: linear-gradient(90deg, #333, #666);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-family: var(--font-main);
-}
-
-/* Z招式属性标签统一在右下角 */
-.action-btn.z-move-btn .badge-type {
-    position: absolute;
-    bottom: 8px;
-    right: 12px;
-    z-index: 3;
-}
-
-.action-btn.z-move-btn::before {
-    display: none !important;
+    background-clip: text;
 }
 
 /* 右上角打标 Z */
 .action-btn.z-move-btn .z-badge-icon {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 20px;
-    height: 20px;
-    background: #333;
-    border-radius: 50%;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
     color: white;
-    font-size: 12px;
-    font-weight: bold;
+    border-radius: 50%;
     display: flex;
-    justify-content: center;
     align-items: center;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 900;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.5);
     z-index: 10;
+    border: 2px solid white;
 }
 
 /* 已使用状态 (Burned Out) */
@@ -3919,8 +3925,6 @@ body {
 .action-btn.max-move-btn {
     background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 40%, rgba(255,255,255,0.9) 100%);
     border: 2px solid transparent !important;
-    position: relative;
-    overflow: visible;
     box-shadow: 0 4px 6px rgba(255,0,85,0.2);
 }
 
@@ -3928,23 +3932,10 @@ body {
     content: '';
     position: absolute;
     inset: -2px;
-    background: linear-gradient(45deg, #ff0055, #ff3377, #ff0055, #cc0033, #ff0055);
+    background: linear-gradient(45deg, #e11d48, #f43f5e, #fb923c, #fbbf24);
+    border-radius: 10px;
     z-index: -1;
-    border-radius: 9px;
     animation: max-border-pulse 2s ease-in-out infinite;
-}
-
-.action-btn.max-move-btn .z-bg-overlay {
-    position: absolute;
-    inset: 2px;
-    background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
-    border-radius: 8px;
-    z-index: 0;
-}
-
-.action-btn.max-move-btn span {
-    position: relative;
-    z-index: 2;
 }
 
 .action-btn.max-move-btn .move-name {
@@ -3952,38 +3943,26 @@ body {
     background: linear-gradient(90deg, #e11d48, #be123c);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-family: var(--font-main);
-}
-
-/* 极巨招式属性标签统一在右下角 */
-.action-btn.max-move-btn .badge-type {
-    position: absolute;
-    bottom: 8px;
-    right: 12px;
-    z-index: 3;
-}
-
-.action-btn.max-move-btn::before {
-    display: none !important;
+    background-clip: text;
 }
 
 .action-btn.max-move-btn .z-badge-icon {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 24px;
-    height: 24px;
-    background: linear-gradient(135deg, #ff0055, #cc0033);
-    border-radius: 50%;
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #e11d48, #be123c);
     color: white;
-    font-size: 10px;
-    font-weight: bold;
+    border-radius: 50%;
     display: flex;
-    justify-content: center;
     align-items: center;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(255,0,85,0.4);
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 900;
+    box-shadow: 0 2px 8px rgba(225,29,72,0.5);
     z-index: 10;
+    border: 2px solid white;
 }
 
 @keyframes max-border-pulse {

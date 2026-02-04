@@ -656,6 +656,14 @@ function updateAllVisuals(forceSpriteAnim = false) {
                     }
                 }
                 
+                // 获取属性对应的SVG图标路径和类型名称
+                const typeKey = (displayType || 'normal').toLowerCase();
+                const typeSvgPath = `./data/svg/${typeKey}.svg`;
+                const typeNameEN = displayType; // 直接使用英文属性名
+                
+                // 设置 data-type 属性用于CSS变量
+                btn.setAttribute('data-type', typeKey);
+                
                 if (showZStyle || showMaxStyle) {
                     // 应用特殊样式
                     if (showZStyle) {
@@ -669,19 +677,38 @@ function updateAllVisuals(forceSpriteAnim = false) {
                     }
                     
                     const labelText = showZStyle ? 'Z' : 'MAX';
-                    const typeNameCN = (window.Locale) ? window.Locale.get(displayType) : displayType;
                     btn.innerHTML = `
-                        <div class="z-bg-overlay"></div>
-                        <div class="z-badge-icon">${labelText}</div>
-                        <span class="move-name">${displayName}${insightHint}</span>
-                        <span class="badge-type type-${displayType}">${typeNameCN}</span>
+                        <div class="deco-bar"></div>
+                        <div class="content-unskew">
+                            <div class="z-badge-icon">${labelText}</div>
+                            <div class="icon-circle">
+                                <img src="${typeSvgPath}" alt="${typeKey}">
+                            </div>
+                            <div class="text-group">
+                                <span class="move-name">${displayName}${insightHint}</span>
+                                <span class="move-type-name">${typeNameEN.toUpperCase()}</span>
+                            </div>
+                            <div class="bg-watermark">
+                                <img src="${typeSvgPath}">
+                            </div>
+                        </div>
                     `;
                 } else {
                     // 普通技能
-                    const typeNameCN = (window.Locale) ? window.Locale.get(displayType) : displayType;
                     btn.innerHTML = `
-                        <span class="move-name">${displayName}${insightHint}</span>
-                        <span class="badge-type type-${displayType}">${typeNameCN}</span>
+                        <div class="deco-bar"></div>
+                        <div class="content-unskew">
+                            <div class="icon-circle">
+                                <img src="${typeSvgPath}" alt="${typeKey}">
+                            </div>
+                            <div class="text-group">
+                                <span class="move-name">${displayName}${insightHint}</span>
+                                <span class="move-type-name">${typeNameEN.toUpperCase()}</span>
+                            </div>
+                            <div class="bg-watermark">
+                                <img src="${typeSvgPath}">
+                            </div>
+                        </div>
                     `;
                 }
                 
@@ -717,9 +744,21 @@ function updateAllVisuals(forceSpriteAnim = false) {
                 struggleBtn.disabled = false;
                 struggleBtn.style.visibility = 'visible';
                 struggleBtn.style.opacity = '0.7';
+                struggleBtn.setAttribute('data-type', 'normal');
                 struggleBtn.innerHTML = `
-                    <span class="move-name" style="color:#ef4444">挣扎</span>
-                    <span class="badge-type type-Normal">一般</span>
+                    <div class="deco-bar"></div>
+                    <div class="content-unskew">
+                        <div class="icon-circle">
+                            <img src="./data/svg/normal.svg" alt="normal">
+                        </div>
+                        <div class="text-group">
+                            <span class="move-name" style="color:#ef4444">挣扎</span>
+                            <span class="move-type-name">NORMAL</span>
+                        </div>
+                        <div class="bg-watermark">
+                            <img src="./data/svg/normal.svg">
+                        </div>
+                    </div>
                 `;
                 struggleBtn.onclick = () => handleStruggle();
                 console.log('[ENV BAN] 所有技能被禁用，启用挣扎');
