@@ -579,6 +579,7 @@ function checkFixedDamageMove(attacker, defender, move) {
         'Super Fang': 'half', // 当前HP的一半
         'Nature\'s Madness': 'half',
         'Guardian of Alola': 'threequarters',
+        'Ruination': 'half', // 【新增】大灾难 - 古鼎鹿/古剑豹/古简蜗/古镜鱼专属
         'Endeavor': 'endeavor' // 将对方HP降到与自己相同
     };
     

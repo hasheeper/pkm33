@@ -2210,6 +2210,19 @@ export const AbilityHandlers = {
         preventPhazing: true
     },
 
+    // 【看门犬】防止被强制换下，被威吓时攻击+1
+    'Guard Dog': {
+        preventPhazing: true,
+        onIntimidated: (pokemon, source, logs) => {
+            // 被威吓时攻击+1而不是-1
+            if (typeof pokemon.applyBoost === 'function') {
+                pokemon.applyBoost('atk', 1);
+                logs.push(`<span style="color:#e74c3c">🐕 ${pokemon.cnName} 的看门犬特性发动！攻击提升了！</span>`);
+            }
+            return 0; // 取消威吓的攻击下降
+        }
+    },
+
     // 【黏着】防止道具被偷/被拍落
     'Sticky Hold': {
         preventItemTheft: true

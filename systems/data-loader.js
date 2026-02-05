@@ -27,7 +27,124 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true,"enableClash":false,"enableEnvironment":true},"difficulty":"normal","player":{"name":"player","trainerProficiency":100,"party":[{"slot":1,"name":"Sprigatito","nickname":null,"species":null,"gender":"F","lv":5,"quality":"high","nature":"Jolly","ability":"Overgrow","shiny":false,"item":null,"mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Scratch","Tail Whip","Leafage"],"stats_meta":{"ivs":{"hp":0,"atk":29,"def":31,"spa":30,"spd":29,"spe":31},"ev_level":12,"ev_up":0},"notes":null,"avs":{"trust":60,"passion":100,"insight":20,"devotion":50}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"enemy":{"id":"Kanto Cargo","type":"wild","name":"Kanto Cargo","trainerProficiency":0,"lines":{"start":"集装箱里的三只宝可梦同时发出了威吓的叫声！","win":"它们似乎被压制住了，稍微冷静了一些...","lose":"看来它们还是太野了，四散逃走了...","escape":"现在不是逃跑的时候，它们会毁了花园的！"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"party":[{"name":"Charmander","gender":"F","lv":4,"nature":"Brave","ability":null,"shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":12,"atk":12,"def":7,"spa":3,"spd":10,"spe":5},"ev_level":0},"moves":["Scratch","Growl","Ember"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}},{"name":"Squirtle","gender":"M","lv":8,"nature":"Lax","ability":null,"shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":9,"atk":3,"def":13,"spa":15,"spd":0,"spe":0},"ev_level":0},"moves":["Tackle","Tail Whip","Water Gun"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}},{"name":"Bulbasaur","gender":"M","lv":8,"nature":"Brave","ability":null,"shiny":false,"item":null,"mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":9,"atk":9,"def":11,"spa":6,"spd":12,"spe":2},"ev_level":0},"moves":["Tackle","Growl","Vine Whip"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null,"environment":{"weather":"clear","weatherTurns":0,"overlay":{"env_name":"阿卡迪亚草坪 (混乱)","narrative":"被破坏的集装箱碎片和翻起的草皮，让这里成为了一片混乱的战场。","rules":[{"target":"Side:Enemy","eff":["Atk:1.2","Spe:1.2","Def:0.8"]},{"target":"Grounded","eff":["HP:0.0625"]}]}}}
+    return {
+  "difficulty": "expert",
+  "settings": {
+    "enableAVS": true,
+    "enableCommander": true,
+    "enableEVO": true,
+    "enableBGM": true,
+    "enableSFX": true,
+    "enableClash": true
+  },
+  "player": {
+    "name": "ForceFeeder",
+    "trainerProficiency": 180,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_styles": true,
+      "enable_dynamax": true
+    },
+    "party": [
+      {
+        "slot": 1,
+        "name": "Machamp",
+        "nickname": "怪力(巴投)",
+        "species": "Machamp",
+        "lv": 65,
+        "isLead": true,
+        "ability": "No Guard",
+        "item": "Black Belt",
+        "isAce": true,
+        "moves": ["Circle Throw", "Dynamic Punch", "Bullet Punch", "Knock Off"],
+        "_check": "用巴投尝试攻击Gholdengo(幽灵)应无效为0伤不换人；攻击Snorlax(极巨)应有伤也不换人"
+      },
+      {
+        "slot": 2,
+        "name": "Haxorus",
+        "nickname": "双斧(破格)",
+        "species": "Haxorus",
+        "lv": 65,
+        "ability": "Mold Breaker",
+        "item": "Choice Band",
+        "moves": ["Dragon Tail", "Earthquake", "Iron Head", "Outrage"],
+        "_check": "【高难题】破格(MoldBreaker)龙尾能否无视吸盘把摇篮百合扫下去？(理论可以)"
+      },
+      {
+        "slot": 3,
+        "name": "Skarmory",
+        "nickname": "盔甲鸟(吹飞)",
+        "species": "Skarmory",
+        "lv": 65,
+        "ability": "Sturdy",
+        "item": "Rocky Helmet",
+        "moves": ["Whirlwind", "Spikes", "Roost", "Brave Bird"],
+        "_check": "对魔法镜(Magic Bounce)吹飞，应当导致盔甲鸟自己被强制下场"
+      },
+      {
+        "slot": 4,
+        "name": "Pyroar",
+        "nickname": "火炎狮(吼叫)",
+        "species": "Pyroar",
+        "lv": 65,
+        "ability": "Unnerve",
+        "item": "Throat Spray",
+        "moves": ["Roar", "Hyper Voice", "Overheat", "Dark Pulse"],
+        "_check": "吼叫 vs 隔音(Soundproof) 以及 黄金之躯(Good as Gold)"
+      }
+    ]
+  },
+  "enemy": {
+    "name": "ImmovableObject",
+    "type": "CHAMPION",
+    "trainerProficiency": 255,
+    "unlocks": {
+      "enable_dynamax": true
+    },
+    "party": [
+      {
+        "name": "Cradily",
+        "species": "Cradily",
+        "lv": 66,
+        "ability": "Suction Cups",
+        "item": "Big Root",
+        "moves": ["Giga Drain", "Rock Slide", "Recover", "Stockpile"]
+      },
+      {
+        "name": "Hatterene",
+        "species": "Hatterene",
+        "lv": 66,
+        "ability": "Magic Bounce",
+        "item": "Life Orb",
+        "moves": ["Dazzling Gleam", "Psychic", "Trick Room", "Mystical Fire"]
+      },
+      {
+        "name": "Gholdengo",
+        "species": "Gholdengo",
+        "lv": 66,
+        "ability": "Good as Gold",
+        "item": "Air Balloon",
+        "moves": ["Make It Rain", "Shadow Ball", "Nasty Plot", "Recover"]
+      },
+      {
+        "name": "Kommo-o",
+        "species": "Kommo-o",
+        "lv": 67,
+        "isAce": true,
+        "ability": "Soundproof",
+        "item": "Weakness Policy",
+        "moves": ["Clanging Scales", "Close Combat", "Poison Jab", "Dragon Dance"],
+        "friendship": { "avs": { "trust": 200 } },
+        "_status": "妖精免疫龙尾、隔音免疫吼叫的双重测试"
+      }
+    ],
+    "lines": {
+      "start": "想动摇我们的阵型？这座山可没那么容易被搬走！",
+      "lose": "山崩地裂……防线崩溃了！",
+      "win": "你的招式只是微风拂面。"
+    }
+  }
+}
 
 
 }

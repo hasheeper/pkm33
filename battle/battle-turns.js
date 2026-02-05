@@ -285,7 +285,10 @@ export async function executePlayerTurn(p, e, move) {
     // 【已移除】旧的招式执行后清除逻辑
     // 现在同命/怨恨状态在"尝试出招时"立即清除（见上方代码）
     
-    return { pivot: result?.pivot || false };
+    return { 
+        pivot: result?.pivot || false,
+        phaze: result?.phaze || false  // 【新增】强制换人标记 (Roar/Dragon Tail/Circle Throw)
+    };
 }
 
 // ============================================
@@ -473,7 +476,8 @@ export async function executeEnemyTurn(e, p, move) {
     console.log('[executeEnemyTurn] Completed');
     return { 
         pivot: result?.pivot || false,
-        passBoosts: result?.passBoosts || false  // 【Baton Pass】传递能力变化标记
+        passBoosts: result?.passBoosts || false,  // 【Baton Pass】传递能力变化标记
+        phaze: result?.phaze || false  // 【新增】强制换人标记 (Roar/Dragon Tail/Circle Throw)
     };
 }
 

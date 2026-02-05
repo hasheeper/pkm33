@@ -292,6 +292,7 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             log(`...${move.cn}! (变化技能)`);
         }
         result.pivot = fxResult.pivot || false;
+        result.phaze = fxResult.phaze || false;  // 【修复】传递 phaze 标记
         return result;
     }
     
@@ -617,10 +618,12 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
     // 这样反作用力计算才会基于实际伤害，避免锁血后反伤过高的BUG
     const actualDamageForRecoil = result.displayDamage !== undefined ? result.displayDamage : result.damage;
     let pivotTriggered = false;
+    let phazeTriggered = false;
     if (defender.currHp > 0) {
         const fxResult = applyMoveSecondaryEffects(attacker, defender, move, actualDamageForRecoil, battle, spriteIdRef !== 'player-sprite');
         const fxLogs = Array.isArray(fxResult) ? fxResult : (fxResult.logs || []);
         pivotTriggered = fxResult.pivot || false;
+        phazeTriggered = fxResult.phaze || false;
         fxLogs.forEach(txt => log(`<span style="font-size:0.95em;color:#e67e22">${txt}</span>`));
         
         // === 【拍落 Knock Off】处理 ===
@@ -691,6 +694,7 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
     
     // VI. 返回结果
     result.pivot = pivotTriggered;
+    result.phaze = phazeTriggered;
     return result;
 }
 

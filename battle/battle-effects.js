@@ -105,10 +105,176 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     
     // === onHit 钩子 (命中后效果) ===
     let pivotTriggered = false;
+    let phazeTriggered = false;
     if (handler && handler.onHit) {
         const hitResult = handler.onHit(user, target, damageDealt, logs, battle);
         if (hitResult && hitResult.pivot) {
             pivotTriggered = true;
+        }
+        // 【新增】强制换人效果 (Roar, Whirlwind, Dragon Tail, Circle Throw)
+        if (hitResult && hitResult.phaze) {
+            phazeTriggered = true;
+        }
+    }
+    
+    // === 强制换人处理 (Phazing) ===
+    // 检查 moves-data.js 中的 forceSwitch 属性
+    if (!phazeTriggered && fullMoveData.forceSwitch) {
+        phazeTriggered = true;
+    }
+    
+    // 【修复】检查目标是否免疫强制换人
+    if (phazeTriggered && battle) {
+        let phazeImmune = false;
+        let immuneReason = '';
+        const moveName = move.name || '';
+        const isStatusMove = fullMoveData.category === 'Status';
+        const isRoar = moveName === 'Roar';
+        const isWhirlwind = moveName === 'Whirlwind';
+        
+        // 1. 特性检查：吸盘 (Suction Cups)、看门犬 (Guard Dog)
+        const targetAbility = target.ability || '';
+        if (typeof AbilityHandlers !== 'undefined') {
+            const abilityHandler = AbilityHandlers[targetAbility];
+            if (abilityHandler && abilityHandler.preventPhazing) {
+                phazeImmune = true;
+                const abilityNameCN = targetAbility === 'Suction Cups' ? '吸盘' : '看门犬';
+                immuneReason = `${target.cnName} 的${abilityNameCN}紧紧吸住地面！无法被吹走！`;
+            }
+        }
+        
+        // 2. 极巨化状态免疫强制换人
+        if (!phazeImmune && target.isDynamaxed) {
+            phazeImmune = true;
+            immuneReason = `${target.cnName} 处于极巨化状态，无法被强制换下！`;
+        }
+        
+        // 3. 扎根状态免疫强制换人
+        if (!phazeImmune && target.volatile && target.volatile.ingrain) {
+            phazeImmune = true;
+            immuneReason = `${target.cnName} 扎根在地面上，无法被吹走！`;
+        }
+        
+        // 4. 隔音 (Soundproof) 免疫吼叫
+        if (!phazeImmune && isRoar && targetAbility === 'Soundproof') {
+            phazeImmune = true;
+            immuneReason = `${target.cnName} 的隔音特性使吼叫无效！`;
+        }
+        
+        // 5. 乘风 (Wind Rider) 免疫吹飞
+        if (!phazeImmune && isWhirlwind && targetAbility === 'Wind Rider') {
+            phazeImmune = true;
+            immuneReason = `${target.cnName} 的乘风特性使吹飞无效！`;
+            // 乘风还会提升攻击
+            if (typeof target.applyBoost === 'function') {
+                target.applyBoost('atk', 1);
+                logs.push(`<span style="color:#27ae60">🌬️ ${target.cnName} 乘着风势，攻击提升了！</span>`);
+            }
+        }
+        
+        // 6. 黄金之躯 (Good as Gold) 免疫变化技（吼叫/吹飞）
+        if (!phazeImmune && isStatusMove && targetAbility === 'Good as Gold') {
+            phazeImmune = true;
+            immuneReason = `${target.cnName} 的黄金之躯使变化技无效！`;
+        }
+        
+        // 7. 魔法镜 (Magic Bounce) 反弹变化技（吼叫/吹飞）
+        // 注意：反弹后使用者自己会被吹飞
+        if (!phazeImmune && isStatusMove && targetAbility === 'Magic Bounce') {
+            logs.push(`<span style="color:#9b59b6">✨ ${target.cnName} 的魔法镜将${move.cn || moveName}反弹了回去！</span>`);
+            // 反弹效果：使用者被强制换人
+            phazeImmune = true; // 目标不被换人
+            // 标记使用者被强制换人
+            if (isPlayer) {
+                // 玩家使用的技能被反弹，敌方（使用者）被换人 -> 实际是玩家被换人
+                battle.playerForcedSwitch = true;
+                logs.push(`<span style="color:#e74c3c">⚡ ${user.cnName} 被自己的招式吹走了！必须更换宝可梦!</span>`);
+            } else {
+                // 敌方使用的技能被反弹，敌方被换人
+                const enemyParty = battle.enemyParty || battle.enemyTeam;
+                const enemyActiveIdx = battle.enemyActive ?? battle.enemyActiveIndex ?? 0;
+                if (enemyParty && enemyParty.length > 1) {
+                    const availablePokemon = enemyParty.filter((p, idx) => 
+                        idx !== enemyActiveIdx && p.currHp > 0 && p.isAlive && p.isAlive()
+                    );
+                    if (availablePokemon.length > 0) {
+                        const randomPoke = availablePokemon[Math.floor(Math.random() * availablePokemon.length)];
+                        const newIndex = enemyParty.indexOf(randomPoke);
+                        if (user.volatile) user.volatile = {};
+                        battle.enemyActive = newIndex;
+                        if ('enemyActiveIndex' in battle) battle.enemyActiveIndex = newIndex;
+                        randomPoke.turnCount = 0;
+                        logs.push(`<span style="color:#3498db">🔄 ${user.cnName} 被自己的招式吹走了！${randomPoke.cnName} 被强制拉上了战场!</span>`);
+                    }
+                }
+            }
+        }
+        
+        if (phazeImmune) {
+            if (immuneReason) {
+                logs.push(`<span style="color:#9b59b6">${immuneReason}</span>`);
+            }
+            phazeTriggered = false; // 取消强制换人
+        }
+    }
+    
+    if (phazeTriggered && battle) {
+        // 标记需要强制换人，由战斗主循环处理
+        // 【注意】单打模式下，AI 方被强制换人时自动随机选择
+        const isTargetPlayer = !isPlayer;
+        if (isTargetPlayer) {
+            // 玩家被强制换人 - 标记状态，由 UI 处理
+            battle.playerForcedSwitch = true;
+            logs.push(`<span style="color:#e74c3c">⚡ 必须更换宝可梦!</span>`);
+        } else {
+            // AI 被强制换人 - 自动随机选择
+            // 【修复】使用 enemyParty 而不是 enemyTeam，使用 enemyActive 而不是 enemyActiveIndex
+            const enemyParty = battle.enemyParty || battle.enemyTeam;
+            const enemyActiveIdx = battle.enemyActive ?? battle.enemyActiveIndex ?? 0;
+            
+            if (enemyParty && enemyParty.length > 1) {
+                const availablePokemon = enemyParty.filter((p, idx) => 
+                    idx !== enemyActiveIdx && p.currHp > 0 && p.isAlive && p.isAlive()
+                );
+                if (availablePokemon.length > 0) {
+                    const randomPoke = availablePokemon[Math.floor(Math.random() * availablePokemon.length)];
+                    const newIndex = enemyParty.indexOf(randomPoke);
+                    
+                    // 清除当前宝可梦的 volatile 状态
+                    if (target.volatile) {
+                        target.volatile = {};
+                    }
+                    
+                    // 执行换人
+                    battle.enemyActive = newIndex;
+                    // 兼容旧属性名
+                    if ('enemyActiveIndex' in battle) {
+                        battle.enemyActiveIndex = newIndex;
+                    }
+                    
+                    // 重置入场回合计数
+                    randomPoke.turnCount = 0;
+                    
+                    logs.push(`<span style="color:#3498db">🔄 ${randomPoke.cnName} 被强制拉上了战场!</span>`);
+                    
+                    // 触发入场钉子伤害
+                    if (typeof MoveEffects !== 'undefined' && MoveEffects.applyEntryHazards) {
+                        const hazardLogs = MoveEffects.applyEntryHazards(randomPoke, false, battle);
+                        if (hazardLogs && hazardLogs.length > 0) {
+                            logs.push(...hazardLogs);
+                        }
+                    }
+                    
+                    // 更新视觉
+                    if (typeof window !== 'undefined' && typeof window.updateAllVisuals === 'function') {
+                        window.updateAllVisuals('enemy');
+                    }
+                } else {
+                    logs.push(`但是对手没有其他宝可梦可以上场了!`);
+                }
+            } else {
+                logs.push(`但是对手没有其他宝可梦可以上场了!`);
+            }
         }
     }
     
@@ -698,8 +864,8 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         user.lastMoveUsed = null;
     }
     
-    // 返回日志和 pivot 状态
-    return { logs, pivot: pivotTriggered };
+    // 返回日志和 pivot/phaze 状态
+    return { logs, pivot: pivotTriggered, phaze: phazeTriggered };
 }
 
 // ============================================

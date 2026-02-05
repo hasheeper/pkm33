@@ -296,6 +296,15 @@ export const MoveHandlers = {
         description: '造成目标当前 HP 75% 的伤害'
     },
     
+    // 【大灾难 Ruination】- 古鼎鹿/古剑豹/古简蜗/古镜鱼 专属招式
+    // 造成目标当前 HP 一半的伤害（与愤怒门牙相同）
+    'Ruination': {
+        damageCallback: (attacker, defender) => {
+            return Math.max(1, Math.floor(defender.currHp / 2));
+        },
+        description: '造成目标当前 HP 一半的伤害'
+    },
+    
     // ============================================
     // 2. 动态威力技能 (Dynamic Power Moves)
     // ============================================
@@ -3949,9 +3958,11 @@ export const MoveHandlers = {
         isGMax: true,
         noWeather: true,
         onHit: (user, target, damage, logs, battle) => {
-            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
-                const res = MoveEffects.tryInflictStatus(target, 'confusion');
-                if (res && res.success) logs.push(res.message);
+            // 混乱是 volatile 状态，不是主状态，需要直接设置
+            if (!target.volatile) target.volatile = {};
+            if (!target.volatile.confusion) {
+                target.volatile.confusion = 2 + Math.floor(Math.random() * 4); // 2-5回合
+                logs.push(`<span style="color:#f1c40f">💰 ${target.cnName} 被金币砸得混乱了！</span>`);
             }
             return {};
         },
@@ -3962,9 +3973,11 @@ export const MoveHandlers = {
         isGMax: true,
         noWeather: true,
         onHit: (user, target, damage, logs, battle) => {
-            if (typeof MoveEffects !== 'undefined' && MoveEffects.tryInflictStatus) {
-                const res = MoveEffects.tryInflictStatus(target, 'confusion');
-                if (res && res.success) logs.push(res.message);
+            // 混乱是 volatile 状态，不是主状态，需要直接设置
+            if (!target.volatile) target.volatile = {};
+            if (!target.volatile.confusion) {
+                target.volatile.confusion = 2 + Math.floor(Math.random() * 4); // 2-5回合
+                logs.push(`<span style="color:#9b59b6">💫 ${target.cnName} 混乱了！</span>`);
             }
             return {};
         },

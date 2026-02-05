@@ -2616,6 +2616,30 @@ async function handleAttack(moveIndex, options = {}) {
             return;
         }
         
+        // 【关键修复】检查玩家是否被魔法镜反弹的强制换人效果影响
+        // 当玩家使用吹飞/吼叫被魔法镜反弹时，玩家自己会被强制换人
+        if (battle.playerForcedSwitch && p.isAlive() && hasAliveSwitch(battle.playerParty, battle.playerActive)) {
+            console.log('[handleAttack] Player forced to switch by Magic Bounce reflection');
+            battle.phase = 'force_switch';
+            renderSwitchMenu(false);
+            await new Promise((resolve) => {
+                battle.forceSwitchResolve = resolve;
+            });
+            battle.playerForcedSwitch = false; // 重置标记
+            p = battle.getPlayer();
+            console.log('[handleAttack] Player Magic Bounce switch complete, new pokemon:', p?.cnName);
+        }
+        
+        // 【关键修复】检查敌方是否已被玩家的强制换人技能（龙尾/巴投）换下
+        // 如果敌方已被换人，原敌方不应再执行攻击（僵尸反击BUG修复）
+        if (playerResult?.phaze) {
+            console.log('[handleAttack] Enemy was phazed out by player, skipping enemy turn');
+            // 敌方已被换人，更新引用并跳过敌方攻击，直接进入回合末结算
+            e = battle.getEnemy();
+            await executeEndPhase(p, e);
+            return;
+        }
+        
         // 【注意】对冲检测已移到玩家攻击之前，这里直接执行敌方攻击
         console.log('[handleAttack] Enemy turn starting, move:', enemyMove?.name || enemyMove?.cn);
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
@@ -2654,6 +2678,19 @@ async function handleAttack(moveIndex, options = {}) {
             }
             await handleEnemyPivot(enemyResult?.passBoosts || false);
             e = battle.getEnemy();
+        }
+        
+        // 【新增】敌方使用强制换人技能 (Roar/Dragon Tail/Circle Throw) 后，玩家被迫换人
+        if (enemyResult?.phaze && p.isAlive() && hasAliveSwitch(battle.playerParty, battle.playerActive)) {
+            console.log('[handleAttack] Player forced to switch by phaze move');
+            battle.phase = 'force_switch';
+            renderSwitchMenu(false);
+            // 等待玩家选择换人
+            await new Promise((resolve) => {
+                battle.forceSwitchResolve = resolve;
+            });
+            p = battle.getPlayer();
+            console.log('[handleAttack] Player phaze switch complete, new pokemon:', p?.cnName);
         }
         
         if (!p.isAlive()) {
@@ -2702,6 +2739,19 @@ async function handleAttack(moveIndex, options = {}) {
             }
             await handleEnemyPivot(enemyResult?.passBoosts || false);
             e = battle.getEnemy();
+        }
+        
+        // 【新增】敌方先动使用强制换人技能 (Roar/Dragon Tail/Circle Throw) 后，玩家被迫换人
+        if (enemyResult?.phaze && p.isAlive() && hasAliveSwitch(battle.playerParty, battle.playerActive)) {
+            console.log('[handleAttack] Player forced to switch by phaze move (enemy-first branch)');
+            battle.phase = 'force_switch';
+            renderSwitchMenu(false);
+            // 等待玩家选择换人
+            await new Promise((resolve) => {
+                battle.forceSwitchResolve = resolve;
+            });
+            p = battle.getPlayer();
+            console.log('[handleAttack] Player phaze switch complete, new pokemon:', p?.cnName);
         }
         
         if (!p.isAlive()) {
@@ -2782,6 +2832,19 @@ async function handleAttack(moveIndex, options = {}) {
             p = battle.getPlayer();
         } else if (playerResult?.pivot) {
             log(`<span style="color:#999">但是没有可以换入的宝可梦了!</span>`);
+        }
+        
+        // 【关键修复】检查玩家是否被魔法镜反弹的强制换人效果影响（敌方先动分支）
+        if (battle.playerForcedSwitch && p.isAlive() && hasAliveSwitch(battle.playerParty, battle.playerActive)) {
+            console.log('[handleAttack] Player forced to switch by Magic Bounce reflection (enemy-first branch)');
+            battle.phase = 'force_switch';
+            renderSwitchMenu(false);
+            await new Promise((resolve) => {
+                battle.forceSwitchResolve = resolve;
+            });
+            battle.playerForcedSwitch = false; // 重置标记
+            p = battle.getPlayer();
+            console.log('[handleAttack] Player Magic Bounce switch complete, new pokemon:', p?.cnName);
         }
         
         // 【关键修复】同时检查玩家是否也倒下（粗糙皮肤/铁刺等接触伤害导致双方同时倒下）
@@ -3461,7 +3524,8 @@ async function performSwitch(newIndex) {
     document.getElementById('switch-menu-layer').classList.add('hidden');
 
     const oldP = battle.getPlayer();
-    const isForced = !oldP.isAlive();
+    // 【修复】强制换人包括：宝可梦倒下 或 被吹飞/吼叫等技能强制换人
+    const isForced = !oldP.isAlive() || battle.phase === 'force_switch';
     const isPivot = battle.phase === 'pivot_switch';
     const newPoke = battle.playerParty[newIndex];
     console.log('[performSwitch] isPivot:', isPivot, 'isForced:', isForced, 'hasPivotResolve:', !!battle.pivotResolve);
