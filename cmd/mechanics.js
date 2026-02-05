@@ -130,6 +130,12 @@ const battleState = {
         // 检查当前宝可梦是否是王牌（isAce）
         const isAce = p.isAce === true || p.data?.isAce === true;
         if (!isAce) return false;
+        // 【同步率检查】同步率 < 60 时完全不可用
+        if (typeof window.getCommanderSyncScore === 'function') {
+            const proficiency = window.battle.trainerProficiency ?? 0;
+            const syncScore = window.getCommanderSyncScore(proficiency, p);
+            if (syncScore < 60) return false;
+        }
         // 【冷却检查】冷却中不可用，不显示在轮播中
         if (window.battle.commandCooldown > 0) return false;
         return true;
@@ -453,6 +459,12 @@ const MENU_LAYERS = {
                 const p = window.battle?.getPlayer?.();
                 const isAce = p?.isAce === true || p?.data?.isAce === true;
                 if (!isAce) return '不可用';
+                // 【同步率检查】同步率 < 60 时显示"默契不足"
+                if (typeof window.getCommanderSyncScore === 'function') {
+                    const proficiency = window.battle?.trainerProficiency ?? 0;
+                    const syncScore = window.getCommanderSyncScore(proficiency, p);
+                    if (syncScore < 60) return '默契不足';
+                }
                 // 冷却中显示冷却时间
                 const cd = battleState.commandCooldown;
                 if (cd > 0) return `冷却中: ${cd}回合`;
