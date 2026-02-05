@@ -28,7 +28,7 @@
  */
 function getDefaultBattleData() {
     return {
-  "difficulty": "expert",
+  "difficulty": "expert", 
   "settings": {
     "enableAVS": true,
     "enableCommander": true,
@@ -38,110 +38,193 @@ function getDefaultBattleData() {
     "enableClash": true
   },
   "player": {
-    "name": "ForceFeeder",
-    "trainerProficiency": 180,
+    "name": "Champion",
+    "trainerProficiency": 255,
     "unlocks": {
       "enable_mega": true,
+      "enable_z_move": true,
       "enable_styles": true,
+      "enable_bond": true,
+      "enable_tera": true,
       "enable_dynamax": true
     },
     "party": [
       {
         "slot": 1,
-        "name": "Machamp",
-        "nickname": "怪力(巴投)",
-        "species": "Machamp",
-        "lv": 65,
+        "name": "Dragapult",
+        "nickname": "幽影",
+        "lv": 88,
         "isLead": true,
-        "ability": "No Guard",
-        "item": "Black Belt",
+        "ability": "Infiltrator",
+        "nature": "Timid",
+        "item": "Choice Specs",
         "isAce": true,
-        "moves": ["Circle Throw", "Dynamic Punch", "Bullet Punch", "Knock Off"],
-        "_check": "用巴投尝试攻击Gholdengo(幽灵)应无效为0伤不换人；攻击Snorlax(极巨)应有伤也不换人"
+        "moves": ["Shadow Ball", "Draco Meteor", "U-turn", "Flamethrower"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 200, "insight": 220 } }
       },
       {
         "slot": 2,
-        "name": "Haxorus",
-        "nickname": "双斧(破格)",
-        "species": "Haxorus",
-        "lv": 65,
-        "ability": "Mold Breaker",
-        "item": "Choice Band",
-        "moves": ["Dragon Tail", "Earthquake", "Iron Head", "Outrage"],
-        "_check": "【高难题】破格(MoldBreaker)龙尾能否无视吸盘把摇篮百合扫下去？(理论可以)"
+        "name": "Beedrill",
+        "nickname": "蜂皇",
+        "lv": 88,
+        "item": "Beedrillite",
+        "mechanic": "mega",
+        "mega_target": "beedrillmega",
+        "nature": "Jolly",
+        "isAce": true,
+        "moves": ["Poison Jab", "U-turn", "Drill Run", "Fell Stinger"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 255 } }
       },
       {
         "slot": 3,
-        "name": "Skarmory",
-        "nickname": "盔甲鸟(吹飞)",
-        "species": "Skarmory",
-        "lv": 65,
-        "ability": "Sturdy",
-        "item": "Rocky Helmet",
-        "moves": ["Whirlwind", "Spikes", "Roost", "Brave Bird"],
-        "_check": "对魔法镜(Magic Bounce)吹飞，应当导致盔甲鸟自己被强制下场"
+        "name": "Coalossal",
+        "nickname": "熔炉",
+        "lv": 88,
+        "mechanic": "dynamax",
+        "ability": "Steam Engine",
+        "nature": "Relaxed",
+        "item": "Weakness Policy",
+        "isAce": true,
+        "moves": ["Heat Crash", "Stone Edge", "Scald", "Rapid Spin"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 255, "insight": 180 } }
       },
       {
         "slot": 4,
-        "name": "Pyroar",
-        "nickname": "火炎狮(吼叫)",
-        "species": "Pyroar",
-        "lv": 65,
-        "ability": "Unnerve",
-        "item": "Throat Spray",
-        "moves": ["Roar", "Hyper Voice", "Overheat", "Dark Pulse"],
-        "_check": "吼叫 vs 隔音(Soundproof) 以及 黄金之躯(Good as Gold)"
+        "name": "Kommo-o",
+        "nickname": "战龙",
+        "lv": 88,
+        "mechanic": "zmove",
+        "ability": "Bulletproof",
+        "item": "Kommonium Z",
+        "nature": "Naive",
+        "isAce": true,
+        "moves": ["Clanging Scales", "Close Combat", "Poison Jab", "Clangorous Soul"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "devotion": 200 } }
+      },
+      {
+        "slot": 5,
+        "name": "Mimikyu",
+        "nickname": "谜拟Q",
+        "lv": 88,
+        "isAce": true,
+        "ability": "Disguise",
+        "item": "Life Orb",
+        "isAce": true,
+        "moves": ["Play Rough", "Shadow Claw", "Shadow Sneak", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 240, "passion": 240, "insight": 255 } }
+      },
+      {
+        "slot": 6,
+        "name": "Dragonite",
+        "nickname": "快龙",
+        "lv": 88,
+        "ability": "Multiscale",
+        "mechanic": "tera",
+        "teraType": "Normal",
+        "item": "Heavy-Duty Boots",
+        "isAce": true,
+        "moves": ["Extreme Speed", "Earthquake", "Dragon Claw", "Roost"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 200 } }
       }
     ]
   },
   "enemy": {
-    "name": "ImmovableObject",
+    "name": "Leon (Ultimate)",
     "type": "CHAMPION",
     "trainerProficiency": 255,
     "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_bond": true,
+      "enable_styles": true,
+      "enable_tera": true,
       "enable_dynamax": true
     },
     "party": [
       {
-        "name": "Cradily",
-        "species": "Cradily",
-        "lv": 66,
-        "ability": "Suction Cups",
-        "item": "Big Root",
-        "moves": ["Giga Drain", "Rock Slide", "Recover", "Stockpile"]
+        "name": "Meowscarada",
+        "lv": 88,
+        "isLead": true,
+        "gender": "F",
+        "ability": "Protean",
+        "nature": "Jolly",
+        "item": "Focus Sash",
+        "mechanic": "tera",
+        "teraType": "Grass",
+        "moves": ["Flower Trick", "Knock Off", "U-turn", "Play Rough"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "insight": 200 } }
       },
       {
-        "name": "Hatterene",
-        "species": "Hatterene",
-        "lv": 66,
-        "ability": "Magic Bounce",
-        "item": "Life Orb",
-        "moves": ["Dazzling Gleam", "Psychic", "Trick Room", "Mystical Fire"]
+        "name": "Garganacl",
+        "lv": 88,
+        "ability": "Purifying Salt",
+        "item": "Leftovers",
+        "nature": "Careful",
+        "moves": ["Salt Cure", "Recover", "Earthquake", "Body Press"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 150, "devotion": 150 } }
       },
       {
-        "name": "Gholdengo",
-        "species": "Gholdengo",
-        "lv": 66,
-        "ability": "Good as Gold",
-        "item": "Air Balloon",
-        "moves": ["Make It Rain", "Shadow Ball", "Nasty Plot", "Recover"]
+        "name": "Lucario",
+        "lv": 88,
+        "gender": "M",
+        "ability": "Justified",
+        "nature": "Jolly",
+        "mechanic": "mega",
+        "mega_target": "lucariomega",
+        "item": "Lucarionite",
+        "moves": ["Close Combat", "Bullet Punch", "Meteor Mash", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 220, "insight": 180 } }
       },
       {
-        "name": "Kommo-o",
-        "species": "Kommo-o",
-        "lv": 67,
+        "name": "Charizard",
+        "lv": 89,
+        "mechanic": "dynamax",
+        "mega_target": "charizardgmax",
+        "ability": "Solar Power",
+        "nature": "Timid",
+        "item": "Heavy-Duty Boots",
+        "moves": ["Heat Wave", "Air Slash", "Solar Beam", "Ancient Power"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 180, "trust": 100 } }
+      },
+      {
+        "name": "Necrozma",
+        "lv": 90,
         "isAce": true,
-        "ability": "Soundproof",
-        "item": "Weakness Policy",
-        "moves": ["Clanging Scales", "Close Combat", "Poison Jab", "Dragon Dance"],
-        "friendship": { "avs": { "trust": 200 } },
-        "_status": "妖精免疫龙尾、隔音免疫吼叫的双重测试"
+        "ability": "Prism Armor",
+        "nature": "Adamant",
+        "mechanic": "zmove",
+        "item": "Ultranecrozium Z",
+        "moves": ["Photon Geyser", "Poltergeist", "Earthquake", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { 
+            "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 } 
+        }
+      },
+      {
+        "name": "Solgaleo",
+        "lv": 89,
+        "ability": "Full Metal Body",
+        "nature": "Adamant",
+        "item": "Leftovers",
+        "moves": ["Sunsteel Strike", "Psychic Fangs", "Earthquake", "Flare Blitz"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 220, "devotion": 220 } }
       }
     ],
     "lines": {
-      "start": "想动摇我们的阵型？这座山可没那么容易被搬走！",
-      "lose": "山崩地裂……防线崩溃了！",
-      "win": "你的招式只是微风拂面。"
+      "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
+      "lose": "这就是……传说中的英雄吗……精彩绝伦！",
+      "win": "看来你的冠军时刻还没有到来啊！"
     }
   }
 }

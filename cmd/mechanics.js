@@ -654,6 +654,8 @@ function toggleCommanderRoot() {
         setMenuLevel('hidden');
     }
 }
+// 【修复】立即暴露到全局，避免在initializeCommanderSystem调用前点击报错
+window.toggleCommanderRoot = toggleCommanderRoot;
 
 function handleCloseOrBack() {
     if (menuLevel === 'hidden') {
@@ -667,6 +669,8 @@ function handleCloseOrBack() {
         setMenuLevel('root');
     }
 }
+// 【修复】立即暴露到全局
+window.handleCloseOrBack = handleCloseOrBack;
 
 function sendCommand(cmd) {
     console.log(`[CMD] Command Sent: ${cmd}`);
@@ -821,6 +825,8 @@ function selectStyle(style) {
 function handleQuadrant() {
     return false;
 }
+// 【修复】立即暴露到全局
+window.handleQuadrant = handleQuadrant;
 
 function initializeCommanderSystem() {
     overlayEl = document.getElementById('commander-overlay');

@@ -96,14 +96,6 @@ ALLOWED_FILENAMES: set[str] = {
 }
 
 TRUNCATE_HEAD_100: set[str] = {
-    "moves-data.js",
-    "pokedex-data.js",
-    "trainer-data.js",
-    "translations.js",
-    "items-data.js",
-    "ability-handlers.js",
-    "move-effects.js",
-    "move-handlers.js",
 }
 
 TRUNCATE_HEAD_TAIL: dict[str, tuple[int, int]] = {}
