@@ -17,13 +17,14 @@
 let currentMoveStyle = 'normal';
 
 // 风格序列
-const STYLE_SEQUENCE = ['normal', 'agile', 'strong'];
+const STYLE_SEQUENCE = ['normal', 'agile', 'strong', 'focus'];
 
 // 风格标签（中文显示）
 const STYLE_LABELS = {
     normal: '道',
     agile: '迅',
-    strong: '刚'
+    strong: '刚',
+    focus: '凝'
 };
 
 // ============================================
@@ -32,13 +33,18 @@ const STYLE_LABELS = {
 
 /**
  * 设置当前招式风格
- * @param {string} style - 'normal' | 'agile' | 'strong'
+ * @param {string} style - 'normal' | 'agile' | 'strong' | 'focus'
  * @param {{silent?: boolean, animate?: boolean}} options
  */
 function setMoveStyle(style, options = {}) {
     if (!STYLE_SEQUENCE.includes(style)) style = 'normal';
     const prev = currentMoveStyle;
     currentMoveStyle = style;
+    
+    // 同步更新全局变量，确保战斗逻辑能读取到最新值
+    if (typeof window !== 'undefined') {
+        window.currentMoveStyle = currentMoveStyle;
+    }
 
     const orb = document.getElementById('btn-style-taiji');
     const label = document.getElementById('taiji-text');

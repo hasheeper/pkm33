@@ -28,7 +28,7 @@
  */
 function getDefaultBattleData() {
     return {
-  "difficulty": "expert", 
+  "difficulty": "expert",
   "settings": {
     "enableAVS": true,
     "enableCommander": true,
@@ -38,196 +38,110 @@ function getDefaultBattleData() {
     "enableClash": true
   },
   "player": {
-    "name": "Champion",
-    "trainerProficiency": 255,
+    "name": "Tester",
+    "trainerProficiency": 100,
     "unlocks": {
       "enable_mega": true,
       "enable_z_move": true,
-      "enable_styles": true,
-      "enable_bond": true,
+      "enable_styles": false,
       "enable_tera": true,
-      "enable_dynamax": true
+      "enable_dynamax": true,
+      "enable_bond": true
     },
     "party": [
       {
         "slot": 1,
-        "name": "Dragapult",
-        "nickname": "幽影",
-        "lv": 88,
+        "name": "Raboot",
+        "nickname": "炎王(测试进化)",
+        "species": "Raboot",
+        "lv": 36,
+        "gender": "M",
         "isLead": true,
-        "ability": "Infiltrator",
-        "nature": "Timid",
-        "item": "Choice Specs",
         "isAce": true,
-        "moves": ["Shadow Ball", "Draco Meteor", "U-turn", "Flamethrower"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 200, "insight": 220 } }
+        "shiny": false,
+        "item": "Charcoal",
+        "nature": "Adamant",
+        "ability": "Libero",
+        "moves": ["Flame Charge", "Double Kick", "Headbutt", "Electro Ball"],
+        "stats_meta": { "ev_level": 150 },
+        "friendship": {
+          "avs": { 
+             "trust": 100, 
+             "passion": 120, 
+             "insight": 50, 
+             "devotion": 50 
+          }
+        },
+        "_comment": "Satisfies Life Evolution: Level 36 > EvoLv 35, AVS Sum 320 > 140, isAce=true"
       },
       {
         "slot": 2,
-        "name": "Beedrill",
-        "nickname": "蜂皇",
-        "lv": 88,
-        "item": "Beedrillite",
-        "mechanic": "mega",
-        "mega_target": "beedrillmega",
+        "name": "Lucario",
+        "nickname": "波导(测试共鸣)",
+        "species": "Lucario",
+        "lv": 50,
+        "gender": "M",
+        "isAce": true,
+        "shiny": true,
+        "item": "Expert Belt",
         "nature": "Jolly",
-        "isAce": true,
-        "moves": ["Poison Jab", "U-turn", "Drill Run", "Fell Stinger"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 255 } }
-      },
-      {
-        "slot": 3,
-        "name": "Coalossal",
-        "nickname": "熔炉",
-        "lv": 88,
-        "mechanic": "dynamax",
-        "ability": "Steam Engine",
-        "nature": "Relaxed",
-        "item": "Weakness Policy",
-        "isAce": true,
-        "moves": ["Heat Crash", "Stone Edge", "Scald", "Rapid Spin"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 255, "insight": 180 } }
-      },
-      {
-        "slot": 4,
-        "name": "Kommo-o",
-        "nickname": "战龙",
-        "lv": 88,
-        "mechanic": "zmove",
-        "ability": "Bulletproof",
-        "item": "Kommonium Z",
-        "nature": "Naive",
-        "isAce": true,
-        "moves": ["Clanging Scales", "Close Combat", "Poison Jab", "Clangorous Soul"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "devotion": 200 } }
-      },
-      {
-        "slot": 5,
-        "name": "Mimikyu",
-        "nickname": "谜拟Q",
-        "lv": 88,
-        "isAce": true,
-        "ability": "Disguise",
-        "item": "Life Orb",
-        "isAce": true,
-        "moves": ["Play Rough", "Shadow Claw", "Shadow Sneak", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 240, "passion": 240, "insight": 255 } }
-      },
-      {
-        "slot": 6,
-        "name": "Dragonite",
-        "nickname": "快龙",
-        "lv": 88,
-        "ability": "Multiscale",
-        "mechanic": "tera",
-        "teraType": "Normal",
-        "item": "Heavy-Duty Boots",
-        "isAce": true,
-        "moves": ["Extreme Speed", "Earthquake", "Dragon Claw", "Roost"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 200 } }
+        "ability": "Inner Focus",
+        "moves": ["Aura Sphere", "Meteor Mash", "Extreme Speed", "Swords Dance"],
+        "stats_meta": { "ev_level": 200 },
+        "friendship": {
+          "avs": { 
+             "trust": 255, 
+             "passion": 255, 
+             "insight": 255, 
+             "devotion": 255 
+          }
+        },
+        "_comment": "Satisfies Bond Resonance: Final Stage, AVS Sum > 220, isAce=true"
       }
     ]
   },
   "enemy": {
-    "name": "Leon (Ultimate)",
-    "type": "CHAMPION",
-    "trainerProficiency": 255,
-    "unlocks": {
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_bond": true,
-      "enable_styles": true,
-      "enable_tera": true,
-      "enable_dynamax": true
-    },
+    "name": "ACE OPS",
+    "type": "ACE_TRAINER",
+    "trainerProficiency": 200,
+    "unlocks": { "enable_mega": true },
     "party": [
       {
-        "name": "Meowscarada",
-        "lv": 88,
+        "name": "Swampert",
+        "lv": 45,
         "isLead": true,
-        "gender": "F",
-        "ability": "Protean",
-        "nature": "Jolly",
-        "item": "Focus Sash",
-        "mechanic": "tera",
-        "teraType": "Grass",
-        "moves": ["Flower Trick", "Knock Off", "U-turn", "Play Rough"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "insight": 200 } }
+        "ability": "Torrent",
+        "item": "Rindo Berry",
+        "moves": ["Waterfall", "Earthquake", "Ice Punch", "Flip Turn"],
+        "stats_meta": { "ev_level": 200 }
       },
       {
-        "name": "Garganacl",
-        "lv": 88,
-        "ability": "Purifying Salt",
-        "item": "Leftovers",
-        "nature": "Careful",
-        "moves": ["Salt Cure", "Recover", "Earthquake", "Body Press"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 150, "devotion": 150 } }
-      },
-      {
-        "name": "Lucario",
-        "lv": 88,
-        "gender": "M",
-        "ability": "Justified",
-        "nature": "Jolly",
+        "name": "Salamence",
+        "lv": 48,
+        "ability": "Intimidate",
+        "item": "Salamencite",
         "mechanic": "mega",
-        "mega_target": "lucariomega",
-        "item": "Lucarionite",
-        "moves": ["Close Combat", "Bullet Punch", "Meteor Mash", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 220, "insight": 180 } }
+        "mega_target": "salamencemega",
+        "moves": ["Double-Edge", "Dragon Claw", "Flamethrower", "Roost"],
+        "stats_meta": { "ev_level": 220 }
       },
       {
-        "name": "Charizard",
-        "lv": 89,
-        "mechanic": "dynamax",
-        "mega_target": "charizardgmax",
-        "ability": "Solar Power",
-        "nature": "Timid",
-        "item": "Heavy-Duty Boots",
-        "moves": ["Heat Wave", "Air Slash", "Solar Beam", "Ancient Power"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 180, "trust": 100 } }
-      },
-      {
-        "name": "Necrozma",
-        "lv": 90,
-        "isAce": true,
-        "ability": "Prism Armor",
-        "nature": "Adamant",
-        "mechanic": "zmove",
-        "item": "Ultranecrozium Z",
-        "moves": ["Photon Geyser", "Poltergeist", "Earthquake", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { 
-            "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 } 
-        }
-      },
-      {
-        "name": "Solgaleo",
-        "lv": 89,
-        "ability": "Full Metal Body",
-        "nature": "Adamant",
-        "item": "Leftovers",
-        "moves": ["Sunsteel Strike", "Psychic Fangs", "Earthquake", "Flare Blitz"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 220, "devotion": 220 } }
+        "name": "Metagross",
+        "lv": 52,
+        "ability": "Clear Body",
+        "item": "Assault Vest",
+        "moves": ["Meteor Mash", "Zen Headbutt", "Bullet Punch", "Hammer Arm"],
+        "stats_meta": { "ev_level": 250 }
       }
     ],
     "lines": {
-      "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
-      "lose": "这就是……传说中的英雄吗……精彩绝伦！",
-      "win": "看来你的冠军时刻还没有到来啊！"
+      "start": "不论是进化还是羁绊，都要在极限中才能绽放光芒！来吧！",
+      "lose": "多么耀眼的光芒……！",
+      "win": "你的觉悟还差点火候。"
     }
   }
 }
+
 
 
 }

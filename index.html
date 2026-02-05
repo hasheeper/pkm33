@@ -4,12 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PKM Battle System - Switch Style</title>
-    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,900&family=Rubik:ital,wght@0,400;0,500;0,700;0,900;1,700&family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,900&family=Rubik:ital,wght@0,400;0,500;0,700;0,900;1,700&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./index.css">
+    <!-- Commander System V2 Styles -->
+    <link rel="stylesheet" href="./cmd/styles.css">
+    <link rel="stylesheet" href="./cmd/theme-update.css">
     <!-- Vite ES Module 入口 -->
     <script type="module" src="./src/main.js"></script>
 </head>
 <body>
+    <!-- Hidden defs for global gradients (Commander System) -->
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" aria-hidden="true">
+        <defs>
+            <linearGradient id="mega-rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#ff9cd6" />
+                <stop offset="25%" style="stop-color:#ffeb3b" />
+                <stop offset="50%" style="stop-color:#5affda" />
+                <stop offset="75%" style="stop-color:#4bcffa" />
+                <stop offset="100%" style="stop-color:#d49bfd" />
+            </linearGradient>
+        </defs>
+    </svg>
 
     <div class="ui-root" id="ui-root">
         <div class="ui-scale" id="ui-scale">
@@ -103,75 +118,65 @@
                 </div>
 
                 <!-- ============================================== -->
-                <!-- COMMANDER SHOUT UI (训练家战术指挥层) -->
+                <!-- COMMANDER SYSTEM V2 (轮播悬浮窗 + 四象限菜单) -->
                 <!-- ============================================== -->
+                <!-- SMART INTEL BUBBLE (智能轮播气泡) -->
+                <div id="smart-bubble" class="smart-bubble-wrapper" onclick="toggleCommanderRoot()">
+                    <div class="bubble-glow-ring"></div>
+                    <div class="bubble-core">
+                        <div class="bubble-icon-stage" id="bubble-icon-stage"></div>
+                    </div>
+                    <div class="bubble-label-pill" id="bubble-text">LINK</div>
+                    <svg class="bubble-progress" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" stroke-width="4" stroke="rgba(255,255,255,0.1)" fill="none"></circle>
+                        <circle id="bubble-timer-circle" cx="50" cy="50" r="46" stroke-width="4" stroke="currentColor" fill="none" stroke-dasharray="289" stroke-dashoffset="0"></circle>
+                    </svg>
+                </div>
+
+                <!-- COMMANDER OVERLAY (四象限轮盘菜单) -->
                 <div id="commander-overlay" class="cmd-layer hidden">
                     <div class="commander-container">
-                        <div class="commander-wheel">
-                            <!-- 上方按钮: DODGE (Insight) -->
-                            <button class="cmd-btn pos-top theme-insight" onclick="triggerCommand('dodge')">
-                                <!-- Wing / Evasion SVG -->
-                                <svg class="icon-bg" viewBox="0 0 244 273.75">
-                                    <path d="M232 39c0 77-129 3-170 114 16-129 163-72 170-114z"/>
-                                    <path d="M244 0c1 80-133 4-176 117-10 34-31 108-68 101 66-19 11-196 161-200-25 5-43 16-56 29 51-38 134-15 139-47z"/>
-                                    <path d="M211 81c-10 80-115 0-151 95 18-110 137-53 151-95z"/>
-                                </svg>
+                        <div class="commander-wheel" id="cmd-wheel">
+                            <button class="cmd-btn pos-top" id="slot-top" onclick="handleQuadrant('top')">
+                                <svg class="icon-bg" viewBox="0 0 100 100"></svg>
                                 <div class="cmd-content">
-                                    <span class="cmd-label">DODGE!</span>
-                                    <span class="cmd-sub">回避行动</span>
+                                    <span class="cmd-label">---</span>
+                                    <span class="cmd-sub">---</span>
                                 </div>
                             </button>
 
-                            <!-- 右侧按钮: FOCUS (Passion) -->
-                            <button class="cmd-btn pos-right theme-passion" onclick="triggerCommand('crit')">
-                                <!-- Crosshair / Scope SVG -->
-                                <svg class="icon-bg" viewBox="0 0 48 60">
-                                    <path d="M39 13l-1.6 1.6c2.3 3.1 3.6 6.9 3.6 11 0 10.3-8.3 18.6-18.6 18.6S3.7 35.9 3.7 25.6C3.7 15.4 12.1 7 22.3 7c4.1 0 8 1.4 11.1 3.7l1.6-1.6.1-1.7c-3.6-2.5-8-4-12.8-4C10 3.3 0 13.3 0 25.6S10 48 22.3 48c12.3 0 22.3-10 22.3-22.3 0-4.7-1.5-9.1-4-12.7L39 13z"/>
-                                    <path d="M30.4 13.7c-2.3-1.6-5.1-2.5-8.1-2.5-8 0-14.4 6.5-14.4 14.4 0 8 6.5 14.4 14.4 14.4 8 0 14.4-6.5 14.4-14.4 0-2.9-.9-5.7-2.4-8l-2.7 2.7c.9 1.6 1.4 3.3 1.4 5.3 0 5.9-4.8 10.7-10.7 10.7-5.9 0-10.7-4.8-10.7-10.7 0-5.9 4.8-10.7 10.7-10.7 2 0 3.8.5 5.4 1.5l2.7-2.7z"/>
-                                    <path d="M23.8 20.3c-.5-.1-1-.2-1.5-.2-3.1 0-5.6 2.5-5.6 5.6 0 3.1 2.5 5.6 5.6 5.6 3.1 0 5.6-2.5 5.6-5.6 0-.5-.1-.9-.2-1.4l-3.3 3.3c-.5.5-1.2.8-2 .8-.8 0-1.5-.3-2-.8-1.1-1.1-1.1-2.9 0-3.9l3.4-3.4z"/>
-                                    <path d="M47 5.7l-3.5.2 1.4-1.4c.4-.4.4-1 0-1.3-.4-.4-1-.4-1.3 0l-1.4 1.4L42.4 1c0-.5-.4-1-1-.9-.5 0-1 .4-1 .9l-.3 5.6-1.4 1.4-.3-2.5c0-.5-.4-1-.9-1-.5 0-1 .4-1 .9l-.3 5.6L21.8 25c-.4.4-.4 1 0 1.3.2.2.7.5 1.3 0l15.1-15.1 5.6-.3c.5 0 .9-.5.9-1 0-.5-.5-.9-1-.9l-3.5.2 1.4-1.4 5.6-.3c.5 0 .9-.5.9-1 .1-.6-.4-1-1-.9z"/>
-                                </svg>
+                            <button class="cmd-btn pos-right" id="slot-right" onclick="handleQuadrant('right')">
+                                <svg class="icon-bg" viewBox="0 0 100 100"></svg>
                                 <div class="cmd-content">
-                                    <span class="cmd-label">FOCUS!</span>
-                                    <span class="cmd-sub">必杀一击</span>
+                                    <span class="cmd-label">---</span>
+                                    <span class="cmd-sub">---</span>
                                 </div>
                             </button>
 
-                            <!-- 下方按钮: ENDURE (Devotion) -->
-                            <button class="cmd-btn pos-bottom theme-devotion" onclick="triggerCommand('endure')">
-                                <!-- Shield SVG -->
-                                <svg class="icon-bg" viewBox="0 0 100 125">
-                                    <g transform="translate(0,-952.36218)">
-                                        <path d="m51.1339 955.36611a2.9995345 3.0001855 0 0 1 1.43713.4375c4.4064 2.6807 9.61209 6.1381 14.83996 8.3747 5.22788 2.2365 10.22474 3.1499 14.4963 1.4686a2.9995345 3.0001855 0 0 1 12.09271 2.7812c0 31.60899-7.04861 50.60179-16.68324 62.30999-9.63463 11.7083-21.67399 15.8706-30.42974 18.4993a2.9995345 3.0001855 0 0 1-2.87426-.6562c-7.30294-6.5034-14.4164-11.4997-18.4328-22.2491-4.01639-10.7495-4.88977-26.60879-1.40589-55.37279a2.9995345 3.0001855 0 0 1 3.74904-2.5312c4.32204 1.1795 9.44291-.3576 14.68376-3.1562 5.24084-2.7983 10.3515-6.7103 14.80872-9.4683a2.9995345 3.0001855 0 0 1 1.71831-.4375zm-.0625 6.5622c-3.82197 2.4944-8.4668 5.8556-13.65276 8.6247-4.80862 2.5676-10.15153 4.4718-15.58977 4.0936-2.96179 26.25779-1.91794 40.77949 1.37465 49.59179 3.20751 8.5845 8.64616 12.702 15.52728 18.718 8.24206-2.5511 17.93077-6.2707 25.96213-16.0306 8.15816-9.9141 14.6568-26.4095 15.21486-54.68539-5.07588.7184-10.17975-.5375-14.83996-2.5311-5.26895-2.2541-10.01929-5.3101-13.99643-7.781zm-1.43713 12.9682 5.62357 15.4995 15.74598 3.8124-12.71551 10.24949 1.31217 16.4368-13.49656-9.1247-14.93369 6.3124 4.37389-15.8743-10.52857-12.56209 16.18337-.6562 8.43535-14.0933z"/>
-                                    </g>
-                                </svg>
+                            <button class="cmd-btn pos-bottom" id="slot-bottom" onclick="handleQuadrant('bottom')">
+                                <svg class="icon-bg" viewBox="0 0 100 100"></svg>
                                 <div class="cmd-content">
-                                    <span class="cmd-label">ENDURE!</span>
-                                    <span class="cmd-sub">绝境坚守</span>
+                                    <span class="cmd-label">---</span>
+                                    <span class="cmd-sub">---</span>
                                 </div>
                             </button>
 
-                            <!-- 左侧按钮: LISTEN (Trust) -->
-                            <button class="cmd-btn pos-left theme-trust" onclick="triggerCommand('cure')">
-                                <!-- Linked Rings SVG -->
-                                <svg class="icon-bg" viewBox="0 0 100 125">
-                                    <path d="M87.395 12.618c9.161 9.177 9.183 24.065-.012 33.252L70.758 62.493c-1.427 1.427-3.004 2.609-4.666 3.593-5.491 3.258-12.014 4.088-18.035 2.482-3.864-1.028-7.523-3.036-10.549-6.067-2.061-2.056-3.604-4.415-4.742-6.913l7.276-7.274c.681-.675 1.518-1.168 2.426-1.565.184 2.709 1.276 5.361 3.354 7.434 3.083 3.083 7.427 4.046 11.344 2.99 1.933-.516 3.766-1.484 5.277-2.997l6.129-6.122 10.493-10.499c4.587-4.594 4.591-12.013.004-16.62-4.598-4.58-12.038-4.595-16.626 0l-7.717 7.719c-.622-.213-1.232-.457-1.868-.629-4.692-1.253-9.637-1.167-14.262.122l15.531-15.528c9.192-9.199 24.075-9.187 33.275.99zM61.339 71.878c-5.271 1.459-10.889 1.277-16.078-.511l-7.699 7.703c-4.596 4.578-12.035 4.578-16.629-.006-4.587-4.601-4.58-12.024-.005-16.627l16.634-16.626c1.516-1.506 3.34-2.469 5.266-2.984 3.919-1.05 8.261-.087 11.355 2.991 2.079 2.093 3.171 4.761 3.348 7.485.87-.395 1.695-.924 2.41-1.637l7.283-7.278c-1.13-2.493-2.671-4.843-4.718-6.895-3.037-3.026-6.692-5.036-10.552-6.065-6.029-1.607-12.546-.775-18.044 2.48-1.659.979-3.235 2.159-4.666 3.585l-16.63 16.628c-9.182 9.189-9.188 24.08-.004 33.262 9.187 9.185 24.07 9.185 33.263 0l16.215-16.212z"/>
-                                </svg>
+                            <button class="cmd-btn pos-left" id="slot-left" onclick="handleQuadrant('left')">
+                                <svg class="icon-bg" viewBox="0 0 100 100"></svg>
                                 <div class="cmd-content">
-                                    <span class="cmd-label">LISTEN!</span>
-                                    <span class="cmd-sub">清醒意志</span>
+                                    <span class="cmd-label">---</span>
+                                    <span class="cmd-sub">---</span>
                                 </div>
                             </button>
 
-                            <!-- 中心装饰核心 -->
                             <div class="cmd-hub">
                                 <div class="pulse-ring"></div>
                             </div>
                         </div>
-                        
-                        <!-- 底部取消按钮 -->
-                        <div class="cmd-cancel-hint" onclick="closeCommanderMenu()">
-                            <span class="key">X</span> 放弃指令
+
+                        <div class="cmd-cancel-hint" onclick="handleCloseOrBack()">
+                            <span class="key" id="cancel-key-text">X</span>
+                            <span id="cancel-text">关闭指令</span>
                         </div>
                     </div>
                 </div>
@@ -262,17 +267,7 @@
 
                     <!-- 技能菜单 (点击战斗后显示) -->
                     <div class="moves-menu hidden" id="moves-menu">
-                        <!-- 古武流派切换：阴阳定式球 (Taiji Orb) -->
-                        <button class="taiji-orb normal hidden" id="btn-style-taiji" onclick="cycleMoveStyle()" title="古武架势：点击切换 刚/迅">
-                            <div class="spinner">
-                                <span class="yang"></span>
-                                <span class="yin"></span>
-                            </div>
-                            <div class="center-content">
-                                <span class="label-kanji" id="taiji-text">道</span>
-                            </div>
-                            <div class="aura-ring"></div>
-                        </button>
+                        <!-- 古武流派切换已迁移到 Commander System V2 -->
                         <button class="action-btn" id="btn-m0" onclick="handleAttack(0)">
                             <span class="move-name">---</span>
                             <span class="move-type">---</span>
@@ -444,5 +439,7 @@
     })();
 </script>
 
+    <!-- Commander System V2 Script -->
+    <script src="./cmd/mechanics.js"></script>
 </body>
 </html>

@@ -116,40 +116,20 @@ function showMovesMenu() {
         }
     }
     
-    // =========================================================
-    // 【战术指挥系统】检查是否触发指挥菜单
-    // =========================================================
-    if (battle && typeof window.shouldShowCommanderMenu === 'function') {
-        if (window.shouldShowCommanderMenu()) {
-            // 触发指挥菜单，暂时不显示技能菜单
-            if (typeof window.showCommanderMenu === 'function') {
-                window.showCommanderMenu();
-                return; // 等待玩家选择指令后再显示技能菜单
-            }
-        }
+    // 【战术指挥系统】自动弹窗已移除，改为通过 Smart Bubble 手动触发
+    // 【修复】只有在没有锁定状态时才刷新悬浮窗，避免点击FIGHT后重置锁定状态
+    // 锁定状态包括：commandArmed, evoArmed, playerMegaArmed, currentMoveStyle
+    const hasLockedState = battle?.commandArmed || battle?.evoArmed || battle?.playerMegaArmed || 
+                           (window.currentMoveStyle && window.currentMoveStyle !== 'normal');
+    if (!hasLockedState && typeof window.refreshCommanderBubble === 'function') {
+        window.refreshCommanderBubble();
     }
     
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('moves-menu').classList.remove('hidden');
     
-    // 【古武系统】根据 enable_styles 显示/隐藏太极球
-    const taijiOrb = document.getElementById('btn-style-taiji');
-    console.log('[UI-MENUS] battle:', battle, 'taijiOrb:', taijiOrb);
-    if (taijiOrb && battle) {
-        const unlocks = battle.playerUnlocks || {};
-        console.log('[UI-MENUS] unlocks:', unlocks);
-        if (unlocks.enable_styles) {
-            taijiOrb.classList.remove('hidden');
-            console.log('[UI-MENUS] Showing taiji orb (styles enabled)');
-            // 初始化风格为 normal
-            if (typeof setMoveStyle === 'function') {
-                setMoveStyle('normal', { silent: true });
-            }
-        } else {
-            taijiOrb.classList.add('hidden');
-            console.log('[UI-MENUS] Hiding taiji orb (styles disabled)');
-        }
-    }
+    // 【古武系统】太极球已移除，功能迁移到 Commander System V2
+    // 不再重置风格，保持玩家选择的风格直到使用
     
     // 更新 Mega 按钮显示状态
     console.log('[UI-MENUS] Calling updateMegaButtonVisibility');
@@ -179,31 +159,29 @@ function showMainMenu() {
 
 /**
  * 更新 Mega/Dynamax/Tera 按钮的显示状态
+ * 【已迁移】小球按钮功能已迁移到 Commander System V2 悬浮窗
+ * 此函数现在只负责隐藏小球按钮并刷新悬浮窗
  */
 function updateMegaButtonVisibility() {
+    // 【迁移】小球按钮始终隐藏，功能由悬浮窗接管
     const megaBtn = document.getElementById('btn-mega');
-    if (!megaBtn) {
-        console.log('[MEGA UI] btn-mega element not found!');
-        return;
-    }
-    
-    const battle = typeof window !== 'undefined' ? window.battle : null;
-    if (!battle) return;
-    
-    const p = battle.getPlayer();
-    if (!p) {
-        console.log('[MEGA UI] No player pokemon');
+    const evoBtn = document.getElementById('btn-evolved');
+    if (megaBtn) {
         megaBtn.classList.add('hidden');
-        return;
+        megaBtn.classList.remove('armed');
+    }
+    if (evoBtn) evoBtn.classList.add('hidden');
+    
+    // 【修复】只有在没有锁定状态时才刷新悬浮窗
+    const battle = typeof window !== 'undefined' ? window.battle : null;
+    const hasLockedState = battle?.commandArmed || battle?.evoArmed || battle?.playerMegaArmed || 
+                           (window.currentMoveStyle && window.currentMoveStyle !== 'normal');
+    if (!hasLockedState && typeof window.refreshCommanderBubble === 'function') {
+        window.refreshCommanderBubble();
     }
     
-    // 清除之前的样式状态
-    megaBtn.classList.remove('dynamax-style', 'evo-style', 'tera-style');
-    const iconText = megaBtn.querySelector('.mega-icon text');
-    if (iconText) iconText.textContent = 'M'; // 默认 M
-    
-    // 互斥机制检查
-    const lockedMechanic = p.mechanic;
+    // 【重要】直接返回，不再执行后面的显示逻辑
+    return;
     
     console.log(`[MEGA UI] Player: ${p.name}, canMegaEvolve: ${p.canMegaEvolve}, canDynamax: ${p.canDynamax}, canTera: ${p.canTera}, mechanic: ${lockedMechanic}`);
     

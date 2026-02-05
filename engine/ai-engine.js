@@ -343,6 +343,17 @@ function tryOptimizeStyle(aiPoke, playerPoke, baseMove) {
         }
     }
     
+    // =========================================================
+    // 🎯 凝神决策 (Focus) - 必中风格
+    // 【场景】低命中高威力技能 + 能斩杀 = 凝神确保命中
+    // =========================================================
+    const baseAcc = baseMove.accuracy;
+    if (typeof baseAcc === 'number' && baseAcc < 85 && normalDmg >= targetHp) {
+        // 低命中技能能斩杀时，使用凝神确保命中
+        console.log(`[AI STYLE] 凝神斩杀: ${baseMove.name} (命中${baseAcc}% -> 必中)`);
+        return 'focus';
+    }
+    
     // 默认不使用风格
     return null;
 }

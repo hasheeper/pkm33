@@ -17,6 +17,67 @@ let battle = new BattleState();
 window.battle = battle;  // 导出到全局，供模块访问
 
 // ============================================
+// 【古武系统 v3】动态冷却计算
+// 基于训练家熟练度决定休憩回合数
+// ============================================
+/**
+ * 根据熟练度计算古武风格冷却回合数
+ * @param {number} proficiency - 训练家熟练度 (0-255)
+ * @returns {number} 冷却回合数 (0-4)
+ */
+function getStyleCooldown(proficiency) {
+    if (proficiency > 200) return 0;  // 宗师：气脉贯通，无冷却
+    if (proficiency > 150) return 1;  // 精通：标准节奏
+    if (proficiency > 100) return 2;  // 熟手：稍有流畅
+    if (proficiency > 50)  return 3;  // 入门：节奏较慢
+    return 4;                          // 初学者：只能作为绝杀
+}
+window.getStyleCooldown = getStyleCooldown;
+
+// ============================================
+// 【指挥官系统 v2】同步率计算与动态冷却
+// 同步率 = (训练家熟练度 + AVS四维平均) / 2
+// ============================================
+/**
+ * 计算训练家与宝可梦的同步率
+ * @param {number} proficiency - 训练家熟练度 (0-255)
+ * @param {Pokemon} pokemon - 当前宝可梦
+ * @returns {number} 同步率 (0-255)
+ */
+function getCommanderSyncScore(proficiency, pokemon) {
+    if (!pokemon || !pokemon.isAce) return 0;
+    
+    // 获取 AVS 四维平均值
+    let avsAverage = 0;
+    if (pokemon.avs) {
+        const trust = pokemon.getEffectiveAVs?.('trust') || pokemon.avs.trust || 0;
+        const passion = pokemon.getEffectiveAVs?.('passion') || pokemon.avs.passion || 0;
+        const insight = pokemon.getEffectiveAVs?.('insight') || pokemon.avs.insight || 0;
+        const devotion = pokemon.getEffectiveAVs?.('devotion') || pokemon.avs.devotion || 0;
+        avsAverage = (trust + passion + insight + devotion) / 4;
+    }
+    
+    // 同步率 = (熟练度 + AVS平均) / 2
+    const syncScore = Math.floor((proficiency + avsAverage) / 2);
+    return Math.min(255, Math.max(0, syncScore));
+}
+window.getCommanderSyncScore = getCommanderSyncScore;
+
+/**
+ * 根据同步率计算指挥官系统冷却回合数
+ * @param {number} syncScore - 同步率 (0-255)
+ * @returns {number} 冷却回合数 (1-4, 或 -1 表示不可用)
+ */
+function getCommanderCooldown(syncScore) {
+    if (syncScore < 60)  return -1; // 不可用：默契不足
+    if (syncScore >= 240) return 1; // 二字干涉(Zone)：高频干涉
+    if (syncScore >= 180) return 2; // 相当敏锐
+    if (syncScore >= 120) return 3; // 较为稳定
+    return 4;                        // 偶尔灵光一现
+}
+window.getCommanderCooldown = getCommanderCooldown;
+
+// ============================================
 // 【已迁移】古武系统 -> mechanics/move-styles.js
 // 【已迁移】Z-Move/Max Move 推导 -> mechanics/z-moves.js
 // ============================================
@@ -419,6 +480,11 @@ async function initGame() {
                 }
             }, 3800);
         }, 500);
+    }
+    
+    // 【Commander System V2】初始化轮播悬浮窗（在所有队伍加载完成后）
+    if (typeof window.initCommanderSystemV2 === 'function') {
+        window.initCommanderSystemV2();
     }
 }
 
@@ -862,6 +928,17 @@ async function handleAttack(moveIndex, options = {}) {
         window.onTurnStart();
     }
     
+    // 【Commander System】触发已装填的指令
+    if (typeof window.triggerArmedCommand === 'function') {
+        window.triggerArmedCommand();
+    }
+    
+    // 【Evolution System】触发已装填的进化
+    const evoArmedThisTurn = battle.evoArmed;
+    if (evoArmedThisTurn) {
+        battle.evoArmed = null; // 清除装填状态
+    }
+    
     // 保存 Mega 预备状态（在 showMainMenu 重置之前）
     const megaArmedThisTurn = battle.playerMegaArmed;
     
@@ -983,6 +1060,10 @@ async function handleAttack(moveIndex, options = {}) {
     // 刚猛 (Strong): 速度快时必中(卖先手)，速度慢时命中0.8x(白嫖)
     // 【平衡性改动】使用后进入 1 回合冷却
     // =========================================================
+    // 从全局变量读取当前风格
+    let currentMoveStyle = window.currentMoveStyle || 'normal';
+    console.log(`[STYLES] 当前风格: ${currentMoveStyle}`);
+    
     if (currentMoveStyle !== 'normal' && battle.playerUnlocks?.enable_styles) {
         // 【Chronal Rift 洗翠无法】检查是否在时空裂隙中
         let isUnboundArts = false;
@@ -1079,8 +1160,15 @@ async function handleAttack(moveIndex, options = {}) {
                     }
                     playerMove.power = playerMove.basePower;
                     
-                    // 【冷却】使用后进入 1 回合冷却
-                    battle.playerStyleCooldown = 1;
+                    // 【冷却 v3】基于熟练度的动态冷却
+                    const proficiency = battle.trainerProficiency ?? 0;
+                    const styleCooldown = getStyleCooldown(proficiency);
+                    battle.playerStyleCooldown = styleCooldown;
+                    if (styleCooldown > 0) {
+                        console.log(`[STYLES v3] 进入休憩: ${styleCooldown}回合 (熟练度: ${proficiency})`);
+                    } else {
+                        console.log(`[STYLES v3] 气脉贯通，无需休憩 (熟练度: ${proficiency})`);
+                    }
                 }
             } 
             // ============================================
@@ -1107,13 +1195,59 @@ async function handleAttack(moveIndex, options = {}) {
                     console.log(`[STYLES] 刚猛(快): power 1.3x, acc unchanged (${mySpe} vs ${enemySpe})`);
                 }
                 
-                // 【冷却】使用后进入 1 回合冷却
-                battle.playerStyleCooldown = 1;
+                // 【冷却 v3】基于熟练度的动态冷却
+                const proficiency = battle.trainerProficiency ?? 0;
+                const styleCooldown = getStyleCooldown(proficiency);
+                battle.playerStyleCooldown = styleCooldown;
+                if (styleCooldown > 0) {
+                    console.log(`[STYLES v3] 进入休憩: ${styleCooldown}回合 (熟练度: ${proficiency})`);
+                } else {
+                    console.log(`[STYLES v3] 气脉贯通，无需休憩 (熟练度: ${proficiency})`);
+                }
+            }
+            // ============================================
+            // 🎯 凝神风格 (Focus Style) - 必中模式
+            // 绝对专注的心流状态，摒弃杂念的必然一击
+            // 修正：招式获得【必中】效果，威力保持 x1.0
+            // ============================================
+            else if (currentMoveStyle === 'focus') {
+                // 【平衡性改动】变化技禁止使用凝神
+                if (isStatus) {
+                    log(`<span style="color:#aaa">变化类招式无法使用凝神风格！(自动切换回普通)</span>`);
+                    currentMoveStyle = 'normal';
+                } else {
+                    playerMove = { ...playerMove };
+                    playerMove.styleUsed = 'focus';
+                    
+                    // 必中效果：设置 accuracy 为 true（必中标记）
+                    playerMove.accuracy = true;
+                    playerMove.bypassAccuracyCheck = true; // 额外标记，确保绕过命中检定
+                    
+                    log(`<span style="color:#a855f7">🎯 凝神·心眼：绝对专注，必然命中！</span>`);
+                    console.log(`[STYLES] 凝神: 必中效果 (原命中: ${originalAccuracy})`);
+                    
+                    // 【冷却 v3】基于熟练度的动态冷却
+                    const proficiency = battle.trainerProficiency ?? 0;
+                    const styleCooldown = getStyleCooldown(proficiency);
+                    battle.playerStyleCooldown = styleCooldown;
+                    if (styleCooldown > 0) {
+                        console.log(`[STYLES v3] 进入休憩: ${styleCooldown}回合 (熟练度: ${proficiency})`);
+                    } else {
+                        console.log(`[STYLES v3] 气脉贯通，无需休憩 (熟练度: ${proficiency})`);
+                    }
+                }
             }
         }
         
         // 使用后重置为普通风格
-        setMoveStyle('normal');
+        window.currentMoveStyle = 'normal';
+        if (typeof setMoveStyle === 'function') {
+            setMoveStyle('normal');
+        }
+        // 刷新悬浮窗状态
+        if (typeof window.refreshCommanderBubble === 'function') {
+            window.refreshCommanderBubble();
+        }
     }
 
     // === 回合开始：清除双方的 Protect 状态（新回合开始，守住失效）===
@@ -1209,6 +1343,11 @@ async function handleAttack(moveIndex, options = {}) {
         updateAllVisuals('player');
         await wait(800);
         
+        // 【Commander System V2】进化触发后刷新悬浮窗回到轮播
+        if (typeof window.refreshCommanderBubble === 'function') {
+            window.refreshCommanderBubble();
+        }
+        
     } else if (megaArmedThisTurn && canMegaEvolveFunc && canMegaEvolveFunc(p) && !battle.playerMegaUsed && p.mechanic !== 'tera') {
         // === 普通 Mega 进化处理 ===
         // 【修复】必须排除 mechanic='tera' 的宝可梦，避免与太晶化冲突
@@ -1238,6 +1377,11 @@ async function handleAttack(moveIndex, options = {}) {
         }
         updateAllVisuals('player');
         await wait(800);
+        
+        // 【Commander System V2】Mega进化触发后刷新悬浮窗回到轮播
+        if (typeof window.refreshCommanderBubble === 'function') {
+            window.refreshCommanderBubble();
+        }
         
     } else if (megaArmedThisTurn && p.mechanic === 'tera' && p.canTera && !battle.playerTeraUsed && !p.isTerastallized) {
         // === 太晶化处理 ===
@@ -1286,6 +1430,22 @@ async function handleAttack(moveIndex, options = {}) {
         
         updateAllVisuals('player');
         await wait(800);
+        
+        // 【Commander System V2】太晶化触发后刷新悬浮窗回到轮播
+        if (typeof window.refreshCommanderBubble === 'function') {
+            window.refreshCommanderBubble();
+        }
+    }
+    
+    // =====================================================
+    // === 玩家进化触发逻辑（装填模式）===
+    // =====================================================
+    if (evoArmedThisTurn && typeof window.triggerBattleEvolution === 'function') {
+        await window.triggerBattleEvolution();
+        // 进化后刷新悬浮窗
+        if (typeof window.refreshCommanderBubble === 'function') {
+            window.refreshCommanderBubble();
+        }
     }
     
     // =====================================================
@@ -1868,8 +2028,10 @@ async function handleAttack(moveIndex, options = {}) {
                         }
                         enemyMove.power = enemyMove.basePower;
                         
-                        // 【冷却】使用后进入 1 回合冷却
-                        battle.enemyStyleCooldown = 1;
+                        // 【冷却 v3】基于敌方熟练度的动态冷却
+                        const enemyProf = battle.enemyTrainerProficiency ?? 0;
+                        battle.enemyStyleCooldown = getStyleCooldown(enemyProf);
+                        console.log(`[AI STYLES v3] 进入休憩: ${battle.enemyStyleCooldown}回合 (敌方熟练度: ${enemyProf})`);
                     }
                 } 
                 // ============================================
@@ -1896,8 +2058,34 @@ async function handleAttack(moveIndex, options = {}) {
                         console.log(`[AI STYLES] 刚猛(快): power 1.3x, acc unchanged (${aiSpe} vs ${playerSpe})`);
                     }
                     
-                    // 【冷却】使用后进入 1 回合冷却
-                    battle.enemyStyleCooldown = 1;
+                    // 【冷却 v3】基于敌方熟练度的动态冷却
+                    const enemyProf = battle.enemyTrainerProficiency ?? 0;
+                    battle.enemyStyleCooldown = getStyleCooldown(enemyProf);
+                    console.log(`[AI STYLES v3] 进入休憩: ${battle.enemyStyleCooldown}回合 (敌方熟练度: ${enemyProf})`);
+                }
+                // ============================================
+                // 🎯 AI 凝神风格 (Focus Style) - 必中模式
+                // ============================================
+                else if (aiStyle === 'focus') {
+                    // 【平衡性改动】变化技禁止使用凝神
+                    if (isStatus) {
+                        console.log(`[AI STYLES] 变化技无法使用凝神，改用普通风格`);
+                    } else {
+                        enemyMove = { ...enemyMove };
+                        enemyMove.styleUsed = 'focus';
+                        
+                        // 必中效果：设置 accuracy 为 true（必中标记）
+                        enemyMove.accuracy = true;
+                        enemyMove.bypassAccuracyCheck = true;
+                        
+                        log(`<span style="color:#a855f7">🎯 敌方凝神·心眼：绝对专注，必然命中！</span>`);
+                        console.log(`[AI STYLES] 凝神: 必中效果 (${enemyMove.name})`);
+                        
+                        // 【冷却 v3】基于敌方熟练度的动态冷却
+                        const enemyProf = battle.enemyTrainerProficiency ?? 0;
+                        battle.enemyStyleCooldown = getStyleCooldown(enemyProf);
+                        console.log(`[AI STYLES v3] 进入休憩: ${battle.enemyStyleCooldown}回合 (敌方熟练度: ${enemyProf})`);
+                    }
                 }
             }
         }
@@ -3351,6 +3539,12 @@ async function performSwitch(newIndex) {
     // 只有在宝可梦存活的情况下才设置为当前活跃宝可梦
     battle.playerActive = newIndex;
     
+    // 【Commander System V2】切换宝可梦后刷新悬浮窗（读取新宝可梦的配置）
+    window.currentMoveStyle = 'normal'; // 重置风格
+    if (typeof window.refreshCommanderBubble === 'function') {
+        window.refreshCommanderBubble();
+    }
+    
     // === 羁绊共鸣状态恢复 ===
     // 如果换上场的宝可梦有羁绊共鸣标记，重新应用能力提升
     if (newPoke.hasBondResonance && typeof newPoke.applyBoost === 'function') {
@@ -4152,9 +4346,17 @@ function updateEvolutionButtonVisuals() {
         if (evoInfo.type === 'bio' && !p._evoHintLogged) {
             log(`<span style="color:#d4ac0d; text-shadow:0 0 5px gold;">✨ ${p.cnName} 的周身涌动着进化的光芒...它在回应你的意志！</span>`);
             p._evoHintLogged = true;
+            // 【Commander System V2】提示日志弹出后刷新悬浮窗
+            if (typeof window.refreshCommanderBubble === 'function') {
+                window.refreshCommanderBubble();
+            }
         } else if (evoInfo.type === 'bond' && !p._bondHintLogged) {
             log(`<span style="color:#4ade80; text-shadow:0 0 8px #22c55e;">∞ ${p.cnName} 与训练家的心跳开始同步...羁绊正在觉醒！</span>`);
             p._bondHintLogged = true;
+            // 【Commander System V2】提示日志弹出后刷新悬浮窗
+            if (typeof window.refreshCommanderBubble === 'function') {
+                window.refreshCommanderBubble();
+            }
         }
     } else {
         btn.classList.add('hidden');
@@ -4341,6 +4543,11 @@ window.triggerBattleEvolution = async function() {
   
     updateAllVisuals();
     battle.locked = false;
+    
+    // 【Commander System V2】进化完成后强制刷新悬浮窗
+    if (typeof window.refreshCommanderBubble === 'function') {
+        window.refreshCommanderBubble();
+    }
 };
 
 // =========================================================
@@ -4382,13 +4589,39 @@ function initCommanderSystem() {
     };
     
     // 指令冷却（回合数）
-    battle.commandCooldown = 0;
+    // 【初始冷却】Commander Score < 120 时，战斗开始就有冷却
+    const p = battle.getPlayer?.();
+    const initSyncScore = p ? getCommanderSyncScore(battle.trainerProficiency ?? 0, p) : 0;
     
-    console.log(`[COMMANDER] System initialized. Proficiency: ${battle.trainerProficiency}`);
+    if (initSyncScore < 120) {
+        // 低同步率：战斗开始时有初始冷却
+        battle.commandCooldown = getCommanderCooldown(initSyncScore);
+        if (battle.commandCooldown < 0) battle.commandCooldown = 0; // 不可用时设为0
+        console.log(`[COMMANDER v2] 初始冷却: ${battle.commandCooldown}回合 (同步率: ${initSyncScore} < 120)`);
+    } else {
+        // 高同步率(120+)：无初始冷却，第一回合即可使用
+        battle.commandCooldown = 0;
+        console.log(`[COMMANDER v2] 无初始冷却 (同步率: ${initSyncScore} >= 120)`);
+    }
+    
+    // 【Styles 初始冷却】熟练度 < 101 时，战斗开始就有冷却
+    const proficiency = battle.trainerProficiency ?? 0;
+    if (proficiency < 101) {
+        // 低熟练度：战斗开始时有初始冷却
+        battle.playerStyleCooldown = getStyleCooldown(proficiency);
+        console.log(`[STYLES v3] 初始冷却: ${battle.playerStyleCooldown}回合 (熟练度: ${proficiency} < 101)`);
+    } else {
+        // 高熟练度(101+)：无初始冷却，第一回合即可使用
+        battle.playerStyleCooldown = 0;
+        console.log(`[STYLES v3] 无初始冷却 (熟练度: ${proficiency} >= 101)`);
+    }
+    
+    console.log(`[COMMANDER v2] System initialized. Proficiency: ${proficiency}, SyncScore: ${initSyncScore}`);
 }
 
 /**
  * 检查是否应该显示指挥菜单
+ * 【v2】改为固定触发 + 基于同步率的动态冷却
  * 在 showMovesMenu 时调用
  * @returns {boolean}
  */
@@ -4401,9 +4634,20 @@ function shouldShowCommanderMenu() {
     const p = battle.getPlayer();
     if (!p || !p.isAce || p.currHp <= 0) return false;
     
+    // 【v2】计算同步率
+    const proficiency = battle.trainerProficiency ?? 0;
+    const syncScore = getCommanderSyncScore(proficiency, p);
+    const requiredCooldown = getCommanderCooldown(syncScore);
+    
+    // 同步率不足，无法使用指挥系统
+    if (requiredCooldown < 0) {
+        console.log(`[COMMANDER v2] 同步率不足 (${syncScore}), 无法使用指挥系统`);
+        return false;
+    }
+    
     // 冷却中
     if (battle.commandCooldown > 0) {
-        console.log(`[COMMANDER] On cooldown: ${battle.commandCooldown} turns remaining`);
+        console.log(`[COMMANDER v2] 冷却中: ${battle.commandCooldown}回合 (同步率: ${syncScore})`);
         return false;
     }
     
@@ -4417,20 +4661,13 @@ function shouldShowCommanderMenu() {
     
     const hasAvailableCommand = dodgeAvailable || critAvailable || cureAvailable || endureAvailable;
     if (!hasAvailableCommand) {
-        console.log(`[COMMANDER] No available commands left for ${p.cnName}`);
+        console.log(`[COMMANDER v2] ${p.cnName} 无可用指令`);
         return false;
     }
     
-    // 概率触发：Chance = Proficiency / 512
-    // 满熟练度 255 时约 50% 触发率
-    // 注意：使用 ?? 而不是 ||，避免 0 被当作 falsy 值
-    const proficiency = battle.trainerProficiency ?? 0;
-    const triggerChance = proficiency / 512;
-    const roll = Math.random();
-    
-    console.log(`[COMMANDER] Roll: ${roll.toFixed(3)} vs Chance: ${triggerChance.toFixed(3)} (Prof: ${proficiency})`);
-    
-    return roll < triggerChance;
+    // 【v2】固定触发，不再随机
+    console.log(`[COMMANDER v2] 指挥可用! 同步率: ${syncScore}, 冷却周期: ${requiredCooldown}回合`);
+    return true;
 }
 
 /**
@@ -4542,80 +4779,85 @@ function updateCommanderButtons() {
 }
 
 /**
- * 触发指令
+ * 装填指令（类似 MEGA 的 armed 模式）
+ * 指令在选择技能后的回合结算时才会触发
  * @param {string} command - 指令类型: 'dodge', 'crit', 'cure', 'endure'
  */
-window.triggerCommand = function(command) {
-    const overlay = document.getElementById('commander-overlay');
-    if (overlay) {
-        overlay.classList.add('hidden');
-    }
-    
+window.armCommand = function(command) {
     const p = battle.getPlayer();
     if (!p) return;
     
+    const commandInfo = {
+        dodge: { emoji: '👁️', label: 'DODGE!', cn: '快避开', avs: 'Insight', color: '#00cec9' },
+        crit: { emoji: '🔥', label: 'FOCUS!', cn: '击中要害', avs: 'Passion', color: '#ff6b6b' },
+        cure: { emoji: '🤝', label: 'LISTEN!', cn: '快清醒', avs: 'Trust', color: '#f1c40f' },
+        endure: { emoji: '🛡️', label: 'HOLD ON!', cn: '撑下去', avs: 'Devotion', color: '#a55eea' }
+    };
+    
+    // 如果已经装填了同一个指令，则取消
+    if (battle.commandArmed === command) {
+        battle.commandArmed = null;
+        log(`<span style="color:#94a3b8">取消 ${commandInfo[command].label} 指令预备。</span>`);
+        console.log(`[COMMANDER] Command disarmed: ${command}`);
+        return false; // 返回 false 表示取消
+    }
+    
+    // 【互斥】选择指令时，自动取消风格预备
+    if (window.currentMoveStyle && window.currentMoveStyle !== 'normal') {
+        log(`<span style="color:#94a3b8">取消风格预备，切换为指令模式。</span>`);
+        window.currentMoveStyle = 'normal';
+        if (typeof window.setMoveStyle === 'function') {
+            window.setMoveStyle('normal');
+        }
+    }
+    
+    // 【互斥】选择指令时，自动取消进化预备
+    if (battle.evoArmed) {
+        log(`<span style="color:#94a3b8">取消进化预备，切换为指令模式。</span>`);
+        battle.evoArmed = null;
+    }
+    
     // 检查每只宝可梦一次的限制
-    if (command === 'dodge' && p.commandDodgeUsed) {
-        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 DODGE! 指令了！</span>`);
-        setTimeout(() => {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('moves-menu').classList.remove('hidden');
-        }, 100);
-        return;
-    }
-    if (command === 'crit' && p.commandCritUsed) {
-        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 FOCUS! 指令了！</span>`);
-        setTimeout(() => {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('moves-menu').classList.remove('hidden');
-        }, 100);
-        return;
-    }
-    if (command === 'cure' && p.commandCureUsed) {
-        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 LISTEN! 指令了！</span>`);
-        setTimeout(() => {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('moves-menu').classList.remove('hidden');
-        }, 100);
-        return;
-    }
-    if (command === 'endure' && p.commandEndureUsed) {
-        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 ENDURE! 指令了！</span>`);
-        setTimeout(() => {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('moves-menu').classList.remove('hidden');
-        }, 100);
-        return;
+    const usedKey = `command${command.charAt(0).toUpperCase() + command.slice(1)}Used`;
+    if (p[usedKey]) {
+        log(`<span style="color:#ef4444;">${p.cnName} 本场战斗已经使用过 ${commandInfo[command].label} 指令了！</span>`);
+        return false;
     }
     
     // 检查全局使用次数（cure/endure 全局限制2次）
     if ((command === 'cure' || command === 'endure') && 
         battle.commandUsage[command] >= battle.commandLimits[command]) {
-        log(`<span style="color:#ef4444;">${command === 'cure' ? 'LISTEN!' : 'ENDURE!'} 指令全局次数已用尽！</span>`);
-        setTimeout(() => {
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('moves-menu').classList.remove('hidden');
-        }, 100);
-        return;
+        log(`<span style="color:#ef4444;">${commandInfo[command].label} 指令全局次数已用尽！</span>`);
+        return false;
     }
     
-    // 设置活跃指令
-    battle.activeCommand = command;
-    battle.commandUsage[command]++;
-    
-    // 标记每只宝可梦一次的指令（所有指令都是每只宝可梦一次）
-    if (command === 'dodge') {
-        p.commandDodgeUsed = true;
-    } else if (command === 'crit') {
-        p.commandCritUsed = true;
-    } else if (command === 'cure') {
-        p.commandCureUsed = true;
-    } else if (command === 'endure') {
-        p.commandEndureUsed = true;
+    // 切换指令：取消之前的，设置新的
+    if (battle.commandArmed && battle.commandArmed !== command) {
+        const oldInfo = commandInfo[battle.commandArmed];
+        log(`<span style="color:#94a3b8">取消 ${oldInfo.label} 指令，切换为 ${commandInfo[command].label}</span>`);
     }
     
-    // 设置冷却（2回合后才能再次触发指挥菜单）
-    battle.commandCooldown = 2;
+    // 装填指令
+    battle.commandArmed = command;
+    const info = commandInfo[command];
+    
+    log(`<span style="color:${info.color}">🎯 ${info.label} 指令就绪！选择招式后将触发！</span>`);
+    console.log(`[COMMANDER] Command armed: ${command}`);
+    
+    return true; // 返回 true 表示装填成功
+};
+
+/**
+ * 触发已装填的指令（在回合结算时调用）
+ * @returns {boolean} 是否触发了指令
+ */
+window.triggerArmedCommand = function() {
+    const command = battle.commandArmed;
+    if (!command) return false;
+    
+    const p = battle.getPlayer();
+    if (!p) return false;
+    
     const commandInfo = {
         dodge: { emoji: '👁️', label: 'DODGE!', cn: '快避开', avs: 'Insight', color: '#00cec9' },
         crit: { emoji: '🔥', label: 'FOCUS!', cn: '击中要害', avs: 'Passion', color: '#ff6b6b' },
@@ -4624,6 +4866,21 @@ window.triggerCommand = function(command) {
     };
     
     const info = commandInfo[command];
+    
+    // 标记使用
+    battle.activeCommand = command;
+    battle.commandUsage[command]++;
+    
+    // 标记每只宝可梦一次的指令
+    const usedKey = `command${command.charAt(0).toUpperCase() + command.slice(1)}Used`;
+    p[usedKey] = true;
+    
+    // 【v2】基于同步率的动态冷却
+    const proficiency = battle.trainerProficiency ?? 0;
+    const syncScore = getCommanderSyncScore(proficiency, p);
+    const commandCooldown = getCommanderCooldown(syncScore);
+    battle.commandCooldown = Math.max(1, commandCooldown);
+    console.log(`[COMMANDER v2] 设置冷却: ${battle.commandCooldown}回合 (同步率: ${syncScore})`);
     
     // 播放音效
     if (typeof window.playSFX === 'function') {
@@ -4638,17 +4895,23 @@ window.triggerCommand = function(command) {
     
     console.log(`[COMMANDER] Command triggered: ${command} (${info.cn})`);
     
-    // 立即应用某些效果
+    // 应用指令效果
     applyCommandEffect(command, p);
     
-    // 选择指令后，继续显示技能菜单
-    setTimeout(() => {
-        document.getElementById('main-menu').classList.add('hidden');
-        document.getElementById('moves-menu').classList.remove('hidden');
-        if (typeof updateMegaButtonVisibility === 'function') {
-            updateMegaButtonVisibility();
-        }
-    }, 100);
+    // 清除装填状态
+    battle.commandArmed = null;
+    
+    // 刷新悬浮窗
+    if (typeof window.refreshCommanderBubble === 'function') {
+        window.refreshCommanderBubble();
+    }
+    
+    return true;
+};
+
+// 保留旧的 triggerCommand 作为兼容，但改为调用 armCommand
+window.triggerCommand = function(command) {
+    window.armCommand(command);
 };
 
 /**
