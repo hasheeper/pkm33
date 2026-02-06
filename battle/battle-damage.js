@@ -397,7 +397,10 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         }
         
         // === 播放打击音效 ===
-        if (typeof window.playHitSFX === 'function') {
+        // 【修复】接触类招式音效延迟到冲撞到位时播放（在 triggerContactVFX 中），这里跳过
+        // 通过 move.cat 判断是否为物理招式（近似接触判断）
+        const isPhysical = (move.cat || '').toLowerCase() === 'phys';
+        if (typeof window.playHitSFX === 'function' && !isPhysical) {
             window.playHitSFX(result.effectiveness, result.isCrit);
         }
         
@@ -491,8 +494,9 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         // 播放受击动画 (VFX 引擎)
         const targetEl = document.getElementById(spriteIdRef);
         const attackerSpriteId = spriteIdRef === 'enemy-sprite' ? 'player-sprite' : 'enemy-sprite';
+        let vfxResult = null;
         if (typeof window.BattleVFX !== 'undefined') {
-            window.BattleVFX.playAttackVFX(attackerSpriteId, spriteIdRef, move, result);
+            vfxResult = window.BattleVFX.playAttackVFX(attackerSpriteId, spriteIdRef, move, result);
         } else if (targetEl) {
             targetEl.classList.remove('shake-hit-anim');
             void targetEl.offsetWidth;

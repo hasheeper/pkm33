@@ -2948,6 +2948,10 @@ export const MoveHandlers = {
                     user.item = null;
                     logs.push(`<span style="color:#27ae60">🍊 ${user.cnName} 吃掉了文柚果，回复了 ${actualHeal} 点体力！</span>`);
                     if (typeof window.playSFX === 'function') window.playSFX('HEAL');
+                    if (typeof window.BattleVFX !== 'undefined') {
+                        const _isUserPlayer = window.battle && window.battle.playerParty && window.battle.playerParty.includes(user);
+                        window.BattleVFX.triggerStatVFX('HEAL', _isUserPlayer ? 'player-sprite' : 'enemy-sprite');
+                    }
                 }
                 // 混乱果系列 (勿花果/异奇果/芒芒果/芭亚果/乐芭果): HP <= 25% 时回复 33%
                 // 贪吃鬼特性: 触发线提升到 50%
@@ -2967,6 +2971,10 @@ export const MoveHandlers = {
                     user.item = null;
                     logs.push(`<span style="color:#27ae60">🍇 ${user.cnName} 吃掉了${berryName}，回复了 ${actualHeal} 点体力！</span>`);
                     if (typeof window.playSFX === 'function') window.playSFX('HEAL');
+                    if (typeof window.BattleVFX !== 'undefined') {
+                        const _isUserPlayer = window.battle && window.battle.playerParty && window.battle.playerParty.includes(user);
+                        window.BattleVFX.triggerStatVFX('HEAL', _isUserPlayer ? 'player-sprite' : 'enemy-sprite');
+                    }
                     // TODO: 性格不合时混乱判定
                 }
             }
@@ -4195,6 +4203,11 @@ export const MoveHandlers = {
                 user.currHp = Math.min(user.maxHp, user.currHp + baseHeal);
             }
             logs.push(`${user.cnName} 吞下了蓄力！回复了 ${actualHeal} HP！`);
+            if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+            if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                const _isUserPlayer = window.battle && window.battle.playerParty && window.battle.playerParty.includes(user);
+                window.BattleVFX.triggerStatVFX('HEAL', _isUserPlayer ? 'player-sprite' : 'enemy-sprite');
+            }
             
             // 消耗蓄力层数并降低对应的防御/特防
             user.applyBoost('def', -stacks);

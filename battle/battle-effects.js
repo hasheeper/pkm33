@@ -115,6 +115,40 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         if (hitResult && hitResult.phaze) {
             phazeTriggered = true;
         }
+        // 【修复】治疗类招式命中后触发 HEAL 音效 + VFX (Recover/Roost/Rest/Strength Sap 等)
+        if (hitResult && ((hitResult.heal && hitResult.heal > 0) || hitResult.rest || hitResult.strengthSap || hitResult.purify)) {
+            if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+            if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                const _isUserPlayer = window.battle && window.battle.playerParty && window.battle.playerParty.includes(user);
+                window.BattleVFX.triggerStatVFX('HEAL', _isUserPlayer ? 'player-sprite' : 'enemy-sprite');
+            }
+        }
+    } else if (fullMoveData.heal && Array.isArray(fullMoveData.heal) && fullMoveData.target === 'self') {
+        // 【修复】无 onHit handler 但有 heal: [num, den] 的回复招式 (Milk Drink/Heal Order/Life Dew 等)
+        const [num, den] = fullMoveData.heal;
+        const baseHeal = Math.floor(user.maxHp * num / den);
+        const maxHeal = user.maxHp - user.currHp;
+        if (maxHeal > 0 && baseHeal > 0) {
+            let actualHeal;
+            if (typeof user.heal === 'function') {
+                actualHeal = user.heal(baseHeal);
+            } else {
+                actualHeal = Math.min(baseHeal, maxHeal);
+                user.currHp += actualHeal;
+            }
+            if (actualHeal > 0) {
+                logs.push(`${user.cnName} 恢复了体力!`);
+                if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+                if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                    const _isUserPlayer = window.battle && window.battle.playerParty && window.battle.playerParty.includes(user);
+                    window.BattleVFX.triggerStatVFX('HEAL', _isUserPlayer ? 'player-sprite' : 'enemy-sprite');
+                }
+            } else {
+                logs.push(`${user.cnName} 的体力已满!`);
+            }
+        } else {
+            logs.push(`${user.cnName} 的体力已满!`);
+        }
     }
     
     // === 强制换人处理 (Phazing) ===

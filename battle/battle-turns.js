@@ -663,6 +663,9 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
             }
             logs.push(`<span style="color:#4cd137">💚 ${poke.cnName} 的毒疗特性发动，回复了 ${actualHeal} 点体力!</span>`);
             if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+            if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                window.BattleVFX.triggerStatVFX('HEAL', isPlayerPoke ? 'player-sprite' : 'enemy-sprite');
+            }
         } else {
             // 正常中毒伤害
             const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
@@ -694,6 +697,9 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         poke.takeDamage(baseDrain);
         opponent.heal(actualHeal);
         if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+            window.BattleVFX.triggerStatVFX('HEAL', isPlayerPoke ? 'enemy-sprite' : 'player-sprite');
+        }
         if (actualHeal !== baseDrain) {
             logs.push(`${poke.cnName} 的体力被寄生种子吸取了! (-${baseDrain}, 回复${actualHeal})`);
         } else {
@@ -782,6 +788,9 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         poke.heal(heal);
         logs.push(`${poke.cnName} 的水流环恢复了体力! (+${heal})`);
         if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+            window.BattleVFX.triggerStatVFX('HEAL', isPlayerPoke ? 'player-sprite' : 'enemy-sprite');
+        }
     }
 
     // ----------------------------------------
@@ -792,6 +801,9 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         poke.heal(heal);
         logs.push(`${poke.cnName} 从地面吸收了养分! (+${heal})`);
         if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+            window.BattleVFX.triggerStatVFX('HEAL', isPlayerPoke ? 'player-sprite' : 'enemy-sprite');
+        }
     }
 
     // ----------------------------------------

@@ -156,7 +156,7 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
     let dx = (defRect.left + defRect.width / 2) - (atkRect.left + atkRect.width / 2);
     let dy = (defRect.top + defRect.height / 2) - (atkRect.top + atkRect.height / 2);
 
-    const gapX = 70;
+    const gapX = 100;
     const gapY = 0;
     let startScale, endScale;
 
@@ -179,6 +179,11 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
     atkSprite.classList.add('anim-dash');
 
     setTimeout(() => {
+        // 接触命中音效（延迟到冲撞到位时播放）
+        if (typeof window.playHitSFX === 'function') {
+            window.playHitSFX(effectiveness, isCritical);
+        }
+
         triggerRangedVFX(type, defSpriteId, effectiveness, isCritical);
 
         // 画面震动
@@ -364,6 +369,8 @@ function playAttackVFX(attackerSpriteId, defenderSpriteId, move, result) {
     } else {
         triggerRangedVFX(moveType, defenderSpriteId, effectiveness, isCrit);
     }
+
+    return { isContact: shouldContact };
 }
 
 // ============================================
