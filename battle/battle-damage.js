@@ -397,10 +397,11 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         }
         
         // === 播放打击音效 ===
-        // 【修复】接触类招式音效延迟到冲撞到位时播放（在 triggerContactVFX 中），这里跳过
-        // 通过 move.cat 判断是否为物理招式（近似接触判断）
-        const isPhysical = (move.cat || '').toLowerCase() === 'phys';
-        if (typeof window.playHitSFX === 'function' && !isPhysical) {
+        // 【修复】接触类招式（flags.contact）音效延迟到冲撞到位时播放，非接触类立即播放
+        const moveIdForSfx = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fullMoveDataForSfx = (typeof MOVES !== 'undefined' && MOVES[moveIdForSfx]) ? MOVES[moveIdForSfx] : {};
+        const isContactMove = fullMoveDataForSfx.flags && fullMoveDataForSfx.flags.contact;
+        if (typeof window.playHitSFX === 'function' && !isContactMove) {
             window.playHitSFX(result.effectiveness, result.isCrit);
         }
         
