@@ -213,24 +213,54 @@ export async function handleEnemyFainted(e) {
     // 【Gen 9 Rage Fist】濒死时清零被攻击计数
     e.timesAttacked = 0;
     
-    // 如果敌方处于极巨化状态，先清理极巨化视觉效果
+    // === 清理特殊形态视觉效果（极巨化/钛晶化/超级进化/羁绊共鸣） ===
+    const enemySpriteEl = document.getElementById('enemy-sprite');
+    
+    // 极巨化清理
     if (e.isDynamaxed) {
         if (e.originalName) {
             e.name = e.originalName;
             delete e.originalName;
         }
-        
         if (typeof window.endDynamaxAnimation === 'function') {
             await window.endDynamaxAnimation(e, false);
         }
-        
         e.isDynamaxed = false;
         delete e.preDynamaxMaxHp;
         delete e.preDynamaxCurrHp;
-        
         if (typeof window.applyDynamaxState === 'function') {
             window.applyDynamaxState(e, false);
         }
+        // 恢复原始精灵图片（非极巨化形态）
+        if (enemySpriteEl && typeof e.getSprite === 'function') {
+            enemySpriteEl.src = e.getSprite(false);
+        }
+    }
+    
+    // 钛晶化清理
+    if (e.isTerastallized && enemySpriteEl) {
+        enemySpriteEl.classList.remove('state-terastal');
+        const allTeraTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy','stellar'];
+        allTeraTypes.forEach(t => enemySpriteEl.classList.remove(`tera-type-${t}`));
+    }
+    
+    // 超级进化清理
+    if (enemySpriteEl) {
+        enemySpriteEl.classList.remove('mega-enemy', 'mega-player', 'unofficial-mega');
+    }
+    
+    // 羁绊共鸣清理
+    if (e.hasBondResonance && enemySpriteEl) {
+        enemySpriteEl.classList.remove('bond-resonance');
+        enemySpriteEl.style.filter = '';
+    }
+    
+    // 【倒下动画】确保精灵播放倒下动画
+    if (enemySpriteEl && !enemySpriteEl.classList.contains('fainting') && !enemySpriteEl.classList.contains('fainted-hidden')) {
+        enemySpriteEl.classList.add('fainting');
+        await wait(750);
+        enemySpriteEl.classList.remove('fainting');
+        enemySpriteEl.classList.add('fainted-hidden');
     }
     
     log(`敌方的 ${e.cnName} 倒下了!`);
@@ -492,24 +522,54 @@ export async function handlePlayerFainted(p) {
     // 【Gen 9 Rage Fist】濒死时清零被攻击计数
     p.timesAttacked = 0;
     
-    // 如果处于极巨化状态，先清理极巨化视觉效果
+    // === 清理特殊形态视觉效果（极巨化/钛晶化/超级进化/羁绊共鸣） ===
+    const playerSpriteEl = document.getElementById('player-sprite');
+    
+    // 极巨化清理
     if (p.isDynamaxed) {
         if (p.originalName) {
             p.name = p.originalName;
             delete p.originalName;
         }
-        
         if (typeof window.endDynamaxAnimation === 'function') {
             await window.endDynamaxAnimation(p, true);
         }
-        
         p.isDynamaxed = false;
         delete p.preDynamaxMaxHp;
         delete p.preDynamaxCurrHp;
-        
         if (typeof window.applyDynamaxState === 'function') {
             window.applyDynamaxState(p, false);
         }
+        // 恢复原始精灵图片（非极巨化形态）
+        if (playerSpriteEl && typeof p.getSprite === 'function') {
+            playerSpriteEl.src = p.getSprite(true);
+        }
+    }
+    
+    // 钛晶化清理
+    if (p.isTerastallized && playerSpriteEl) {
+        playerSpriteEl.classList.remove('state-terastal');
+        const allTeraTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy','stellar'];
+        allTeraTypes.forEach(t => playerSpriteEl.classList.remove(`tera-type-${t}`));
+    }
+    
+    // 超级进化清理
+    if (playerSpriteEl) {
+        playerSpriteEl.classList.remove('mega-player', 'mega-enemy', 'unofficial-mega');
+    }
+    
+    // 羁绊共鸣清理
+    if (p.hasBondResonance && playerSpriteEl) {
+        playerSpriteEl.classList.remove('bond-resonance');
+        playerSpriteEl.style.filter = '';
+    }
+    
+    // 【倒下动画】确保精灵播放倒下动画
+    if (playerSpriteEl && !playerSpriteEl.classList.contains('fainting') && !playerSpriteEl.classList.contains('fainted-hidden')) {
+        playerSpriteEl.classList.add('fainting');
+        await wait(750);
+        playerSpriteEl.classList.remove('fainting');
+        playerSpriteEl.classList.add('fainted-hidden');
     }
     
     log(`<b style="color:red">糟糕! ${p.cnName} 失去了战斗能力!</b>`);

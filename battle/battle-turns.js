@@ -208,8 +208,12 @@ export async function executePlayerTurn(p, e, move) {
 
     const result = applyDamage(p, e, move, 'enemy-sprite');
     
-    // 等待VFX动画播完
-    await wait(600);
+    // 等待VFX动画播完（若击倒则额外等待倒下动画）
+    if (e.currHp <= 0) {
+        await wait(1500);
+    } else {
+        await wait(800);
+    }
     
     // 记录本回合使用的技能
     p.lastMoveUsed = move.name;
@@ -423,8 +427,12 @@ export async function executeEnemyTurn(e, p, move) {
 
     const result = applyDamage(e, p, move, 'player-sprite');
     
-    // 等待VFX动画播完
-    await wait(800);
+    // 等待VFX动画播完（若击倒则额外等待倒下动画）
+    if (p.currHp <= 0) {
+        await wait(1500);
+    } else {
+        await wait(800);
+    }
     
     // 记录本回合使用的技能
     e.lastMoveUsed = move.name;

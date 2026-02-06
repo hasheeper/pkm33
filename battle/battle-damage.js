@@ -259,7 +259,13 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
                     void targetEl.offsetWidth;
                     targetEl.classList.add('shake-hit-anim');
                     if (defender.currHp <= 0) {
-                        targetEl.classList.add('fainting');
+                        setTimeout(() => {
+                            targetEl.classList.add('fainting');
+                            setTimeout(() => {
+                                targetEl.classList.remove('fainting');
+                                targetEl.classList.add('fainted-hidden');
+                            }, 750);
+                        }, 700);
                     }
                 }
                 
@@ -495,11 +501,19 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         if (targetEl) {
             targetEl.classList.remove('fainting');
             if (defender.currHp <= 0) {
-                targetEl.classList.add('fainting');
-                setTimeout(() => {
-                    targetEl.classList.remove('fainting');
-                    targetEl.classList.add('fainted-hidden');
-                }, 750);
+                // 【特殊形态】极巨化/钛晶化/超级进化/羁绊共鸣需要先还原形态再倒下
+                // 交给 handleXFainted 统一处理，这里不触发倒下动画
+                const hasSpecialForm = defender.isDynamaxed || defender.isTerastallized || defender.isMega || defender.hasBondResonance;
+                if (!hasSpecialForm) {
+                    // 【VFX衔接】等攻击VFX播完再播倒下动画
+                    setTimeout(() => {
+                        targetEl.classList.add('fainting');
+                        setTimeout(() => {
+                            targetEl.classList.remove('fainting');
+                            targetEl.classList.add('fainted-hidden');
+                        }, 750);
+                    }, 700);
+                }
             }
         }
 

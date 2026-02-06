@@ -156,8 +156,8 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
     let dx = (defRect.left + defRect.width / 2) - (atkRect.left + atkRect.width / 2);
     let dy = (defRect.top + defRect.height / 2) - (atkRect.top + atkRect.height / 2);
 
-    const gapX = 220;
-    const gapY = 20;
+    const gapX = 70;
+    const gapY = 0;
     let startScale, endScale;
 
     const isPlayer = attackerSpriteId === 'player-sprite';
