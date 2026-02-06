@@ -220,6 +220,48 @@ export function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
+    // === 【玩水 Water Sport】火系招式威力减半 ===
+    if (battle && battle.field && battle.field.waterSport > 0 && moveType === 'Fire') {
+        const oldPower = basePower;
+        basePower = Math.floor(basePower * 0.5);
+        console.log(`[WATER SPORT] 玩水效果：火系招式威力减半 (${oldPower} -> ${basePower})`);
+    }
+    
+    // === 【玩泥巴 Mud Sport】电系招式威力减半 ===
+    if (battle && battle.field && battle.field.mudsport > 0 && moveType === 'Electric') {
+        const oldPower = basePower;
+        basePower = Math.floor(basePower * 0.5);
+        console.log(`[MUD SPORT] 玩泥巴效果：电系招式威力减半 (${oldPower} -> ${basePower})`);
+    }
+    
+    // === 【场地 Terrain】威力修正 ===
+    // 电气场地: 电系x1.3, 青草场地: 草系x1.3, 精神场地: 超能x1.3, 薄雾场地: 龙系x0.5
+    const currentTerrain = battle?.terrain || '';
+    if (currentTerrain && typeof MoveEffects !== 'undefined' && MoveEffects.getTerrainModifier) {
+        // 检查攻击方是否接地（飞行系/浮游不受场地影响）
+        const attackerTypes = attacker.types || [];
+        const attackerAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+        const isGrounded = !attackerTypes.includes('Flying') && attackerAbility !== 'levitate';
+        
+        const terrainMod = MoveEffects.getTerrainModifier(currentTerrain, moveType, isGrounded);
+        if (terrainMod !== 1) {
+            const oldPower = basePower;
+            basePower = Math.floor(basePower * terrainMod);
+            console.log(`[TERRAIN] 场地威力修正: ${moveType} x${terrainMod} (${oldPower} -> ${basePower})`);
+        }
+    }
+    
+    // === 【青草场地】地震/重踏/震级 伤害减半 ===
+    if (currentTerrain === 'grassyterrain') {
+        const groundMoveId = moveId || '';
+        const grassyHalvedMoves = ['earthquake', 'bulldoze', 'magnitude'];
+        if (grassyHalvedMoves.includes(groundMoveId)) {
+            const oldPower = basePower;
+            basePower = Math.floor(basePower * 0.5);
+            console.log(`[GRASSY TERRAIN] 青草场地减半地面技: ${moveName} (${oldPower} -> ${basePower})`);
+        }
+    }
+    
     // === 【区域天气威力修正已迁移至 Environment Overlay API】===
     // 参见: systems/environment-overlay.js 的 getDamageMod()
     
@@ -585,8 +627,15 @@ export function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
+    // 【重力 Gravity】命中率 x5/3 (约1.67倍)
+    let gravityAccMod = 1;
+    if (battle && battle.field && battle.field.gravity > 0) {
+        gravityAccMod = 5 / 3;
+        console.log(`[GRAVITY] 重力场命中率提升 x${gravityAccMod.toFixed(2)}`);
+    }
+    
     // 计算命中率
-    let hitRate = moveAcc * accMult / evaMult * itemAccMod * envAccMod;
+    let hitRate = moveAcc * accMult / evaMult * itemAccMod * envAccMod * gravityAccMod;
     
     if (alwaysHit || isNeverMiss) {
         hitRate = 100;
@@ -710,6 +759,12 @@ export function calcDamage(attacker, defender, move, options = {}) {
     const isSpecial = (move.cat === 'spec' || category === 'Special');
     let atkStat = isSpecial ? attacker.getStat('spa') : attacker.getStat('atk');
     let defStat = isSpecial ? defender.getStat('spd') : defender.getStat('def');
+    
+    // === 【奇迹空间 Wonder Room】防御和特防互换 ===
+    if (battle && battle.field && battle.field.wonderRoom > 0) {
+        defStat = isSpecial ? defender.getStat('def') : defender.getStat('spd');
+        console.log(`[WONDER ROOM] 奇迹空间：防御和特防互换！使用 ${isSpecial ? 'def' : 'spd'} 作为防御`);
+    }
     
     // === 【天气防御加成】使用 MoveEffects 模块 ===
     const weatherForDef = (typeof window !== 'undefined' && window.battle && window.battle.weather) || '';

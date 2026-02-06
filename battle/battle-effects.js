@@ -319,6 +319,65 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             logs.push(...sideLogs);
         }
     }
+    // self.sideCondition（如 Baddy Bad 的 self: { sideCondition: 'reflect' }）
+    if (fullMoveData.self && fullMoveData.self.sideCondition && battle) {
+        if (typeof MoveEffects !== 'undefined' && MoveEffects.applySideCondition) {
+            // 构造一个临时 move 对象，将 self.sideCondition 提升为顶层 + target 改为 allySide
+            const selfMoveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const selfMoveData = { ...fullMoveData, sideCondition: fullMoveData.self.sideCondition, target: 'allySide' };
+            const tempMoveObj = { name: move.name, _overrideMoveData: selfMoveData };
+            const sideLogs = MoveEffects.applySideCondition(user, tempMoveObj, battle);
+            logs.push(...sideLogs);
+        }
+    }
+    
+    // === 场地 (Terrain) 设置处理 ===
+    if (fullMoveData.terrain && battle) {
+        const TERRAIN_NAMES = {
+            'electricterrain': '电气场地',
+            'grassyterrain': '青草场地',
+            'mistyterrain': '薄雾场地',
+            'psychicterrain': '精神场地'
+        };
+        const TERRAIN_ICONS = {
+            'electricterrain': '⚡',
+            'grassyterrain': '🌿',
+            'mistyterrain': '🌫️',
+            'psychicterrain': '🔮'
+        };
+        const newTerrain = fullMoveData.terrain;
+        const terrainName = TERRAIN_NAMES[newTerrain] || newTerrain;
+        const terrainIcon = TERRAIN_ICONS[newTerrain] || '🌍';
+        
+        if (battle.terrain === newTerrain) {
+            logs.push(`但是失败了! (${terrainName}已经存在)`);
+        } else {
+            if (battle.terrain) {
+                const oldName = TERRAIN_NAMES[battle.terrain] || battle.terrain;
+                logs.push(`${oldName}消失了...`);
+            }
+            battle.terrain = newTerrain;
+            battle.terrainTurns = 5;
+            logs.push(`<b style="color:#a78bfa">${terrainIcon} ${terrainName}覆盖了战场！</b>`);
+        }
+    }
+    
+    // === 伪天气 (pseudoWeather) 设置处理 ===
+    if (fullMoveData.pseudoWeather && battle) {
+        if (!battle.field) battle.field = {};
+        const pwId = fullMoveData.pseudoWeather;
+        if (battle.field[pwId] && battle.field[pwId] > 0) {
+            logs.push(`但是失败了! (效果已经存在)`);
+        } else {
+            battle.field[pwId] = 5;
+            const pwNames = {
+                'watersport': '💧 玩水的效果覆盖了全场！火属性招式威力减半！',
+                'mudsport': '🟤 玩泥巴的效果覆盖了全场！电属性招式威力减半！',
+                'iondeluge': '⚡ 等离子浴覆盖了全场！普通系招式变为电系！'
+            };
+            logs.push(`<b>${pwNames[pwId] || `${pwId} 效果展开了！`}</b>`);
+        }
+    }
     
     // 能力名称映射
     const statMap = {
@@ -334,10 +393,21 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     };
     
     // helper：修改指定对象的能力
-    const changeStats = (subject, boostsObj) => {
+    const changeStats = (subject, boostsObj, isSelfInflicted = false) => {
         if (!boostsObj) return;
         for (const [stat, val] of Object.entries(boostsObj)) {
             if (typeof val !== 'number') continue;
+            
+            // 【白雾 Mist】检查：己方白雾阻止对手造成的能力下降
+            if (val < 0 && !isSelfInflicted && battle) {
+                const isSubjectPlayer = battle.playerParty && battle.playerParty.includes(subject);
+                const subjectSide = isSubjectPlayer ? battle.playerSide : battle.enemySide;
+                if (subjectSide && subjectSide.mist > 0) {
+                    logs.push(`白雾保护了 ${subject.cnName}，能力不会下降！`);
+                    continue; // 跳过此项能力下降
+                }
+            }
+            
             const diff = subject.applyBoost(stat, val);
             if (diff === 0) {
                 const currentBoost = subject.boosts[stat] || 0;
@@ -406,15 +476,15 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     // 1.1 Status 招式的 boosts
     if (fullMoveData.category === 'Status' && fullMoveData.boosts) {
         if (isTargetSelf) {
-            changeStats(user, fullMoveData.boosts);
+            changeStats(user, fullMoveData.boosts, true);
         } else {
             changeStats(target, fullMoveData.boosts);
         }
     }
     
-    // 1.2 self.boosts（对自己生效的副作用）
+    // 1.2 self.boosts（对自己生效的副作用，如近身战降双防）
     if (fullMoveData.self && fullMoveData.self.boosts) {
-        changeStats(user, fullMoveData.self.boosts);
+        changeStats(user, fullMoveData.self.boosts, true);
     }
     
     // =========================================================
@@ -451,7 +521,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                 }
             }
             if (fullMoveData.secondary.self && fullMoveData.secondary.self.boosts) {
-                changeStats(user, fullMoveData.secondary.self.boosts);
+                changeStats(user, fullMoveData.secondary.self.boosts, true);
             }
             
             // 状态异常

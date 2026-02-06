@@ -274,6 +274,17 @@ function tryInflictStatus(target, status, source = null, battle = null) {
         return { success: false, message: `薄雾场地保护了 ${target.cnName}，无法陷入异常状态!` };
     }
 
+    // === 【神秘守护 Safeguard】检查 ===
+    const battleRef2 = battle || (typeof window !== 'undefined' ? window.battle : null);
+    if (battleRef2) {
+        // 判断目标属于哪一方
+        const isTargetPlayer = battleRef2.playerParty && battleRef2.playerParty.includes(target);
+        const targetSide = isTargetPlayer ? battleRef2.playerSide : battleRef2.enemySide;
+        if (targetSide && targetSide.safeguard > 0) {
+            return { success: false, message: `神秘守护保护了 ${target.cnName}，无法陷入异常状态!` };
+        }
+    }
+
     // === 【属性免疫检查】===
     const immunities = {
         par: ['Electric'], // 电系免疫麻痹
@@ -805,15 +816,15 @@ function isSoundMove(move) {
  * @param {object} battle 战斗实例
  * @returns {Array} 日志消息数组
  */
-function applySideCondition(user, move, battle) {
+function applySideCondition(user, move, battle, overrideCondition = null, overrideTarget = null) {
     const logs = [];
     const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const fullMoveData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
     
-    if (!fullMoveData.sideCondition) return logs;
+    const conditionId = overrideCondition || fullMoveData.sideCondition;
+    if (!conditionId) return logs;
     
-    const conditionId = fullMoveData.sideCondition;
-    const target = fullMoveData.target || 'foeSide';
+    const target = overrideTarget || fullMoveData.target || 'foeSide';
     
     // 判断施法者是否为玩家
     const isPlayerUser = battle && battle.getPlayer && (user === battle.getPlayer());
@@ -881,30 +892,54 @@ function applySideCondition(user, move, battle) {
                 failed: () => `但是失败了! (已经存在)`
             }
         },
+        // 壁/屏障 (Screens) - 支持光之黏土延长
         'reflect': {
             type: 'timed',
             duration: 5,
+            screenExtend: true, // 光之黏土可延长到8回合
             key: 'reflect',
             messages: {
-                success: () => `${sideNameCN}竖起了反射壁!`,
+                success: () => `<b style="color:#f97316">🛡️ ${sideNameCN}建起了反射壁！</b>`,
                 failed: () => `但是失败了! (已经存在)`
             }
         },
         'lightscreen': {
             type: 'timed',
             duration: 5,
+            screenExtend: true,
             key: 'lightScreen',
             messages: {
-                success: () => `${sideNameCN}竖起了光墙!`,
+                success: () => `<b style="color:#facc15">✨ ${sideNameCN}建起了光墙！</b>`,
                 failed: () => `但是失败了! (已经存在)`
             }
         },
         'auroraveil': {
             type: 'timed',
             duration: 5,
+            screenExtend: true,
             key: 'auroraVeil',
             messages: {
-                success: () => `${sideNameCN}被极光幕包围了!`,
+                success: () => `<b style="color:#22d3ee">❄️ ${sideNameCN}展开了极光幕！</b>`,
+                failed: () => `但是失败了! (已经存在)`
+            }
+        },
+        // 神秘守护：5回合内免受异常状态
+        'safeguard': {
+            type: 'timed',
+            duration: 5,
+            key: 'safeguard',
+            messages: {
+                success: () => `<b style="color:#22c55e">✨ ${sideNameCN}被神秘的力量守护了！</b>`,
+                failed: () => `但是失败了! (已经存在)`
+            }
+        },
+        // 白雾：5回合内己方能力不能被降低
+        'mist': {
+            type: 'timed',
+            duration: 5,
+            key: 'mist',
+            messages: {
+                success: () => `<b style="color:#93c5fd">🌫️ ${sideNameCN}被白雾笼罩了！</b>`,
                 failed: () => `但是失败了! (已经存在)`
             }
         }
@@ -946,7 +981,16 @@ function applySideCondition(user, move, battle) {
         // 有时限类型
         const key = config.key;
         if (!targetSide[key] || targetSide[key] <= 0) {
-            targetSide[key] = config.duration;
+            // 计算持续回合数
+            let duration = config.duration;
+            // 光之黏土 (Light Clay) 延长壁/屏障到 8 回合
+            if (config.screenExtend && user) {
+                const screenDuration = (typeof ItemEffects !== 'undefined' && ItemEffects.getScreenDuration) 
+                    ? ItemEffects.getScreenDuration(user) 
+                    : ((user.item || '').toLowerCase().replace(/[^a-z0-9]/g, '').includes('lightclay') ? 8 : 5);
+                duration = screenDuration;
+            }
+            targetSide[key] = duration;
             logs.push(config.messages.success());
         } else {
             logs.push(config.messages.failed());

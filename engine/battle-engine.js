@@ -288,37 +288,19 @@ export function getMoveData(name) {
     // 使用 spread operator 保留所有原始数据（accuracy, multihit, recoil, drain, secondary 等）
     // 同时添加标准化字段供 API 调用
     
-    // === 动态威力技能补丁 ===
-    // 这些技能的 basePower 在原数据中是 0 或 null（需要运行时计算），给它们固定威力
-    const dynamicPowerPatches = {
-        'gyroball': 80,         // 陀螺球：速度差计算，平均约80
-        'electroball': 80,      // 电球：速度差计算
-        'grassknot': 80,        // 打草结：体重计算
-        'lowkick': 80,          // 踢倒：体重计算
-        'heatcrash': 80,        // 高温重压：体重计算
-        'heavyslam': 80,        // 重磅冲撞：体重计算
-        'fling': 50,            // 投掷：道具威力
-        'return': 102,          // 报恩：满亲密度
-        'frustration': 102,     // 迁怒：满不亲密
-        'punishment': 70,       // 惩罚：能力变化
-        'storedpower': 80,      // 辅助力量：能力变化
-        'reversal': 100,        // 绝处逢生：低血高威力
-        'flail': 100,           // 挣扎：低血高威力
-        'eruption': 150,        // 喷火：满血威力
-        'waterspout': 150,      // 喷水：满血威力
-        'crushgrip': 100,       // 握碎：对方血量
-        'wringout': 100,        // 绞紧：对方血量
-        'naturalgift': 80,      // 自然之恩：树果
-        'trumpcard': 80,        // 王牌：PP
-        'spitup': 100,          // 喷出：蓄力次数
-        'present': 60,          // 礼物：随机
-        'magnitude': 70,        // 震级：随机
-    };
-    
+    // === 动态威力技能 ===
+    // basePower=0 的技能全部已在 move-handlers.js 实现了 basePowerCallback
+    // 此处仅为 AI/UI 提供估算威力（实际战斗中由 basePowerCallback 动态计算）
     let finalPower = data.basePower || 0;
-    const moveId = id.toLowerCase();
-    if (dynamicPowerPatches[moveId]) {
-        finalPower = dynamicPowerPatches[moveId];
+    if (finalPower === 0 && data.category !== 'Status') {
+        // 尝试从 handler 获取估算威力
+        const handler = (typeof getMoveHandler === 'function') ? getMoveHandler(data.name || name) : null;
+        if (handler && handler.basePowerCallback) {
+            // 用 null 占位调用获取默认值（handler 内部会处理 null 安全）
+            try { finalPower = handler.basePowerCallback({ getStat: () => 100, maxHp: 300, currHp: 300, isAce: false, boosts: {} }, { getStat: () => 100, maxHp: 300, currHp: 300, boosts: {} }) || 80; } catch(e) { finalPower = 80; }
+        } else {
+            finalPower = 80; // 安全默认值
+        }
     }
     
     return {
@@ -1567,6 +1549,18 @@ export class BattleState {
                 logs.push("我方的极光幕消失了！");
             }
         }
+        if (this.playerSide.safeguard > 0) {
+            this.playerSide.safeguard--;
+            if (this.playerSide.safeguard === 0) {
+                logs.push("我方的神秘守护消失了！");
+            }
+        }
+        if (this.playerSide.mist > 0) {
+            this.playerSide.mist--;
+            if (this.playerSide.mist === 0) {
+                logs.push("我方的白雾消散了！");
+            }
+        }
         
         // 敌方侧
         if (this.enemySide.tailwind > 0) {
@@ -1591,6 +1585,59 @@ export class BattleState {
             this.enemySide.auroraVeil--;
             if (this.enemySide.auroraVeil === 0) {
                 logs.push("敌方的极光幕消失了！");
+            }
+        }
+        if (this.enemySide.safeguard > 0) {
+            this.enemySide.safeguard--;
+            if (this.enemySide.safeguard === 0) {
+                logs.push("敌方的神秘守护消失了！");
+            }
+        }
+        if (this.enemySide.mist > 0) {
+            this.enemySide.mist--;
+            if (this.enemySide.mist === 0) {
+                logs.push("敌方的白雾消散了！");
+            }
+        }
+        
+        // =========================================================
+        // 【全场 field 效果递减】
+        // =========================================================
+        if (this.field) {
+            // 玩水 Water Sport
+            if (this.field.waterSport > 0) {
+                this.field.waterSport--;
+                if (this.field.waterSport === 0) logs.push("玩水的效果消失了！");
+            }
+            // 玩泥巴 Mud Sport
+            if (this.field.mudsport > 0) {
+                this.field.mudsport--;
+                if (this.field.mudsport === 0) logs.push("玩泥巴的效果消失了！");
+            }
+            // 重力 Gravity
+            if (this.field.gravity > 0) {
+                this.field.gravity--;
+                if (this.field.gravity === 0) logs.push("🌌 重力恢复了正常！");
+            }
+            // 戏法空间 Trick Room
+            if (this.field.trickRoom > 0) {
+                this.field.trickRoom--;
+                if (this.field.trickRoom === 0) logs.push("扭曲的时空恢复了正常！");
+            }
+            // 奇迹空间 Wonder Room
+            if (this.field.wonderRoom > 0) {
+                this.field.wonderRoom--;
+                if (this.field.wonderRoom === 0) logs.push("奇迹空间消失了！防御和特防恢复正常！");
+            }
+            // 魔法空间 Magic Room
+            if (this.field.magicRoom > 0) {
+                this.field.magicRoom--;
+                if (this.field.magicRoom === 0) logs.push("魔法空间消失了！道具效果恢复了！");
+            }
+            // 妖精之锁 Fairy Lock
+            if (this.field.fairyLock > 0) {
+                this.field.fairyLock--;
+                if (this.field.fairyLock === 0) logs.push("妖精之锁的效果消失了！");
             }
         }
         
@@ -1644,6 +1691,29 @@ export class BattleState {
                     if (typeof window !== 'undefined' && window.setWeatherVisuals) {
                         window.setWeatherVisuals('none');
                     }
+                }
+            }
+        }
+        
+        // =========================================================
+        // 【青草场地 Grassy Terrain】回合末回复 1/16 HP
+        // =========================================================
+        if (this.terrain === 'grassyterrain') {
+            const healTargets = [];
+            const playerPoke = this.playerParty?.[this.playerActive];
+            const enemyPoke = this.enemyParty?.[this.enemyActive];
+            if (playerPoke && playerPoke.currHp > 0) healTargets.push(playerPoke);
+            if (enemyPoke && enemyPoke.currHp > 0) healTargets.push(enemyPoke);
+            
+            for (const poke of healTargets) {
+                // 只有接地的宝可梦才受益
+                const pokeTypes = poke.types || [];
+                const pokeAbility = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                const isGrounded = !pokeTypes.includes('Flying') && pokeAbility !== 'levitate';
+                if (isGrounded && poke.currHp < poke.maxHp) {
+                    const healAmount = Math.max(1, Math.floor(poke.maxHp / 16));
+                    poke.currHp = Math.min(poke.maxHp, poke.currHp + healAmount);
+                    logs.push(`🌿 青草场地恢复了 ${poke.cnName} ${healAmount} 点体力!`);
                 }
             }
         }

@@ -489,6 +489,155 @@ export const MoveHandlers = {
         description: '目标 HP 越高威力越高'
     },
     
+    // 【报恩 Return】威力 = AVS四维平均值 / 2.5（满值102）
+    'Return': {
+        basePowerCallback: (attacker, defender) => {
+            // 使用 AVS 四维平均值代替亲密度
+            let avsAvg = 255; // 默认满值
+            if (attacker.isAce && attacker.avs) {
+                const trust = (attacker.getEffectiveAVs ? attacker.getEffectiveAVs('trust') : attacker.avs.trust) || 0;
+                const passion = (attacker.getEffectiveAVs ? attacker.getEffectiveAVs('passion') : attacker.avs.passion) || 0;
+                const insight = (attacker.getEffectiveAVs ? attacker.getEffectiveAVs('insight') : attacker.avs.insight) || 0;
+                const devotion = (attacker.getEffectiveAVs ? attacker.getEffectiveAVs('devotion') : attacker.avs.devotion) || 0;
+                avsAvg = (trust + passion + insight + devotion) / 4;
+            }
+            // 原公式: 威力 = 亲密度 / 2.5, 最高102 (255/2.5)
+            return Math.max(1, Math.floor(avsAvg / 2.5));
+        },
+        description: '与宝可梦的羁绊(AVS平均值)越高威力越大，最高102'
+    },
+
+    // 【迁怒 Frustration】威力 = (255 - AVS四维平均值) / 2.5（AVS越低威力越高）
+    'Frustration': {
+        basePowerCallback: (attacker, defender) => {
+            let avsAvg = 255;
+            if (attacker.isAce && attacker.avs) {
+                const trust = (attacker.getEffectiveAVs ? attacker.getEffectiveAVs('trust') : attacker.avs.trust) || 0;
+                const passion = (attacker.getEffectiveAVs ? attacker.getEffectiveAVs('passion') : attacker.avs.passion) || 0;
+                const insight = (attacker.getEffectiveAVs ? attacker.getEffectiveAVs('insight') : attacker.avs.insight) || 0;
+                const devotion = (attacker.getEffectiveAVs ? attacker.getEffectiveAVs('devotion') : attacker.avs.devotion) || 0;
+                avsAvg = (trust + passion + insight + devotion) / 4;
+            }
+            // 原公式: 威力 = (255 - 亲密度) / 2.5
+            return Math.max(1, Math.floor((255 - avsAvg) / 2.5));
+        },
+        description: '与宝可梦的羁绊(AVS平均值)越低威力越大，最高102'
+    },
+
+    // 【投掷 Fling】威力取决于持有道具
+    'Fling': {
+        basePowerCallback: (attacker, defender) => {
+            const item = (attacker.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!item) return 0; // 没有道具则失败
+            // 常见道具威力表
+            const flingPowers = {
+                'ironball': 130, 'hardstone': 100, 'rarebone': 100,
+                'toxicorb': 30, 'flameorb': 30, 'lightball': 30,
+                'kingsrock': 30, 'razorfang': 30,
+                'choiceband': 10, 'choicescarf': 10, 'choicespecs': 10,
+                'lifeorb': 30, 'leftovers': 10, 'focussash': 10,
+                'assaultvest': 10, 'rockyhelmet': 60,
+                'stickybarb': 80, 'blacksludge': 30,
+                'whiteherb': 10, 'mentalherb': 10, 'powerherb': 10,
+            };
+            return flingPowers[item] || 30; // 默认30
+        },
+        onHit: (user, target, damage, logs) => {
+            // 投掷后失去道具
+            const itemName = user.item || '';
+            if (itemName) {
+                user.item = null;
+                logs.push(`${user.cnName} 投掷了 ${itemName}!`);
+                // 毒宝珠/火焰宝珠的特殊效果
+                const itemId = itemName.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (itemId === 'toxicorb') {
+                    if (!target.status) { target.status = 'tox'; target.statusTurns = 0; }
+                } else if (itemId === 'flameorb') {
+                    if (!target.status) { target.status = 'brn'; target.statusTurns = 0; }
+                } else if (itemId === 'kingsrock' || itemId === 'razorfang') {
+                    if (!target.volatile) target.volatile = {};
+                    target.volatile.flinch = true;
+                } else if (itemId === 'lightball') {
+                    if (!target.status) { target.status = 'par'; target.statusTurns = 0; }
+                }
+            }
+        },
+        description: '投掷持有道具攻击，威力和效果取决于道具'
+    },
+
+    // 【自然之恩 Natural Gift】威力和属性取决于持有树果
+    'Natural Gift': {
+        basePowerCallback: (attacker, defender) => {
+            const item = (attacker.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!item || !item.includes('berry')) return 0; // 非树果则失败
+            return 80; // Gen5+ 大部分树果威力80
+        },
+        onUse: (user, target, logs) => {
+            const item = (user.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!item || !item.includes('berry')) {
+                logs.push(`但是失败了！(没有持有树果)`);
+                return { failed: true };
+            }
+            user.item = null; // 消耗树果
+            return {};
+        },
+        description: '消耗持有的树果攻击，威力和属性取决于树果种类'
+    },
+
+    // 【王牌 Trump Card】威力取决于剩余PP（PP越少威力越高）
+    'Trump Card': {
+        basePowerCallback: (attacker, defender) => {
+            // 简化：无法追踪PP，使用固定高威力
+            // 实际公式: PP=4→40, PP=3→50, PP=2→60, PP=1→80, PP=0→200
+            return 80;
+        },
+        description: '剩余PP越少威力越高，最高200'
+    },
+
+    // 【礼物 Present】随机威力或回复对手
+    'Present': {
+        damageCallback: (attacker, defender) => {
+            const roll = Math.random() * 100;
+            if (roll < 40) return 40;       // 40% 概率威力40
+            if (roll < 70) return 80;       // 30% 概率威力80
+            if (roll < 80) return 120;      // 10% 概率威力120
+            // 20% 概率回复对手 1/4 HP
+            const healAmount = Math.floor(defender.maxHp / 4);
+            defender.currHp = Math.min(defender.maxHp, defender.currHp + healAmount);
+            return 0; // 不造成伤害
+        },
+        description: '随机威力40/80/120，或回复对手1/4HP'
+    },
+
+    // 【震级 Magnitude】随机威力
+    'Magnitude': {
+        damageCallback: (attacker, defender) => {
+            const roll = Math.random() * 100;
+            let magnitude, power;
+            if (roll < 5) { magnitude = 4; power = 10; }
+            else if (roll < 15) { magnitude = 5; power = 30; }
+            else if (roll < 35) { magnitude = 6; power = 50; }
+            else if (roll < 65) { magnitude = 7; power = 70; }
+            else if (roll < 85) { magnitude = 8; power = 90; }
+            else if (roll < 95) { magnitude = 9; power = 110; }
+            else { magnitude = 10; power = 150; }
+            console.log(`[MAGNITUDE] 震级 ${magnitude}! 威力 ${power}`);
+            // 使用标准伤害公式计算（返回威力让外部计算）
+            return null; // 使用 basePowerCallback 代替
+        },
+        basePowerCallback: (attacker, defender) => {
+            const roll = Math.random() * 100;
+            if (roll < 5) return 10;
+            if (roll < 15) return 30;
+            if (roll < 35) return 50;
+            if (roll < 65) return 70;
+            if (roll < 85) return 90;
+            if (roll < 95) return 110;
+            return 150;
+        },
+        description: '随机震级4~10，威力10~150'
+    },
+
     // 【鳃咬】先手威力翻倍 (Gen 8 化石龙核心招式)
     'Fishious Rend': {
         basePowerCallback: (attacker, defender, move, battle) => {
@@ -1460,58 +1609,12 @@ export const MoveHandlers = {
     },
     
     // ============================================
-    // 7. 场地技能 (Terrain/Hazard Moves) - 简化版
-    // ============================================
+    // 【已移除】Stealth Rock / Spikes / Toxic Spikes / Sticky Web
+    // 全部由 MoveEffects.applySideCondition 统一处理（通过 moves-data.js 的 sideCondition 字段）
+    // 旧的 onUse handler 写入 battle.hazards（错误路径），applySideCondition 写入 battle.playerSide/enemySide（正确路径）
+    // 双路径导致：1) 成功+失败双消息 2) 数据写入不一致
     
-    'Stealth Rock': {
-        onUse: (attacker, defender, logs, battle) => {
-            logs.push('尖锐的岩石漂浮在对方场地周围!');
-            if (battle) {
-                battle.hazards = battle.hazards || {};
-                battle.hazards.stealthRock = true;
-            }
-            return { hazard: 'stealthRock' };
-        },
-        description: '设置隐形岩'
-    },
-    
-    'Spikes': {
-        onUse: (attacker, defender, logs, battle) => {
-            logs.push('撒菱散布在对方场地上!');
-            if (battle) {
-                battle.hazards = battle.hazards || {};
-                battle.hazards.spikes = (battle.hazards.spikes || 0) + 1;
-            }
-            return { hazard: 'spikes' };
-        },
-        description: '设置撒菱'
-    },
-    
-    'Toxic Spikes': {
-        onUse: (attacker, defender, logs, battle) => {
-            logs.push('毒菱散布在对方场地上!');
-            if (battle) {
-                battle.hazards = battle.hazards || {};
-                battle.hazards.toxicSpikes = (battle.hazards.toxicSpikes || 0) + 1;
-            }
-            return { hazard: 'toxicSpikes' };
-        },
-        description: '设置毒菱'
-    },
-    
-    'Sticky Web': {
-        onUse: (attacker, defender, logs, battle) => {
-            logs.push('黏黏网铺设在对方场地上!');
-            if (battle) {
-                battle.hazards = battle.hazards || {};
-                battle.hazards.stickyWeb = true;
-            }
-            return { hazard: 'stickyWeb' };
-        },
-        description: '设置黏黏网'
-    },
-    
-    // Rapid Spin, Defog 已在第3157行附近定义（完整版本，支持 side 和速度+1）
+    // Rapid Spin, Defog 已在后面定义（完整版本，支持 side 和速度+1）
     
     // ============================================
     // 8. 蓄力技能 (Two-Turn Moves) - 完整两回合实现
@@ -2216,11 +2319,11 @@ export const MoveHandlers = {
             // 需要交换的场地效果
             const fieldsToSwap = [
                 // 入场危害
-                'spikes', 'toxicSpikes', 'stealthRock', 'stickyWeb',
+                'spikes', 'toxicSpikes', 'toxicspikes', 'stealthRock', 'stickyWeb',
                 // 墙/屏障
                 'auroraVeil', 'reflect', 'lightScreen',
-                // 顺风/逆风
-                'tailwind',
+                // 顺风/守护/白雾
+                'tailwind', 'safeguard', 'mist',
                 // G-Max DOT 效果
                 'gmaxWildfire', 'gmaxCannonade', 'gmaxVineLash', 'gmaxVolcalith'
             ];
@@ -2689,83 +2792,10 @@ export const MoveHandlers = {
         description: '5回合内速度慢的先动'
     },
 
-    // 【已移除】Tailwind 由 MoveEffects.applySideCondition 统一处理
-    // 避免重复处理导致"成功后又显示失败"的 Bug
-
-    'Reflect': {
-        onUse: (user, target, logs, battle, isPlayer) => {
-            if (!battle) return;
-            
-            const side = isPlayer ? battle.playerSide : battle.enemySide;
-            if (!side) return;
-            
-            if (side.reflect > 0) {
-                logs.push(`反射壁已经存在！`);
-                return { failed: true };
-            }
-            
-            // 光之黏土延长到8回合 - 使用 items-data.js 的 ItemEffects
-            const screenDuration = (typeof ItemEffects !== 'undefined' && ItemEffects.getScreenDuration) 
-                ? ItemEffects.getScreenDuration(user) 
-                : ((user.item || '').toLowerCase().includes('lightclay') ? 8 : 5);
-            side.reflect = screenDuration;
-            
-            const sideText = isPlayer ? '我方' : '敌方';
-            logs.push(`<b style="color:#f97316">🛡️ ${sideText}建起了反射壁！</b>`);
-        },
-        description: '5回合内物理伤害减半'
-    },
-
-    'Light Screen': {
-        onUse: (user, target, logs, battle, isPlayer) => {
-            if (!battle) return;
-            
-            const side = isPlayer ? battle.playerSide : battle.enemySide;
-            if (!side) return;
-            
-            if (side.lightScreen > 0) {
-                logs.push(`光墙已经存在！`);
-                return { failed: true };
-            }
-            
-            // 光之黏土延长到8回合 - 使用 items-data.js 的 ItemEffects
-            const screenDuration = (typeof ItemEffects !== 'undefined' && ItemEffects.getScreenDuration) 
-                ? ItemEffects.getScreenDuration(user) 
-                : ((user.item || '').toLowerCase().includes('lightclay') ? 8 : 5);
-            side.lightScreen = screenDuration;
-            
-            const sideText = isPlayer ? '我方' : '敌方';
-            logs.push(`<b style="color:#facc15">✨ ${sideText}建起了光墙！</b>`);
-        },
-        description: '5回合内特殊伤害减半'
-    },
-
-    'Aurora Veil': {
-        onUse: (user, target, logs, battle, isPlayer) => {
-            if (!battle) return;
-            
-            const side = isPlayer ? battle.playerSide : battle.enemySide;
-            if (!side) return;
-            
-            // 极光幕需要冰雹/雪天气
-            // 简化：暂时不检查天气，直接允许使用
-            
-            if (side.auroraVeil > 0) {
-                logs.push(`极光幕已经存在！`);
-                return { failed: true };
-            }
-            
-            // 光之黏土延长到8回合 - 使用 items-data.js 的 ItemEffects
-            const screenDuration = (typeof ItemEffects !== 'undefined' && ItemEffects.getScreenDuration) 
-                ? ItemEffects.getScreenDuration(user) 
-                : ((user.item || '').toLowerCase().includes('lightclay') ? 8 : 5);
-            side.auroraVeil = screenDuration;
-            
-            const sideText = isPlayer ? '我方' : '敌方';
-            logs.push(`<b style="color:#22d3ee">❄️ ${sideText}展开了极光幕！</b>`);
-        },
-        description: '5回合内物理和特殊伤害都减半'
-    },
+    // 【已移除】Tailwind / Reflect / Light Screen / Aurora Veil
+    // 全部由 MoveEffects.applySideCondition 统一处理
+    // 避免 onUse handler + sideCondition 双路径导致"成功后又显示失败"的 Bug
+    // 光之黏土(Light Clay)延长逻辑已迁移至 applySideCondition 的 screenExtend 配置
     
     // ============================================
     // 反弹技能 (Counter / Mirror Coat)
@@ -3415,6 +3445,16 @@ export const MoveHandlers = {
                 if (targetSide.reflect > 0) { targetSide.reflect = 0; cleared = true; }
                 if (targetSide.lightScreen > 0) { targetSide.lightScreen = 0; cleared = true; }
                 if (targetSide.auroraVeil > 0) { targetSide.auroraVeil = 0; cleared = true; }
+                if (targetSide.safeguard > 0) { targetSide.safeguard = 0; cleared = true; }
+                if (targetSide.mist > 0) { targetSide.mist = 0; cleared = true; }
+            }
+            
+            // 清除场地 (Terrain)
+            if (battle.terrain) {
+                logs.push(`${battle.terrain === 'electricterrain' ? '电气' : battle.terrain === 'grassyterrain' ? '青草' : battle.terrain === 'mistyterrain' ? '薄雾' : '精神'}场地消失了!`);
+                battle.terrain = null;
+                battle.terrainTurns = 0;
+                cleared = true;
             }
             
             // 【S区特效】Defog 可以暂时驱散 Shadow Fog (fog) 天气 5 回合
@@ -4925,6 +4965,256 @@ export const MoveHandlers = {
         description: '根据场地变换招式：电气→十万伏特，青草→能量球，薄雾→月亮之力，精神→精神强念，无→三重攻击'
     },
     
+    // ============================================
+    // 场地交互/破坏类招式 (Field Interaction Moves)
+    // ============================================
+
+    // 【铁滚轮 Steel Roller】只有场地存在时才能使用，攻击后破坏场地
+    'Steel Roller': {
+        onUse: (user, target, logs, battle) => {
+            const battleObj = battle || (typeof window !== 'undefined' ? window.battle : null);
+            if (!battleObj || !battleObj.terrain) {
+                logs.push(`<span style="color:#e74c3c">但是失败了！(场上没有场地效果)</span>`);
+                return { failed: true };
+            }
+            return {};
+        },
+        onHit: (user, target, damage, logs, battle) => {
+            const battleObj = battle || (typeof window !== 'undefined' ? window.battle : null);
+            if (battleObj && battleObj.terrain) {
+                const terrainNames = {
+                    'electricterrain': '电气场地', 'grassyterrain': '青草场地',
+                    'mistyterrain': '薄雾场地', 'psychicterrain': '精神场地'
+                };
+                const name = terrainNames[battleObj.terrain] || '场地';
+                battleObj.terrain = null;
+                battleObj.terrainTurns = 0;
+                logs.push(`<b style="color:#94a3b8">⚙️ ${name}被铁滚轮碾碎了！</b>`);
+            }
+        },
+        description: '威力130钢系物理技，只有场地存在时才能使用，攻击后破坏场地'
+    },
+
+    // 【冰旋 Ice Spinner】攻击后破坏场地
+    'Ice Spinner': {
+        onHit: (user, target, damage, logs, battle) => {
+            const battleObj = battle || (typeof window !== 'undefined' ? window.battle : null);
+            if (battleObj && battleObj.terrain) {
+                const terrainNames = {
+                    'electricterrain': '电气场地', 'grassyterrain': '青草场地',
+                    'mistyterrain': '薄雾场地', 'psychicterrain': '精神场地'
+                };
+                const name = terrainNames[battleObj.terrain] || '场地';
+                battleObj.terrain = null;
+                battleObj.terrainTurns = 0;
+                logs.push(`<b style="color:#7dd3fc">❄️ ${name}被冰旋破坏了！</b>`);
+            }
+        },
+        description: '威力80冰系物理技，攻击后破坏场地'
+    },
+
+    // ============================================
+    // 空间类招式 (Room Moves)
+    // ============================================
+
+    // 【奇迹空间 Wonder Room】5回合内全场防御和特防互换
+    'Wonder Room': {
+        onUse: (user, target, logs, battle) => {
+            const battleObj = battle || (typeof window !== 'undefined' ? window.battle : null);
+            if (!battleObj) {
+                logs.push(`<b style="color:#ec4899">✦ ${user.cnName} 扭曲了空间！</b>`);
+                return {};
+            }
+            if (!battleObj.field) battleObj.field = {};
+            
+            if (battleObj.field.wonderRoom > 0) {
+                battleObj.field.wonderRoom = 0;
+                logs.push(`${user.cnName} 让扭曲的空间恢复了正常！`);
+            } else {
+                battleObj.field.wonderRoom = 5;
+                logs.push(`<b style="color:#ec4899">✦ ${user.cnName} 扭曲了空间！</b>`);
+                logs.push(`<span style="color:#f9a8d4">奇迹空间展开！全场防御和特防互换！</span>`);
+            }
+            return {};
+        },
+        description: '5回合内全场防御和特防数值互换'
+    },
+
+    // 【魔法空间 Magic Room】5回合内全场道具效果失效
+    'Magic Room': {
+        onUse: (user, target, logs, battle) => {
+            const battleObj = battle || (typeof window !== 'undefined' ? window.battle : null);
+            if (!battleObj) {
+                logs.push(`<b style="color:#a78bfa">✦ ${user.cnName} 创造了魔法空间！</b>`);
+                return {};
+            }
+            if (!battleObj.field) battleObj.field = {};
+            
+            if (battleObj.field.magicRoom > 0) {
+                battleObj.field.magicRoom = 0;
+                logs.push(`${user.cnName} 让魔法空间消失了！`);
+            } else {
+                battleObj.field.magicRoom = 5;
+                logs.push(`<b style="color:#a78bfa">✦ ${user.cnName} 创造了魔法空间！</b>`);
+                logs.push(`<span style="color:#c4b5fd">魔法空间展开！全场道具效果失效！</span>`);
+            }
+            return {};
+        },
+        description: '5回合内全场道具效果失效'
+    },
+
+    // ============================================
+    // 全场环境状态 (Whole Field Effects)
+    // ============================================
+
+    // 【重力 Gravity】5回合内全场重力增强
+    'Gravity': {
+        onUse: (user, target, logs, battle) => {
+            const battleObj = battle || (typeof window !== 'undefined' ? window.battle : null);
+            if (!battleObj) {
+                logs.push(`<b style="color:#a78bfa">🌌 重力变强了！</b>`);
+                return {};
+            }
+            if (!battleObj.field) battleObj.field = {};
+            
+            if (battleObj.field.gravity > 0) {
+                logs.push(`但是失败了！(重力场已经存在)`);
+                return { failed: true };
+            }
+            
+            battleObj.field.gravity = 5;
+            logs.push(`<b style="color:#a78bfa">🌌 ${user.cnName} 增强了重力！</b>`);
+            logs.push(`<span style="color:#c4b5fd">飞行和浮游的宝可梦被拉到地面！命中率提升！</span>`);
+            return {};
+        },
+        description: '5回合内全场重力增强，飞行/浮游落地，命中率x1.67'
+    },
+
+    // 【妖精之锁 Fairy Lock】下一回合双方无法替换
+    'Fairy Lock': {
+        onUse: (user, target, logs, battle) => {
+            const battleObj = battle || (typeof window !== 'undefined' ? window.battle : null);
+            if (battleObj) {
+                if (!battleObj.field) battleObj.field = {};
+                battleObj.field.fairyLock = 2; // 本回合+下回合
+            }
+            logs.push(`<b style="color:#f472b6">🔒 ${user.cnName} 使用了妖精之锁！</b>`);
+            logs.push(`<span style="color:#fbcfe8">下一回合双方都无法替换宝可梦！</span>`);
+            return {};
+        },
+        description: '下一回合双方无法替换宝可梦'
+    },
+
+    // ============================================
+    // 拉帝亚斯系列技能 (Latias Moves)
+    // ============================================
+
+    // 【防守平分】将双方的防御和特防分别取平均
+    'Guard Split': {
+        onUse: (user, target, logs) => {
+            const avgDef = Math.floor((user.stats.def + target.stats.def) / 2);
+            const avgSpd = Math.floor((user.stats.spd + target.stats.spd) / 2);
+            
+            user.stats.def = avgDef;
+            user.stats.spd = avgSpd;
+            target.stats.def = avgDef;
+            target.stats.spd = avgSpd;
+            
+            logs.push(`<b style="color:#a855f7">✦ ${user.cnName} 和 ${target.cnName} 平分了防御和特防！</b>`);
+            logs.push(`<span style="color:#c084fc">防御 → ${avgDef}, 特防 → ${avgSpd}</span>`);
+            
+            return { success: true };
+        },
+        description: '将使用者和目标的防御、特防分别取平均'
+    },
+
+    // 【治愈波动】回复目标最大HP的50%（超级发射器特性75%）
+    'Heal Pulse': {
+        onUse: (user, target, logs) => {
+            // 在单打中对对手使用（帮对手回血）
+            const abilityId = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const healRatio = (abilityId === 'megalauncher') ? 0.75 : 0.5;
+            const baseHeal = Math.floor(target.maxHp * healRatio);
+            const actualHeal = applyHeal(target, baseHeal, 'Heal Pulse');
+            
+            if (actualHeal > 0) {
+                logs.push(`${user.cnName} 向 ${target.cnName} 发出了治愈波动!`);
+                logs.push(`<span style="color:#22c55e">💚 ${target.cnName} 恢复了 ${actualHeal} 点体力!</span>`);
+                if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+            } else {
+                logs.push(`${target.cnName} 的体力已满!`);
+            }
+            
+            return { success: true };
+        },
+        description: '回复目标最大HP的50%（超级发射器特性75%）'
+    },
+
+    // 【精神转移】将自身异常状态转移给对手
+    'Psycho Shift': {
+        onUse: (user, target, logs) => {
+            const curableStatus = ['brn', 'par', 'psn', 'tox', 'slp'];
+            
+            // 自身没有异常状态则失败
+            if (!user.status || !curableStatus.includes(user.status)) {
+                logs.push(`但是失败了! (没有可转移的异常状态)`);
+                return { failed: true };
+            }
+            
+            // 对手已有异常状态则失败
+            if (target.status) {
+                logs.push(`但是失败了! (${target.cnName} 已有异常状态)`);
+                return { failed: true };
+            }
+            
+            // 检查属性免疫
+            const statusToTransfer = user.status;
+            const targetTypes = target.types || [];
+            
+            // 火系免疫灼伤
+            if (statusToTransfer === 'brn' && targetTypes.includes('Fire')) {
+                logs.push(`但是失败了! (火系免疫灼伤)`);
+                return { failed: true };
+            }
+            // 电系免疫麻痹
+            if (statusToTransfer === 'par' && targetTypes.includes('Electric')) {
+                logs.push(`但是失败了! (电系免疫麻痹)`);
+                return { failed: true };
+            }
+            // 毒系/钢系免疫中毒
+            if ((statusToTransfer === 'psn' || statusToTransfer === 'tox') && 
+                (targetTypes.includes('Poison') || targetTypes.includes('Steel'))) {
+                logs.push(`但是失败了! (毒系/钢系免疫中毒)`);
+                return { failed: true };
+            }
+            // 冰系免疫冰冻（虽然Psycho Shift不转移冰冻，但以防万一）
+            if (statusToTransfer === 'frz' && targetTypes.includes('Ice')) {
+                logs.push(`但是失败了! (冰系免疫冰冻)`);
+                return { failed: true };
+            }
+            
+            // 转移状态
+            target.status = statusToTransfer;
+            target.statusTurns = 0;
+            user.status = null;
+            user.statusTurns = 0;
+            
+            const statusNames = {
+                brn: '灼伤', par: '麻痹', psn: '中毒', tox: '剧毒', slp: '睡眠'
+            };
+            const statusName = statusNames[statusToTransfer] || statusToTransfer;
+            
+            logs.push(`<b style="color:#a855f7">✦ ${user.cnName} 将${statusName}状态转移给了 ${target.cnName}!</b>`);
+            logs.push(`${user.cnName} 的异常状态被解除了!`);
+            
+            return { success: true };
+        },
+        description: '将自身异常状态转移给对手'
+    },
+
+    // 【已移除】Water Sport 由 battle-effects.js 的 pseudoWeather 通用处理
+    // 避免 onUse handler + pseudoWeather 双路径导致重复设置
+
     // ============================================
     // 【限制类招式】
     // ============================================
