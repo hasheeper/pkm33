@@ -163,7 +163,7 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
     const isPlayer = attackerSpriteId === 'player-sprite';
     if (isPlayer) {
         dx -= gapX; dy -= gapY;
-        startScale = 1.4; endScale = 0.6;
+        startScale = 1.4; endScale = 0.7;
     } else {
         dx += gapX; dy += gapY - 40; // 【微调】敌方终点向上偏移 40px
         startScale = 1.0; endScale = 1.2;
@@ -178,7 +178,6 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
     void atkSprite.offsetWidth;
     atkSprite.classList.add('anim-dash');
 
-    // 冲撞到位后触发命中特效 (延迟匹配更慢的动画)
     setTimeout(() => {
         triggerRangedVFX(type, defSpriteId, effectiveness, isCritical);
 
