@@ -28,89 +28,224 @@
  */
 function getDefaultBattleData() {
     return {
-  "difficulty": "expert", 
-  "settings": {
-    "enableAVS": true,
-    "enableCommander": true,
-    "enableEVO": true,
-    "enableBGM": true,
-    "enableSFX": true,
-    "enableClash": true
-  },
-  "player": {
-    "name": "Champion",
-    "trainerProficiency": 255,
-    "unlocks": {
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_styles": true,
-      "enable_bond": true,
-      "enable_tera": true,
-      "enable_dynamax": true
+    "difficulty": "expert",
+    
+    "player": {
+        "name": "Red (Mechanic Test)",
+        "canMega": true,
+        "party": [
+            {
+                "name": "Charizard",
+                "lv": 100,
+                "gender": "M",
+                "ability": "Solar Power",
+                "nature": "Timid",
+                "item": "Charizardite Y",
+                "isAce": true,
+                "stats_meta": {
+                    "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                    "ev_level": 252
+                },
+                "avs": {
+                    "trust": 150,
+                    "passion": 200,
+                    "insight": 100,
+                    "devotion": 50
+                },
+                "moves": ["Flamethrower", "Solar Beam", "Dragon Pulse", "Roost"]
+            },
+            {
+                "name": "Greninja",
+                "lv": 100,
+                "gender": "M",
+                "ability": "Battle Bond",
+                "nature": "Naive",
+                "item": "Waterium Z",
+                "isAce": true,
+                "stats_meta": {
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                    "ev_level": 252
+                },
+                "avs": {
+                    "trust": 120,
+                    "passion": 180,
+                    "insight": 220,
+                    "devotion": 80
+                },
+                "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "Hydro Pump"]
+            },
+            {
+                "name": "Serperior",
+                "lv": 100,
+                "gender": "F",
+                "ability": "Contrary",
+                "nature": "Timid",
+                "item": "Leftovers",
+                "isAce": true,
+                "stats_meta": {
+                    "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                    "ev_level": 252
+                },
+                 "avs": {
+                    "trust": 100,
+                    "passion": 120,
+                    "insight": 80,
+                    "devotion": 200
+                },
+                "moves": ["Leaf Storm", "Giga Drain", "Glare", "Dragon Pulse"]
+            },
+            {
+                "name": "Incineroar",
+                "lv": 100,
+                "gender": "M",
+                "ability": "Intimidate",
+                "nature": "Careful",
+                "item": "Sitrus Berry",
+                "isAce": true,
+                "stats_meta": {
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
+                    "ev_level": [252, 0, 100, 0, 156, 0] 
+                },
+                 "avs": {
+                    "trust": 180,
+                    "passion": 80,
+                    "insight": 140,
+                    "devotion": 100
+                },
+                "moves": ["Fake Out", "Parting Shot", "Knock Off", "Flare Blitz"]
+            },
+            {
+                "name": "Mimikyu",
+                "lv": 100,
+                "gender": "F",
+                "ability": "Disguise",
+                "nature": "Jolly",
+                "item": "Life Orb",
+                "isAce": true,
+                "stats_meta": { "ev_level": 252 },
+                 "avs": {
+                    "trust": 80,
+                    "passion": 200,
+                    "insight": 120,
+                    "devotion": 100
+                },
+                "moves": ["Swords Dance", "Play Rough", "Shadow Sneak", "Drain Punch"]
+            },
+            {
+                "name": "Dragapult",
+                "lv": 100,
+                "gender": "M",
+                "ability": "Clear Body",
+                "nature": "Jolly",
+                "item": "Choice Band",
+                "isAce": true,
+                "stats_meta": {
+                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
+                    "ev_level": 252
+                },
+                 "avs": {
+                    "trust": 100,
+                    "passion": 150,
+                    "insight": 180,
+                    "devotion": 70
+                },
+                "moves": ["Dragon Darts", "Phantom Force", "U-turn", "Sucker Punch"]
+            }
+        ]
     },
-    "party": [
-      {
-        "slot": 5,
-        "name": "Mimikyu",
-        "nickname": "谜拟Q",
-        "lv": 88,
-        "isAce": true,
-        "ability": "Disguise",
-        "item": "Life Orb",
-        "isAce": true,
-        "moves": ["Play Rough", "Shadow Claw", "Shadow Sneak", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 240, "passion": 240, "insight": 255 } }
-      },
-      {
-        "slot": 6,
-        "name": "Dragonite",
-        "nickname": "快龙",
-        "lv": 88,
-        "ability": "Multiscale",
-        "mechanic": "tera",
-        "teraType": "Normal",
-        "item": "Heavy-Duty Boots",
-        "isAce": true,
-        "moves": ["Extreme Speed", "Earthquake", "Dragon Claw", "Roost"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 200 } }
-      }
+
+    "enemy": {
+        "type": "champion",
+        "name": "Cynthia (Sinnoh Champ)",
+        "id": "cynthia", 
+        "canMega": true,
+        "lines": {
+            "start": "Have you prepared to witness history?",
+            "win": "History remembers the victor.",
+            "lose": "A new legend is born today.",
+            "escape": "Not ready for the truth?"
+        }
+    },
+
+    "enemyParty": [
+        {
+            "name": "Spiritomb",
+            "lv": 100,
+            "gender": "F",
+            "ability": "Pressure",
+            "nature": "Impish",
+            "item": "Leftovers",
+            "stats_meta": {
+                "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                "ev_level": [252, 0, 252, 0, 8, 4]
+            },
+            "moves": ["Sucker Punch", "Shadow Sneak", "Will-O-Wisp", "Rock Tomb"]
+        },
+        {
+            "name": "Garchomp",
+            "lv": 100,
+            "gender": "F",
+            "ability": "Rough Skin",
+            "item": "Garchompite",
+            "nature": "Jolly",
+            "isAce": true,
+            "stats_meta": { "ev_level": 252 },
+             "avs": {
+                "trust": 160,
+                "passion": 160,
+                "insight": 140,
+                "devotion": 140
+            },
+            "moves": ["Earthquake", "Dragon Claw", "Stone Edge", "Swords Dance"],
+            "mega": "active"
+        },
+        {
+            "name": "Milotic",
+            "lv": 100,
+            "gender": "F",
+            "ability": "Marvel Scale",
+            "nature": "Bold",
+            "item": "Flame Orb",
+            "stats_meta": { "ev_level": 252 },
+            "moves": ["Scald", "Ice Beam", "Recover", "Mirror Coat"]
+        },
+        {
+            "name": "Togekiss",
+            "lv": 100,
+            "gender": "F",
+            "ability": "Serene Grace",
+            "nature": "Timid",
+            "item": "Leftovers",
+            "stats_meta": { "ev_level": 252 },
+            "moves": ["Air Slash", "Dazzling Gleam", "Thunder Wave", "Roost"]
+        },
+        {
+            "name": "Roserade",
+            "lv": 100,
+            "gender": "F",
+            "ability": "Technician",
+            "nature": "Timid",
+            "item": "Black Sludge",
+            "stats_meta": { "ev_level": 252 },
+            "moves": ["Sludge Bomb", "Giga Drain", "Magical Leaf", "Spikes"]
+        },
+        {
+            "name": "Lucario",
+            "lv": 100,
+            "gender": "M",
+            "ability": "Justified", 
+            "nature": "Naive",
+            "item": "Life Orb",
+            "stats_meta": { "ev_level": 252 },
+             "avs": {
+                "trust": 0,
+                "passion": 150,
+                "insight": 0,
+                "devotion": 0
+            },
+            "moves": ["Close Combat", "Meteor Mash", "Extreme Speed", "Psychic"]
+        }
     ]
-  },
-  "enemy": {
-    "name": "Leon (Ultimate)",
-    "type": "CHAMPION",
-    "trainerProficiency": 255,
-    "unlocks": {
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_bond": true,
-      "enable_styles": true,
-      "enable_tera": true,
-      "enable_dynamax": true
-    },
-    "party": [
-      {
-        "name": "Lucario",
-        "lv": 88,
-        "gender": "M",
-        "ability": "Justified",
-        "nature": "Jolly",
-        "mechanic": "mega",
-        "mega_target": "lucariomega",
-        "item": "Lucarionite",
-        "moves": ["Close Combat", "Bullet Punch", "Meteor Mash", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 220, "insight": 180 } }
-      },
-    ],
-    "lines": {
-      "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
-      "lose": "这就是……传说中的英雄吗……精彩绝伦！",
-      "win": "看来你的冠军时刻还没有到来啊！"
-    }
-  }
 }
 
 

@@ -3055,7 +3055,11 @@ async function executeEndPhase(p, e) {
     };
     
     if (p && p.isAlive()) {
-        p.turnsOnField = (p.turnsOnField || 0) + 1;
+        // 【修复】刚换上场的宝可梦（turnsOnField=0 且未使用招式）不递增回合数
+        // 防止强制换人后 executeEndPhase 提前递增导致 Fake Out 失效
+        if ((p.turnsOnField || 0) > 0 || p.lastMoveUsed) {
+            p.turnsOnField = (p.turnsOnField || 0) + 1;
+        }
         // 重置守住计数器（如果上回合没用守住类技能）
         if (!isProtectMove(p.lastMoveUsed)) {
             p.protectCounter = 0;
@@ -3079,7 +3083,10 @@ async function executeEndPhase(p, e) {
         }
     }
     if (e && e.isAlive()) {
-        e.turnsOnField = (e.turnsOnField || 0) + 1;
+        // 【修复】刚换上场的宝可梦（turnsOnField=0 且未使用招式）不递增回合数
+        if ((e.turnsOnField || 0) > 0 || e.lastMoveUsed) {
+            e.turnsOnField = (e.turnsOnField || 0) + 1;
+        }
         // 重置守住计数器（如果上回合没用守住类技能）
         if (!isProtectMove(e.lastMoveUsed)) {
             e.protectCounter = 0;

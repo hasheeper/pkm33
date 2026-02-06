@@ -200,7 +200,7 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
             stage.style.transform = `translate(${sx}px, ${sy}px)`;
             setTimeout(() => { stage.style.transform = 'none'; }, 60);
         }
-    }, 450);
+    }, 350);
 
     // 清理（安全引用，防止 pivot 换人后精灵元素被替换）
     const atkSpriteRef = atkSprite;
