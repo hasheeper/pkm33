@@ -131,6 +131,11 @@ function smartLoadSprite(id, url, forceAnim = false) {
                 }
             }
             
+            // 【太晶化】注入 --sprite-url CSS 变量供 mask-image 使用
+            if (img.parentElement) {
+                img.parentElement.style.setProperty('--sprite-url', `url(${preloader.src})`);
+            }
+            
             playEntryAnimation();
         };
         preloader.onerror = () => {
@@ -159,6 +164,9 @@ function smartLoadSprite(id, url, forceAnim = false) {
                         void img.offsetWidth;
                         img.style.transition = '';
                         img.classList.add('loaded');
+                        if (img.parentElement) {
+                            img.parentElement.style.setProperty('--sprite-url', `url(${baseLoader.src})`);
+                        }
                         playEntryAnimation();
                     };
                     baseLoader.onerror = () => {
@@ -168,6 +176,9 @@ function smartLoadSprite(id, url, forceAnim = false) {
                         void img.offsetWidth;
                         img.style.transition = '';
                         img.classList.add('loaded');
+                        if (img.parentElement) {
+                            img.parentElement.style.setProperty('--sprite-url', `url(${targetUrl})`);
+                        }
                     };
                     baseLoader.src = baseSpriteUrl;
                     return;
@@ -179,6 +190,9 @@ function smartLoadSprite(id, url, forceAnim = false) {
                 void img.offsetWidth;
                 img.style.transition = '';
                 img.classList.add('loaded');
+                if (img.parentElement) {
+                    img.parentElement.style.setProperty('--sprite-url', `url(${targetUrl})`);
+                }
             }
         };
         preloader.src = targetUrl;

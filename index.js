@@ -4389,47 +4389,29 @@ window.EvolutionSystem = {
  * 在 updateAllVisuals 中调用
  */
 function updateEvolutionButtonVisuals() {
+    // 【迁移】旧 EVO 按钮始终隐藏，功能已迁移到 Commander System V2
     const btn = document.getElementById('btn-evolved');
-    if (!btn) return;
+    if (btn) btn.classList.add('hidden');
   
     const p = battle.getPlayer();
-    if (!p) {
-        btn.classList.add('hidden');
-        return;
-    }
+    if (!p) return;
     
     const evoInfo = window.EvolutionSystem.checkEligibility(p);
+    if (!evoInfo) return;
 
-    if (evoInfo) {
-        btn.classList.remove('hidden');
-        
-        // 根据类型更新按钮样式
-        if (evoInfo.type === 'bond') {
-            btn.classList.add('bond-mode');
-            btn.title = '羁绊共鸣 (Bond Resonance)';
-        } else {
-            btn.classList.remove('bond-mode');
-            btn.title = '进化 (Evolution)';
+    // 显示提示日志（每种类型只提示一次）+ 刷新 Commander 悬浮窗
+    if (evoInfo.type === 'bio' && !p._evoHintLogged) {
+        log(`<span style="color:#d4ac0d; text-shadow:0 0 5px gold;">✨ ${p.cnName} 的周身涌动着进化的光芒...它在回应你的意志！</span>`);
+        p._evoHintLogged = true;
+        if (typeof window.refreshCommanderBubble === 'function') {
+            window.refreshCommanderBubble();
         }
-      
-        // 显示提示日志（每种类型只提示一次）
-        if (evoInfo.type === 'bio' && !p._evoHintLogged) {
-            log(`<span style="color:#d4ac0d; text-shadow:0 0 5px gold;">✨ ${p.cnName} 的周身涌动着进化的光芒...它在回应你的意志！</span>`);
-            p._evoHintLogged = true;
-            // 【Commander System V2】提示日志弹出后刷新悬浮窗
-            if (typeof window.refreshCommanderBubble === 'function') {
-                window.refreshCommanderBubble();
-            }
-        } else if (evoInfo.type === 'bond' && !p._bondHintLogged) {
-            log(`<span style="color:#4ade80; text-shadow:0 0 8px #22c55e;">∞ ${p.cnName} 与训练家的心跳开始同步...羁绊正在觉醒！</span>`);
-            p._bondHintLogged = true;
-            // 【Commander System V2】提示日志弹出后刷新悬浮窗
-            if (typeof window.refreshCommanderBubble === 'function') {
-                window.refreshCommanderBubble();
-            }
+    } else if (evoInfo.type === 'bond' && !p._bondHintLogged) {
+        log(`<span style="color:#4ade80; text-shadow:0 0 8px #22c55e;">∞ ${p.cnName} 与训练家的心跳开始同步...羁绊正在觉醒！</span>`);
+        p._bondHintLogged = true;
+        if (typeof window.refreshCommanderBubble === 'function') {
+            window.refreshCommanderBubble();
         }
-    } else {
-        btn.classList.add('hidden');
     }
 }
 
@@ -4446,7 +4428,7 @@ window.triggerBattleEvolution = async function() {
     if (!evoInfo) return;
 
     battle.locked = true;
-    btn.classList.add('hidden');
+    if (btn) btn.classList.add('hidden');
     
     const spriteRef = document.getElementById('player-sprite');
 

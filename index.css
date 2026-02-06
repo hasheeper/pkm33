@@ -2473,59 +2473,8 @@ body {
     fill: currentColor;
 }
 
-/* ===========================
-   Mega Evolution Button
-   =========================== */
- .mega-btn-pill {
-    position: absolute;
-    top: -35px;
-    left: 50px;
-    right: auto;
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, #FF00CC 0%, #6366f1 50%, #333399 100%);
-    color: #fff;
-    border: 3px solid rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(255, 0, 204, 0.5), inset 0 0 10px rgba(255,255,255,0.2);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 101;
-    transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-    transform: skewX(15deg);
-    overflow: hidden;
-    font-family: var(--font-main);
-}
-.mega-btn-pill:hover {
-    transform: skewX(15deg) scale(1.1);
-    box-shadow: 0 0 25px rgba(255, 0, 204, 0.7), inset 0 0 15px rgba(255,255,255,0.3);
-}
-.mega-btn-pill.armed {
-    transform: skewX(15deg) scale(1.15);
-    box-shadow: 0 0 30px #FF00CC, 0 0 60px rgba(99, 102, 241, 0.5);
-    border-color: #fff;
-    animation: mega-pulse 0.8s infinite alternate ease-in-out;
-}
-@keyframes mega-pulse {
-    0% { 
-        box-shadow: 0 0 20px #FF00CC, 0 0 40px rgba(255, 0, 204, 0.4); 
-        filter: brightness(1);
-    }
-    100% { 
-        box-shadow: 0 0 35px #00ffff, 0 0 60px rgba(0, 255, 255, 0.5); 
-        filter: brightness(1.15);
-    }
-}
-.mega-btn-pill .mega-icon {
-    width: 36px;
-    height: 36px;
-    transform: skewX(-15deg);
-}
-.mega-btn-pill.hidden {
-    display: none;
-}
+/* [已迁移] Mega/Dynamax/Tera/EVO 按钮已迁移到 Commander System V2 */
+.mega-btn-pill { display: none !important; }
 
 .action-btn .move-name {
     font-size: 1.25rem;
@@ -3690,56 +3639,7 @@ body {
     image-rendering: pixelated;
 }
 
-/* =========================================
-   [ADDON] BATTLE EVOLUTION UI - 临场进化按钮
-   位于 Mega 按钮右侧，采用闪耀的金色流光风格
-   ========================================= */
-.mega-btn-pill.evo-style {
-    left: 120px;
-    background: linear-gradient(135deg, #FFD700 0%, #FDB931 50%, #FFFACD 100%);
-    box-shadow: 
-        0 0 15px rgba(255, 215, 0, 0.6), 
-        inset 0 0 10px rgba(255,255,255,0.4);
-    border: 3px solid #FFF;
-    z-index: 105;
-    animation: gold-pulse 2s infinite ease-in-out;
-}
-
-.mega-btn-pill.evo-style:hover {
-    transform: skewX(15deg) scale(1.15);
-    box-shadow: 
-        0 0 25px rgba(255, 215, 0, 0.9), 
-        inset 0 0 15px rgba(255,255,255,0.6);
-}
-
-.evo-particles {
-    position: absolute;
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(circle, rgba(255,255,255,0.9), transparent 70%);
-    opacity: 0.5;
-    animation: spin-shine 3s linear infinite;
-}
-
-.evo-text {
-    font-size: 0.8rem;
-    font-weight: 900;
-    color: #8B4513;
-    font-style: italic;
-    transform: skewX(-15deg);
-    letter-spacing: 1px;
-}
-
-@keyframes gold-pulse {
-    0% { filter: brightness(1); }
-    50% { filter: brightness(1.2) drop-shadow(0 0 5px gold); }
-    100% { filter: brightness(1); }
-}
-
-@keyframes spin-shine {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
+/* [已删除] EVO 按钮样式已迁移到 Commander System V2 */
 
 /* =========================================
    Mega Evolution DNA-Style Visual Effects
@@ -3841,26 +3741,7 @@ body {
     }
 }
 
-/* EVO 按钮 Bond 模式样式 */
-#btn-evolved.bond-mode {
-    background: linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #86efac 100%);
-    box-shadow: 0 0 15px rgba(74, 222, 128, 0.6), inset 0 1px 0 rgba(255,255,255,0.3);
-    animation: bond-btn-pulse 1.5s ease-in-out infinite;
-}
-
-#btn-evolved.bond-mode::before {
-    content: '∞';
-    font-size: 1.2em;
-}
-
-@keyframes bond-btn-pulse {
-    0%, 100% {
-        box-shadow: 0 0 15px rgba(74, 222, 128, 0.6), inset 0 1px 0 rgba(255,255,255,0.3);
-    }
-    50% {
-        box-shadow: 0 0 25px rgba(74, 222, 128, 0.9), inset 0 1px 0 rgba(255,255,255,0.5);
-    }
-}
+/* [已删除] EVO 按钮 Bond 模式样式已迁移到 Commander System V2 */
 
 /* =========================================
    [DYNAMAX] 极巨化专用样式
@@ -3963,48 +3844,7 @@ body {
     }
 }
 
-/* 2. 极巨化按钮：粉红/红色螺旋风格 */
-.mega-btn-pill.dynamax-style {
-    background: linear-gradient(135deg, #ff0055 0%, #cc0033 50%, #990022 100%);
-    box-shadow: 
-        0 0 15px rgba(255, 0, 85, 0.6), 
-        0 0 30px rgba(255, 0, 85, 0.3),
-        inset 0 0 5px rgba(0, 0, 0, 0.2);
-    border: 3px solid #ff99aa;
-}
-
-.mega-btn-pill.dynamax-style:hover {
-    transform: skewX(15deg) scale(1.15);
-    box-shadow: 
-        0 0 25px rgba(255, 0, 85, 0.8), 
-        0 0 50px rgba(255, 0, 85, 0.4),
-        inset 0 0 10px rgba(0, 0, 0, 0.2);
-}
-
-.mega-btn-pill.dynamax-style.armed {
-    transform: skewX(15deg) scale(1.2);
-    box-shadow: 
-        0 0 35px #ff0055, 
-        0 0 70px rgba(255, 0, 85, 0.6);
-    border-color: #fff;
-    animation: dynamax-btn-pulse 0.6s infinite alternate ease-in-out;
-}
-
-@keyframes dynamax-btn-pulse {
-    0% { 
-        box-shadow: 0 0 25px #ff0055, 0 0 50px rgba(255, 0, 85, 0.5); 
-        filter: brightness(1);
-    }
-    100% { 
-        box-shadow: 0 0 40px #ff3377, 0 0 80px rgba(255, 51, 119, 0.6); 
-        filter: brightness(1.2);
-    }
-}
-
-/* 极巨化按钮内的 X 图标 */
-.mega-btn-pill.dynamax-style .mega-icon text {
-    font-size: 55px;
-}
+/* [已删除] 极巨化按钮样式已迁移到 Commander System V2 */
 
 /* 3. 极巨化爆发动画（触发时的视觉效果）*/
 .p-sprite.dynamax-burst {
@@ -4256,77 +4096,74 @@ body {
 
 
 /* =========================================================
-   太晶化 (Terastallization) 样式系统
+   [IMPROVED] Terastallization Styles (太晶化改良版)
+   特征：水晶切割质感 + 内部流光 + 硬反光
+   依赖：HTML 中的 #tera-shatter-filter SVG 滤镜
    ========================================================= */
 
-/* 1. 太晶化按钮：钻石/水晶风格 - 青蓝色渐变 */
-.mega-btn-pill.tera-style {
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%);
-    box-shadow: 
-        0 0 15px rgba(6, 182, 212, 0.6), 
-        0 0 30px rgba(6, 182, 212, 0.3),
-        inset 0 0 5px rgba(255, 255, 255, 0.3);
-    border: 3px solid #67e8f9;
+/* 1. 太晶化基础容器层：利用伪元素实现表面扫光 (用 ::before 避免与阴影 ::after 冲突) */
+.sprite-wrapper:has(> .state-terastal)::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    z-index: 101;
+    background: 
+        linear-gradient(125deg, 
+            transparent 30%, 
+            rgba(255, 255, 255, 0.2) 45%, 
+            rgba(255, 255, 255, 0.5) 50%, 
+            rgba(255, 255, 255, 0.2) 55%, 
+            transparent 70%);
+    background-size: 200% 200%;
+
+    -webkit-mask-image: var(--sprite-url);
+    mask-image: var(--sprite-url);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center bottom;
+    mask-position: center bottom;
+
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    opacity: 0.4;
+    animation: tera-sheen-shine 3.5s ease-in-out infinite;
 }
 
-.mega-btn-pill.tera-style:hover {
-    transform: skewX(15deg) scale(1.15);
-    box-shadow: 
-        0 0 25px rgba(6, 182, 212, 0.8), 
-        0 0 50px rgba(6, 182, 212, 0.4),
-        inset 0 0 10px rgba(255, 255, 255, 0.4);
-}
-
-.mega-btn-pill.tera-style.armed {
-    transform: skewX(15deg) scale(1.2);
-    box-shadow: 
-        0 0 35px #22d3ee, 
-        0 0 70px rgba(34, 211, 238, 0.6);
-    border-color: #fff;
-    animation: tera-btn-pulse 0.6s infinite alternate ease-in-out;
-}
-
-@keyframes tera-btn-pulse {
-    0% { 
-        box-shadow: 0 0 25px #22d3ee, 0 0 50px rgba(34, 211, 238, 0.5); 
-        filter: brightness(1);
-    }
-    100% { 
-        box-shadow: 0 0 40px #67e8f9, 0 0 80px rgba(103, 232, 249, 0.6); 
-        filter: brightness(1.2);
-    }
-}
-
-/* 太晶化按钮内的 T 图标 */
-.mega-btn-pill.tera-style .mega-icon text {
-    font-size: 50px;
-}
-
-/* 2. 太晶化精灵图效果：水晶发光滤镜 */
+/* 2. 精灵本体：SVG 晶体滤镜 + 颜色修正 */
 .p-sprite.state-terastal {
     filter: 
-        brightness(1.3) 
-        saturate(1.2)
-        drop-shadow(0 0 8px var(--tera-glow-color, #22d3ee))
+        url(#tera-shatter-filter)
+        brightness(1.1) 
+        contrast(1.2)
+        saturate(1.3)
+        drop-shadow(0 0 5px var(--tera-glow-color, #22d3ee))
         drop-shadow(0 0 15px var(--tera-glow-color, #22d3ee));
-    animation: tera-crystal-shimmer 2s infinite ease-in-out;
+    animation: tera-float 3s ease-in-out infinite;
+    z-index: 100 !important;
 }
 
-@keyframes tera-crystal-shimmer {
+/* 呼吸浮动 + 色彩微调动画 */
+@keyframes tera-float {
     0%, 100% {
-        filter: 
-            brightness(1.3) 
-            saturate(1.2)
-            drop-shadow(0 0 8px var(--tera-glow-color, #22d3ee))
-            drop-shadow(0 0 15px var(--tera-glow-color, #22d3ee));
+        transform: translateY(-20px) scale(var(--sprite-scale, 1)); 
     }
     50% {
+        transform: translateY(-25px) scale(calc(var(--sprite-scale, 1) * 1.02));
         filter: 
-            brightness(1.5) 
-            saturate(1.4)
-            drop-shadow(0 0 12px var(--tera-glow-color, #22d3ee))
-            drop-shadow(0 0 25px var(--tera-glow-color, #22d3ee));
+            url(#tera-shatter-filter) 
+            brightness(1.25) contrast(1.3)
+            drop-shadow(0 0 8px var(--tera-glow-color, #22d3ee))
+            drop-shadow(0 0 20px var(--tera-glow-color, #22d3ee));
     }
+}
+
+/* 表面扫光动画 */
+@keyframes tera-sheen-shine {
+    0% { background-position: 200% 0%; filter: brightness(1); }
+    50% { filter: brightness(1.5); }
+    100% { background-position: -200% 0%; filter: brightness(1); }
 }
 
 /* 3. 太晶化爆发动画（触发时的视觉效果）*/
@@ -4341,18 +4178,22 @@ body {
     }
     30% {
         transform: scale(1.15);
-        filter: brightness(2) saturate(0.5) hue-rotate(180deg);
+        filter: 
+            url(#tera-shatter-filter)
+            brightness(2) saturate(0.5);
     }
     60% {
         transform: scale(1.1);
-        filter: brightness(1.8) saturate(1.5);
+        filter: 
+            url(#tera-shatter-filter)
+            brightness(1.8) saturate(1.5);
     }
     100% {
         transform: scale(1);
         filter: 
-            brightness(1.3) 
-            saturate(1.2)
-            drop-shadow(0 0 8px var(--tera-glow-color, #22d3ee))
+            url(#tera-shatter-filter)
+            brightness(1.15) contrast(1.2) saturate(1.3)
+            drop-shadow(0 0 5px var(--tera-glow-color, #22d3ee))
             drop-shadow(0 0 15px var(--tera-glow-color, #22d3ee));
     }
 }
@@ -4379,42 +4220,47 @@ body {
 
 /* =========================================
    [ADDON] Stellar (星晶) 属性视觉风格
-   流动的彩虹光效 + 皇冠质感
+   流动的彩虹光效 + 更加炫彩
    ========================================= */
 .tera-type-stellar { 
     --tera-glow-color: #ffffff;
 }
 
-/* 覆盖默认的 filter 动画，实现彩虹流光 */
+/* 星晶属性：更加炫彩的滤镜 */
 .p-sprite.state-terastal.tera-type-stellar {
     filter: 
-        brightness(1.1)
-        contrast(1.1)
-        drop-shadow(0 0 5px rgba(255, 0, 0, 0.4))
-        drop-shadow(0 0 10px rgba(0, 255, 0, 0.4))
-        drop-shadow(0 0 15px rgba(0, 0, 255, 0.4));
+        url(#tera-shatter-filter) 
+        brightness(1.2) contrast(1.1)
+        drop-shadow(0 0 5px #fff)
+        drop-shadow(0 0 10px rgba(0,255,255,0.5))
+        drop-shadow(0 0 20px rgba(255,0,150,0.5));
     animation: stellar-rainbow-pulse 3s linear infinite;
 }
 
-/* 如果是星晶爆发瞬间 */
+/* 星晶爆发瞬间 */
 .p-sprite.tera-burst.tera-type-stellar {
     animation: stellar-crystallize 1s ease-out forwards;
 }
 
 @keyframes stellar-rainbow-pulse {
-    0% { filter: drop-shadow(0 0 8px #ff0000) brightness(1.2); }
-    15% { filter: drop-shadow(0 0 8px #ffbd00) brightness(1.2); }
-    30% { filter: drop-shadow(0 0 8px #00ff00) brightness(1.2); }
-    45% { filter: drop-shadow(0 0 8px #00ffff) brightness(1.2); }
-    60% { filter: drop-shadow(0 0 8px #0000ff) brightness(1.2); }
-    75% { filter: drop-shadow(0 0 8px #d400ff) brightness(1.2); }
-    100% { filter: drop-shadow(0 0 8px #ff0000) brightness(1.2); }
+    0% { filter: url(#tera-shatter-filter) drop-shadow(0 0 8px #ff0000) brightness(1.2); }
+    15% { filter: url(#tera-shatter-filter) drop-shadow(0 0 8px #ffbd00) brightness(1.2); }
+    30% { filter: url(#tera-shatter-filter) drop-shadow(0 0 8px #00ff00) brightness(1.2); }
+    45% { filter: url(#tera-shatter-filter) drop-shadow(0 0 8px #00ffff) brightness(1.2); }
+    60% { filter: url(#tera-shatter-filter) drop-shadow(0 0 8px #0000ff) brightness(1.2); }
+    75% { filter: url(#tera-shatter-filter) drop-shadow(0 0 8px #d400ff) brightness(1.2); }
+    100% { filter: url(#tera-shatter-filter) drop-shadow(0 0 8px #ff0000) brightness(1.2); }
 }
 
 @keyframes stellar-crystallize {
     0% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.3); filter: brightness(5) hue-rotate(360deg) saturate(2); }
-    100% { transform: scale(1); filter: brightness(1.2) drop-shadow(0 0 15px white); }
+    50% { transform: scale(1.3); filter: url(#tera-shatter-filter) brightness(5) saturate(2); }
+    100% { transform: scale(1); filter: url(#tera-shatter-filter) brightness(1.2) drop-shadow(0 0 15px white); }
+}
+
+/* 玩家方太晶化位置调整 */
+#player-sprite.state-terastal {
+    transform-origin: center bottom;
 }
 
 /* 名字标签的特殊样式 */

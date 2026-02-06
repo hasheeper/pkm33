@@ -23,6 +23,28 @@
                 <stop offset="75%" style="stop-color:#4bcffa" />
                 <stop offset="100%" style="stop-color:#d49bfd" />
             </linearGradient>
+
+            <!-- 【太晶化专属】晶体切割与镜面反射滤镜 -->
+            <filter id="tera-shatter-filter" color-interpolation-filters="sRGB">
+                <!-- 1. 生成晶体噪点纹理 -->
+                <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="fractal" />
+                <!-- 2. 生成置换纹理 -->
+                <feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2" seed="5" result="noise" />
+                <!-- 3. 玻璃折射般的边缘错位 -->
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+                <!-- 4. 镜面光照：硬朗的高光反射 -->
+                <feSpecularLighting in="fractal" surfaceScale="3" specularConstant="0.5" specularExponent="30" lighting-color="#ffffff" result="specular">
+                    <fePointLight x="-5000" y="-10000" z="20000"/>
+                </feSpecularLighting>
+                <!-- 5. 将光照叠加到原始图像上 -->
+                <feComposite in="specular" in2="displaced" operator="in" result="specular-masked"/>
+                <feComposite in="specular-masked" in2="displaced" operator="lighter" result="lighter-composite"/>
+                <!-- 6. 混合输出 -->
+                <feMerge>
+                    <feMergeNode in="displaced" />
+                    <feMergeNode in="lighter-composite" />
+                </feMerge>
+            </filter>
         </defs>
     </svg>
 
