@@ -52,6 +52,7 @@ import '../systems/growth-system.js';
 // 5. 战斗模块
 // ============================================
 import '../engine/weather-effects.js';  // 天气效果核心模块（需在其他战斗模块之前）
+import '../battle/battle-vfx.js';
 import '../battle/battle-effects.js';
 import '../battle/battle-damage.js';
 import '../battle/battle-switch.js';

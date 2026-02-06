@@ -319,9 +319,19 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                 if (diff > 0) {
                     logs.push(`${subject.cnName} 的${statMap[stat] || stat}${changeText}提升了!`);
                     if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('STAT_UP');
+                    if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                        const _b = window.battle;
+                        const _isSubjectPlayer = _b && _b.playerParty && _b.playerParty.includes(subject);
+                        window.BattleVFX.triggerStatVFX('BUFF', _isSubjectPlayer ? 'player-sprite' : 'enemy-sprite');
+                    }
                 } else {
                     logs.push(`${subject.cnName} 的${statMap[stat] || stat}${changeText}下降了!`);
                     if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('STAT_DOWN');
+                    if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                        const _b = window.battle;
+                        const _isSubjectPlayer = _b && _b.playerParty && _b.playerParty.includes(subject);
+                        window.BattleVFX.triggerStatVFX('DEBUFF', _isSubjectPlayer ? 'player-sprite' : 'enemy-sprite');
+                    }
                 }
             }
         }
@@ -442,6 +452,15 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                             if (s === 'slp') {
                                 target.sleepTurns = Math.floor(Math.random() * 3) + 2;
                             }
+                            // 播放状态异常音效 + VFX
+                            const STATUS_SFX_MAP_A = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX' };
+                            if (STATUS_SFX_MAP_A[s] && typeof window !== 'undefined') {
+                                if (typeof window.playSFX === 'function') window.playSFX(STATUS_SFX_MAP_A[s]);
+                                if (typeof window.BattleVFX !== 'undefined') {
+                                    const _sid = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                                    window.BattleVFX.triggerStatusVFX(STATUS_SFX_MAP_A[s], _sid);
+                                }
+                            }
                             const statusMap = {
                                 brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
                                 tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
@@ -493,6 +512,15 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                             target.status = sec.status;
                             if (sec.status === 'slp') {
                                 target.sleepTurns = Math.floor(Math.random() * 3) + 2;
+                            }
+                            // 播放状态异常音效 + VFX
+                            const STATUS_SFX_MAP_B = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX' };
+                            if (STATUS_SFX_MAP_B[sec.status] && typeof window !== 'undefined') {
+                                if (typeof window.playSFX === 'function') window.playSFX(STATUS_SFX_MAP_B[sec.status]);
+                                if (typeof window.BattleVFX !== 'undefined') {
+                                    const _sid = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                                    window.BattleVFX.triggerStatusVFX(STATUS_SFX_MAP_B[sec.status], _sid);
+                                }
                             }
                             const statusMap = {
                                 brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
@@ -591,6 +619,15 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                 if (s === 'slp') {
                     target.sleepTurns = Math.floor(Math.random() * 3) + 2;
                 }
+                // 播放状态异常音效 + VFX
+                const STATUS_SFX_MAP_C = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX' };
+                if (STATUS_SFX_MAP_C[s] && typeof window !== 'undefined') {
+                    if (typeof window.playSFX === 'function') window.playSFX(STATUS_SFX_MAP_C[s]);
+                    if (typeof window.BattleVFX !== 'undefined') {
+                        const _sid = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                        window.BattleVFX.triggerStatusVFX(STATUS_SFX_MAP_C[s], _sid);
+                    }
+                }
                 const statusMap = {
                     brn: "被灼伤了!", psn: "中毒了!", par: "麻痹了!",
                     tox: "中了剧毒!", slp: "睡着了!", frz: "被冻结了!"
@@ -632,6 +669,11 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             const actualHeal = (typeof user.heal === 'function') ? user.heal(baseHeal) : Math.min(baseHeal, maxHeal);
             if (actualHeal > 0) {
                 logs.push(`${user.cnName} 吸取了对手的体力!`);
+                if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+                if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                    const _isUserPlayer = window.battle && window.battle.playerParty && window.battle.playerParty.includes(user);
+                    window.BattleVFX.triggerStatVFX('HEAL', _isUserPlayer ? 'player-sprite' : 'enemy-sprite');
+                }
             }
         }
     } else if (damageDealt > 0) {
@@ -653,6 +695,11 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                 const actualHeal = (typeof user.heal === 'function') ? user.heal(baseHeal) : Math.min(baseHeal, maxHeal);
                 if (actualHeal > 0) {
                     logs.push(`${user.cnName} 吸取了对手的体力!`);
+                    if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
+                    if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                        const _isUserPlayer = window.battle && window.battle.playerParty && window.battle.playerParty.includes(user);
+                        window.BattleVFX.triggerStatVFX('HEAL', _isUserPlayer ? 'player-sprite' : 'enemy-sprite');
+                    }
                 }
             }
         }

@@ -175,6 +175,10 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
     
     // I. 处理 MISS
     if (result.miss) {
+        // 播放闪避 VFX
+        if (typeof window.BattleVFX !== 'undefined') {
+            window.BattleVFX.triggerMissVFX(spriteIdRef);
+        }
         if (result.invulnerableMiss) {
             // 【半无敌状态】目标处于飞翔/挖洞/潜水等状态
             const statusTexts = {
@@ -478,13 +482,18 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             }
         }
 
-        // 播放受击动画
+        // 播放受击动画 (VFX 引擎)
         const targetEl = document.getElementById(spriteIdRef);
-        if (targetEl) {
+        const attackerSpriteId = spriteIdRef === 'enemy-sprite' ? 'player-sprite' : 'enemy-sprite';
+        if (typeof window.BattleVFX !== 'undefined') {
+            window.BattleVFX.playAttackVFX(attackerSpriteId, spriteIdRef, move, result);
+        } else if (targetEl) {
             targetEl.classList.remove('shake-hit-anim');
-            targetEl.classList.remove('fainting');
             void targetEl.offsetWidth;
             targetEl.classList.add('shake-hit-anim');
+        }
+        if (targetEl) {
+            targetEl.classList.remove('fainting');
             if (defender.currHp <= 0) {
                 targetEl.classList.add('fainting');
                 setTimeout(() => {

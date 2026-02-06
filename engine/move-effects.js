@@ -303,6 +303,18 @@ function tryInflictStatus(target, status, source = null, battle = null) {
     target.status = status;
     target.statusTurns = 0;
     
+    // 播放状态异常音效 + VFX
+    const STATUS_SFX_MAP = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX' };
+    if (STATUS_SFX_MAP[status] && typeof window !== 'undefined') {
+        if (typeof window.playSFX === 'function') window.playSFX(STATUS_SFX_MAP[status]);
+        if (typeof window.BattleVFX !== 'undefined') {
+            const b = window.battle;
+            const isTargetPlayer = b && b.playerParty && b.playerParty.includes(target);
+            const spriteId = isTargetPlayer ? 'player-sprite' : 'enemy-sprite';
+            window.BattleVFX.triggerStatusVFX(STATUS_SFX_MAP[status], spriteId);
+        }
+    }
+    
     const statusInfo = STATUS_CONDITIONS[status];
     let message = `${target.cnName} ${statusInfo.name}了!`;
     

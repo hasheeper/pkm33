@@ -2640,6 +2640,9 @@ async function handleAttack(moveIndex, options = {}) {
             return;
         }
         
+        // 【节奏控制】先手动画结束后，等一会再开始后手
+        await wait(600);
+        
         // 【注意】对冲检测已移到玩家攻击之前，这里直接执行敌方攻击
         console.log('[handleAttack] Enemy turn starting, move:', enemyMove?.name || enemyMove?.cn);
         const enemyResult = await executeEnemyTurn(e, p, enemyMove);
@@ -2764,6 +2767,9 @@ async function handleAttack(moveIndex, options = {}) {
             }
             return;
         }
+        
+        // 【节奏控制】先手动画结束后，等一会再开始后手
+        await wait(600);
         
         // ========== 玩家后动（攻击新换入的宝可梦） ==========
         // 【修复】Pre-Move Check: 检查玩家自己是否还活着（临别礼物/大爆炸等自杀招式）

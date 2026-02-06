@@ -1781,10 +1781,236 @@ body {
     --sprite-animation: shake-hard 0.4s cubic-bezier(.36, .07, .19, .97) both;
 }
 
+/* ================ VFX 动画库 (from battle/effect) ================ */
 @keyframes shake-hard {
-    10% { transform: translateX(-10px) scale(var(--sprite-scale, 1)); }
-    50% { transform: translateX(10px) scale(var(--sprite-scale, 1)); }
-    100% { transform: translateX(0) scale(var(--sprite-scale, 1)); }
+    0%   { transform: translateX(0)       scale(var(--sprite-scale, 1)); }
+    10%  { transform: translateX(-10px) rotate(-1deg) scale(var(--sprite-scale, 1)); }
+    20%  { transform: translateX(10px)  rotate(1deg)  scale(var(--sprite-scale, 1)); }
+    30%  { transform: translateX(-10px) scale(var(--sprite-scale, 1)); }
+    40%  { transform: translateX(10px)  scale(var(--sprite-scale, 1)); }
+    50%  { transform: translateX(-5px)  scale(var(--sprite-scale, 1)); }
+    60%  { transform: translateX(5px)   scale(var(--sprite-scale, 1)); }
+    100% { transform: translateX(0)     scale(var(--sprite-scale, 1)); }
+}
+
+/* ---- 透视冲撞动画 (接触类招式) ---- */
+@keyframes dash-strike {
+    0% {
+        transform: translate(0, 0) scale(var(--scale-start));
+        filter: brightness(1) blur(0);
+    }
+    15% {
+        transform: translate(calc(var(--atk-x) * -0.08), calc(var(--atk-y) * -0.04))
+                   scale(var(--scale-start));
+    }
+    40% {
+        transform: translate(var(--atk-x), var(--atk-y))
+                   scale(var(--scale-end));
+        opacity: 1;
+        filter: brightness(1.4);
+    }
+    50% {
+        transform: translate(calc(var(--atk-x) * 1.02), calc(var(--atk-y) * 1.02))
+                   scale(var(--scale-end));
+        opacity: 0.4;
+        filter: blur(2px) brightness(2);
+    }
+    100% {
+        transform: translate(0, 0) scale(var(--scale-start));
+        opacity: 1;
+        filter: none;
+    }
+}
+
+.anim-dash {
+    animation: dash-strike 0.65s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    z-index: 110 !important;
+    will-change: transform, opacity, filter;
+}
+
+/* ---- 闪避/未命中动画 ---- */
+@keyframes dodge-slide {
+    0%   { transform: translate(0, 0) scale(var(--sprite-scale, 1)); opacity: 1; }
+    30%  { transform: translate(30px, 0) scale(var(--sprite-scale, 1)); filter: blur(2px) grayscale(0.5); opacity: 0.6; }
+    60%  { transform: translate(-10px, 0) scale(var(--sprite-scale, 1)); }
+    100% { transform: translate(0, 0) scale(var(--sprite-scale, 1)); opacity: 1; filter: none; }
+}
+
+.anim-dodge {
+    animation: dodge-slide 0.4s ease-out;
+}
+
+/* ---- MISS 文字弹出 ---- */
+.vfx-text-popup {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-weight: bold;
+    color: #b2bec3;
+    text-shadow: 2px 2px 0 #333;
+    font-family: sans-serif;
+    pointer-events: none;
+    z-index: 130;
+    animation: float-up-fade 0.8s ease-out forwards;
+}
+
+@keyframes float-up-fade {
+    0%   { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+    30%  { transform: translate(-50%, -30px) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -60px) scale(1); opacity: 0; }
+}
+
+/* ---- 全屏闪光 ---- */
+@keyframes screen-flash {
+    0%   { opacity: 0; background-color: var(--flash-color, white); }
+    20%  { opacity: 0.6; }
+    100% { opacity: 0; }
+}
+
+.flash-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 150;
+    mix-blend-mode: hard-light;
+    animation: screen-flash 0.4s ease-out forwards;
+}
+
+/* ---- 属性图标爆裂 ---- */
+@keyframes icon-burst {
+    0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0; filter: brightness(2) drop-shadow(0 0 10px var(--flash-color)); }
+    40%  { transform: translate(-50%, -50%) scale(1.5); opacity: 1; filter: brightness(5) drop-shadow(0 0 20px var(--flash-color)); }
+    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; filter: brightness(1); }
+}
+
+@keyframes ring-expand {
+    0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; border-width: 20px; }
+    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; border-width: 0px; }
+}
+
+/* ---- VFX 命中锚点 ---- */
+.vfx-hit-anchor {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 120;
+    pointer-events: none;
+}
+
+.vfx-icon {
+    position: absolute;
+    width: calc(60px * var(--vfx-scale, 1));
+    height: calc(60px * var(--vfx-scale, 1));
+    top: 0;
+    left: 0;
+    transform: translate(-50%, -50%);
+}
+
+.vfx-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(80px * var(--vfx-scale, 1));
+    height: calc(80px * var(--vfx-scale, 1));
+    border-radius: 50%;
+    border-style: solid;
+    border-color: var(--flash-color);
+    box-shadow: 0 0 30px var(--flash-color);
+    background: transparent;
+    transform: translate(-50%, -50%);
+}
+
+/* ---- 效果分级修饰符 ---- */
+.eff-weak .vfx-icon  { filter: grayscale(0.8) brightness(0.7) !important; opacity: 0.7; }
+.eff-weak .vfx-ring  { border-color: #aaa !important; box-shadow: none !important; border-width: 4px !important; }
+.eff-super .vfx-icon { filter: brightness(1.5) saturate(1.2) drop-shadow(0 0 10px #e1b12c) drop-shadow(0 0 20px #fbc531) !important; }
+.eff-super .vfx-ring { border-color: #ffd32a !important; box-shadow: 0 0 40px #ffd32a, inset 0 0 20px #fff !important; }
+
+.vfx-ring.echo-wave { animation-delay: 0.1s; border-width: 2px; }
+
+@keyframes crit-flash-anim {
+    0%   { filter: brightness(1) invert(0); }
+    15%  { filter: brightness(10) invert(1) contrast(200%); transform: translate(-50%, -50%) scale(1.4); }
+    40%  { filter: brightness(1) invert(0); }
+}
+
+.is-crit .vfx-icon { animation: icon-burst 0.6s ease-out forwards, crit-flash-anim 0.6s ease-out; }
+.is-crit .vfx-ring { border-style: dashed !important; }
+
+/* ---- 状态/Buff/回复 粒子动画 ---- */
+@keyframes sc-rise {
+    0%   { transform: translateY(20px) scale(0.5); opacity: 0; }
+    20%  { transform: translateY(0) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-80px) scale(1); opacity: 0; }
+}
+
+@keyframes sc-fall {
+    0%   { transform: translateY(-80px) scale(0.5); opacity: 0; }
+    20%  { transform: translateY(-40px) scale(1.2); opacity: 1; }
+    100% { transform: translateY(20px) scale(1); opacity: 0; }
+}
+
+@keyframes aura-pulse {
+    0%   { filter: drop-shadow(0 0 0px var(--stat-color)) brightness(1); }
+    50%  { filter: drop-shadow(0 0 15px var(--stat-color)) brightness(1.3); }
+    100% { filter: drop-shadow(0 0 0px var(--stat-color)) brightness(1); }
+}
+
+.stat-particle-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100px;
+    height: 100px;
+    transform: translate(-50%, -50%);
+    z-index: 120;
+    pointer-events: none;
+}
+
+.vfx-arrow {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: var(--stat-color, white);
+    left: 35px;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    box-shadow: 0 0 5px var(--stat-color);
+}
+
+.vfx-arrow.down {
+    clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+}
+
+.vfx-plus {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: #00ff00;
+    left: 40px;
+    clip-path: polygon(30% 0%, 70% 0%, 70% 30%, 100% 30%, 100% 70%, 70% 70%, 70% 100%, 30% 100%, 30% 70%, 0% 70%, 0% 30%, 30% 30%);
+}
+
+/* ---- 状态异常图标弹跳 ---- */
+.vfx-status-icon {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    left: 20px;
+    top: -40px;
+    opacity: 0;
+    animation: bounce-status 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 120;
+}
+
+@keyframes bounce-status {
+    0%   { transform: translateY(20px) scale(0); opacity: 0; }
+    40%  { transform: translateY(0) scale(1.4); opacity: 1; }
+    70%  { transform: translateY(0) scale(1.0); opacity: 1; }
+    100% { transform: translateY(-20px) scale(1.0); opacity: 0; }
 }
 
 .p-sprite.fainting {
@@ -1936,6 +2162,12 @@ body {
     opacity: 0.7;
     padding-left: 2px;
     font-family: var(--font-main);
+    animation: log-slide-in 0.3s ease-out both;
+}
+
+@keyframes log-slide-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 0.7; transform: translateY(0); }
 }
 
 .log-entry:last-child {

@@ -39,7 +39,12 @@ const SFX_FILES = {
     'HEAL':       'battle_heal.mp3',
     'THROW':      'ball_throw.mp3',
     'BALL_OPEN':  'ball_open.mp3',
-    'CLASH':      'Hit_Super_Effective_XY.mp3'
+    'CLASH':      'Hit_Super_Effective_XY.mp3',
+    'BRN':        'burn.mp3',
+    'FRZ':        'freeze.mp3',
+    'PAR':        'para.mp3',
+    'PSN':        'poison.mp3',
+    'TOX':        'poison.mp3'
 };
 
 // 动态获取 SFX 完整路径
@@ -67,7 +72,12 @@ const SFX_VOLUME_CONFIG = {
     'HEAL':       0.5,
     'THROW':      0.6,
     'BALL_OPEN':  0.6,
-    'CLASH':      0.8
+    'CLASH':      0.8,
+    'BRN':        0.5,
+    'FRZ':        0.5,
+    'PAR':        0.5,
+    'PSN':        0.5,
+    'TOX':        0.5
 };
 
 // 音频缓存池

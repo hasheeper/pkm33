@@ -204,9 +204,12 @@ export async function executePlayerTurn(p, e, move) {
     }
 
     log(`[${p.cnName}] 使用了 <b>${move.cn}</b>!`);
-    await wait(600);
+    await wait(400);
 
     const result = applyDamage(p, e, move, 'enemy-sprite');
+    
+    // 等待VFX动画播完
+    await wait(600);
     
     // 记录本回合使用的技能
     p.lastMoveUsed = move.name;
@@ -275,6 +278,10 @@ export async function executePlayerTurn(p, e, move) {
         log(`</div>`);
     }
     
+    // 【VFX修复】pivot 换人技（折返/伏特替换等）需要等动画播完再刷新精灵图
+    if (result?.pivot) {
+        await wait(700);
+    }
     updateAllVisuals();
     
     // === 检查危机 BGM 切换 (馆主战专用) ===
@@ -412,9 +419,12 @@ export async function executeEnemyTurn(e, p, move) {
 
     const moveName = move.cn || move.name || 'Unknown';
     log(`[${e.cnName}] 使出 <b>${moveName}</b>!`);
-    await wait(500);
+    await wait(400);
 
     const result = applyDamage(e, p, move, 'player-sprite');
+    
+    // 等待VFX动画播完
+    await wait(800);
     
     // 记录本回合使用的技能
     e.lastMoveUsed = move.name;
@@ -468,6 +478,10 @@ export async function executeEnemyTurn(e, p, move) {
         console.log(`[MAX MOVE] 敌方使用了极巨招式: ${move.name}，本场不可再用`);
     }
     
+    // 【VFX修复】pivot 换人技（折返/伏特替换等）需要等动画播完再刷新精灵图
+    if (result?.pivot) {
+        await wait(700);
+    }
     updateAllVisuals();
     
     // 【已移除】旧的招式执行后清除逻辑
@@ -640,6 +654,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
                 poke.currHp = Math.min(poke.maxHp, poke.currHp + baseHeal);
             }
             logs.push(`<span style="color:#4cd137">💚 ${poke.cnName} 的毒疗特性发动，回复了 ${actualHeal} 点体力!</span>`);
+            if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
         } else {
             // 正常中毒伤害
             const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
@@ -670,6 +685,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         
         poke.takeDamage(baseDrain);
         opponent.heal(actualHeal);
+        if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
         if (actualHeal !== baseDrain) {
             logs.push(`${poke.cnName} 的体力被寄生种子吸取了! (-${baseDrain}, 回复${actualHeal})`);
         } else {
@@ -757,6 +773,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         const heal = Math.max(1, Math.floor(poke.maxHp / 16));
         poke.heal(heal);
         logs.push(`${poke.cnName} 的水流环恢复了体力! (+${heal})`);
+        if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
     }
 
     // ----------------------------------------
@@ -766,6 +783,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
         const heal = Math.max(1, Math.floor(poke.maxHp / 16));
         poke.heal(heal);
         logs.push(`${poke.cnName} 从地面吸收了养分! (+${heal})`);
+        if (typeof window !== 'undefined' && typeof window.playSFX === 'function') window.playSFX('HEAL');
     }
 
     // ----------------------------------------
