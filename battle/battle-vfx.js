@@ -163,10 +163,10 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
     const isPlayer = attackerSpriteId === 'player-sprite';
     if (isPlayer) {
         dx -= gapX; dy -= gapY;
-        startScale = 1.5; endScale = 0.85;
+        startScale = 1.4; endScale = 0.6;
     } else {
-        dx += gapX; dy += gapY;
-        startScale = 1.0; endScale = 1.5;
+        dx += gapX; dy += gapY - 40; // 【微调】敌方终点向上偏移 40px
+        startScale = 1.0; endScale = 1.2;
     }
 
     atkSprite.style.setProperty('--atk-x', `${dx}px`);
@@ -196,7 +196,7 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
             stage.style.transform = `translate(${sx}px, ${sy}px)`;
             setTimeout(() => { stage.style.transform = 'none'; }, 60);
         }
-    }, 280);
+    }, 450);
 
     // 清理（安全引用，防止 pivot 换人后精灵元素被替换）
     const atkSpriteRef = atkSprite;
@@ -208,7 +208,7 @@ function triggerContactVFX(type, attackerSpriteId, effectiveness, isCritical) {
             atkSpriteRef.style.removeProperty('--scale-start');
             atkSpriteRef.style.removeProperty('--scale-end');
         } catch(e) { /* sprite may have been replaced by pivot switch */ }
-    }, 700);
+    }, 1050);
 }
 
 // ============================================

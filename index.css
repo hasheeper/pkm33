@@ -1796,34 +1796,34 @@ body {
 /* ---- 透视冲撞动画 (接触类招式) ---- */
 @keyframes dash-strike {
     0% {
-        transform: translate(0, 0) scale(var(--scale-start));
+        transform: translate(0, 0) scale(var(--sprite-scale, var(--scale-start, 1)));
         filter: brightness(1) blur(0);
     }
     15% {
-        transform: translate(calc(var(--atk-x) * -0.08), calc(var(--atk-y) * -0.04))
-                   scale(var(--scale-start));
+        transform: translate(calc(var(--atk-x) * -0.03), calc(var(--atk-y) * -0.02))
+                   scale(var(--sprite-scale, var(--scale-start, 1)));
     }
-    40% {
+    45% {
         transform: translate(var(--atk-x), var(--atk-y))
-                   scale(var(--scale-end));
+                   scale(calc(var(--sprite-scale, 1) * var(--scale-end, 1)));
         opacity: 1;
         filter: brightness(1.4);
     }
-    50% {
+    55% {
         transform: translate(calc(var(--atk-x) * 1.02), calc(var(--atk-y) * 1.02))
-                   scale(var(--scale-end));
+                   scale(calc(var(--sprite-scale, 1) * var(--scale-end, 1)));
         opacity: 0.4;
         filter: blur(2px) brightness(2);
     }
     100% {
-        transform: translate(0, 0) scale(var(--scale-start));
+        transform: translate(0, 0) scale(var(--sprite-scale, var(--scale-start, 1)));
         opacity: 1;
         filter: none;
     }
 }
 
 .anim-dash {
-    animation: dash-strike 0.65s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    animation: dash-strike 1.0s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     z-index: 110 !important;
     will-change: transform, opacity, filter;
 }

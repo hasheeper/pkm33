@@ -50,62 +50,6 @@ function getDefaultBattleData() {
     },
     "party": [
       {
-        "slot": 1,
-        "name": "Dragapult",
-        "nickname": "幽影",
-        "lv": 88,
-        "isLead": true,
-        "ability": "Infiltrator",
-        "nature": "Timid",
-        "item": "Choice Specs",
-        "isAce": true,
-        "moves": ["Shadow Ball", "Draco Meteor", "U-turn", "Flamethrower"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 200, "insight": 220 } }
-      },
-      {
-        "slot": 2,
-        "name": "Beedrill",
-        "nickname": "蜂皇",
-        "lv": 88,
-        "item": "Beedrillite",
-        "mechanic": "mega",
-        "mega_target": "beedrillmega",
-        "nature": "Jolly",
-        "isAce": true,
-        "moves": ["Poison Jab", "U-turn", "Drill Run", "Fell Stinger"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 255 } }
-      },
-      {
-        "slot": 3,
-        "name": "Coalossal",
-        "nickname": "熔炉",
-        "lv": 88,
-        "mechanic": "dynamax",
-        "ability": "Steam Engine",
-        "nature": "Relaxed",
-        "item": "Weakness Policy",
-        "isAce": true,
-        "moves": ["Heat Crash", "Stone Edge", "Scald", "Rapid Spin"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 255, "insight": 180 } }
-      },
-      {
-        "slot": 4,
-        "name": "Kommo-o",
-        "nickname": "战龙",
-        "lv": 88,
-        "mechanic": "zmove",
-        "ability": "Bulletproof",
-        "item": "Kommonium Z",
-        "nature": "Naive",
-        "isAce": true,
-        "moves": ["Clanging Scales", "Close Combat", "Poison Jab", "Clangorous Soul"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "devotion": 200 } }
-      },
-      {
         "slot": 5,
         "name": "Mimikyu",
         "nickname": "谜拟Q",
@@ -148,30 +92,6 @@ function getDefaultBattleData() {
     },
     "party": [
       {
-        "name": "Meowscarada",
-        "lv": 88,
-        "isLead": true,
-        "gender": "F",
-        "ability": "Protean",
-        "nature": "Jolly",
-        "item": "Focus Sash",
-        "mechanic": "tera",
-        "teraType": "Grass",
-        "moves": ["Flower Trick", "Knock Off", "U-turn", "Play Rough"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "insight": 200 } }
-      },
-      {
-        "name": "Garganacl",
-        "lv": 88,
-        "ability": "Purifying Salt",
-        "item": "Leftovers",
-        "nature": "Careful",
-        "moves": ["Salt Cure", "Recover", "Earthquake", "Body Press"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 150, "devotion": 150 } }
-      },
-      {
         "name": "Lucario",
         "lv": 88,
         "gender": "M",
@@ -184,42 +104,6 @@ function getDefaultBattleData() {
         "stats_meta": { "ev_level": 252 },
         "friendship": { "avs": { "passion": 220, "insight": 180 } }
       },
-      {
-        "name": "Charizard",
-        "lv": 89,
-        "mechanic": "dynamax",
-        "mega_target": "charizardgmax",
-        "ability": "Solar Power",
-        "nature": "Timid",
-        "item": "Heavy-Duty Boots",
-        "moves": ["Heat Wave", "Air Slash", "Solar Beam", "Ancient Power"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 180, "trust": 100 } }
-      },
-      {
-        "name": "Necrozma",
-        "lv": 90,
-        "isAce": true,
-        "ability": "Prism Armor",
-        "nature": "Adamant",
-        "mechanic": "zmove",
-        "item": "Ultranecrozium Z",
-        "moves": ["Photon Geyser", "Poltergeist", "Earthquake", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { 
-            "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 } 
-        }
-      },
-      {
-        "name": "Solgaleo",
-        "lv": 89,
-        "ability": "Full Metal Body",
-        "nature": "Adamant",
-        "item": "Leftovers",
-        "moves": ["Sunsteel Strike", "Psychic Fangs", "Earthquake", "Flare Blitz"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 220, "devotion": 220 } }
-      }
     ],
     "lines": {
       "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
