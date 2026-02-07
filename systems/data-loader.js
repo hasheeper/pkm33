@@ -28,224 +28,127 @@
  */
 function getDefaultBattleData() {
     return {
-    "difficulty": "expert",
-    
-    "player": {
-        "name": "Red (Mechanic Test)",
-        "canMega": true,
-        "party": [
-            {
-                "name": "Charizard",
-                "lv": 100,
-                "gender": "M",
-                "ability": "Solar Power",
-                "nature": "Timid",
-                "item": "Charizardite Y",
-                "isAce": true,
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                "avs": {
-                    "trust": 150,
-                    "passion": 200,
-                    "insight": 100,
-                    "devotion": 50
-                },
-                "moves": ["Flamethrower", "Solar Beam", "Dragon Pulse", "Roost"]
-            },
-            {
-                "name": "Greninja",
-                "lv": 100,
-                "gender": "M",
-                "ability": "Battle Bond",
-                "nature": "Naive",
-                "item": "Waterium Z",
-                "isAce": true,
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                "avs": {
-                    "trust": 120,
-                    "passion": 180,
-                    "insight": 220,
-                    "devotion": 80
-                },
-                "moves": ["Water Shuriken", "Dark Pulse", "Ice Beam", "Hydro Pump"]
-            },
-            {
-                "name": "Serperior",
-                "lv": 100,
-                "gender": "F",
-                "ability": "Contrary",
-                "nature": "Timid",
-                "item": "Leftovers",
-                "isAce": true,
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                 "avs": {
-                    "trust": 100,
-                    "passion": 120,
-                    "insight": 80,
-                    "devotion": 200
-                },
-                "moves": ["Leaf Storm", "Giga Drain", "Glare", "Dragon Pulse"]
-            },
-            {
-                "name": "Incineroar",
-                "lv": 100,
-                "gender": "M",
-                "ability": "Intimidate",
-                "nature": "Careful",
-                "item": "Sitrus Berry",
-                "isAce": true,
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
-                    "ev_level": [252, 0, 100, 0, 156, 0] 
-                },
-                 "avs": {
-                    "trust": 180,
-                    "passion": 80,
-                    "insight": 140,
-                    "devotion": 100
-                },
-                "moves": ["Fake Out", "Parting Shot", "Knock Off", "Flare Blitz"]
-            },
-            {
-                "name": "Mimikyu",
-                "lv": 100,
-                "gender": "F",
-                "ability": "Disguise",
-                "nature": "Jolly",
-                "item": "Life Orb",
-                "isAce": true,
-                "stats_meta": { "ev_level": 252 },
-                 "avs": {
-                    "trust": 80,
-                    "passion": 200,
-                    "insight": 120,
-                    "devotion": 100
-                },
-                "moves": ["Swords Dance", "Play Rough", "Shadow Sneak", "Drain Punch"]
-            },
-            {
-                "name": "Dragapult",
-                "lv": 100,
-                "gender": "M",
-                "ability": "Clear Body",
-                "nature": "Jolly",
-                "item": "Choice Band",
-                "isAce": true,
-                "stats_meta": {
-                    "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
-                    "ev_level": 252
-                },
-                 "avs": {
-                    "trust": 100,
-                    "passion": 150,
-                    "insight": 180,
-                    "devotion": 70
-                },
-                "moves": ["Dragon Darts", "Phantom Force", "U-turn", "Sucker Punch"]
-            }
-        ]
+  "difficulty": "expert",
+  "settings": {
+    "enableAVS": true,
+    "enableCommander": true,
+    "enableBGM": true,
+    "enableSFX": true,
+    "enableClash": false
+  },
+  "player": {
+    "name": "WallBreaker",
+    "trainerProficiency": 220,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_styles": true
     },
-
-    "enemy": {
-        "type": "champion",
-        "name": "Cynthia (Sinnoh Champ)",
-        "id": "cynthia", 
-        "canMega": true,
-        "lines": {
-            "start": "Have you prepared to witness history?",
-            "win": "History remembers the victor.",
-            "lose": "A new legend is born today.",
-            "escape": "Not ready for the truth?"
-        }
-    },
-
-    "enemyParty": [
-        {
-            "name": "Spiritomb",
-            "lv": 100,
-            "gender": "F",
-            "ability": "Pressure",
-            "nature": "Impish",
-            "item": "Leftovers",
-            "stats_meta": {
-                "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                "ev_level": [252, 0, 252, 0, 8, 4]
-            },
-            "moves": ["Sucker Punch", "Shadow Sneak", "Will-O-Wisp", "Rock Tomb"]
-        },
-        {
-            "name": "Garchomp",
-            "lv": 100,
-            "gender": "F",
-            "ability": "Rough Skin",
-            "item": "Garchompite",
-            "nature": "Jolly",
-            "isAce": true,
-            "stats_meta": { "ev_level": 252 },
-             "avs": {
-                "trust": 160,
-                "passion": 160,
-                "insight": 140,
-                "devotion": 140
-            },
-            "moves": ["Earthquake", "Dragon Claw", "Stone Edge", "Swords Dance"],
-            "mega": "active"
-        },
-        {
-            "name": "Milotic",
-            "lv": 100,
-            "gender": "F",
-            "ability": "Marvel Scale",
-            "nature": "Bold",
-            "item": "Flame Orb",
-            "stats_meta": { "ev_level": 252 },
-            "moves": ["Scald", "Ice Beam", "Recover", "Mirror Coat"]
-        },
-        {
-            "name": "Togekiss",
-            "lv": 100,
-            "gender": "F",
-            "ability": "Serene Grace",
-            "nature": "Timid",
-            "item": "Leftovers",
-            "stats_meta": { "ev_level": 252 },
-            "moves": ["Air Slash", "Dazzling Gleam", "Thunder Wave", "Roost"]
-        },
-        {
-            "name": "Roserade",
-            "lv": 100,
-            "gender": "F",
-            "ability": "Technician",
-            "nature": "Timid",
-            "item": "Black Sludge",
-            "stats_meta": { "ev_level": 252 },
-            "moves": ["Sludge Bomb", "Giga Drain", "Magical Leaf", "Spikes"]
-        },
-        {
-            "name": "Lucario",
-            "lv": 100,
-            "gender": "M",
-            "ability": "Justified", 
-            "nature": "Naive",
-            "item": "Life Orb",
-            "stats_meta": { "ev_level": 252 },
-             "avs": {
-                "trust": 0,
-                "passion": 150,
-                "insight": 0,
-                "devotion": 0
-            },
-            "moves": ["Close Combat", "Meteor Mash", "Extreme Speed", "Psychic"]
-        }
+    "party": [
+      {
+        "slot": 1,
+        "name": "Noivern",
+        "nickname": "音波龙(穿透)",
+        "species": "Noivern",
+        "lv": 60,
+        "isLead": true,
+        "ability": "Infiltrator",
+        "item": "Choice Specs",
+        "intro": "专为此局设计：利用特性【穿透】或技能【爆音波】无视替身进行攻击。",
+        "moves": ["Boomburst", "Draco Meteor", "Flamethrower", "U-turn"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "insight": 200 } }
+      },
+      {
+        "slot": 2,
+        "name": "Melmetal",
+        "nickname": "美录(连击)",
+        "species": "Melmetal",
+        "lv": 60,
+        "ability": "Iron Fist",
+        "item": "Assault Vest",
+        "intro": "测试【钢系免疫剧毒】以及【多段攻击(双击)】能否破完替身再打本体。",
+        "moves": ["Double Iron Bash", "Earthquake", "Thunder Punch", "Ice Punch"]
+      },
+      {
+        "slot": 3,
+        "name": "Toxtricity",
+        "nickname": "颤弦(声音)",
+        "species": "Toxtricity",
+        "lv": 60,
+        "item": "Throat Spray",
+        "ability": "Punk Rock",
+        "intro": "测试声音类招式(Boomburst)是否能通过【隔音】之外的方式穿过替身逻辑。",
+        "moves": ["Overdrive", "Boomburst", "Sludge Bomb", "Shift Gear"]
+      }
     ]
+  },
+  "enemy": {
+    "name": "StallMaster",
+    "type": "VETERAN",
+    "trainerProficiency": 255,
+    "unlocks": { "enable_tera": true },
+    "party": [
+      {
+        "name": "Gliscor",
+        "species": "Gliscor",
+        "lv": 60,
+        "nickname": "天蝎王(标杆)",
+        "isLead": true,
+        "gender": "M",
+        "shiny": true,
+        "ability": "Poison Heal",
+        "nature": "Jolly",
+        "item": "Toxic Orb",
+        "isAce": true,
+        "moves": ["Toxic", "Protect", "Substitute", "Earthquake"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { 
+          "avs": { 
+            "devotion": 255, 
+            "trust": 255 
+          } 
+        },
+        "_behavior": "Wait checks: Turn 1 Toxic/Protect -> Turn 2 Sub -> Poison Heal recovery.",
+        "_tips": "AVS设定了满奉献(Devotion)以增加其自动回血/解控概率"
+      },
+      {
+        "name": "Whimsicott",
+        "species": "Whimsicott",
+        "lv": 60,
+        "nickname": "风妖精(恶心)",
+        "ability": "Prankster",
+        "item": "Leftovers",
+        "nature": "Timid",
+        "moves": ["Substitute", "Leech Seed", "Moonblast", "Encore"],
+        "_check": "测试先制(+1)替身和寄生种子"
+      },
+      {
+        "name": "Toxapex",
+        "species": "Toxapex",
+        "lv": 60,
+        "nickname": "超坏星(再生)",
+        "ability": "Regenerator",
+        "item": "Black Sludge",
+        "moves": ["Baneful Bunker", "Recover", "Scald", "Haze"],
+        "_check": "测试专属盾【碉堡】能否让接触它的物理手中毒"
+      },
+      {
+        "name": "Ferrothorn",
+        "species": "Ferrothorn",
+        "lv": 60,
+        "ability": "Iron Barbs",
+        "item": "Rocky Helmet",
+        "moves": ["Leech Seed", "Spikes", "Protect", "Gyro Ball"],
+        "_check": "纯粹的反伤与种子消耗"
+      }
+    ],
+    "lines": {
+      "start": "不论你的拳头有多重，打不到本体就没有意义！",
+      "win": "看来你的耐心还是不够啊，这是时间的胜利。",
+      "lose": "竟然...直接穿透了我的防线！？音波和穿透竟然是替身的克星！"
+    }
+  }
 }
 
 

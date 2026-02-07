@@ -123,8 +123,8 @@ export async function executePlayerTurn(p, e, move) {
             log(`<span style="color:#e67e22">${check.msg}</span>`);
         }
         if (!check.can) {
-            // 【关键】无法行动时，同命状态保留！
-            console.log(`[DESTINY BOND] ${p.cnName} 无法行动，同命状态保留`);
+            // 【关键】无法行动时，同命/怨恨等状态保留！
+            console.log(`[STATUS BLOCK] ${p.cnName} 无法行动 (${check.msg || '未知原因'})，同命等状态保留`);
             await wait(500);
             return { pivot: false };
         }
@@ -346,8 +346,8 @@ export async function executeEnemyTurn(e, p, move) {
             log(`<span style="color:#e67e22">${check.msg}</span>`);
         }
         if (!check.can) {
-            // 【关键】无法行动时，同命状态保留！
-            console.log(`[DESTINY BOND] ${e.cnName} 无法行动，同命状态保留`);
+            // 【关键】无法行动时，同命/怨恨等状态保留！
+            console.log(`[STATUS BLOCK] ${e.cnName} 无法行动 (${check.msg || '未知原因'})，同命等状态保留`);
             return { pivot: false };
         }
     }

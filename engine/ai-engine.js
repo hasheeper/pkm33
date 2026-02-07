@@ -993,34 +993,47 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
     const myHp = aiPoke.currHp;
     const myMaxHp = aiPoke.maxHp;
     
-    // 如果处于危险，不要强化，直接打
-    if (threatAssessment.amIInDanger) {
-        console.log('[AI] amIInDanger=true, skipping strategic moves');
-        return null;
-    }
-    
-    // 关键修复：如果下回合必死且对方速度快，绝对不要用强化技
-    // 这是最后的安全网，防止 AI 自杀式剑舞
-    if (threatAssessment.willDieNextTurn && threatAssessment.playerFaster) {
-        console.log('[AI] Will die next turn to faster opponent, skipping strategic moves');
-        return null;
-    }
-    
-    // 【新增】2HKO 检查：如果对方能两回合击杀且速度更快，不要强化
-    // 这防止了"满血剑舞被秒"的自杀行为
+    // 【重构】危险判定只跳过强化(setup)，不跳过回复和状态技能
+    // 防御型宝可梦（如超坏星）在被 2HKO 时仍然需要回复和下毒
     const canBe2HKOd = threatAssessment.maxIncomingDmg * 2 >= myHp;
-    if (canBe2HKOd && threatAssessment.playerFaster) {
-        console.log(`[AI] Can be 2HKO'd by faster opponent (${threatAssessment.maxIncomingDmg}x2 >= ${myHp}), skipping strategic moves`);
-        return null;
+    const skipSetup = threatAssessment.amIInDanger || 
+                      (threatAssessment.willDieNextTurn && threatAssessment.playerFaster) ||
+                      (canBe2HKOd && threatAssessment.playerFaster);
+    
+    if (skipSetup) {
+        console.log(`[AI] Danger detected, skipping SETUP moves only (heal/status still allowed)`);
     }
     
     // 【新增】属性克制检查：如果对方有 2 倍克制技能且速度更快，不要强化
+    let skipSetupDueToType = false;
     if (threatAssessment.worstMoveType && threatAssessment.playerFaster) {
         const eff = getTypeEffectivenessAI(threatAssessment.worstMoveType, aiPoke.types || ['Normal']);
         if (eff >= 2) {
-            console.log(`[AI] Weak to ${threatAssessment.worstMoveType} (${eff}x) and slower, skipping strategic moves`);
-            return null;
+            skipSetupDueToType = true;
+            console.log(`[AI] Weak to ${threatAssessment.worstMoveType} (${eff}x) and slower, skipping setup`);
         }
+    }
+    
+    // 【新增】连续回复惩罚：连续使用回复技能时大幅降低评分
+    const lastMove = aiPoke.lastMoveUsed || '';
+    const lastMoveId = lastMove.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const lastMoveData = (typeof MOVES !== 'undefined' && MOVES[lastMoveId]) ? MOVES[lastMoveId] : {};
+    const lastMoveWasHeal = (lastMoveData.heal || (lastMoveData.flags && lastMoveData.flags.heal)) && 
+                            (lastMoveData.target === 'self' || lastMoveData.target === 'adjacentAllyOrSelf');
+    
+    // 【新增】计算 AI 最大输出伤害，用于判断是否为"低输出"型（stall）
+    let maxDmgToPlayer = 0;
+    for (const m of aiPoke.moves) {
+        const mMerged = getMergedMoveData(m);
+        const cat = (mMerged.cat || mMerged.category || '').toLowerCase();
+        if (cat !== 'status' && (mMerged.basePower || mMerged.power || 0) > 0) {
+            const dmg = simulateDamage(aiPoke, playerPoke, mMerged);
+            if (dmg.damage > maxDmgToPlayer) maxDmgToPlayer = dmg.damage;
+        }
+    }
+    const isLowDamageOutput = maxDmgToPlayer < playerPoke.maxHp * 0.15;
+    if (isLowDamageOutput) {
+        console.log(`[AI STALL] ${aiPoke.cnName} 输出极低 (最高${maxDmgToPlayer} vs ${playerPoke.maxHp}HP)，优先状态消耗`);
     }
     
     let bestStrategicMove = null;
@@ -1041,7 +1054,7 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
         // 检测是否是自身强化技能
         const isSelfBoost = boosts && ['self', 'allySide', 'adjacentAllyOrSelf'].includes(target);
         
-        if (isSelfBoost) {
+        if (isSelfBoost && !skipSetup && !skipSetupDueToType) {
             // 【关键修复】检查所有正面强化是否已满级 (+6)
             const currentBoosts = aiPoke.boosts || {};
             let anyBoostMaxed = false;
@@ -1087,15 +1100,68 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
         }
         
         // === 回复技能 === 【软编码】使用 PS 的 heal 字段
+        // 【重构】回复技能不受 skipSetup 限制，防御型宝可梦需要回复
         const moveHealData = moveData.heal || (moveData.flags && moveData.flags.heal);
         const isSelfHeal = moveHealData && (target === 'self' || target === 'adjacentAllyOrSelf');
         if (isSelfHeal) {
-            if (myHpPercent < 0.4) {
+            if (myHpPercent >= 0.95) {
+                // 满血绝对不回血
+                score = 0;
+            } else if (myHpPercent < 0.4) {
                 score = 200;
                 reasoning = 'Critical heal';
             } else if (myHpPercent < 0.6) {
                 score = 100;
                 reasoning = 'Preventive heal';
+            } else if (myHpPercent < 0.75) {
+                score = 50;
+                reasoning = 'Light heal';
+            }
+            
+            // 【关键修复】连续回复惩罚：上回合也用了回复技能，大幅降分
+            // 这防止了 Recover 无限循环的"沙袋"行为
+            if (score > 0 && lastMoveWasHeal) {
+                const penalty = Math.floor(score * 0.6); // 扣掉 60% 分数
+                score -= penalty;
+                console.log(`[AI HEAL PENALTY] ${moveName} 连续回复惩罚: -${penalty} (${score})`);
+                reasoning = 'Consecutive heal (penalized)';
+            }
+        }
+        
+        // === 守住类技能 === 【毒保替战术核心】
+        // 当对手已中毒/灼伤时，守住可以白赚一回合伤害
+        const isProtectLike = moveData.stallingMove === true;
+        if (isProtectLike) {
+            const lastMoveIsProtect = ['Protect', 'Detect', 'Spiky Shield', "King's Shield", 
+                'Baneful Bunker', 'Obstruct', 'Silk Trap', 'Burning Bulwark', 'Endure'].includes(lastMove);
+            if (!lastMoveIsProtect) {
+                // 对手有持续伤害状态时，守住价值极高
+                if (playerPoke.status === 'tox' || playerPoke.status === 'psn' || playerPoke.status === 'brn') {
+                    score = 160;
+                    reasoning = 'Stall protect (opponent has status)';
+                    console.log(`[AI STALL] ${aiPoke.cnName} 守住消耗: 对手有 ${playerPoke.status}`);
+                }
+                // 对手有寄生种子时也值得守住
+                if (playerPoke.volatile && playerPoke.volatile.leechseed) {
+                    score = Math.max(score, 140);
+                    reasoning = 'Stall protect (leech seed active)';
+                }
+            }
+        }
+        
+        // === 替身 === 【毒保替战术核心】
+        if (moveName === 'Substitute') {
+            const hasSubstitute = aiPoke.volatile && aiPoke.volatile.substitute;
+            if (!hasSubstitute && myHpPercent > 0.3) {
+                // 对手已中毒时，替身价值极高（拖时间）
+                if (playerPoke.status === 'tox' || playerPoke.status === 'psn') {
+                    score = 150;
+                    reasoning = 'Stall substitute (opponent poisoned)';
+                    console.log(`[AI STALL] ${aiPoke.cnName} 替身消耗: 对手已中毒`);
+                } else if (myHpPercent > 0.5) {
+                    score = 60;
+                    reasoning = 'Substitute setup';
+                }
             }
         }
         
@@ -1130,6 +1196,12 @@ function evaluateStrategicMoves(aiPoke, playerPoke, threatAssessment) {
             } else if (moveStatusEffect === 'psn' || moveStatusEffect === 'tox') {
                 score = 90;
                 reasoning = 'Chip damage';
+                // 【毒保替战术】低输出型宝可梦大幅提升剧毒优先级
+                if (isLowDamageOutput) {
+                    score = 250;
+                    reasoning = 'Stall toxic (low damage output)';
+                    console.log(`[AI STALL] ${aiPoke.cnName} 优先下毒: 输出不足以击杀`);
+                }
             }
         }
         
@@ -2740,6 +2812,21 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             } else {
                 statusScore = -100; // 血量健康时不应该回血
             }
+            
+            // 【关键修复】连续回复惩罚：上回合也用了回复技能，大幅降分
+            // 防止 Recover/Soft-Boiled 无限循环
+            if (statusScore > 0) {
+                const lastUsed = attacker.lastMoveUsed || '';
+                const lastUsedId = lastUsed.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const lastUsedData = (typeof MOVES !== 'undefined' && MOVES[lastUsedId]) ? MOVES[lastUsedId] : {};
+                const lastWasHeal = (lastUsedData.heal || (lastUsedData.flags && lastUsedData.flags.heal)) && 
+                                    (lastUsedData.target === 'self' || lastUsedData.target === 'adjacentAllyOrSelf');
+                if (lastWasHeal) {
+                    const penalty = Math.floor(statusScore * 0.6);
+                    statusScore -= penalty;
+                    console.log(`[AI HEAL PENALTY] ${moveName} 连续回复惩罚(fallback): -${penalty} -> ${statusScore}`);
+                }
+            }
         }
         
         // 【新增】反伤技能预测评分 (Mirror Coat / Counter / Metal Burst)
@@ -3375,6 +3462,38 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
             // Parting Shot 特殊加分（降对手能力）
             if (moveName === 'Parting Shot') {
                 score += 500;
+            }
+        }
+    }
+
+    // =========================================================
+    // 【新增】攻击技能附带状态效果加分 (Secondary Effect Bonus)
+    // Scald 30% 烧伤、Thunderbolt 10% 麻痹等
+    // 对于低输出型宝可梦（stall），这些附带效果是核心输出手段
+    // =========================================================
+    if (!defender.status) {
+        const secondary = fullMoveData.secondary || null;
+        const secondaries = fullMoveData.secondaries || null;
+        
+        // 检查 secondary.status（如 Scald: { chance: 30, status: 'brn' }）
+        if (secondary && secondary.status && secondary.chance) {
+            const statusBonus = secondary.chance * 1.5; // 30% burn = +45
+            score += statusBonus;
+            // 对手是物理手且可能烧伤时，额外加分
+            if (secondary.status === 'brn' && defender.atk > defender.spa) {
+                score += secondary.chance * 2; // 30% burn vs physical = +60 extra
+            }
+        }
+        
+        // 检查 secondaries 数组
+        if (secondaries && Array.isArray(secondaries)) {
+            for (const sec of secondaries) {
+                if (sec.status && sec.chance) {
+                    score += sec.chance * 1.5;
+                    if (sec.status === 'brn' && defender.atk > defender.spa) {
+                        score += sec.chance * 2;
+                    }
+                }
             }
         }
     }
