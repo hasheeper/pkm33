@@ -32,121 +32,127 @@ function getDefaultBattleData() {
   "settings": {
     "enableAVS": true,
     "enableCommander": true,
+    "enableEVO": false,
     "enableBGM": true,
     "enableSFX": true,
     "enableClash": false
   },
   "player": {
-    "name": "WallBreaker",
-    "trainerProficiency": 220,
+    "name": "DirtyPlayer",
+    "trainerProficiency": 200,
     "unlocks": {
       "enable_mega": true,
       "enable_z_move": true,
-      "enable_styles": true
+      "enable_styles": true,
+      "enable_tera": true
     },
     "party": [
       {
         "slot": 1,
-        "name": "Noivern",
-        "nickname": "音波龙(穿透)",
-        "species": "Noivern",
-        "lv": 60,
+        "name": "Gliscor",
+        "nickname": "天蝎王(永动)",
+        "species": "Gliscor",
+        "lv": 65,
         "isLead": true,
-        "ability": "Infiltrator",
-        "item": "Choice Specs",
-        "intro": "专为此局设计：利用特性【穿透】或技能【爆音波】无视替身进行攻击。",
-        "moves": ["Boomburst", "Draco Meteor", "Flamethrower", "U-turn"],
+        "isAce": true,
+        "gender": "M",
+        "shiny": true,
+        "ability": "Poison Heal",
+        "item": "Toxic Orb",
+        "nature": "Jolly",
+        "intro": "【操作指引】T1: 替身/剧毒 -> T2: 守住(蹭回合) -> T3: 地震(打钢系)或循环。",
+        "moves": ["Substitute", "Toxic", "Protect", "Earthquake"],
         "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "insight": 200 } }
+        "friendship": { "avs": { "devotion": 255, "trust": 200 } }
       },
       {
         "slot": 2,
-        "name": "Melmetal",
-        "nickname": "美录(连击)",
-        "species": "Melmetal",
-        "lv": 60,
-        "ability": "Iron Fist",
-        "item": "Assault Vest",
-        "intro": "测试【钢系免疫剧毒】以及【多段攻击(双击)】能否破完替身再打本体。",
-        "moves": ["Double Iron Bash", "Earthquake", "Thunder Punch", "Ice Punch"]
+        "name": "Whimsicott",
+        "nickname": "风妖精(恶作剧)",
+        "species": "Whimsicott",
+        "lv": 65,
+        "ability": "Prankster",
+        "item": "Leftovers",
+        "nature": "Timid",
+        "intro": "【机制测试】你的<寄生种子>和<替身>应该总是先手(优先度+1)。AI如果换人会被种子吸血。",
+        "moves": ["Leech Seed", "Substitute", "Moonblast", "Encore"],
+        "stats_meta": { "ev_level": 252 }
       },
       {
         "slot": 3,
-        "name": "Toxtricity",
-        "nickname": "颤弦(声音)",
-        "species": "Toxtricity",
-        "lv": 60,
-        "item": "Throat Spray",
-        "ability": "Punk Rock",
-        "intro": "测试声音类招式(Boomburst)是否能通过【隔音】之外的方式穿过替身逻辑。",
-        "moves": ["Overdrive", "Boomburst", "Sludge Bomb", "Shift Gear"]
+        "name": "Toxapex",
+        "nickname": "超坏星(再生力)",
+        "species": "Toxapex",
+        "lv": 65,
+        "ability": "Regenerator",
+        "item": "Black Sludge",
+        "moves": ["Scald", "Haze", "Recover", "Baneful Bunker"],
+        "_check": "测试【再生力】, 换人下场应回复1/3 HP。"
+      },
+      {
+        "slot": 4,
+        "name": "Chansey",
+        "nickname": "吉利蛋(进化奇石)",
+        "species": "Chansey",
+        "lv": 65,
+        "ability": "Natural Cure",
+        "item": "Eviolite",
+        "moves": ["Seismic Toss", "Soft-Boiled", "Heal Bell", "Stealth Rock"],
+        "_check": "纯数值肉盾，测试进化奇石硬度。"
       }
     ]
   },
   "enemy": {
-    "name": "StallMaster",
-    "type": "VETERAN",
-    "trainerProficiency": 255,
-    "unlocks": { "enable_tera": true },
+    "name": "StallBreaker",
+    "type": "ACE_TRAINER",
+    "trainerProficiency": 250,
+    "unlocks": { "enable_mega": true, "enable_tera": true },
     "party": [
       {
-        "name": "Gliscor",
-        "species": "Gliscor",
-        "lv": 60,
-        "nickname": "天蝎王(标杆)",
+        "name": "Grimmsnarl",
+        "species": "Grimmsnarl",
+        "lv": 66,
         "isLead": true,
-        "gender": "M",
-        "shiny": true,
-        "ability": "Poison Heal",
-        "nature": "Jolly",
-        "item": "Toxic Orb",
-        "isAce": true,
-        "moves": ["Toxic", "Protect", "Substitute", "Earthquake"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { 
-          "avs": { 
-            "devotion": 255, 
-            "trust": 255 
-          } 
-        },
-        "_behavior": "Wait checks: Turn 1 Toxic/Protect -> Turn 2 Sub -> Poison Heal recovery.",
-        "_tips": "AVS设定了满奉献(Devotion)以增加其自动回血/解控概率"
-      },
-      {
-        "name": "Whimsicott",
-        "species": "Whimsicott",
-        "lv": 60,
-        "nickname": "风妖精(恶心)",
         "ability": "Prankster",
-        "item": "Leftovers",
-        "nature": "Timid",
-        "moves": ["Substitute", "Leech Seed", "Moonblast", "Encore"],
-        "_check": "测试先制(+1)替身和寄生种子"
+        "item": "Light Clay",
+        "moves": ["Taunt", "Spirit Break", "Reflect", "Thunder Wave"],
+        "_ai_logic": "Opening with Taunt to stop Player's Toxic/Substitute.",
+        "_intro": "小心：它有先手【挑衅】，如果你第一回合点变化技会直接失败！"
       },
       {
-        "name": "Toxapex",
-        "species": "Toxapex",
-        "lv": 60,
-        "nickname": "超坏星(再生)",
-        "ability": "Regenerator",
-        "item": "Black Sludge",
-        "moves": ["Baneful Bunker", "Recover", "Scald", "Haze"],
-        "_check": "测试专属盾【碉堡】能否让接触它的物理手中毒"
+        "name": "Gholdengo",
+        "species": "Gholdengo",
+        "lv": 66,
+        "ability": "Good as Gold",
+        "item": "Choice Specs",
+        "mechanic": "tera",
+        "teraType": "Steel",
+        "moves": ["Make It Rain", "Shadow Ball", "Nasty Plot", "Trick"],
+        "_intro": "【黄金之躯】免疫你的剧毒和寄生种子。"
       },
       {
-        "name": "Ferrothorn",
-        "species": "Ferrothorn",
-        "lv": 60,
-        "ability": "Iron Barbs",
-        "item": "Rocky Helmet",
-        "moves": ["Leech Seed", "Spikes", "Protect", "Gyro Ball"],
-        "_check": "纯粹的反伤与种子消耗"
+        "name": "Ursaluna",
+        "species": "Ursaluna",
+        "lv": 66,
+        "ability": "Guts",
+        "item": "Flame Orb",
+        "moves": ["Facade", "Headlong Rush", "Fire Punch", "Swords Dance"],
+        "_intro": "毅力特性。如果你对它用剧毒，它的攻击力会翻倍(x1.5)，反而变得更强！不要对它用剧毒！"
+      },
+      {
+        "name": "Dragapult",
+        "species": "Dragapult",
+        "lv": 67,
+        "isAce": true,
+        "ability": "Infiltrator",
+        "moves": ["Dragon Darts", "Hex", "U-turn", "Will-O-Wisp"],
+        "_intro": "【穿透】特性无视你的替身直接攻击本体。"
       }
     ],
     "lines": {
-      "start": "不论你的拳头有多重，打不到本体就没有意义！",
-      "win": "看来你的耐心还是不够啊，这是时间的胜利。",
-      "lose": "竟然...直接穿透了我的防线！？音波和穿透竟然是替身的克星！"
+      "start": "想用消耗战术？我的队伍可是专门为了拆墙而生的！",
+      "win": "你的替身纸糊一样脆弱。",
+      "lose": "可恶……根本碰不到本体……这种战术太赖皮了！"
     }
   }
 }

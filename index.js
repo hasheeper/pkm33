@@ -2356,9 +2356,9 @@ async function handleAttack(moveIndex, options = {}) {
     // === 计算行动顺序 (Priority + Speed) ===
     // 注意：Gen7+ 规则，Mega 进化后速度立即生效
     const playerPriority = typeof window.getMovePriority === 'function' 
-        ? window.getMovePriority(playerMove) : 0;
+        ? window.getMovePriority(playerMove, p, e) : 0;
     const enemyPriority = typeof window.getMovePriority === 'function' 
-        ? window.getMovePriority(enemyMove) : 0;
+        ? window.getMovePriority(enemyMove, e, p) : 0;
     
     let playerFirst = true;
     if (playerPriority !== enemyPriority) {

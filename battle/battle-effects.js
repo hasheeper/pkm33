@@ -837,6 +837,9 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                     logs.push(`${target.cnName} ${statusText}`);
                 }
             }
+        } else {
+            // 【修复】目标已有状态时，显示失败消息而不是静默跳过
+            logs.push(`${target.cnName} 已经处于异常状态，无法再施加新的状态!`);
         }
     }
     

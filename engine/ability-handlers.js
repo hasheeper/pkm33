@@ -2146,7 +2146,18 @@ export const AbilityHandlers = {
     // 【钩子统一】onTryHit: (attacker, defender, move, effectiveness)
     'Good as Gold': {
         onTryHit: (attacker, defender, move, effectiveness) => {
+            // 【修复】只阻止"以黄金之躯持有者为目标"的变化招式
+            // 自身使用的变化招式（替身、剑舞等 target='self'）不应被阻止
             if (move.cat === 'status' || move.category === 'Status') {
+                // 从 moves-data.js 读取招式目标类型
+                const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const fullData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+                const moveTarget = move.target || fullData.target || 'normal';
+                // 自我/队友目标的招式不受黄金之躯影响
+                const selfTargets = ['self', 'allySide', 'adjacentAllyOrSelf', 'allyTeam', 'allies', 'adjacentAlly'];
+                if (selfTargets.includes(moveTarget)) {
+                    return { blocked: false };
+                }
                 return { blocked: true, message: `${defender.cnName} 的黄金之躯免疫了变化招式！` };
             }
             return { blocked: false };

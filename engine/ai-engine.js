@@ -1309,6 +1309,10 @@ function simulateDamage(attacker, defender, move) {
     // 【关键修复】前置免疫检查：确保 AI 不会选择对目标无效的招式
     // 这是最高优先级的检查，必须在任何伤害计算之前执行
     
+    // 【修复】变化技不做属性克制预检查（替身、守住、剧毒等不受属性克制影响）
+    const moveCategory = (move.cat || move.category || '').toLowerCase();
+    const isMoveStatus = moveCategory === 'status' || (move.basePower === 0 && move.power === 0);
+    
     // 【重要】考虑皮肤系特性的属性转换 (Galvanize, Pixilate, Aerilate, Refrigerate)
     let moveType = move.type || 'Normal';
     if (typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability]) {
@@ -1322,11 +1326,14 @@ function simulateDamage(attacker, defender, move) {
         }
     }
     
-    const defenderTypes = defender.types || ['Normal'];
-    const preCheckEff = getTypeEffectivenessAI(moveType, defenderTypes, move.name || '');
-    if (preCheckEff === 0) {
-        console.log(`[AI SIMULATE] ${move.name} (${moveType}) 对 ${defenderTypes.join('/')} 无效，跳过`);
-        return { damage: 0, effectiveness: 0 };
+    // 只对攻击技做属性克制预检查，变化技跳过
+    if (!isMoveStatus) {
+        const defenderTypes = defender.types || ['Normal'];
+        const preCheckEff = getTypeEffectivenessAI(moveType, defenderTypes, move.name || '');
+        if (preCheckEff === 0) {
+            console.log(`[AI SIMULATE] ${move.name} (${moveType}) 对 ${defenderTypes.join('/')} 无效，跳过`);
+            return { damage: 0, effectiveness: 0 };
+        }
     }
     
     // 如果有全局 calcDamage 函数，使用它
