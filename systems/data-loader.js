@@ -27,8 +27,93 @@
  * - z_move_config: { base_move, target_move, is_unique }
  */
 function getDefaultBattleData() {
-    return {"settings":{"enableAVS":true,"enableCommander":true,"enableEVO":true,"enableBGM":true,"enableSFX":true,"enableClash":false,"enableEnvironment":true},"difficulty":"hard","player":{"name":"player","trainerProficiency":36,"party":[{"slot":1,"name":"Latias","nickname":null,"species":null,"gender":"F","lv":32,"quality":"perfect","nature":"Timid","ability":null,"shiny":false,"item":"Soul Dew","mechanic":null,"teraType":null,"isAce":true,"isLead":false,"moves":["Confusion","Dragon Breath","Recover","Charm"],"stats_meta":{"ivs":{"hp":31,"atk":31,"def":31,"spa":31,"spd":31,"spe":31},"ev_level":90,"ev_up":0},"notes":null,"avs":{"trust":101,"passion":50,"insight":37,"devotion":73}}],"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"enemy":{"id":"Marnie","type":"trainer","name":"Marnie","trainerProficiency":0,"lines":{"start":"手加減はせんよ。この街の『洗礼』、受けてみんしゃい！ (不会手下留情的哦。这条街的『洗礼』，就来领受看看吧！)","win":"まだまだ『芯』が柔かかね。出直してきんしゃい。 (『内核』还太软了呢。重新练过再来吧。)","lose":"……っ！ その目……エール団の誰より強かばい。 (……唔！ 那个眼神……比呐喊队的任何人都要强韧。)","escape":"逃げ足だけは一丁前やね……。 (只有逃跑的功夫倒是挺在行的嘛……。)"},"unlocks":{"enable_bond":false,"enable_styles":false,"enable_insight":false,"enable_mega":false,"enable_z_move":false,"enable_dynamax":false,"enable_tera":false,"enable_proficiency_cap":false}},"party":[{"name":"Grimmsnarl","gender":"M","lv":38,"nature":"Mild","ability":"Prankster","shiny":false,"item":"Light Clay","mechanic":null,"teraType":null,"stats_meta":{"ivs":{"hp":1,"atk":9,"def":14,"spa":4,"spd":11,"spe":10},"ev_level":11},"moves":["Spirit Break","Reflect","Light Screen","Sucker Punch"],"mega":null,"avs":{"trust":0,"passion":0,"insight":0,"devotion":0}}],"script":null,"environment":{"weather":"rain","weatherTurns":0,"overlay":{"env_name":"Spikemuth Altar (尖钉祭坛)","narrative":"冰冷的海风夹杂着铁锈味，这里的空气偏袒着黑暗中的居民...","rules":[{"target":"Type:Dark","eff":["Def:1.1","SpD:1.1"]},{"target":"MoveType:Sound","eff":["Dmg:0.8"]}]},"suppression":{"suppressed":["sandstorm","snow"]}}}
-
+    return {
+  "player": {
+    "name": "测试玩家",
+    "trainerProficiency": 100,
+    "party": [
+      {
+        "name": "Excadrill",
+        "lv": 100,
+        "gender": "M",
+        "nature": "Jolly",
+        "ability": "Sand Force",
+        "item": "Life Orb",
+        "isAce": false,
+        "isLead": true,
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 } },
+        "moves": ["Earthquake", "Iron Head", "Rock Slide", "Swords Dance"]
+      },
+      {
+        "name": "Hippowdon",
+        "lv": 100,
+        "gender": "M",
+        "nature": "Impish",
+        "ability": "Sand Stream",
+        "item": "Leftovers",
+        "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 } },
+        "moves": ["Earthquake", "Stone Edge", "Slack Off", "Stealth Rock"]
+      }
+    ],
+    "unlocks": {
+      "enable_bond": true,
+      "enable_styles": false,
+      "enable_insight": false,
+      "enable_mega": false,
+      "enable_z_move": false,
+      "enable_dynamax": false,
+      "enable_tera": false
+    }
+  },
+  "enemy": {
+    "id": "cynthia_sand",
+    "type": "trainer",
+    "name": "竹兰 (沙暴)",
+    "trainerProficiency": 100,
+    "lines": { "intro": "沙暴中的战斗，才是真正的考验！" }
+  },
+  "party": [
+    {
+      "name": "Garchomp",
+      "lv": 100,
+      "gender": "F",
+      "nature": "Jolly",
+      "ability": "Sand Force",
+      "item": "Choice Band",
+      "isLead": true,
+      "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 } },
+      "moves": ["Earthquake", "Dragon Claw", "Stone Edge", "Iron Head"]
+    },
+    {
+      "name": "Tyranitar",
+      "lv": 100,
+      "gender": "M",
+      "nature": "Adamant",
+      "ability": "Sand Stream",
+      "item": "Assault Vest",
+      "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 10, "spd": 31, "spe": 31 } },
+      "moves": ["Stone Edge", "Crunch", "Earthquake", "Ice Punch"]
+    },
+    {
+      "name": "Gastrodon",
+      "lv": 100,
+      "gender": "F",
+      "nature": "Bold",
+      "ability": "Storm Drain",
+      "item": "Leftovers",
+      "stats_meta": { "ev_level": 252, "ivs": { "hp": 31, "atk": 10, "def": 31, "spa": 31, "spd": 31, "spe": 31 } },
+      "moves": ["Scald", "Earth Power", "Recover", "Toxic"]
+    }
+  ],
+  "environment": {
+    "weather": "sandstorm",
+    "weatherTurns": 0
+  },
+  "settings": {
+    "enableAVS": false,
+    "enableEnvironment": false
+  }
+}
 
 }
 

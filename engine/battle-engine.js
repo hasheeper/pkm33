@@ -1209,6 +1209,12 @@ export function checkCanMove(pokemon, move = null) {
             delete pokemon.volatile.underwater;
             delete pokemon.volatile.shadow;
         }
+        // 播放畏缩 VFX
+        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+            const b = window.battle;
+            const isPlayer = b && b.playerParty && b.playerParty.includes(pokemon);
+            window.BattleVFX.triggerStatusVFX('FLINCH', isPlayer ? 'player-sprite' : 'enemy-sprite');
+        }
         return { can: false, msg: `${pokemon.cnName} 因为畏缩而无法动弹!` };
     }
     
@@ -1226,6 +1232,12 @@ export function checkCanMove(pokemon, move = null) {
             delete pokemon.volatile.underground;
             delete pokemon.volatile.underwater;
             delete pokemon.volatile.shadow;
+        }
+        // 播放睡眠 VFX
+        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+            const b = window.battle;
+            const isPlayer = b && b.playerParty && b.playerParty.includes(pokemon);
+            window.BattleVFX.triggerStatusVFX('SLP', isPlayer ? 'player-sprite' : 'enemy-sprite');
         }
         return { can: false, msg: `${pokemon.cnName} 正在熟睡中...` };
     }

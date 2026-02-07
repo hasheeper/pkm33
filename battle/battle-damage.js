@@ -25,6 +25,7 @@
  * @returns {Object} 伤害结果
  */
 export function applyDamage(attacker, defender, move, spriteIdRef) {
+  try {
     const battle = window.battle;
     
     // === 关键修复：在计算伤害前检查 onUse（如 Fake Out 首回合限制） ===
@@ -102,6 +103,16 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
     // 0. 处理特性免疫 (飘浮、避雷针等)
     if (result.abilityImmune) {
         log(`<b style='color:#9b59b6'>${defender.cnName} 的 ${result.abilityImmune} 吸收/免疫了攻击!</b>`);
+        // 【修复】触发 onAbsorbHit 钩子（引火威力提升、蓄水/蓄电/电气引擎回复等）
+        if (typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
+            const ahDef = AbilityHandlers[defender.ability];
+            if (ahDef.onAbsorbHit) {
+                let absorbLogs = [];
+                ahDef.onAbsorbHit(defender, move, absorbLogs);
+                absorbLogs.forEach(txt => log(txt));
+                updateAllVisuals();
+            }
+        }
         return result;
     }
     
@@ -576,6 +587,16 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             log(`造成了 ${shownDamage} 伤害 ${infoStr}`);
         }
         
+        // 【修复】onAfterDamage 钩子 (Magician 魔术师等 - 攻击后偷取道具)
+        if (actualDamage > 0 && attacker.isAlive() && typeof AbilityHandlers !== 'undefined' && attacker.ability) {
+            const afterDmgHandler = AbilityHandlers[attacker.ability];
+            if (afterDmgHandler && afterDmgHandler.onAfterDamage) {
+                let afterDmgLogs = [];
+                afterDmgHandler.onAfterDamage(attacker, defender, actualDamage, move, afterDmgLogs);
+                afterDmgLogs.forEach(txt => log(txt));
+            }
+        }
+        
         // 【贝壳之铃 Shell Bell】造成伤害后回复 1/8 HP
         if (actualDamage > 0 && attacker.isAlive() && typeof ItemEffects !== 'undefined' && ItemEffects.checkShellBell) {
             let shellBellLogs = [];
@@ -639,6 +660,10 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         }
         result.pivot = false;
         return result;
+    } else if (result.damage === 0 && move.power > 0) {
+        // 【安全兜底】攻击技伤害为0但不是免疫 — 不应该发生，输出诊断日志
+        console.warn(`[applyDamage] ⚠️ 攻击技伤害为0！move=${move.name} power=${move.power} eff=${result.effectiveness} error=${result.error}`);
+        log(`<span style="color:#95a5a6">但是没有造成伤害...</span>`);
     }
     
     // IV. 触发副作用
@@ -724,6 +749,12 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
     result.pivot = pivotTriggered;
     result.phaze = phazeTriggered;
     return result;
+
+  } catch (err) {
+    console.error(`[applyDamage CRASH] ${attacker?.cnName} -> ${defender?.cnName} 使用 ${move?.name}:`, err);
+    log(`<span style="color:#e74c3c">⚠️ 伤害计算出错: ${err.message}</span>`);
+    return { damage: 0, effectiveness: 1, isCrit: false, miss: false, hitCount: 0, error: true };
+  }
 }
 
 /**

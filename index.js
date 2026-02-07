@@ -364,9 +364,10 @@ async function initGame() {
     
     // === 环境天气初始化 (地图模块接口) ===
     // 在入场特性之前触发，宝可梦特性可以覆盖环境天气
-    // 受 settings.enableEnvironment 开关控制
+    // 【修复】天气是核心战斗机制，不受 enableEnvironment 开关控制
+    // enableEnvironment 只控制环境图层(overlay)系统
     const enableEnv = window.GAME_SETTINGS && window.GAME_SETTINGS.enableEnvironment;
-    if (enableEnv && json.environment && json.environment.weather && json.environment.weather !== 'none') {
+    if (json.environment && json.environment.weather && json.environment.weather !== 'none') {
         const envWeather = json.environment.weather;
         const envTurns = json.environment.weatherTurns || 0;
         const suppressionTier = json.environment.suppressionTier || 1;

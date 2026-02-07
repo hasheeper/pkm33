@@ -2013,6 +2013,80 @@ body {
     100% { transform: translateY(-20px) scale(1.0); opacity: 0; }
 }
 
+/* ---- 睡眠 SLP：月亮+Zzz 浮起渐隐 ---- */
+.vfx-status-slp {
+    animation: float-sleep 1.5s ease-in-out forwards !important;
+}
+.vfx-status-slp svg {
+    width: 100%;
+    height: 100%;
+}
+@keyframes float-sleep {
+    0%   { transform: translateY(10px) scale(0.5); opacity: 0; }
+    20%  { transform: translateY(0) scale(1.2); opacity: 1; }
+    50%  { transform: translateY(-15px) scale(1.0); opacity: 1; }
+    80%  { transform: translateY(-30px) scale(0.9); opacity: 0.6; }
+    100% { transform: translateY(-45px) scale(0.8); opacity: 0; }
+}
+@keyframes sleep-dim {
+    0%   { filter: brightness(1); transform: translateY(0); }
+    30%  { filter: brightness(0.6) saturate(0.5); transform: translateY(3px); }
+    70%  { filter: brightness(0.6) saturate(0.5); transform: translateY(3px); }
+    100% { filter: brightness(1); transform: translateY(0); }
+}
+
+/* ---- 混乱 CNF：超能力星星旋转 ---- */
+.vfx-status-cnf {
+    animation: spin-confuse 1.2s ease-in-out forwards !important;
+}
+.vfx-status-cnf svg {
+    width: 100%;
+    height: 100%;
+}
+@keyframes spin-confuse {
+    0%   { transform: translateY(10px) rotate(0deg) scale(0); opacity: 0; }
+    25%  { transform: translateY(-5px) rotate(120deg) scale(1.3); opacity: 1; }
+    50%  { transform: translateY(-10px) rotate(240deg) scale(1.0); opacity: 1; }
+    75%  { transform: translateY(-15px) rotate(360deg) scale(1.1); opacity: 0.8; }
+    100% { transform: translateY(-25px) rotate(480deg) scale(0.8); opacity: 0; }
+}
+@keyframes confuse-wobble {
+    0%   { transform: rotate(0deg); }
+    15%  { transform: rotate(-8deg); }
+    30%  { transform: rotate(8deg); }
+    45%  { transform: rotate(-6deg); }
+    60%  { transform: rotate(6deg); }
+    75%  { transform: rotate(-3deg); }
+    90%  { transform: rotate(3deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* ---- 畏缩 FLINCH：X眼惊恐脸 后退震颤 ---- */
+.vfx-status-flinch {
+    animation: shake-flinch 1.0s ease-out forwards !important;
+}
+.vfx-status-flinch svg {
+    width: 100%;
+    height: 100%;
+}
+@keyframes shake-flinch {
+    0%   { transform: scale(0) translateY(0); opacity: 0; }
+    15%  { transform: scale(1.6) translateY(-5px); opacity: 1; }
+    30%  { transform: scale(1.0) translateX(-3px); opacity: 1; }
+    45%  { transform: scale(1.1) translateX(3px); opacity: 1; }
+    60%  { transform: scale(1.0) translateX(-2px); opacity: 0.9; }
+    75%  { transform: scale(1.0) translateX(1px); opacity: 0.7; }
+    100% { transform: scale(0.9) translateY(-10px); opacity: 0; }
+}
+@keyframes flinch-recoil {
+    0%   { transform: translateX(0); }
+    20%  { transform: translateX(8px); }
+    40%  { transform: translateX(-4px); }
+    60%  { transform: translateX(3px); }
+    80%  { transform: translateX(-1px); }
+    100% { transform: translateX(0); }
+}
+
 .p-sprite.fainting {
     --sprite-faint-animation: faint-blip 0.7s ease forwards;
 }

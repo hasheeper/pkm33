@@ -594,24 +594,27 @@ export const MoveHandlers = {
         description: '剩余PP越少威力越高，最高200'
     },
 
-    // 【礼物 Present】随机威力或回复对手
+    // 【礼物 Present】随机威力或回复对手（用 basePowerCallback 走标准伤害公式）
     'Present': {
-        damageCallback: (attacker, defender) => {
+        basePowerCallback: (attacker, defender, move, battle) => {
             const roll = Math.random() * 100;
             if (roll < 40) return 40;       // 40% 概率威力40
             if (roll < 70) return 80;       // 30% 概率威力80
             if (roll < 80) return 120;      // 10% 概率威力120
             // 20% 概率回复对手 1/4 HP
-            const healAmount = Math.floor(defender.maxHp / 4);
-            defender.currHp = Math.min(defender.maxHp, defender.currHp + healAmount);
+            if (defender && defender.maxHp) {
+                const healAmount = Math.floor(defender.maxHp / 4);
+                defender.currHp = Math.min(defender.maxHp, defender.currHp + healAmount);
+                console.log(`[PRESENT] 🎁 回复了对手 ${healAmount} HP!`);
+            }
             return 0; // 不造成伤害
         },
         description: '随机威力40/80/120，或回复对手1/4HP'
     },
 
-    // 【震级 Magnitude】随机威力
+    // 【震级 Magnitude】随机威力（仅用 basePowerCallback，不用 damageCallback）
     'Magnitude': {
-        damageCallback: (attacker, defender) => {
+        basePowerCallback: (attacker, defender) => {
             const roll = Math.random() * 100;
             let magnitude, power;
             if (roll < 5) { magnitude = 4; power = 10; }
@@ -622,18 +625,7 @@ export const MoveHandlers = {
             else if (roll < 95) { magnitude = 9; power = 110; }
             else { magnitude = 10; power = 150; }
             console.log(`[MAGNITUDE] 震级 ${magnitude}! 威力 ${power}`);
-            // 使用标准伤害公式计算（返回威力让外部计算）
-            return null; // 使用 basePowerCallback 代替
-        },
-        basePowerCallback: (attacker, defender) => {
-            const roll = Math.random() * 100;
-            if (roll < 5) return 10;
-            if (roll < 15) return 30;
-            if (roll < 35) return 50;
-            if (roll < 65) return 70;
-            if (roll < 85) return 90;
-            if (roll < 95) return 110;
-            return 150;
+            return power;
         },
         description: '随机震级4~10，威力10~150'
     },

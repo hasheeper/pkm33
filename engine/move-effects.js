@@ -315,7 +315,7 @@ function tryInflictStatus(target, status, source = null, battle = null) {
     target.statusTurns = 0;
     
     // 播放状态异常音效 + VFX
-    const STATUS_SFX_MAP = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX' };
+    const STATUS_SFX_MAP = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX', slp: 'SLP' };
     if (STATUS_SFX_MAP[status] && typeof window !== 'undefined') {
         if (typeof window.playSFX === 'function') window.playSFX(STATUS_SFX_MAP[status]);
         if (typeof window.BattleVFX !== 'undefined') {
@@ -1365,13 +1365,50 @@ function applyVolatileStatus(user, target, move) {
         case 'Teeter Dance':
         case 'Flatter':
         case 'Swagger':
+            // 【修复】Swagger/Flatter 先提升能力，再施加混乱
+            // Swagger: 目标攻击+2 + 混乱, Flatter: 目标特攻+1 + 混乱
+            {
+                const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const fullData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+                if (fullData.boosts) {
+                    if (typeof window !== 'undefined' && typeof window.changeStats === 'function') {
+                        window.changeStats(target, fullData.boosts);
+                    } else {
+                        // 手动应用 boosts
+                        for (const [stat, val] of Object.entries(fullData.boosts)) {
+                            target.boosts = target.boosts || {};
+                            target.boosts[stat] = Math.min(6, Math.max(-6, (target.boosts[stat] || 0) + val));
+                        }
+                    }
+                    const boostNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+                    for (const [stat, val] of Object.entries(fullData.boosts)) {
+                        const name = boostNames[stat] || stat;
+                        if (val > 0) logs.push(`${target.cnName} 的${name}提升了${val > 1 ? '很多' : ''}!`);
+                    }
+                }
+            }
             // 混乱
+            // 【Own Tempo】免疫混乱
+            {
+                const tAbId = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                if (tAbId === 'owntempo') {
+                    logs.push(`${target.cnName} 的我行我素免疫了混乱!`);
+                    return { success: false, logs };
+                }
+            }
             if (target.volatile.confusion) {
                 logs.push(`但是失败了! (${target.cnName} 已经混乱了)`);
                 return { success: false, logs };
             }
             target.volatile.confusion = 2 + Math.floor(Math.random() * 4); // 2-5 回合
             logs.push(`${target.cnName} 混乱了!`);
+            // 播放混乱 VFX
+            if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                const b = window.battle;
+                const isTargetPlayer = b && b.playerParty && b.playerParty.includes(target);
+                const _cid = isTargetPlayer ? 'player-sprite' : 'enemy-sprite';
+                window.BattleVFX.triggerStatusVFX('CNF', _cid);
+            }
             return { success: true, logs };
             
         // ===================== 接力类 =====================
@@ -1501,6 +1538,14 @@ function checkConfusion(pokemon) {
     }
     
     logs.push(`${pokemon.cnName} 正处于混乱中!`);
+    
+    // 播放混乱 VFX (每回合混乱状态提示)
+    if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+        const b = window.battle;
+        const isPlayer = b && b.playerParty && b.playerParty.includes(pokemon);
+        const _cid = isPlayer ? 'player-sprite' : 'enemy-sprite';
+        window.BattleVFX.triggerStatusVFX('CNF', _cid);
+    }
     
     // 33% 概率自伤
     if (Math.random() < 0.33) {

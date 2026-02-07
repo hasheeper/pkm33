@@ -128,14 +128,14 @@ export function calcDamage(attacker, defender, move, options = {}) {
     
     // === 动态威力技能 (basePowerCallback) ===
     if (handler && handler.basePowerCallback) {
-        basePower = handler.basePowerCallback(attacker, defender);
+        basePower = handler.basePowerCallback(attacker, defender, move, battle);
     }
     
     // === 特性威力加成 Hook (技师、猛火、激流等) ===
     if (typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability]) {
         const ah = AbilityHandlers[attacker.ability];
         if (ah.onBasePower) {
-            basePower = ah.onBasePower(basePower, attacker, defender, move);
+            basePower = ah.onBasePower(basePower, attacker, defender, move, battle);
         }
     }
     
@@ -618,6 +618,14 @@ export function calcDamage(attacker, defender, move, options = {}) {
         itemAccMod = ItemEffects.getAccuracyMod(attacker);
     }
     
+    // 【特性命中率修正】Hustle (活力) 等特性
+    if (typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability]) {
+        const ah = AbilityHandlers[attacker.ability];
+        if (ah.onModifyAccuracy) {
+            moveAcc = ah.onModifyAccuracy(moveAcc, attacker, defender, move, battle);
+        }
+    }
+    
     // 【环境图层系统】命中率修正
     let envAccMod = 1;
     if (typeof window !== 'undefined' && window.envOverlay) {
@@ -890,6 +898,18 @@ export function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
+    // === 【特性】属性克制修正 (有色眼镜 Tinted Lens 等) ===
+    if (typeof AbilityHandlers !== 'undefined' && attacker.ability && AbilityHandlers[attacker.ability]) {
+        const ah = AbilityHandlers[attacker.ability];
+        if (ah.onModifyEffectiveness) {
+            const oldEff = effectiveness;
+            effectiveness = ah.onModifyEffectiveness(effectiveness);
+            if (oldEff !== effectiveness) {
+                console.log(`[${attacker.ability}] 属性克制修正: ${oldEff} -> ${effectiveness}`);
+            }
+        }
+    }
+    
     // === 本系加成 (STAB) ===
     let stab = 1;
     
@@ -1124,12 +1144,24 @@ export function calcDamage(attacker, defender, move, options = {}) {
     
     // 防止除以0
     const finalDef = Math.max(1, defStat);
+    const finalAtk = Math.max(1, atkStat);
     
     // 伤害公式
     let singleHitDamage = Math.floor(
-        ((2 * attacker.level / 5 + 2) * basePower * (atkStat / finalDef) / 50 + 2)
+        ((2 * attacker.level / 5 + 2) * basePower * (finalAtk / finalDef) / 50 + 2)
         * stab * effectiveness * critMod * random * lifeOrbBoost
     );
+    
+    // 【诊断日志】伤害公式关键参数
+    if (isNaN(singleHitDamage) || singleHitDamage === 0) {
+        console.warn(`[DAMAGE FORMULA] ⚠️ 异常伤害=${singleHitDamage} | Lv=${attacker.level} BP=${basePower} Atk=${finalAtk} Def=${finalDef} STAB=${stab} Eff=${effectiveness} Crit=${critMod} Rng=${random.toFixed(2)} LO=${lifeOrbBoost} | ${attacker.cnName} -> ${defender.cnName} (${move.name})`);
+    }
+    
+    // 【安全修复】NaN 保护 - 如果任何参数导致 NaN，回退到最低伤害
+    if (isNaN(singleHitDamage)) {
+        console.error(`[DAMAGE NaN] 伤害计算结果为 NaN！强制设为 1`);
+        singleHitDamage = 1;
+    }
     
     if (effectiveness > 0 && singleHitDamage < 1) singleHitDamage = 1;
     if (effectiveness === 0) singleHitDamage = 0;

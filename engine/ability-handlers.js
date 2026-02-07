@@ -29,10 +29,14 @@ export function moveHasFlag(move, flag) {
     // 优先使用招式对象自带的 flags
     if (move.flags && move.flags[flag]) return true;
     
-    // 尝试从全局 Moves 数据获取
+    // 从 MOVES 数据库查找（move 对象通常不含 flags 字段）
+    const moveId = (move.id || move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (typeof MOVES !== 'undefined' && MOVES[moveId]) {
+        const moveData = MOVES[moveId];
+        if (moveData && moveData.flags && moveData.flags[flag]) return true;
+    }
+    // 兼容 window.Moves 别名
     if (typeof window !== 'undefined' && window.Moves) {
-        // 生成招式 ID (小写，去除非字母字符)
-        const moveId = (move.id || move.name || '').toLowerCase().replace(/[^a-z]/g, '');
         const moveData = window.Moves[moveId];
         if (moveData && moveData.flags && moveData.flags[flag]) return true;
     }
@@ -908,8 +912,8 @@ export const AbilityHandlers = {
     // 【钩子统一】onBasePower: (power, attacker, defender, move, battle)
     'Tough Claws': {
         onBasePower: (power, attacker, defender, move, battle) => {
-            // 简化：物理招式大多是接触类
-            if (move.cat === 'phys' || move.category === 'Physical') {
+            // 使用 contact flag 精确判定接触类招式
+            if (moveHasFlag(move, 'contact')) {
                 return Math.floor(power * 1.3);
             }
             return power;
@@ -921,8 +925,11 @@ export const AbilityHandlers = {
     'Sheer Force': {
         // 取消副作用但威力x1.3，这里简化处理
         onBasePower: (power, attacker, defender, move, battle) => {
+            // 从 MOVES 数据库查找完整招式数据（move 对象可能不含 secondary 字段）
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
             // 如果招式有副作用，威力x1.3
-            if (move.secondary || move.secondaries) {
+            if (fullData.secondary || fullData.secondaries || move.secondary || move.secondaries) {
                 return Math.floor(power * 1.3);
             }
             return power;
@@ -935,6 +942,7 @@ export const AbilityHandlers = {
         onBasePower: (power, attacker, defender, move, battle) => {
             if (battle && battle.weather === 'sandstorm') {
                 if (['Rock', 'Ground', 'Steel'].includes(move.type)) {
+                    console.log(`[Sand Force] ✅ 沙之力发动！${move.name} 威力 ${power} -> ${Math.floor(power * 1.3)}`);
                     return Math.floor(power * 1.3);
                 }
             }
@@ -1016,8 +1024,11 @@ export const AbilityHandlers = {
     // 代表：姆克鹰、战舞郎
     'Reckless': {
         onBasePower: (power, attacker, defender, move, battle) => {
-            // 检查是否有反伤或撞飞伤害
-            if (move.recoil || move.hasCrashDamage || move.mindBlownRecoil) {
+            // 从 MOVES 数据库查找完整招式数据（move 对象可能不含 recoil 字段）
+            const moveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullData = (typeof MOVES !== 'undefined' && MOVES[moveId]) ? MOVES[moveId] : {};
+            if (fullData.recoil || fullData.hasCrashDamage || fullData.mindBlownRecoil ||
+                move.recoil || move.hasCrashDamage || move.mindBlownRecoil) {
                 return Math.floor(power * 1.2);
             }
             return power;

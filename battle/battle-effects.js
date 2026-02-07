@@ -487,6 +487,16 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         changeStats(user, fullMoveData.self.boosts, true);
     }
     
+    // 1.2b self.volatileStatus（对自己施加的 volatile 状态）
+    // 【修复】通用处理 mustrecharge/lockedmove 等，防止无 onHit handler 的招式遗漏
+    if (fullMoveData.self && fullMoveData.self.volatileStatus && damageDealt > 0) {
+        const selfVS = fullMoveData.self.volatileStatus;
+        if (selfVS === 'mustrecharge' && !user.mustRecharge) {
+            user.mustRecharge = true;
+            console.log(`[SELF VS] ${user.cnName} 需要下回合休息 (${move.name})`);
+        }
+    }
+    
     // =========================================================
     // 【Sheer Force 强行】特性检查
     // 如果招式有 secondary 副作用且攻击方有 Sheer Force，跳过副作用
@@ -508,7 +518,14 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     // 1.3 Secondary Effects（几率触发，通常对敌人）
     // 【Sheer Force】如果特性激活，跳过所有 secondary 副作用
     if (fullMoveData.secondary && !sheerForceActive) {
-        const chance = fullMoveData.secondary.chance || 100;
+        let chance = fullMoveData.secondary.chance || 100;
+        // 【修复】天恩 (Serene Grace) 副作用概率翻倍
+        if (typeof AbilityHandlers !== 'undefined' && user.ability && AbilityHandlers[user.ability]) {
+            const ah = AbilityHandlers[user.ability];
+            if (ah.onModifySecondaryChance) {
+                chance = ah.onModifySecondaryChance(chance, fullMoveData, user);
+            }
+        }
         if (Math.random() * 100 < chance) {
             // 【Covert Cloak】对目标的能力下降被阻止
             if (fullMoveData.secondary.boosts) {
@@ -557,7 +574,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                                 target.sleepTurns = Math.floor(Math.random() * 3) + 2;
                             }
                             // 播放状态异常音效 + VFX
-                            const STATUS_SFX_MAP_A = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX' };
+                            const STATUS_SFX_MAP_A = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX', slp: 'SLP' };
                             if (STATUS_SFX_MAP_A[s] && typeof window !== 'undefined') {
                                 if (typeof window.playSFX === 'function') window.playSFX(STATUS_SFX_MAP_A[s]);
                                 if (typeof window.BattleVFX !== 'undefined') {
@@ -580,13 +597,47 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             
             // 畏缩效果
             // 【Covert Cloak】隐密斗篷免疫畏缩等追加效果
+            // 【Inner Focus/Shield Dust】免疫畏缩
             if (fullMoveData.secondary.volatileStatus === 'flinch') {
+                const tAbilityId = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                const immuneToFlinch = ['innerfocus', 'shielddust'].includes(tAbilityId);
                 if (hasCovertCloak) {
                     logs.push(`${target.cnName} 的隐密斗篷阻止了畏缩效果!`);
+                } else if (immuneToFlinch) {
+                    // 精神力/防尘 免疫畏缩，不输出日志（静默免疫）
                 } else {
                     target.volatile = target.volatile || {};
                     target.volatile.flinch = true;
                     logs.push(`${target.cnName} 畏缩了!`);
+                    // 播放畏缩 VFX
+                    if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                        const _fid = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                        window.BattleVFX.triggerStatusVFX('FLINCH', _fid);
+                    }
+                }
+            }
+            
+            // 混乱效果 (Dynamic Punch, Hurricane 等)
+            // 【Covert Cloak】隐密斗篷免疫混乱等追加效果
+            // 【Own Tempo】免疫混乱
+            if (fullMoveData.secondary.volatileStatus === 'confusion') {
+                const tAbilityIdC = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                const immuneToConfusion = tAbilityIdC === 'owntempo';
+                if (hasCovertCloak) {
+                    logs.push(`${target.cnName} 的隐密斗篷阻止了混乱效果!`);
+                } else if (immuneToConfusion) {
+                    logs.push(`${target.cnName} 的我行我素免疫了混乱!`);
+                } else {
+                    target.volatile = target.volatile || {};
+                    if (!target.volatile.confusion) {
+                        target.volatile.confusion = 2 + Math.floor(Math.random() * 4);
+                        logs.push(`${target.cnName} 混乱了!`);
+                        // 播放混乱 VFX
+                        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                            const _cid = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                            window.BattleVFX.triggerStatusVFX('CNF', _cid);
+                        }
+                    }
                 }
             }
         }
@@ -596,7 +647,14 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     // 【Sheer Force】如果特性激活，跳过所有 secondaries 副作用
     if (fullMoveData.secondaries && Array.isArray(fullMoveData.secondaries) && !sheerForceActive) {
         for (const sec of fullMoveData.secondaries) {
-            const chance = sec.chance || 100;
+            let chance = sec.chance || 100;
+            // 【修复】天恩 (Serene Grace) 副作用概率翻倍
+            if (typeof AbilityHandlers !== 'undefined' && user.ability && AbilityHandlers[user.ability]) {
+                const ah = AbilityHandlers[user.ability];
+                if (ah.onModifySecondaryChance) {
+                    chance = ah.onModifySecondaryChance(chance, fullMoveData, user);
+                }
+            }
             if (Math.random() * 100 < chance) {
                 // 状态异常
                 // 【Covert Cloak】隐密斗篷免疫追加状态异常
@@ -618,7 +676,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                                 target.sleepTurns = Math.floor(Math.random() * 3) + 2;
                             }
                             // 播放状态异常音效 + VFX
-                            const STATUS_SFX_MAP_B = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX' };
+                            const STATUS_SFX_MAP_B = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX', slp: 'SLP' };
                             if (STATUS_SFX_MAP_B[sec.status] && typeof window !== 'undefined') {
                                 if (typeof window.playSFX === 'function') window.playSFX(STATUS_SFX_MAP_B[sec.status]);
                                 if (typeof window.BattleVFX !== 'undefined') {
@@ -640,13 +698,46 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                 
                 // 畏缩效果
                 // 【Covert Cloak】隐密斗篷免疫畏缩等追加效果
+                // 【Inner Focus/Shield Dust】免疫畏缩
                 if (sec.volatileStatus === 'flinch') {
+                    const tAbilityId2 = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                    const immuneToFlinch2 = ['innerfocus', 'shielddust'].includes(tAbilityId2);
                     if (hasCovertCloak) {
                         logs.push(`${target.cnName} 的隐密斗篷阻止了畏缩效果!`);
+                    } else if (immuneToFlinch2) {
+                        // 精神力/防尘 免疫畏缩
                     } else {
                         target.volatile = target.volatile || {};
                         target.volatile.flinch = true;
                         logs.push(`${target.cnName} 畏缩了!`);
+                        // 播放畏缩 VFX
+                        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                            const _fid = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                            window.BattleVFX.triggerStatusVFX('FLINCH', _fid);
+                        }
+                    }
+                }
+                
+                // 混乱效果
+                // 【Covert Cloak】隐密斗篷免疫混乱等追加效果
+                // 【Own Tempo】免疫混乱
+                if (sec.volatileStatus === 'confusion') {
+                    const tAbilityIdC2 = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                    const immuneToConfusion2 = tAbilityIdC2 === 'owntempo';
+                    if (hasCovertCloak) {
+                        logs.push(`${target.cnName} 的隐密斗篷阻止了混乱效果!`);
+                    } else if (immuneToConfusion2) {
+                        logs.push(`${target.cnName} 的我行我素免疫了混乱!`);
+                    } else {
+                        target.volatile = target.volatile || {};
+                        if (!target.volatile.confusion) {
+                            target.volatile.confusion = 2 + Math.floor(Math.random() * 4);
+                            logs.push(`${target.cnName} 混乱了!`);
+                            if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                                const _cid = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                                window.BattleVFX.triggerStatusVFX('CNF', _cid);
+                            }
+                        }
                     }
                 }
                 
@@ -677,6 +768,11 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                 target.volatile = target.volatile || {};
                 target.volatile.flinch = true;
                 logs.push(`${user.cnName} 的恶臭让 ${target.cnName} 畏缩了！`);
+                // 播放畏缩 VFX
+                if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                    const _fid = isPlayer ? 'enemy-sprite' : 'player-sprite';
+                    window.BattleVFX.triggerStatusVFX('FLINCH', _fid);
+                }
             }
         }
     }
@@ -724,7 +820,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                     target.sleepTurns = Math.floor(Math.random() * 3) + 2;
                 }
                 // 播放状态异常音效 + VFX
-                const STATUS_SFX_MAP_C = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX' };
+                const STATUS_SFX_MAP_C = { brn: 'BRN', frz: 'FRZ', par: 'PAR', psn: 'PSN', tox: 'TOX', slp: 'SLP' };
                 if (STATUS_SFX_MAP_C[s] && typeof window !== 'undefined') {
                     if (typeof window.playSFX === 'function') window.playSFX(STATUS_SFX_MAP_C[s]);
                     if (typeof window.BattleVFX !== 'undefined') {
