@@ -4109,105 +4109,11 @@ window.restartBattle = function() {
     initGame();
 };
 
-window.copyResultOnly = function() {
-    const summary = document.getElementById('res-clipboard-text').value;
-    copyToAndClose(summary);
-};
-
-window.copyFullProcess = function() {
-    const summary = document.getElementById('res-clipboard-text').value;
-    const processLog = extractBattleLog();
-    
-    // 根据日志条目数量推荐字数（500-4000字）
-    const logBox = document.getElementById('log-box');
-    const entryCount = logBox ? logBox.querySelectorAll('.log-entry').length : 0;
-    const recommendedWords = Math.min(4000, Math.max(500, Math.round(entryCount * 40)));
-    const wordRangeMin = Math.max(500, recommendedWords - 200);
-    const wordRangeMax = Math.min(4000, recommendedWords + 200);
-    const wordRequirement = `📊 【字数要求】本次战斗共 ${entryCount} 条日志，推荐正文字数：**${wordRangeMin}~${wordRangeMax} 字**（不少于 ${wordRangeMin} 字）`;
-    
-    const finalContent = [
-        '<CORE_TASK>',
-        '🛑 [SYSTEM COMMAND // 强制执行] 🛑',
-        '🚫 DO NOT ADVANCE THE PLOT! (禁止推进后续剧情)',
-        '🚫 DO NOT SKIP BATTLE DETAILS! (禁止跳过战斗细节)',
-        '⚠️ 核心任务 (CORE TASK):',
-        '你现在的身份是【精灵宝可梦动画编剧】。请基于下方的「战斗日志」与「结果」，将枯燥的数据重构为充满画面感的**小说级实况演出**。',
-        '不仅要基于下方的「回合制日志 (Log)」与「最终结算 (Result)」，撰写一场**字数充足**的完整战斗过程。',
-        '',
-        wordRequirement,
-        '',
-        '【核心原则 // CORE RULES】',
-        '1. 风格自适应：请自动识别对战级别并切换画风：',
-        '   - 高强度对决（神兽/满级/Mega/Z技）：采用王道热血风',
-        '   - 低频/趣味局（幼崽/更替衣服/随机挥指）：采用轻松欢快风，描写要生动相对可爱。',
-        '2. 绝对全年龄：',
-        '   - ❌ 严禁黑残深：禁止出现肢体残缺、痛苦绝望、血腥描写。',
-        '   - ✅ 视效转化：将“重伤”写为体力透支或战损（污渍/擦伤）；“倒下”即为圈圈眼或体面退场。',
-        '3. 去数据化与去回合制：',
-        '   - **严禁**使用“第X回合”、“造成XX点伤害”等游戏术语。',
-        '   - 必须通过由于伤害造成的“地形破坏”、“表情痛楚”、“动作迟缓”来体现数值变化。',
-        '   - 动作必须流畅衔接，不准记流水账，道具与特性发动要自然融入战斗描述中，结合环境依据战斗文本进行灵活创意性改编。',
-        '</CORE_TASK>',
-        '',
-        '<BATTLE_LOG>',
-        processLog,
-        '</BATTLE_LOG>',
-        '',
-        '<BATTLE_RESULT>',
-        '结果统计（作为结局的参考）：',
-        summary.replace('[系统提示：宝可梦对战结果结算]\n', ''),
-        '</BATTLE_RESULT>',
-        '',
-        '<WRITING_INSTRUCTION>',
-        `请立即生成 ${wordRangeMin}~${wordRangeMax} 字的战斗实况文案（最低不少于 ${wordRangeMin} 字）`,
-        '</WRITING_INSTRUCTION>'
-    ].join('\n');
-    copyToAndClose(finalContent);
-};
-
-// ...
-function extractBattleLog() {
-    const logBox = document.getElementById('log-box');
-    if (!logBox) return '';
-
-    const entries = [];
-    logBox.querySelectorAll('.log-entry').forEach(entry => {
-        const text = entry.innerText.trim();
-        if (text) entries.push(`> ${text}`);
-    });
-    return entries.join('\n');
-}
-
-function copyToAndClose(textStr) {
-    const fallbackCopy = () => {
-        const el = document.createElement('textarea');
-        el.value = textStr;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        endGameCleanup();
-    };
-
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(textStr).then(() => {
-            endGameCleanup();
-        }).catch(fallbackCopy);
-    } else {
-        fallbackCopy();
-    }
-}
-
-function endGameCleanup() {
-    setTimeout(() => {
-        if (window.parent) {
-            window.parent.postMessage({ type: 'pkm-battle-close' }, '*');
-        }
-        document.getElementById('ui-root').style.filter = "grayscale(1) brightness(0.2)";
-        document.body.innerHTML = "<div style='color:white;text-align:center;margin-top:20%'><h1>SESSION ENDED</h1><p>已复制结果，请在对话框粘贴。</p></div>";
-    }, 600);
-}
+// =========================================================
+// 【已迁移】日志清洗与复制系统 -> systems/log-filter.js
+// copyResultOnly, copyFullProcess, extractBattleLog,
+// copyToAndClose, endGameCleanup
+// =========================================================
 
 /**
  * =========================================================
