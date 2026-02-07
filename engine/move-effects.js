@@ -24,8 +24,9 @@
  * @returns {number} 优先级 (-7 ~ +5)
  */
 function getMovePriority(move, user = null, target = null) {
-    // 【古武系统】如果招式对象已有 priority 属性（被 style 修改过），直接使用
-    if (typeof move.priority === 'number') {
+    // 【古武系统】只有被 style 系统修改过的招式才直接使用 priority
+    // 注意：moves-data.js 中几乎所有招式都有 priority: 0，不能用 typeof 判断
+    if (move.styleUsed && typeof move.priority === 'number') {
         return move.priority;
     }
     
@@ -98,19 +99,21 @@ function getMovePriority(move, user = null, target = null) {
     }
     
     // === 【慢出 Stall】特性处理 ===
-    // 永远最后行动（优先度设为 -6）
+    // 【修复】Stall 不改变优先度等级，而是在同优先度内最后行动
+    // 实际效果应在 speed comparison 中处理（类似 Lagging Tail）
+    // 此处仅做标记，不修改 basePriority
     if (user && user.ability === 'Stall') {
-        basePriority = -6;
-        console.log(`[STALL] ${user.cnName} 的慢出特性使其永远最后行动`);
+        move.stallFlag = true;
+        console.log(`[STALL] ${user.cnName} 的慢出特性：同优先度内最后行动`);
     }
     
     // === 通用 onModifyPriority 钩子 ===
-    // 【修复】参数顺序：(priority, user, target, move)
-    if (user && user.ability && typeof AbilityHandlers !== 'undefined') {
+    // 【修复】跳过已在上方内联处理的特性（Prankster/Gale Wings），避免重复加成
+    const inlineHandledAbilities = ['Prankster', 'Gale Wings', 'Stall'];
+    if (user && user.ability && typeof AbilityHandlers !== 'undefined' && !inlineHandledAbilities.includes(user.ability)) {
         const abilityHandler = AbilityHandlers[user.ability];
         if (abilityHandler && abilityHandler.onModifyPriority) {
-            // target 参数在此上下文中可能不可用，传 null
-            const modifiedPriority = abilityHandler.onModifyPriority(basePriority, user, null, move);
+            const modifiedPriority = abilityHandler.onModifyPriority(basePriority, user, target, move);
             if (typeof modifiedPriority === 'number') {
                 basePriority = modifiedPriority;
             }

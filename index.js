@@ -2389,7 +2389,16 @@ async function handleAttack(moveIndex, options = {}) {
         // Trick Room (戏法空间): 速度慢的先动
         const isTrickRoom = battle.field && battle.field.trickRoom > 0;
         
-        if (playerSpeed !== enemySpeed) {
+        // 【Stall 特性】同优先度内，有 stallFlag 的一方必定后手
+        const playerStall = playerMove && playerMove.stallFlag;
+        const enemyStall = enemyMove && enemyMove.stallFlag;
+        if (playerStall && !enemyStall) {
+            playerFirst = false;
+            console.log(`[Speed Check] Player has Stall ability, moves last in same bracket`);
+        } else if (enemyStall && !playerStall) {
+            playerFirst = true;
+            console.log(`[Speed Check] Enemy has Stall ability, moves last in same bracket`);
+        } else if (playerSpeed !== enemySpeed) {
             if (isTrickRoom) {
                 // 空间下：慢的先动
                 playerFirst = playerSpeed < enemySpeed;

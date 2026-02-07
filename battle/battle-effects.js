@@ -844,9 +844,11 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     }
     
     // === 1.5 Protect/Detect 守住类技能 ===
+    // 【修复】move-handlers.js 的 onUse 已经设置了 volatile.protect 并推送了日志
+    // 此处仅作为兜底：如果没有 handler 处理，才设置 protect 状态和日志
     const isProtectMove = fullMoveData.stallingMove || 
         (fullMoveData.volatileStatus && ['protect', 'banefulbunker', 'spikyshield', 'kingsshield', 'obstruct', 'silktrap', 'burningbulwark'].includes(fullMoveData.volatileStatus));
-    if (isProtectMove) {
+    if (isProtectMove && !(user.volatile && user.volatile.protect)) {
         user.volatile = user.volatile || {};
         user.volatile.protect = true;
         logs.push(`${user.cnName} 守住了自己!`);
