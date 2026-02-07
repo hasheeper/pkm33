@@ -445,18 +445,21 @@ function processStatusDamage(pokemon) {
         return { damage: 0, message: null, healed: false };
     }
     
+    let vfxType = null;
     switch (status) {
         case 'brn':
             // 【根性 Guts / 毅力】不减少灼伤伤害，但提升攻击
             damage = Math.max(1, Math.floor(pokemon.maxHp / 16));
             pokemon.takeDamage(damage);
             message = `${pokemon.cnName} 因灼伤受到了 ${damage} 点伤害!`;
+            vfxType = 'BRN';
             break;
             
         case 'psn':
             damage = Math.max(1, Math.floor(pokemon.maxHp / 8));
             pokemon.takeDamage(damage);
             message = `${pokemon.cnName} 因中毒受到了 ${damage} 点伤害!`;
+            vfxType = 'PSN';
             break;
             
         case 'tox':
@@ -464,7 +467,15 @@ function processStatusDamage(pokemon) {
             damage = Math.max(1, Math.floor(pokemon.maxHp * pokemon.statusTurns / 16));
             pokemon.takeDamage(damage);
             message = `${pokemon.cnName} 因剧毒受到了 ${damage} 点伤害!`;
+            vfxType = 'TOX';
             break;
+    }
+    
+    // 播放状态伤害 VFX
+    if (vfxType && typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+        const b = window.battle;
+        const isPlayer = b && b.playerParty && b.playerParty.includes(pokemon);
+        window.BattleVFX.triggerStatusVFX(vfxType, isPlayer ? 'player-sprite' : 'enemy-sprite');
     }
     
     return { damage, message, healed: false };

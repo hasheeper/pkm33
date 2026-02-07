@@ -635,13 +635,21 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     let logs = [];
     if (!poke || !poke.isAlive()) return logs;
 
+    // 【魔法防守 Magic Guard】免疫所有非直接攻击伤害（包括状态伤害、寄生种子、束缚等）
+    const pokeAbilityBase = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+    const hasMagicGuard = pokeAbilityBase === 'magicguard';
+
     // ----------------------------------------
     // 1. 灼伤 (Burn): 扣 1/16 HP
     // ----------------------------------------
-    if (poke.status === 'brn') {
+    if (poke.status === 'brn' && !hasMagicGuard) {
         const dmg = Math.max(1, Math.floor(poke.maxHp / 16));
         poke.takeDamage(dmg);
         logs.push(`${poke.cnName} 受到灼伤的伤害! (-${dmg})`);
+        // 播放灼伤 VFX
+        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+            window.BattleVFX.triggerStatusVFX('BRN', isPlayerPoke ? 'player-sprite' : 'enemy-sprite');
+        }
     }
 
     // ----------------------------------------
@@ -651,8 +659,14 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     if (poke.status === 'psn' || poke.status === 'tox') {
         const pokeAbilityId = (poke.ability || '').toLowerCase().replace(/[^a-z]/g, '');
         
+        // 检查魔法防守
+        if (hasMagicGuard) {
+            // Magic Guard 免疫状态伤害（但剧毒计数器仍然递增）
+            if (poke.status === 'tox') {
+                poke.statusTurns = (poke.statusTurns || 0) + 1;
+            }
         // 检查毒疗特性
-        if (pokeAbilityId === 'poisonheal') {
+        } else if (pokeAbilityId === 'poisonheal') {
             // 毒疗：回复 1/8 HP
             const baseHeal = Math.max(1, Math.floor(poke.maxHp / 8));
             let actualHeal = baseHeal;
@@ -667,13 +681,25 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
                 window.BattleVFX.triggerStatVFX('HEAL', isPlayerPoke ? 'player-sprite' : 'enemy-sprite');
             }
         } else {
-            // 正常中毒伤害
-            const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
-            poke.takeDamage(dmg);
+            let dmg;
+            let vfxType;
             if (poke.status === 'tox') {
+                // 【剧毒】递增伤害: maxHp * N/16，N 每回合 +1
+                poke.statusTurns = (poke.statusTurns || 0) + 1;
+                dmg = Math.max(1, Math.floor(poke.maxHp * poke.statusTurns / 16));
+                poke.takeDamage(dmg);
                 logs.push(`${poke.cnName} 受到剧毒的伤害! (-${dmg})`);
+                vfxType = 'TOX';
             } else {
+                // 【普通中毒】固定 1/8 HP
+                dmg = Math.max(1, Math.floor(poke.maxHp / 8));
+                poke.takeDamage(dmg);
                 logs.push(`${poke.cnName} 受到毒素的伤害! (-${dmg})`);
+                vfxType = 'PSN';
+            }
+            // 播放中毒/剧毒 VFX
+            if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                window.BattleVFX.triggerStatusVFX(vfxType, isPlayerPoke ? 'player-sprite' : 'enemy-sprite');
             }
         }
     }
@@ -681,7 +707,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     // ----------------------------------------
     // 3. 寄生种子 (Leech Seed): 被对方吸血 1/8
     // ----------------------------------------
-    if (poke.volatile && poke.volatile['leechseed'] && opponent && opponent.isAlive()) {
+    if (poke.volatile && poke.volatile['leechseed'] && opponent && opponent.isAlive() && !hasMagicGuard) {
         const baseDrain = Math.max(1, Math.floor(poke.maxHp / 8));
         let actualHeal = baseDrain;
         
@@ -710,7 +736,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     // ----------------------------------------
     // 4. 束缚状态 (Bind / Whirlpool / Fire Spin) -> 扣 1/8
     // ----------------------------------------
-    if (poke.volatile && poke.volatile['partiallytrapped']) {
+    if (poke.volatile && poke.volatile['partiallytrapped'] && !hasMagicGuard) {
         const dmg = Math.max(1, Math.floor(poke.maxHp / 8));
         poke.takeDamage(dmg);
         logs.push(`${poke.cnName} 因束缚而受到伤害! (-${dmg})`);
@@ -719,7 +745,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     // ----------------------------------------
     // 5. 诅咒 (Curse - Ghost使用): 每回合扣 1/4
     // ----------------------------------------
-    if (poke.volatile && poke.volatile['curse']) {
+    if (poke.volatile && poke.volatile['curse'] && !hasMagicGuard) {
         const dmg = Math.max(1, Math.floor(poke.maxHp / 4));
         poke.takeDamage(dmg);
         logs.push(`${poke.cnName} 受到了诅咒! (-${dmg})`);
@@ -729,7 +755,7 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
     // 5.5 盐腌 (Salt Cure): 每回合扣 1/8 HP，水/钢系扣 1/4
     // 【Gen 9】盐石巨灵核心招式
     // ----------------------------------------
-    if (poke.volatile && poke.volatile['saltcure']) {
+    if (poke.volatile && poke.volatile['saltcure'] && !hasMagicGuard) {
         // 检查是否为水系或钢系
         const isWaterOrSteel = poke.types && (poke.types.includes('Water') || poke.types.includes('Steel'));
         const dmgRatio = isWaterOrSteel ? 4 : 8; // 水/钢系 1/4，其他 1/8

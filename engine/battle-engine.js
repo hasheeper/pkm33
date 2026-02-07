@@ -1253,6 +1253,12 @@ export function checkCanMove(pokemon, move = null) {
                 delete pokemon.volatile.underwater;
                 delete pokemon.volatile.shadow;
             }
+            // 播放麻痹 VFX
+            if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+                const b = window.battle;
+                const isPlayer = b && b.playerParty && b.playerParty.includes(pokemon);
+                window.BattleVFX.triggerStatusVFX('PAR', isPlayer ? 'player-sprite' : 'enemy-sprite');
+            }
             return { can: false, msg: `${pokemon.cnName} 因身体麻痹而无法行动!` };
         }
     }
@@ -1305,6 +1311,12 @@ export function checkCanMove(pokemon, move = null) {
             delete pokemon.volatile.underground;
             delete pokemon.volatile.underwater;
             delete pokemon.volatile.shadow;
+        }
+        // 播放冰冻 VFX
+        if (typeof window !== 'undefined' && typeof window.BattleVFX !== 'undefined') {
+            const b = window.battle;
+            const isPlayer = b && b.playerParty && b.playerParty.includes(pokemon);
+            window.BattleVFX.triggerStatusVFX('FRZ', isPlayer ? 'player-sprite' : 'enemy-sprite');
         }
         return { can: false, msg: `${pokemon.cnName} 被冻得动弹不得!` };
     }

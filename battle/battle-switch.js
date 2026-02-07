@@ -142,6 +142,12 @@ export async function handleEnemyPivot(passBoosts = false) {
             delete currentE.volatile.yawn;
         }
         
+        // 【剧毒计数器重置】换人时重置剧毒递增伤害（Gen5+ 官方机制）
+        if (currentE.status === 'tox') {
+            currentE.statusTurns = 0;
+            console.log(`[TOX RESET] ${currentE.cnName} 换下，剧毒计数器重置`);
+        }
+        
         // 如果换下的宝可梦处于极巨化状态，恢复招式
         if (currentE.isDynamaxed && typeof window.applyDynamaxState === 'function') {
             console.log(`[SWITCH] Enemy ${currentE.name} was Dynamaxed, restoring moves`);

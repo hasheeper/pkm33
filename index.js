@@ -2108,6 +2108,12 @@ async function handleAttack(moveIndex, options = {}) {
             delete e.choiceLockedMove;
         }
         
+        // 【剧毒计数器重置】换人时重置剧毒递增伤害（Gen5+ 官方机制）
+        if (e.status === 'tox') {
+            e.statusTurns = 0;
+            console.log(`[TOX RESET] ${e.cnName} 换下，剧毒计数器重置`);
+        }
+        
         // 重置当前宝可梦能力等级
         if (typeof e.resetBoosts === 'function') {
             e.resetBoosts();
@@ -3579,6 +3585,12 @@ async function performSwitch(newIndex) {
     if (oldP.choiceLockedMove) {
         console.log(`[CHOICE] ${oldP.cnName} 换下，解除 ${oldP.choiceLockedMove} 锁定`);
         delete oldP.choiceLockedMove;
+    }
+    
+    // 【剧毒计数器重置】换人时重置剧毒递增伤害（Gen5+ 官方机制）
+    if (oldP.status === 'tox') {
+        oldP.statusTurns = 0;
+        console.log(`[TOX RESET] ${oldP.cnName} 换下，剧毒计数器重置`);
     }
 
     // Pivot 换人使用不同的日志

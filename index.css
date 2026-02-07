@@ -2013,6 +2013,120 @@ body {
     100% { transform: translateY(-20px) scale(1.0); opacity: 0; }
 }
 
+/* ---- 灼伤 BRN：火焰上升闪烁 ---- */
+.vfx-status-brn {
+    animation: rise-burn 1.2s ease-out forwards !important;
+}
+.vfx-status-brn svg {
+    width: 100%;
+    height: 100%;
+}
+@keyframes rise-burn {
+    0%   { transform: translateY(15px) scale(0.3); opacity: 0; }
+    20%  { transform: translateY(0) scale(1.3); opacity: 1; }
+    40%  { transform: translateY(-8px) scale(1.0); opacity: 1; filter: brightness(1.5); }
+    60%  { transform: translateY(-16px) scale(1.1); opacity: 0.9; filter: brightness(1.0); }
+    80%  { transform: translateY(-25px) scale(0.9); opacity: 0.5; filter: brightness(1.3); }
+    100% { transform: translateY(-35px) scale(0.6); opacity: 0; }
+}
+@keyframes burn-flicker {
+    0%   { filter: brightness(1) hue-rotate(0deg); }
+    15%  { filter: brightness(1.3) hue-rotate(-10deg); }
+    30%  { filter: brightness(0.9) hue-rotate(5deg); }
+    50%  { filter: brightness(1.2) hue-rotate(-5deg); }
+    70%  { filter: brightness(0.95) hue-rotate(3deg); }
+    85%  { filter: brightness(1.15) hue-rotate(-3deg); }
+    100% { filter: brightness(1) hue-rotate(0deg); }
+}
+
+/* ---- 冰冻 FRZ：冰晶脉冲闪烁 ---- */
+.vfx-status-frz {
+    animation: pulse-freeze 1.4s ease-in-out forwards !important;
+}
+.vfx-status-frz svg {
+    width: 100%;
+    height: 100%;
+}
+@keyframes pulse-freeze {
+    0%   { transform: scale(0) rotate(0deg); opacity: 0; }
+    20%  { transform: scale(1.4) rotate(30deg); opacity: 1; }
+    40%  { transform: scale(1.0) rotate(0deg); opacity: 1; filter: brightness(1.6); }
+    60%  { transform: scale(1.2) rotate(-15deg); opacity: 0.9; filter: brightness(1.0); }
+    80%  { transform: scale(1.0) rotate(10deg); opacity: 0.6; filter: brightness(1.4); }
+    100% { transform: scale(0.7) rotate(0deg); opacity: 0; }
+}
+@keyframes freeze-shiver {
+    0%   { transform: translateX(0); filter: brightness(1) saturate(1); }
+    10%  { transform: translateX(-2px); filter: brightness(1.1) saturate(1.3); }
+    20%  { transform: translateX(2px); }
+    30%  { transform: translateX(-1px); filter: brightness(1.2) saturate(1.5); }
+    40%  { transform: translateX(1px); }
+    50%  { transform: translateX(0); filter: brightness(1.1) saturate(1.2); }
+    60%  { transform: translateX(-1px); }
+    70%  { transform: translateX(1px); filter: brightness(1.0) saturate(1.1); }
+    80%  { transform: translateX(0); }
+    100% { transform: translateX(0); filter: brightness(1) saturate(1); }
+}
+
+/* ---- 麻痹 PAR：闪电锯齿抖动 ---- */
+.vfx-status-par {
+    animation: zap-paralyze 1.0s ease-out forwards !important;
+}
+.vfx-status-par svg {
+    width: 100%;
+    height: 100%;
+}
+@keyframes zap-paralyze {
+    0%   { transform: scale(0) translateY(0); opacity: 0; }
+    10%  { transform: scale(1.8) translateY(-5px); opacity: 1; filter: brightness(2); }
+    20%  { transform: scale(0.8) translateX(4px); opacity: 1; filter: brightness(1); }
+    30%  { transform: scale(1.3) translateX(-4px); opacity: 1; filter: brightness(1.8); }
+    45%  { transform: scale(1.0) translateX(2px); opacity: 1; filter: brightness(1); }
+    60%  { transform: scale(1.1) translateX(-2px); opacity: 0.8; filter: brightness(1.5); }
+    80%  { transform: scale(0.9) translateY(-10px); opacity: 0.4; }
+    100% { transform: scale(0.7) translateY(-15px); opacity: 0; }
+}
+@keyframes paralyze-jolt {
+    0%   { transform: translateX(0) skewX(0deg); }
+    10%  { transform: translateX(-5px) skewX(-3deg); filter: brightness(1.4); }
+    20%  { transform: translateX(5px) skewX(3deg); }
+    30%  { transform: translateX(-3px) skewX(-2deg); filter: brightness(1.2); }
+    40%  { transform: translateX(3px) skewX(2deg); }
+    50%  { transform: translateX(-2px) skewX(-1deg); filter: brightness(1.1); }
+    60%  { transform: translateX(1px) skewX(0deg); }
+    100% { transform: translateX(0) skewX(0deg); filter: brightness(1); }
+}
+
+/* ---- 中毒/剧毒 PSN/TOX：毒液滴落脉动 ---- */
+.vfx-status-psn {
+    animation: drip-poison 1.2s ease-in-out forwards !important;
+}
+.vfx-status-tox {
+    animation: drip-poison 1.2s ease-in-out forwards !important;
+}
+.vfx-status-psn svg,
+.vfx-status-tox svg {
+    width: 100%;
+    height: 100%;
+}
+@keyframes drip-poison {
+    0%   { transform: translateY(-10px) scale(0.3); opacity: 0; }
+    20%  { transform: translateY(0) scale(1.2); opacity: 1; }
+    35%  { transform: translateY(3px) scale(1.0); opacity: 1; filter: brightness(1.3); }
+    50%  { transform: translateY(0) scale(1.1); opacity: 1; filter: brightness(0.9); }
+    65%  { transform: translateY(5px) scale(1.0); opacity: 0.8; filter: brightness(1.2); }
+    80%  { transform: translateY(10px) scale(0.9); opacity: 0.5; }
+    100% { transform: translateY(18px) scale(0.7); opacity: 0; }
+}
+@keyframes poison-throb {
+    0%   { filter: brightness(1) hue-rotate(0deg); }
+    20%  { filter: brightness(0.85) hue-rotate(10deg); }
+    40%  { filter: brightness(1.1) hue-rotate(-5deg); }
+    60%  { filter: brightness(0.9) hue-rotate(8deg); }
+    80%  { filter: brightness(1.05) hue-rotate(-3deg); }
+    100% { filter: brightness(1) hue-rotate(0deg); }
+}
+
 /* ---- 睡眠 SLP：月亮+Zzz 浮起渐隐 ---- */
 .vfx-status-slp {
     animation: float-sleep 1.5s ease-in-out forwards !important;
