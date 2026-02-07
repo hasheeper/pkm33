@@ -298,6 +298,8 @@ export async function executePlayerTurn(p, e, move) {
     
     return { 
         pivot: result?.pivot || false,
+        passSub: result?.passSub || false,  // 【修复】传递替身传递标记 (Shed Tail)
+        passBoosts: result?.passBoosts || false,  // 【修复】传递能力变化标记 (Baton Pass)
         phaze: result?.phaze || false  // 【新增】强制换人标记 (Roar/Dragon Tail/Circle Throw)
     };
 }
@@ -765,6 +767,27 @@ export function getEndTurnStatusLogs(poke, opponent, isPlayerPoke = false) {
             logs.push(`<span style="color:#9b59b6">🧂 ${poke.cnName} 因盐腌受到了严重伤害! (-${dmg})</span>`);
         } else {
             logs.push(`<span style="color:#9b59b6">🧂 ${poke.cnName} 因盐腌受到伤害! (-${dmg})</span>`);
+        }
+    }
+
+    // ----------------------------------------
+    // 5.6 糖浆炸弹 (Syrup Bomb): 每回合速度-1，持续3回合
+    // 【Gen 9】
+    // ----------------------------------------
+    if (poke.volatile && poke.volatile['syrupbomb'] && poke.volatile['syrupbomb'] > 0) {
+        // 降低速度1级
+        if (typeof poke.applyBoost === 'function') {
+            const diff = poke.applyBoost('spe', -1);
+            if (diff !== 0) {
+                logs.push(`<span style="color:#f39c12">🍯 ${poke.cnName} 因糖浆而速度下降了!</span>`);
+            } else {
+                logs.push(`<span style="color:#f39c12">🍯 ${poke.cnName} 的速度已经无法再降低了!</span>`);
+            }
+        }
+        poke.volatile['syrupbomb']--;
+        if (poke.volatile['syrupbomb'] <= 0) {
+            delete poke.volatile['syrupbomb'];
+            logs.push(`${poke.cnName} 身上的糖浆脱落了!`);
         }
     }
 

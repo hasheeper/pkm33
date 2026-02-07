@@ -37,6 +37,10 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     const handler = (typeof getMoveHandler === 'function') ? getMoveHandler(move.name) : null;
     console.log(`[MOVE HANDLER] Looking for handler: "${move.name}", found:`, handler ? 'YES' : 'NO', handler?.onUse ? '(has onUse)' : '');
     
+    // 【修复】提前声明 pivot/passBoosts 标记，供 onUse 和 onHit 共用
+    let pivotTriggered = false;
+    let passBoostsTriggered = false;
+    
     // === onUse 钩子 (变化技/天气/场地等，以及技能前置检查如 Fake Out) ===
     // 【重要】蓄力技能的 onUse 已在 applyDamage 中处理，此处跳过
     // 检查：如果 damageDealt > 0，说明已经造成伤害，onUse 已经执行过
@@ -50,6 +54,13 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         if (result) {
             if (result.failed) {
                 return { logs, pivot: false };
+            }
+            // 【修复】捕获 onUse 返回的 pivot/passBoosts (Baton Pass, Teleport 等)
+            if (result.pivot) {
+                pivotTriggered = true;
+            }
+            if (result.passBoosts) {
+                passBoostsTriggered = true;
             }
             // 【蓄力技能】正在蓄力中，跳过伤害计算
             if (result.charging && result.skipDamage) {
@@ -104,10 +115,9 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     }
     
     // === onHit 钩子 (命中后效果) ===
-    let pivotTriggered = false;
     let phazeTriggered = false;
     if (handler && handler.onHit) {
-        const hitResult = handler.onHit(user, target, damageDealt, logs, battle);
+        const hitResult = handler.onHit(user, target, damageDealt, logs, battle, move);
         if (hitResult && hitResult.pivot) {
             pivotTriggered = true;
         }
@@ -125,6 +135,11 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         }
     } else if (fullMoveData.heal && Array.isArray(fullMoveData.heal) && fullMoveData.target === 'self') {
         // 【修复】无 onHit handler 但有 heal: [num, den] 的回复招式 (Milk Drink/Heal Order/Life Dew 等)
+        // 【回复封锁 Heal Block / Psychic Noise】检查
+        if (user.volatile && user.volatile.healBlock && user.volatile.healBlock > 0) {
+            logs.push(`<span style="color:#e056fd">${user.cnName} 处于回复封锁状态，无法回复!</span>`);
+            return { logs, pivot: pivotTriggered };
+        }
         const [num, den] = fullMoveData.heal;
         const baseHeal = Math.floor(user.maxHp * num / den);
         const maxHeal = user.maxHp - user.currHp;
@@ -234,7 +249,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                     if (availablePokemon.length > 0) {
                         const randomPoke = availablePokemon[Math.floor(Math.random() * availablePokemon.length)];
                         const newIndex = enemyParty.indexOf(randomPoke);
-                        if (user.volatile) user.volatile = {};
+                        if (target.volatile) target.volatile = {};
                         battle.enemyActive = newIndex;
                         if ('enemyActiveIndex' in battle) battle.enemyActiveIndex = newIndex;
                         randomPoke.turnCount = 0;
@@ -640,6 +655,44 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                     }
                 }
             }
+            
+            // 【Gen 9】回复封锁 (Psychic Noise 精神噪音)
+            // 施加 healBlock 状态，2 回合内禁止目标回复
+            if (fullMoveData.secondary.volatileStatus === 'healblock') {
+                if (hasCovertCloak) {
+                    logs.push(`${target.cnName} 的隐密斗篷阻止了回复封锁!`);
+                } else {
+                    target.volatile = target.volatile || {};
+                    if (!target.volatile.healBlock) {
+                        target.volatile.healBlock = 2;
+                        logs.push(`<span style="color:#e056fd">🔇 ${target.cnName} 被施加了回复封锁!</span>`);
+                    }
+                }
+            }
+            
+            // 【Gen 9】糖浆炸弹 (Syrup Bomb)
+            // 施加 syrupbomb 状态，3 回合每回合速度-1
+            if (fullMoveData.secondary.volatileStatus === 'syrupbomb') {
+                if (hasCovertCloak) {
+                    logs.push(`${target.cnName} 的隐密斗篷阻止了糖浆效果!`);
+                } else {
+                    target.volatile = target.volatile || {};
+                    if (!target.volatile.syrupbomb) {
+                        target.volatile.syrupbomb = 3;
+                        logs.push(`<span style="color:#f39c12">🍯 ${target.cnName} 被黏稠的糖浆覆盖了!</span>`);
+                    }
+                }
+            }
+            
+            // 【Gen 7】泡影的咏叹调 (Sparkling Aria)
+            // 治愈目标的烧伤状态
+            if (fullMoveData.secondary.volatileStatus === 'sparklingaria') {
+                if (target.status === 'brn') {
+                    target.status = null;
+                    target.statusTurns = 0;
+                    logs.push(`<span style="color:#3498db">💧 ${target.cnName} 的烧伤被泡沫治愈了!</span>`);
+                }
+            }
         }
     }
     
@@ -851,6 +904,14 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     if (isProtectMove && !(user.volatile && user.volatile.protect)) {
         user.volatile = user.volatile || {};
         user.volatile.protect = true;
+        // 【BUG修复】设置特殊守住类型标记，否则接触反制效果不会触发
+        const vs = fullMoveData.volatileStatus;
+        if (vs === 'banefulbunker') user.volatile.banefulBunker = true;
+        if (vs === 'spikyshield') user.volatile.spikyShield = true;
+        if (vs === 'kingsshield') user.volatile.kingsShield = true;
+        if (vs === 'obstruct') user.volatile.obstruct = true;
+        if (vs === 'silktrap') user.volatile.silkTrap = true;
+        if (vs === 'burningbulwark') user.volatile.burningBulwark = true;
         logs.push(`${user.cnName} 守住了自己!`);
     }
     
@@ -990,18 +1051,34 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     
     // 寄生种子
     if (move.name === 'Leech Seed') {
-        if (!target.types.includes('Grass')) {
+        if (target.types && target.types.includes('Grass')) {
+            logs.push(`对草系宝可梦没有效果!`);
+        } else if (target.volatile && target.volatile.substitute && target.volatile.substitute > 0) {
+            logs.push(`${target.cnName} 的替身挡住了寄生种子!`);
+        } else {
             target.volatile = target.volatile || {};
             target.volatile['leechseed'] = true;
             logs.push(`寄生种子种在了 ${target.cnName} 身上!`);
-        } else {
-            logs.push(`对草系宝可梦没有效果!`);
         }
     }
     
     // 哈欠
     if (move.name === 'Yawn') {
-        if (!target.status && !(target.volatile && target.volatile['yawn'])) {
+        // 替身检查
+        if (target.volatile && target.volatile.substitute && target.volatile.substitute > 0) {
+            logs.push(`${target.cnName} 的替身挡住了哈欠!`);
+        // 电气场地检查（接地目标不会被催眠）
+        } else if (battle && battle.terrain === 'electricterrain') {
+            const tAbility = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const isGrounded = !(target.types && target.types.includes('Flying')) && tAbility !== 'levitate';
+            if (isGrounded) {
+                logs.push(`电气场地保护了 ${target.cnName}，哈欠无效!`);
+            } else if (!target.status && !(target.volatile && target.volatile['yawn'])) {
+                target.volatile = target.volatile || {};
+                target.volatile['yawn'] = 2;
+                logs.push(`${target.cnName} 打了个大大的哈欠...`);
+            }
+        } else if (!target.status && !(target.volatile && target.volatile['yawn'])) {
             target.volatile = target.volatile || {};
             target.volatile['yawn'] = 2;
             logs.push(`${target.cnName} 打了个大大的哈欠...`);
@@ -1021,7 +1098,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     // ========== 5. 自我牺牲技能 ==========
     if (fullMoveData.selfdestruct) {
         const shouldFaint = fullMoveData.selfdestruct === 'always' || 
-                           (fullMoveData.selfdestruct === 'ifHit' && damageDealt >= 0);
+                           (fullMoveData.selfdestruct === 'ifHit' && damageDealt > 0);
         
         if (shouldFaint) {
             user.currHp = 0;
@@ -1033,9 +1110,10 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     // ========== 6. 接触类招式反馈效果 ==========
     const isContact = fullMoveData.flags && fullMoveData.flags.contact;
     
-    // userAbilityId 已在上方定义（Sheer Force 检查处）
-    let hitCount = 1;
-    if (fullMoveData.multihit) {
+    // 【BUG修复】优先使用 applyDamage 传递的实际段数，避免与伤害计算不一致
+    let hitCount = move._actualHitCount || 1;
+    if (hitCount === 1 && fullMoveData.multihit) {
+        // 回退：如果没有传递实际段数（如变化技路径），才重新计算
         if (Array.isArray(fullMoveData.multihit)) {
             const [min, max] = fullMoveData.multihit;
             if (userAbilityId === 'skilllink') {
@@ -1116,8 +1194,8 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         user.lastMoveUsed = null;
     }
     
-    // 返回日志和 pivot/phaze 状态
-    return { logs, pivot: pivotTriggered, phaze: phazeTriggered };
+    // 返回日志和 pivot/phaze/passBoosts 状态
+    return { logs, pivot: pivotTriggered, phaze: phazeTriggered, passBoosts: passBoostsTriggered };
 }
 
 // ============================================

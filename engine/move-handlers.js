@@ -31,6 +31,12 @@
 function applyHeal(pokemon, baseAmount, source = 'move') {
     if (baseAmount <= 0) return 0;
     
+    // 【回复封锁 Heal Block / Psychic Noise】检查
+    if (pokemon.volatile && pokemon.volatile.healBlock && pokemon.volatile.healBlock > 0) {
+        console.log(`[HEAL BLOCK] ${pokemon.cnName || pokemon.name} 处于回复封锁状态，无法回复!`);
+        return 0;
+    }
+    
     const maxHeal = pokemon.maxHp - pokemon.currHp;
     if (maxHeal <= 0) return 0;
     
@@ -764,6 +770,229 @@ export const MoveHandlers = {
         description: '本回合受伤后威力翻倍 (120)'
     },
     
+    // ============================================
+    // 【雪崩 Avalanche】本回合受伤后威力翻倍
+    // ============================================
+    'Avalanche': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (attacker.turnData && attacker.turnData.lastDamageTaken && attacker.turnData.lastDamageTaken.amount > 0) {
+                return 120;
+            }
+            return 60;
+        },
+        description: '本回合受伤后威力翻倍 (120)'
+    },
+    
+    // ============================================
+    // 【以牙还牙 Assurance】目标本回合已受伤则威力翻倍
+    // ============================================
+    'Assurance': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 检查目标本回合是否已受过伤害（钉子、先手攻击等）
+            if (defender.turnData && defender.turnData.damageTakenThisTurn && defender.turnData.damageTakenThisTurn > 0) {
+                return 120;
+            }
+            return 60;
+        },
+        description: '目标本回合已受伤则威力翻倍 (120)'
+    },
+    
+    // ============================================
+    // 【跺脚 Stomping Tantrum】上回合招式失败则威力翻倍
+    // ============================================
+    'Stomping Tantrum': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (attacker.lastMoveFailed) {
+                return 150;
+            }
+            return 75;
+        },
+        description: '上回合招式失败则威力翻倍 (150)'
+    },
+    
+    // ============================================
+    // 【发愤图强 Temper Flare】上回合招式失败则威力翻倍
+    // ============================================
+    'Temper Flare': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            if (attacker.lastMoveFailed) {
+                return 150;
+            }
+            return 75;
+        },
+        description: '上回合招式失败则威力翻倍 (150)'
+    },
+    
+    // ============================================
+    // 【龙能 Dragon Energy】HP 越高威力越高 (同喷火/潮旋)
+    // ============================================
+    'Dragon Energy': {
+        basePowerCallback: (attacker, defender) => {
+            return Math.max(1, Math.floor(150 * attacker.currHp / attacker.maxHp));
+        },
+        description: 'HP 越高威力越高，满血150'
+    },
+    
+    // ============================================
+    // 【重磅冲撞 Hard Press】目标 HP 越高威力越高
+    // 威力 = 100 × (目标当前HP / 目标最大HP)，最低1
+    // ============================================
+    'Hard Press': {
+        basePowerCallback: (attacker, defender) => {
+            return Math.max(1, Math.floor(100 * defender.currHp / defender.maxHp));
+        },
+        description: '目标 HP 越高威力越高，最高100'
+    },
+    
+    // ============================================
+    // 【鬼火游行 Infernal Parade】目标有异常状态时威力翻倍
+    // ============================================
+    'Infernal Parade': {
+        basePowerCallback: (attacker, defender) => {
+            if (defender.status) {
+                return 120;
+            }
+            return 60;
+        },
+        description: '目标有异常状态时威力翻倍 (120)'
+    },
+    
+    // ============================================
+    // 【连斩 Fury Cutter】连续使用威力翻倍 (40→80→160，上限160)
+    // ============================================
+    'Fury Cutter': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            let consecutive = 0;
+            if (attacker.lastMoveUsed === 'Fury Cutter' && attacker.furyCutterCount) {
+                consecutive = attacker.furyCutterCount;
+            }
+            const power = Math.min(160, 40 * Math.pow(2, consecutive));
+            // 更新连续计数
+            attacker.furyCutterCount = consecutive + 1;
+            attacker.lastMoveUsed = 'Fury Cutter';
+            return power;
+        },
+        description: '连续使用威力翻倍 (40→80→160)'
+    },
+    
+    // ============================================
+    // 【回声 Echoed Voice】连续使用威力递增 (40→80→120→160→200)
+    // ============================================
+    'Echoed Voice': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            let consecutive = 0;
+            if (attacker.lastMoveUsed === 'Echoed Voice' && attacker.echoedVoiceCount) {
+                consecutive = attacker.echoedVoiceCount;
+            }
+            const power = Math.min(200, 40 + 40 * consecutive);
+            attacker.echoedVoiceCount = consecutive + 1;
+            attacker.lastMoveUsed = 'Echoed Voice';
+            return power;
+        },
+        description: '连续使用威力递增 (40→80→120→160→200)'
+    },
+    
+    // ============================================
+    // 【飞水手里剑 Water Shuriken】多段攻击
+    // 小智版甲贺忍蛙: 威力20, 固定3次
+    // 普通: 威力15, 2-5次
+    // ============================================
+    'Water Shuriken': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // Ash-Greninja / Battle Bond 形态: 威力20
+            const pokeName = (attacker.name || '').toLowerCase();
+            const abilityId = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (pokeName.includes('ash') || abilityId === 'battlebond') {
+                return 20;
+            }
+            return 15;
+        },
+        description: '多段攻击，小智甲贺忍蛙威力20且固定3次'
+    },
+    
+    // ============================================
+    // 【三旋击 Triple Axel】三段攻击，威力递增 (20→40→60)
+    // 每段独立命中判定
+    // ============================================
+    'Triple Axel': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 通过 tripleHitCount 追踪当前是第几段
+            const hitNum = (attacker._tripleAxelHit || 0) + 1;
+            attacker._tripleAxelHit = hitNum;
+            return 20 * hitNum; // 20, 40, 60
+        },
+        onUse: (attacker, defender, logs, battle, isPlayer) => {
+            // 重置计数器
+            attacker._tripleAxelHit = 0;
+            return {};
+        },
+        description: '三段攻击，威力递增 (20→40→60)，每段独立判定'
+    },
+    
+    // ============================================
+    // 【三连踢 Triple Kick】三段攻击，威力递增 (10→20→30)
+    // 每段独立命中判定
+    // ============================================
+    'Triple Kick': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            const hitNum = (attacker._tripleKickHit || 0) + 1;
+            attacker._tripleKickHit = hitNum;
+            return 10 * hitNum; // 10, 20, 30
+        },
+        onUse: (attacker, defender, logs, battle, isPlayer) => {
+            attacker._tripleKickHit = 0;
+            return {};
+        },
+        description: '三段攻击，威力递增 (10→20→30)，每段独立判定'
+    },
+    
+    // ============================================
+    // 【群殴 Beat Up】单打简化：威力 = 5 + (使用者基础攻击 / 10)
+    // 原版每个队友各打一次，单打简化为一次攻击
+    // ============================================
+    'Beat Up': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            // 简化：基于使用者的基础攻击力
+            const baseAtk = attacker.baseStats ? attacker.baseStats.atk : (attacker.atk || 80);
+            return Math.floor(5 + baseAtk / 10);
+        },
+        description: '单打简化：威力基于使用者基础攻击'
+    },
+    
+    // ============================================
+    // 【轮唱 Round】单打中无组合效果，使用基础威力
+    // ============================================
+    'Round': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            return 60;
+        },
+        description: '单打中使用基础威力60'
+    },
+    
+    // ============================================
+    // 【誓约招式】单打中无组合效果，使用基础威力
+    // ============================================
+    'Fire Pledge': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            return 80;
+        },
+        description: '单打中使用基础威力80'
+    },
+    
+    'Grass Pledge': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            return 80;
+        },
+        description: '单打中使用基础威力80'
+    },
+    
+    'Water Pledge': {
+        basePowerCallback: (attacker, defender, move, battle) => {
+            return 80;
+        },
+        description: '单打中使用基础威力80'
+    },
+    
     // 【觉醒力量 Wake-Up Slap】目标睡眠时威力翻倍并唤醒
     'Wake-Up Slap': {
         basePowerCallback: (attacker, defender, move, battle) => {
@@ -890,12 +1119,53 @@ export const MoveHandlers = {
     },
     
     'Parting Shot': {
-        onHit: (attacker, defender, damage, logs) => {
-            // Parting Shot 是变化技，只要成功使用就触发（除非被挑衅等阻止）
+        onHit: (attacker, defender, damage, logs, battle, move) => {
+            // Parting Shot: 降低对手攻击和特攻各1级，然后换人
+            // 【Gen 8+】即使降能力被阻止（Clear Body等），仍然可以换人
+            let statsDropped = false;
+            
+            // 检查对手是否有阻止降能力的特性
+            const defAbId = (defender.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            const blockAbilities = ['clearbody', 'whitesmoke', 'fullmetalbody'];
+            
+            if (blockAbilities.includes(defAbId)) {
+                logs.push(`${defender.cnName} 的特性阻止了能力下降!`);
+            } else {
+                if (typeof defender.applyBoost === 'function') {
+                    const atkChange = defender.applyBoost('atk', -1);
+                    if (atkChange !== 0) {
+                        logs.push(`→ ${defender.cnName} 的攻击下降了!`);
+                        statsDropped = true;
+                    }
+                    const spaChange = defender.applyBoost('spa', -1);
+                    if (spaChange !== 0) {
+                        logs.push(`→ ${defender.cnName} 的特攻下降了!`);
+                        statsDropped = true;
+                    }
+                } else {
+                    if (defender.boosts) {
+                        defender.boosts.atk = Math.max(-6, (defender.boosts.atk || 0) - 1);
+                        defender.boosts.spa = Math.max(-6, (defender.boosts.spa || 0) - 1);
+                        logs.push(`→ ${defender.cnName} 的攻击和特攻下降了!`);
+                        statsDropped = true;
+                    }
+                }
+                if (!statsDropped) {
+                    logs.push(`${defender.cnName} 的能力已经无法再降低了!`);
+                }
+            }
+            
+            // 【修复】Magic Bounce 反弹时，只降能力不触发换人
+            // _bounced 标记表示招式被魔法镜反弹，此时 attacker 是反弹者而非原使用者
+            if (move && move._bounced) {
+                console.log(`[PARTING SHOT] 被魔法镜反弹，不触发换人`);
+                return { pivot: false };
+            }
+            
             logs.push(`${attacker.cnName} 留下狠话后撤退了!`);
             return { pivot: true };
         },
-        description: '降低对手能力后换人'
+        description: '降低对手攻击和特攻各1级后换人'
     },
     
     'Fake Out': {
@@ -2522,10 +2792,27 @@ export const MoveHandlers = {
     // ============================================
     
     'Rest': {
-        onHit: (attacker, defender, damage, logs) => {
+        onHit: (attacker, defender, damage, logs, battle) => {
             // 完全回复HP，但陷入睡眠2回合
             if (attacker.currHp >= attacker.maxHp) {
                 logs.push(`但是失败了!`);
+                return { rest: false };
+            }
+            
+            // 【BUG修复】电气场地检查：接地目标不能使用 Rest
+            if (battle && battle.terrain === 'electricterrain') {
+                const aAbility = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+                const isGrounded = !(attacker.types && attacker.types.includes('Flying')) && aAbility !== 'levitate';
+                if (isGrounded) {
+                    logs.push(`电气场地使 ${attacker.cnName} 无法入睡!`);
+                    return { rest: false };
+                }
+            }
+            
+            // 【BUG修复】不眠/干劲等特性检查
+            const aAbilityId = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (aAbilityId === 'insomnia' || aAbilityId === 'vitalspirit') {
+                logs.push(`${attacker.cnName} 的特性使其无法入睡!`);
                 return { rest: false };
             }
             
@@ -2600,8 +2887,8 @@ export const MoveHandlers = {
     
     'Strength Sap': {
         onHit: (attacker, defender, damage, logs) => {
-            // 回复等于对手攻击力的HP，并降低对手攻击
-            const baseHeal = defender.atk;
+            // 回复等于对手经过能力变化修正后的攻击力的HP，并降低对手攻击
+            const baseHeal = defender.getStat ? defender.getStat('atk') : defender.atk;
             const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
                 logs.push(`${attacker.cnName} 吸取了 ${defender.cnName} 的力量!`);
@@ -5271,6 +5558,426 @@ export const MoveHandlers = {
             return {};
         },
         description: '威力110的幽灵物理技，对手没有道具则失败'
+    },
+    
+    // ============================================
+    // ============================================
+    //  变化技补全 (Status Move Implementations)
+    // ============================================
+    // ============================================
+    
+    // ============================================
+    // 【D类：无效果招式】
+    // ============================================
+    
+    'Splash': {
+        onUse: (user, target, logs) => {
+            logs.push(`${user.cnName} 使劲跳了起来! 但是什么也没有发生!`);
+            return {};
+        },
+        description: '什么也没有发生'
+    },
+    
+    'Celebrate': {
+        onUse: (user, target, logs) => {
+            logs.push(`恭喜你! 🎉`);
+            return {};
+        },
+        description: '庆祝（无效果）'
+    },
+    
+    'Happy Hour': {
+        onUse: (user, target, logs) => {
+            logs.push(`大家都变得快乐起来了! 💰`);
+            return {};
+        },
+        description: '快乐时光（无效果）'
+    },
+    
+    'Teatime': {
+        onUse: (user, target, logs) => {
+            logs.push(`到了喝茶的时间了! ☕`);
+            return {};
+        },
+        description: '茶会时间（无效果）'
+    },
+    
+    // ============================================
+    // 【磁力波动 Magnetic Flux】提升Plus/Minus特性队友双防
+    // 单打简化：如果自己有 Plus/Minus 则提升自己双防
+    // ============================================
+    'Magnetic Flux': {
+        onUse: (user, target, logs) => {
+            const abilityId = (user.ability || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (abilityId === 'plus' || abilityId === 'minus') {
+                if (typeof user.applyBoost === 'function') {
+                    user.applyBoost('def', 1);
+                    user.applyBoost('spd', 1);
+                }
+                logs.push(`<span style="color:#3498db">🧲 ${user.cnName} 的防御和特防提升了!</span>`);
+            } else {
+                logs.push(`但是失败了!`);
+            }
+            return {};
+        },
+        description: '提升Plus/Minus特性宝可梦的双防'
+    },
+    
+    // ============================================
+    // 【A类：核心辅助技】
+    // ============================================
+    
+    // 【回收利用 Recycle】回收已消耗的树果/道具
+    'Recycle': {
+        onUse: (user, target, logs) => {
+            if (user.usedBerry && !user.item) {
+                user.item = user.usedBerry;
+                logs.push(`<span style="color:#27ae60">♻️ ${user.cnName} 回收了 ${user.usedBerry}!</span>`);
+                user.usedBerry = null;
+                // 取消 Unburden 效果
+                if (user.unburdenActive) {
+                    user.unburdenActive = false;
+                }
+            } else if (!user.item && user.originalItem) {
+                // Fallback: 如果有记录原始道具
+                user.item = user.originalItem;
+                logs.push(`<span style="color:#27ae60">♻️ ${user.cnName} 回收了 ${user.originalItem}!</span>`);
+            } else {
+                logs.push(`但是失败了! 没有可以回收的道具!`);
+            }
+            return {};
+        },
+        description: '回收已消耗的树果/道具'
+    },
+    
+    // 【怨恨 Spite】减少目标最后使用招式的 PP
+    'Spite': {
+        onHit: (user, target, damage, logs) => {
+            if (target.moves && target.moves.length > 0) {
+                const lastMove = target.lastMove || target.lastMoveUsed;
+                if (lastMove) {
+                    const move = target.moves.find(m => m.name === lastMove || m.cn === lastMove);
+                    if (move && move.pp !== undefined && move.pp > 0) {
+                        const reduction = 4;
+                        move.pp = Math.max(0, move.pp - reduction);
+                        logs.push(`<span style="color:#7c3aed">😤 ${target.cnName} 的 ${move.cn || move.name} PP减少了 ${reduction}!</span>`);
+                        return {};
+                    }
+                }
+            }
+            logs.push(`但是失败了!`);
+            return {};
+        },
+        description: '减少目标最后使用招式的PP 4点'
+    },
+    
+    // 【指压 Acupressure】随机大幅提升一项能力 +2
+    'Acupressure': {
+        onUse: (user, target, logs) => {
+            const stats = ['atk', 'def', 'spa', 'spd', 'spe'];
+            // 过滤掉已经+6的
+            const available = stats.filter(s => !user.boosts || (user.boosts[s] || 0) < 6);
+            if (available.length === 0) {
+                logs.push(`${user.cnName} 的能力已经无法再提升了!`);
+                return {};
+            }
+            const stat = available[Math.floor(Math.random() * available.length)];
+            if (typeof user.applyBoost === 'function') {
+                user.applyBoost(stat, 2);
+            } else {
+                user.boosts = user.boosts || {};
+                user.boosts[stat] = Math.min(6, (user.boosts[stat] || 0) + 2);
+            }
+            const statNames = { atk: '攻击', def: '防御', spa: '特攻', spd: '特防', spe: '速度' };
+            logs.push(`<span style="color:#e67e22">💆 ${user.cnName} 的${statNames[stat]}大幅提升了!</span>`);
+            return {};
+        },
+        description: '随机大幅提升一项能力 (+2)'
+    },
+    
+    // 【锁定 Lock-On】下次攻击必中
+    'Lock-On': {
+        onUse: (user, target, logs) => {
+            user.volatile = user.volatile || {};
+            user.volatile.lockOn = true;
+            logs.push(`<span style="color:#e74c3c">🎯 ${user.cnName} 锁定了目标!</span>`);
+            return {};
+        },
+        description: '下次攻击必定命中'
+    },
+    
+    // 【振奋心神 Take Heart】治愈自身异常状态 + 特攻特防+1
+    'Take Heart': {
+        onUse: (user, target, logs) => {
+            // 治愈异常状态
+            if (user.status) {
+                const statusNames = { slp: '睡眠', psn: '中毒', tox: '剧毒', brn: '灼伤', par: '麻痹', frz: '冰冻' };
+                logs.push(`${user.cnName} 的${statusNames[user.status] || '异常状态'}治愈了!`);
+                user.status = null;
+                user.statusTurns = 0;
+                user.sleepTurns = 0;
+            }
+            // 特攻特防+1
+            if (typeof user.applyBoost === 'function') {
+                user.applyBoost('spa', 1);
+                user.applyBoost('spd', 1);
+            } else {
+                user.boosts = user.boosts || {};
+                user.boosts.spa = Math.min(6, (user.boosts.spa || 0) + 1);
+                user.boosts.spd = Math.min(6, (user.boosts.spd || 0) + 1);
+            }
+            logs.push(`<span style="color:#e056fd">💖 ${user.cnName} 振奋了心神! 特攻和特防提升了!</span>`);
+            return {};
+        },
+        description: '治愈异常状态，特攻特防+1'
+    },
+    
+    // 【花疗 Floral Healing】回复目标最大HP的1/2（草地上2/3）
+    'Floral Healing': {
+        onHit: (user, target, damage, logs, battle) => {
+            // 单打中对自己使用
+            const healTarget = user;
+            let ratio = 0.5;
+            if (battle && battle.terrain === 'grassyterrain') {
+                ratio = 2 / 3;
+            }
+            const baseHeal = Math.floor(healTarget.maxHp * ratio);
+            const actualHeal = applyHeal(healTarget, baseHeal);
+            if (actualHeal > 0) {
+                logs.push(`<span style="color:#27ae60">🌸 ${healTarget.cnName} 恢复了体力!</span>`);
+            } else {
+                logs.push(`${healTarget.cnName} 的体力已满!`);
+            }
+            return { heal: actualHeal };
+        },
+        description: '回复HP的1/2，草地上2/3'
+    },
+    
+    // 【丛林治疗 Jungle Healing】回复己方全员HP和异常状态
+    // 单打简化：回复自己1/4 HP + 治愈异常状态
+    'Jungle Healing': {
+        onUse: (user, target, logs) => {
+            const baseHeal = Math.floor(user.maxHp / 4);
+            const actualHeal = applyHeal(user, baseHeal);
+            if (actualHeal > 0) {
+                logs.push(`<span style="color:#27ae60">🌿 ${user.cnName} 通过丛林治疗恢复了体力!</span>`);
+            }
+            if (user.status) {
+                const statusNames = { slp: '睡眠', psn: '中毒', tox: '剧毒', brn: '灼伤', par: '麻痹', frz: '冰冻' };
+                logs.push(`${user.cnName} 的${statusNames[user.status] || '异常状态'}治愈了!`);
+                user.status = null;
+                user.statusTurns = 0;
+                user.sleepTurns = 0;
+            }
+            return {};
+        },
+        description: '回复己方HP 1/4 + 治愈异常状态'
+    },
+    
+    // 【新月祝福 Lunar Blessing】回复己方全员HP和异常状态
+    // 单打简化：同丛林治疗
+    'Lunar Blessing': {
+        onUse: (user, target, logs) => {
+            const baseHeal = Math.floor(user.maxHp / 4);
+            const actualHeal = applyHeal(user, baseHeal);
+            if (actualHeal > 0) {
+                logs.push(`<span style="color:#9b59b6">🌙 ${user.cnName} 受到了新月的祝福!</span>`);
+            }
+            if (user.status) {
+                const statusNames = { slp: '睡眠', psn: '中毒', tox: '剧毒', brn: '灼伤', par: '麻痹', frz: '冰冻' };
+                logs.push(`${user.cnName} 的${statusNames[user.status] || '异常状态'}治愈了!`);
+                user.status = null;
+                user.statusTurns = 0;
+                user.sleepTurns = 0;
+            }
+            return {};
+        },
+        description: '回复己方HP 1/4 + 治愈异常状态'
+    },
+    
+    // 【力量平分 Power Split】平均化双方的攻击和特攻
+    'Power Split': {
+        onHit: (user, target, damage, logs) => {
+            const avgAtk = Math.floor((user.atk + target.atk) / 2);
+            const avgSpa = Math.floor((user.spa + target.spa) / 2);
+            user.atk = avgAtk;
+            target.atk = avgAtk;
+            user.spa = avgSpa;
+            target.spa = avgSpa;
+            logs.push(`<span style="color:#3498db">⚖️ ${user.cnName} 和 ${target.cnName} 平分了攻击和特攻!</span>`);
+            return {};
+        },
+        description: '平均化双方的攻击和特攻'
+    },
+    
+    // 【色彩变化2 Conversion 2】将自身属性变为能抵抗对手上次使用招式的属性
+    'Conversion 2': {
+        onUse: (user, target, logs) => {
+            // 简化：随机变为一个能抵抗对手属性的类型
+            const targetTypes = target.types || ['Normal'];
+            // 抵抗表简化
+            const resistMap = {
+                'Normal': ['Rock', 'Steel'], 'Fire': ['Fire', 'Water', 'Rock', 'Dragon'],
+                'Water': ['Water', 'Grass', 'Dragon'], 'Electric': ['Electric', 'Grass', 'Dragon'],
+                'Grass': ['Fire', 'Grass', 'Poison', 'Flying', 'Bug', 'Dragon', 'Steel'],
+                'Ice': ['Fire', 'Water', 'Ice', 'Steel'], 'Fighting': ['Poison', 'Flying', 'Psychic', 'Bug', 'Fairy'],
+                'Poison': ['Poison', 'Ground', 'Rock', 'Ghost'], 'Ground': ['Grass', 'Bug'],
+                'Flying': ['Electric', 'Rock', 'Steel'], 'Psychic': ['Psychic', 'Steel'],
+                'Bug': ['Fire', 'Fighting', 'Poison', 'Flying', 'Ghost', 'Steel', 'Fairy'],
+                'Rock': ['Fighting', 'Ground', 'Steel'], 'Ghost': ['Dark'],
+                'Dragon': ['Steel'], 'Dark': ['Fighting', 'Dark', 'Fairy'],
+                'Steel': ['Fire', 'Water', 'Electric', 'Steel'], 'Fairy': ['Fire', 'Poison', 'Steel']
+            };
+            const lastMoveType = target.lastMoveType || targetTypes[0];
+            const resistTypes = resistMap[lastMoveType] || ['Normal'];
+            const newType = resistTypes[Math.floor(Math.random() * resistTypes.length)];
+            user.types = [newType];
+            logs.push(`<span style="color:#e67e22">🎨 ${user.cnName} 变成了 ${newType} 属性!</span>`);
+            return {};
+        },
+        description: '变为能抵抗对手上次招式的属性'
+    },
+    
+    // ============================================
+    // 【B类：特性交换系列】
+    // 不可交换的特性列表
+    // ============================================
+    
+    // 【特性交换 Skill Swap】交换双方特性
+    'Skill Swap': {
+        onHit: (user, target, damage, logs) => {
+            const banned = ['Wonder Guard', 'Multitype', 'Illusion', 'Stance Change', 'Schooling',
+                'Comatose', 'Shields Down', 'Disguise', 'RKS System', 'Battle Bond',
+                'Power Construct', 'Ice Face', 'Gulp Missile', 'As One', 'Zero to Hero'];
+            if (banned.includes(user.ability) || banned.includes(target.ability)) {
+                logs.push(`但是失败了!`);
+                return {};
+            }
+            const temp = user.ability;
+            user.ability = target.ability;
+            target.ability = temp;
+            logs.push(`<span style="color:#9b59b6">🔄 ${user.cnName} 和 ${target.cnName} 交换了特性!</span>`);
+            logs.push(`${user.cnName} 获得了 ${user.ability}!`);
+            logs.push(`${target.cnName} 获得了 ${target.ability}!`);
+            return {};
+        },
+        description: '交换双方特性'
+    },
+    
+    // 【扮演 Role Play】复制对手特性
+    'Role Play': {
+        onHit: (user, target, damage, logs) => {
+            const banned = ['Wonder Guard', 'Multitype', 'Illusion', 'Stance Change', 'Schooling',
+                'Comatose', 'Shields Down', 'Disguise', 'RKS System', 'Battle Bond',
+                'Power Construct', 'Ice Face', 'Gulp Missile', 'As One', 'Zero to Hero', 'Trace'];
+            if (banned.includes(target.ability)) {
+                logs.push(`但是失败了!`);
+                return {};
+            }
+            user.ability = target.ability;
+            logs.push(`<span style="color:#9b59b6">🎭 ${user.cnName} 复制了 ${target.cnName} 的 ${target.ability}!</span>`);
+            return {};
+        },
+        description: '复制对手的特性'
+    },
+    
+    // 【找伙伴 Entrainment】将自己的特性强加给对手
+    'Entrainment': {
+        onHit: (user, target, damage, logs) => {
+            const cantReplace = ['Truant', 'Multitype', 'Stance Change', 'Schooling',
+                'Comatose', 'Shields Down', 'Disguise', 'RKS System', 'Battle Bond',
+                'Power Construct', 'Ice Face', 'Gulp Missile', 'As One', 'Zero to Hero'];
+            const cantCopy = ['Trace', 'Forecast', 'Flower Gift', 'Zen Mode', 'Illusion',
+                'Imposter', 'Power of Alchemy', 'Receiver', 'Disguise', 'Wonder Guard'];
+            if (cantReplace.includes(target.ability) || cantCopy.includes(user.ability)) {
+                logs.push(`但是失败了!`);
+                return {};
+            }
+            target.ability = user.ability;
+            logs.push(`<span style="color:#9b59b6">🤝 ${target.cnName} 的特性变成了 ${user.ability}!</span>`);
+            return {};
+        },
+        description: '将自己的特性强加给对手'
+    },
+    
+    // 【单纯光束 Simple Beam】将对手特性变为单纯
+    'Simple Beam': {
+        onHit: (user, target, damage, logs) => {
+            const banned = ['Truant', 'Multitype', 'Stance Change', 'Schooling',
+                'Comatose', 'Shields Down', 'Disguise', 'RKS System', 'Battle Bond',
+                'Power Construct', 'Ice Face', 'Gulp Missile', 'As One', 'Zero to Hero'];
+            if (banned.includes(target.ability)) {
+                logs.push(`但是失败了!`);
+                return {};
+            }
+            target.ability = 'Simple';
+            logs.push(`<span style="color:#f39c12">✨ ${target.cnName} 的特性变成了单纯!</span>`);
+            return {};
+        },
+        description: '将对手特性变为单纯(Simple)'
+    },
+    
+    // 【烦恼种子 Worry Seed】将对手特性变为不眠
+    'Worry Seed': {
+        onHit: (user, target, damage, logs) => {
+            const banned = ['Truant', 'Multitype', 'Stance Change', 'Schooling',
+                'Comatose', 'Shields Down', 'Disguise', 'RKS System', 'Battle Bond',
+                'Power Construct', 'Ice Face', 'Gulp Missile', 'As One', 'Zero to Hero', 'Insomnia'];
+            if (banned.includes(target.ability)) {
+                logs.push(`但是失败了!`);
+                return {};
+            }
+            target.ability = 'Insomnia';
+            logs.push(`<span style="color:#27ae60">🌱 ${target.cnName} 的特性变成了不眠!</span>`);
+            // 如果目标正在睡觉，立即醒来
+            if (target.status === 'slp') {
+                target.status = null;
+                target.sleepTurns = 0;
+                logs.push(`${target.cnName} 醒来了!`);
+            }
+            return {};
+        },
+        description: '将对手特性变为不眠(Insomnia)'
+    },
+    
+    // 【描绘 Doodle】将己方全员特性变为对手的特性
+    // 单打简化：将自己的特性变为对手的特性
+    'Doodle': {
+        onHit: (user, target, damage, logs) => {
+            const banned = ['Wonder Guard', 'Multitype', 'Illusion', 'Stance Change', 'Schooling',
+                'Comatose', 'Shields Down', 'Disguise', 'RKS System', 'Battle Bond',
+                'Power Construct', 'Ice Face', 'Gulp Missile', 'As One', 'Zero to Hero'];
+            if (banned.includes(target.ability)) {
+                logs.push(`但是失败了!`);
+                return {};
+            }
+            user.ability = target.ability;
+            logs.push(`<span style="color:#e67e22">🖍️ ${user.cnName} 描绘了 ${target.cnName} 的特性! 变成了 ${target.ability}!</span>`);
+            return {};
+        },
+        description: '将自己的特性变为对手的特性'
+    },
+    
+    // ============================================
+    // 【跳过类：双打专用/复杂复制技】
+    // Mimic, Sketch: 复制招式，单打中意义不大且实现复杂
+    // Ally Switch, Instruct, After You, Quash: 双打专用
+    // ============================================
+    
+    'Mimic': {
+        onUse: (user, target, logs) => {
+            logs.push(`${user.cnName} 使用了模仿! 但在单打中效果有限!`);
+            return {};
+        },
+        description: '模仿对手的招式（简化处理）'
+    },
+    
+    'Sketch': {
+        onUse: (user, target, logs) => {
+            logs.push(`${user.cnName} 使用了写生! 但在单打中效果有限!`);
+            return {};
+        },
+        description: '永久学习对手的招式（简化处理）'
     }
 };
 

@@ -100,6 +100,12 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         return result;
     }
     
+    // 0. 处理道具免疫 (气球免疫地面等)
+    if (result.itemImmune) {
+        log(`<b style='color:#3498db'>🎈 ${result.itemImmuneMessage || defender.cnName + ' 的道具免疫了攻击!'}</b>`);
+        return result;
+    }
+    
     // 0. 处理特性免疫 (飘浮、避雷针等)
     if (result.abilityImmune) {
         log(`<b style='color:#9b59b6'>${defender.cnName} 的 ${result.abilityImmune} 吸收/免疫了攻击!</b>`);
@@ -297,6 +303,9 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             const volatileResult = MoveEffects.applyVolatileStatus(attacker, defender, move);
             if (volatileResult.success) {
                 volatileResult.logs.forEach(txt => log(txt));
+                // 【修复】传递 pivot/passSub 标记 (Shed Tail / Baton Pass 等)
+                if (volatileResult.pivot) result.pivot = true;
+                if (volatileResult.passSub) result.passSub = true;
                 return result;
             } else if (volatileResult.logs.length > 0) {
                 volatileResult.logs.forEach(txt => log(txt));
@@ -313,6 +322,7 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             log(`...${move.cn}! (变化技能)`);
         }
         result.pivot = fxResult.pivot || false;
+        result.passBoosts = fxResult.passBoosts || false;  // 【修复】传递 Baton Pass 标记
         result.phaze = fxResult.phaze || false;  // 【修复】传递 phaze 标记
         return result;
     }
@@ -650,6 +660,29 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             }
             updateAllVisuals();
         }
+        
+        // 【BUG修复】气球破裂逻辑 - 受到任何攻击伤害后气球破裂
+        if (actualDamage > 0 && defender.isAlive()) {
+            const defItemForPop = (defender.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (defItemForPop && typeof ITEMS !== 'undefined' && ITEMS[defItemForPop]) {
+                const popItemData = ITEMS[defItemForPop];
+                if (popItemData.popOnHit) {
+                    log(`<span style="color:#e74c3c">💥 ${defender.cnName} 的${popItemData.cnName || popItemData.name}破裂了！</span>`);
+                    const lostBalloon = defender.item;
+                    defender.item = null;
+                    defender.usedItem = lostBalloon;
+                    // 触发 onItemLost 钩子（Unburden 等）
+                    if (typeof AbilityHandlers !== 'undefined' && defender.ability) {
+                        const abilityHandler = AbilityHandlers[defender.ability];
+                        if (abilityHandler && abilityHandler.onItemLost) {
+                            let itemLogs = [];
+                            abilityHandler.onItemLost(defender, lostBalloon, itemLogs);
+                            itemLogs.forEach(txt => log(txt));
+                        }
+                    }
+                }
+            }
+        }
     } else if (result.effectiveness === 0) {
         log(`<b>对其没有效果!</b>`);
         // High Jump Kick / Jump Kick 打到免疫属性时的反伤
@@ -670,6 +703,8 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
     // 【修复】使用 actualDamage（实际造成的伤害）而不是 result.damage（理论伤害）
     // 这样反作用力计算才会基于实际伤害，避免锁血后反伤过高的BUG
     const actualDamageForRecoil = result.displayDamage !== undefined ? result.displayDamage : result.damage;
+    // 【BUG修复】将 calcDamage 计算的实际段数传递给副作用处理，避免重新随机
+    move._actualHitCount = result.hitCount || 1;
     let pivotTriggered = false;
     let phazeTriggered = false;
     if (defender.currHp > 0) {

@@ -379,15 +379,7 @@ export const AbilityHandlers = {
         }
     },
     // 【碎裂铠甲】被物理攻击时防御-1速度+2
-    'Weak Armor': {
-        onPhysicalHit: (attacker, defender, logs) => {
-            if (defender.applyBoost) {
-                defender.applyBoost('def', -1);
-                defender.applyBoost('spe', 2);
-            }
-            logs.push(`${defender.cnName} 的碎裂铠甲发动！防御下降，速度大幅提升！`);
-        }
-    },
+    // 【BUG修复】已移至第2641行的 onDamageTaken 钩子实现（更完善，有物理招式类型检查）
 
     // ============================================
     // D. 入场效果 (Intimidate / Weather)
@@ -1095,7 +1087,6 @@ export const AbilityHandlers = {
     },
     
     // 【察觉 Frisk】进场时显示对手道具
-    // 代表：诅咒娃娃、鬼斯通
     'Frisk': {
         onStart: (self, enemy, logs, battle) => {
             if (enemy && enemy.item) {

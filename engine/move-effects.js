@@ -1682,6 +1682,10 @@ function tickVolatileStatus(pokemon, opponent = null) {
         }
     }
     
+    // 糖浆炸弹 (Syrup Bomb) - 倒计时由 battle-turns.js 处理速度下降
+    // 此处仅作兜底：如果 battle-turns.js 未处理，确保倒计时递减
+    // 注意：battle-turns.js 已处理速度下降和倒计时，此处不重复
+    
     // 哈欠 -> 睡眠
     // 【已移除】哈欠的倒计时在 battle-turns.js 中统一处理，避免重复减少
     // 该处理包含电气场地/薄雾场地免疫检查
@@ -1788,7 +1792,11 @@ function processEndTurnItemEffects(pokemon) {
     
     // === 黑色淤泥 (Black Sludge) ===
     if (itemId === 'blacksludge') {
-        if (pokemon.types && pokemon.types.includes('Poison')) {
+        // 【BUG修复】太晶化后应使用太晶属性判定（太晶毒应回血）
+        const sludgeTypes = (pokemon.isTerastallized && pokemon.teraType) 
+            ? [pokemon.teraType] 
+            : (pokemon.types || []);
+        if (sludgeTypes.includes('Poison')) {
             // 毒系回复 1/16 HP
             const baseHeal = Math.max(1, Math.floor(pokemon.maxHp / 16));
             let actualHeal = baseHeal;

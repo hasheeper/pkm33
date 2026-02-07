@@ -2178,12 +2178,17 @@ async function handleAttack(moveIndex, options = {}) {
         // 玩家使用了 pivot 技能，触发换人
         if (playerResult?.pivot && hasAliveSwitch(battle.playerParty, battle.playerActive)) {
             console.log('[handleAttack] Player pivot in enemySwitch branch, calling handlePlayerPivot...');
+            // 【修复】存储 Shed Tail/Baton Pass 传递标记
+            battle.pendingPassSub = playerResult.passSub || false;
+            battle.pendingPassBoosts = playerResult.passBoosts || false;
             try {
                 await handlePlayerPivot();
                 console.log('[handleAttack] handlePlayerPivot Promise resolved successfully');
             } catch (err) {
                 console.error('[handleAttack] handlePlayerPivot error:', err);
             }
+            battle.pendingPassSub = false;
+            battle.pendingPassBoosts = false;
         }
         
         // 回合末结算
@@ -2595,10 +2600,15 @@ async function handleAttack(moveIndex, options = {}) {
             } else {
                 log(`${oldP.cnName} 打完后急速折返回来了!`);
             }
+            // 【修复】存储 Shed Tail/Baton Pass 传递标记
+            battle.pendingPassSub = playerResult.passSub || false;
+            battle.pendingPassBoosts = playerResult.passBoosts || false;
             console.log('[handleAttack] Player pivot triggered, waiting for switch...');
             await handlePlayerPivot();
             p = battle.getPlayer();
             console.log('[handleAttack] Player pivot complete, new pokemon:', p?.cnName);
+            battle.pendingPassSub = false;
+            battle.pendingPassBoosts = false;
         } else if (playerResult?.pivot) {
             log(`<span style="color:#999">但是没有可以换入的宝可梦了!</span>`);
         }
@@ -2850,8 +2860,13 @@ async function handleAttack(moveIndex, options = {}) {
             } else {
                 log(`${oldP.cnName} 打完后急速折返回来了!`);
             }
+            // 【修复】存储 Shed Tail/Baton Pass 传递标记
+            battle.pendingPassSub = playerResult.passSub || false;
+            battle.pendingPassBoosts = playerResult.passBoosts || false;
             await handlePlayerPivot();
             p = battle.getPlayer();
+            battle.pendingPassSub = false;
+            battle.pendingPassBoosts = false;
         } else if (playerResult?.pivot) {
             log(`<span style="color:#999">但是没有可以换入的宝可梦了!</span>`);
         }
@@ -3559,6 +3574,13 @@ async function performSwitch(newIndex) {
     const newPoke = battle.playerParty[newIndex];
     console.log('[performSwitch] isPivot:', isPivot, 'isForced:', isForced, 'hasPivotResolve:', !!battle.pivotResolve);
 
+    // 【修复】Baton Pass: 在 resetBoosts 之前保存能力变化和替身
+    if (isPivot && battle.pendingPassBoosts) {
+        battle._savedBoosts = oldP.boosts ? { ...oldP.boosts } : null;
+        battle._savedSubstitute = (oldP.volatile && oldP.volatile.substitute) ? oldP.volatile.substitute : 0;
+        console.log(`[BATON PASS] 保存 ${oldP.cnName} 的能力变化:`, battle._savedBoosts, '替身HP:', battle._savedSubstitute);
+    }
+    
     // 换下场的宝可梦重置能力等级
     if (oldP.isAlive()) {
         // 【修复】如果换下的宝可梦处于极巨化状态，恢复招式
@@ -3659,6 +3681,47 @@ async function performSwitch(newIndex) {
     // Pivot 换人：resolve Promise 并返回，不触发敌方攻击
     if (isPivot) {
         console.log('[performSwitch] Pivot switch detected');
+        
+        // 【修复】Shed Tail: 将旧宝可梦的 shedTailSub 转移为新宝可梦的 substitute
+        if (battle.pendingPassSub && oldP.volatile && oldP.volatile.shedTailSub) {
+            const subHp = oldP.volatile.shedTailSub;
+            delete oldP.volatile.shedTailSub;
+            if (!newPoke.volatile) newPoke.volatile = {};
+            newPoke.volatile.substitute = subHp;
+            console.log(`[SHED TAIL] ${newPoke.cnName} 继承了替身! (HP: ${subHp})`);
+            log(`<span style="color:#3498db">🛡️ ${newPoke.cnName} 继承了替身保护! (替身HP: ${subHp})</span>`);
+        }
+        
+        // 【修复】Baton Pass: 传递能力变化和替身给新宝可梦
+        if (battle.pendingPassBoosts) {
+            // 传递能力变化（oldP 的 boosts 已在上面被 resetBoosts 重置，需要在 reset 前保存）
+            // 注意：boosts 已经在 performSwitch 开头被 resetBoosts() 清零了
+            // 所以需要在 resetBoosts 之前保存 —— 这里改为从 battle 暂存读取
+            if (battle._savedBoosts) {
+                // 【修复】只有存在非零能力变化时才传递和显示日志
+                const hasNonZeroBoost = Object.values(battle._savedBoosts).some(v => v !== 0);
+                if (hasNonZeroBoost) {
+                    Object.keys(battle._savedBoosts).forEach(stat => {
+                        if (newPoke.boosts) {
+                            newPoke.boosts[stat] = Math.max(-6, Math.min(6, 
+                                (newPoke.boosts[stat] || 0) + battle._savedBoosts[stat]));
+                        }
+                    });
+                    console.log(`[BATON PASS] ${newPoke.cnName} 继承了能力变化:`, newPoke.boosts);
+                    log(`<span style="color:#9b59b6">${newPoke.cnName} 继承了能力变化!</span>`);
+                }
+                delete battle._savedBoosts;
+            }
+            // 传递替身
+            if (battle._savedSubstitute && battle._savedSubstitute > 0) {
+                if (!newPoke.volatile) newPoke.volatile = {};
+                newPoke.volatile.substitute = battle._savedSubstitute;
+                console.log(`[BATON PASS] ${newPoke.cnName} 继承了替身! (HP: ${battle._savedSubstitute})`);
+                log(`<span style="color:#3498db">🛡️ ${newPoke.cnName} 继承了替身! (替身HP: ${battle._savedSubstitute})</span>`);
+                delete battle._savedSubstitute;
+            }
+        }
+        
         battle.phase = 'battle';
         updateAllVisuals();
         battle.locked = false;

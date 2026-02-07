@@ -502,18 +502,63 @@ export function calcDamage(attacker, defender, move, options = {}) {
         }
     }
     
+    // === 【BUG修复】target:"self" 的招式不应触发 defender 的免疫/特性检查 ===
+    const moveTargetForImmunity = fullMoveData.target || move.target || 'normal';
+    const isSelfTargeting = ['self', 'allySide', 'allyTeam', 'adjacentAllyOrSelf'].includes(moveTargetForImmunity);
+    
+    // === 【BUG修复】道具免疫判定（气球免疫地面等）===
+    // 必须在特性免疫之前检查，因为道具免疫优先级更高（气球 > 神奇守护判定）
+    if (basePower > 0 && !isSelfTargeting) {
+        const defItemId = (defender.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (defItemId && typeof ITEMS !== 'undefined' && ITEMS[defItemId]) {
+            const defItemData = ITEMS[defItemId];
+            const atkMoveType = move.type || fullMoveData.type || 'Normal';
+            // 道具免疫检查（如气球免疫地面）
+            if (defItemData.immunity && Array.isArray(defItemData.immunity) && defItemData.immunity.includes(atkMoveType)) {
+                console.log(`[ITEM IMMUNE] ${defender.cnName} 的 ${defItemData.cnName || defItemData.name} 免疫了 ${atkMoveType} 系招式 ${move.name}！`);
+                return { 
+                    damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, 
+                    blocked: true, itemImmune: defItemData.name,
+                    itemImmuneMessage: `${defender.cnName} 的${defItemData.cnName || defItemData.name}让${atkMoveType}系招式无效了！`
+                };
+            }
+        }
+        // 【黑色铁球 Iron Ball】去除飞行系/漂浮的地面免疫
+        // 注意：铁球效果在 getTypeEffectiveness 中通过属性表处理，
+        // 但需要确保漂浮特性被铁球压制
+        const defItemIdForBall = (defender.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (defItemIdForBall === 'ironball') {
+            // 铁球持有者的漂浮特性失效（地面技能可以命中）
+            // 标记给后续特性免疫检查使用
+            defender._ironBallActive = true;
+        }
+    }
+    
     // === 特性免疫判定 Hook ===
-    if (!ignoresAbilities && typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
+    // 【BUG修复】target:"self" 的招式（如 Roost）不应触发 defender 的特性免疫
+    if (!isSelfTargeting && !ignoresAbilities && typeof AbilityHandlers !== 'undefined' && defender.ability && AbilityHandlers[defender.ability]) {
         const ahDef = AbilityHandlers[defender.ability];
-        if (ahDef.onImmunity && ahDef.onImmunity(move.type, move)) {
+        // 【BUG修复】铁球压制漂浮特性
+        const ironBallSuppressLevitate = defender._ironBallActive && defender.ability === 'Levitate';
+        if (ahDef.onImmunity && !ironBallSuppressLevitate && ahDef.onImmunity(move.type, move)) {
             console.log(`[ABILITY IMMUNE] ${defender.cnName} 的 ${defender.ability} 免疫了 ${move.name}！`);
             return { damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, blocked: true, abilityImmune: defender.ability };
         }
+        if (ironBallSuppressLevitate) {
+            console.log(`[IRON BALL] ${defender.cnName} 的漂浮被黑色铁球压制了！`);
+        }
         // 【修复】onTryHit 需要预计算 effectiveness 用于 Wonder Guard 等特性
         if (ahDef.onTryHit) {
-            // 预计算属性克制倍率
-            const defensiveTypes = defender.types || ['Normal'];
-            const preEffectiveness = getTypeEffectiveness(move.type || 'Normal', defensiveTypes, move.name);
+            // 【BUG修复】预计算属性克制倍率时，必须使用太晶化后的防御属性
+            let preDefTypes = defender.types || ['Normal'];
+            if (defender.isTerastallized) {
+                if (defender.teraType === 'Stellar') {
+                    preDefTypes = defender.originalTypes || defender.types || ['Normal'];
+                } else {
+                    preDefTypes = [defender.teraType];
+                }
+            }
+            const preEffectiveness = getTypeEffectiveness(move.type || 'Normal', preDefTypes, move.name);
             const tryHitResult = ahDef.onTryHit(attacker, defender, move, preEffectiveness);
             if (tryHitResult && tryHitResult.blocked) {
                 console.log(`[ABILITY BLOCK] ${tryHitResult.message || defender.ability + ' 阻止了攻击'}`);
@@ -817,7 +862,7 @@ export function calcDamage(attacker, defender, move, options = {}) {
     }
     
     // === 灼伤减半物攻 ===
-    const ignoresBurnDrop = attacker.ability === 'Guts';
+    const ignoresBurnDrop = (attacker.ability || '').toLowerCase().replace(/[^a-z]/g, '') === 'guts';
     if (!isSpecial && attacker.status === 'brn' && !ignoresBurnDrop) {
         atkStat = Math.floor(atkStat * 0.5);
     }

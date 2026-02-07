@@ -32,128 +32,94 @@ function getDefaultBattleData() {
   "settings": {
     "enableAVS": true,
     "enableCommander": true,
-    "enableEVO": false,
-    "enableBGM": true,
-    "enableSFX": true,
-    "enableClash": false
+    "enableClash": true
   },
   "player": {
-    "name": "DirtyPlayer",
+    "name": "MechanicCheck",
     "trainerProficiency": 200,
-    "unlocks": {
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_styles": true,
-      "enable_tera": true
-    },
+    "unlocks": { "enable_mega": true },
     "party": [
       {
         "slot": 1,
-        "name": "Gliscor",
-        "nickname": "天蝎王(永动)",
-        "species": "Gliscor",
-        "lv": 65,
-        "isLead": true,
-        "isAce": true,
-        "gender": "M",
-        "shiny": true,
-        "ability": "Poison Heal",
-        "item": "Toxic Orb",
-        "nature": "Jolly",
-        "intro": "【操作指引】T1: 替身/剧毒 -> T2: 守住(蹭回合) -> T3: 地震(打钢系)或循环。",
-        "moves": ["Substitute", "Toxic", "Protect", "Earthquake"],
+        "name": "Drifblim",
+        "nickname": "随风球(接棒诅咒)",
+        "species": "Drifblim",
+        "lv": 60,
+        "ability": "Unburden",
+        "item": "Sitrus Berry",
+        "intro": "【任务】T1变小(Minimize) -> T2接棒(Baton Pass)给队友。之后上场测试 T3诅咒(Curse)。",
+        "moves": ["Baton Pass", "Minimize", "Curse", "Shadow Ball"],
         "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "devotion": 255, "trust": 200 } }
+        "_check": "幽灵系Curse扣50%血逻辑；接棒能否传替身/回避率。"
       },
       {
         "slot": 2,
-        "name": "Whimsicott",
-        "nickname": "风妖精(恶作剧)",
-        "species": "Whimsicott",
-        "lv": 65,
-        "ability": "Prankster",
-        "item": "Leftovers",
-        "nature": "Timid",
-        "intro": "【机制测试】你的<寄生种子>和<替身>应该总是先手(优先度+1)。AI如果换人会被种子吸血。",
-        "moves": ["Leech Seed", "Substitute", "Moonblast", "Encore"],
-        "stats_meta": { "ev_level": 252 }
+        "name": "Incineroar",
+        "nickname": "宇宙第一(狠话)",
+        "species": "Incineroar",
+        "lv": 60,
+        "ability": "Intimidate",
+        "moves": ["Parting Shot", "Flare Blitz", "Darkest Lariat", "Fake Out"],
+        "_check": "对魔法镜使用抛下狠话(应反弹把自己弹走?)；对不服输使用狠话(攻击力是否反升)。"
       },
       {
         "slot": 3,
-        "name": "Toxapex",
-        "nickname": "超坏星(再生力)",
-        "species": "Toxapex",
-        "lv": 65,
-        "ability": "Regenerator",
-        "item": "Black Sludge",
-        "moves": ["Scald", "Haze", "Recover", "Baneful Bunker"],
-        "_check": "测试【再生力】, 换人下场应回复1/3 HP。"
+        "name": "Pyukumuku",
+        "nickname": "拳海参(痛楚)",
+        "species": "Pyukumuku",
+        "lv": 60,
+        "ability": "Unaware",
+        "item": "Leftovers",
+        "moves": ["Pain Split", "Soak", "Toxic", "Recover"],
+        "_check": "对自己残血、对面满血使用【分担痛楚】，是否能奶回来。"
       },
       {
         "slot": 4,
-        "name": "Chansey",
-        "nickname": "吉利蛋(进化奇石)",
-        "species": "Chansey",
-        "lv": 65,
-        "ability": "Natural Cure",
-        "item": "Eviolite",
-        "moves": ["Seismic Toss", "Soft-Boiled", "Heal Bell", "Stealth Rock"],
-        "_check": "纯数值肉盾，测试进化奇石硬度。"
+        "name": "Espeon",
+        "nickname": "太阳伊布(接收)",
+        "species": "Espeon",
+        "lv": 60,
+        "ability": "Magic Bounce",
+        "moves": ["Stored Power", "Dazzling Gleam", "Psychic", "Morning Sun"],
+        "_check": "专门用来接收接棒，看看回避率还在不在。"
       }
     ]
   },
   "enemy": {
-    "name": "StallBreaker",
-    "type": "ACE_TRAINER",
-    "trainerProficiency": 250,
-    "unlocks": { "enable_mega": true, "enable_tera": true },
+    "name": "LogicGate",
+    "type": "VETERAN",
+    "trainerProficiency": 200,
     "party": [
       {
-        "name": "Grimmsnarl",
-        "species": "Grimmsnarl",
-        "lv": 66,
+        "name": "Annihilape",
+        "species": "Annihilape",
+        "lv": 62,
         "isLead": true,
-        "ability": "Prankster",
-        "item": "Light Clay",
-        "moves": ["Taunt", "Spirit Break", "Reflect", "Thunder Wave"],
-        "_ai_logic": "Opening with Taunt to stop Player's Toxic/Substitute.",
-        "_intro": "小心：它有先手【挑衅】，如果你第一回合点变化技会直接失败！"
+        "ability": "Defiant",
+        "item": "Choice Scarf",
+        "nature": "Jolly",
+        "intr o": "不服输：能力下降时攻击力+2。很好的狠话测试员。",
+        "moves": ["Final Gambit", "Rage Fist", "Close Combat", "U-turn"]
       },
       {
-        "name": "Gholdengo",
-        "species": "Gholdengo",
-        "lv": 66,
-        "ability": "Good as Gold",
-        "item": "Choice Specs",
-        "mechanic": "tera",
-        "teraType": "Steel",
-        "moves": ["Make It Rain", "Shadow Ball", "Nasty Plot", "Trick"],
-        "_intro": "【黄金之躯】免疫你的剧毒和寄生种子。"
+        "name": "Hatterene",
+        "species": "Hatterene",
+        "lv": 60,
+        "ability": "Magic Bounce",
+        "item": "Leftovers",
+        "intro": "魔法镜：测试诅咒/抛下狠话的反弹逻辑。",
+        "moves": ["Psychic", "Dazzling Gleam", "Trick Room", "Mycical Fire"]
       },
       {
-        "name": "Ursaluna",
-        "species": "Ursaluna",
-        "lv": 66,
-        "ability": "Guts",
-        "item": "Flame Orb",
-        "moves": ["Facade", "Headlong Rush", "Fire Punch", "Swords Dance"],
-        "_intro": "毅力特性。如果你对它用剧毒，它的攻击力会翻倍(x1.5)，反而变得更强！不要对它用剧毒！"
-      },
-      {
-        "name": "Dragapult",
-        "species": "Dragapult",
-        "lv": 67,
-        "isAce": true,
-        "ability": "Infiltrator",
-        "moves": ["Dragon Darts", "Hex", "U-turn", "Will-O-Wisp"],
-        "_intro": "【穿透】特性无视你的替身直接攻击本体。"
+        "name": "Wailord",
+        "species": "Wailord",
+        "lv": 65,
+        "mechanic": "dynamax",
+        "item": "Chesto Berry",
+        "intro": "HP极高（还可以极巨化）。分担痛楚的最佳靶子。",
+        "moves": ["Water Spout", "Heavy Slam", "Rest", "Sleep Talk"]
       }
-    ],
-    "lines": {
-      "start": "想用消耗战术？我的队伍可是专门为了拆墙而生的！",
-      "win": "你的替身纸糊一样脆弱。",
-      "lose": "可恶……根本碰不到本体……这种战术太赖皮了！"
-    }
+    ]
   }
 }
 

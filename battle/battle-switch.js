@@ -85,10 +85,17 @@ export async function handleEnemyPivot(passBoosts = false) {
     const currentE = battle.getEnemy();
     const p = battle.getPlayer();
     
-    // 【Baton Pass】保存当前能力变化，用于传递给换入的宝可梦
+    // 【Baton Pass】保存当前能力变化和替身，用于传递给换入的宝可梦
     const savedBoosts = passBoosts && currentE.boosts ? { ...currentE.boosts } : null;
+    const savedSubstitute = passBoosts && currentE.volatile && currentE.volatile.substitute ? currentE.volatile.substitute : 0;
+    // 【修复】Shed Tail 替身也要传递
+    const savedShedTailSub = currentE.volatile && currentE.volatile.shedTailSub ? currentE.volatile.shedTailSub : 0;
     if (savedBoosts) {
-        console.log(`[BATON PASS] ${currentE.cnName} 准备传递能力变化:`, savedBoosts);
+        console.log(`[BATON PASS] ${currentE.cnName} 准备传递能力变化:`, savedBoosts, '替身HP:', savedSubstitute);
+    }
+    if (savedShedTailSub) {
+        console.log(`[SHED TAIL] ${currentE.cnName} 准备传递断尾替身:`, savedShedTailSub);
+        delete currentE.volatile.shedTailSub;
     }
     
     // AI 选择最佳换入目标
@@ -173,13 +180,30 @@ export async function handleEnemyPivot(passBoosts = false) {
         
         // 【Baton Pass】将保存的能力变化传递给换入的宝可梦
         if (savedBoosts && newE.boosts) {
-            Object.keys(savedBoosts).forEach(stat => {
-                newE.boosts[stat] = (newE.boosts[stat] || 0) + savedBoosts[stat];
-                // 限制在 -6 到 +6 之间
-                newE.boosts[stat] = Math.max(-6, Math.min(6, newE.boosts[stat]));
-            });
-            console.log(`[BATON PASS] ${newE.cnName} 继承了能力变化:`, newE.boosts);
-            log(`<span style="color:#9b59b6">${newE.cnName} 继承了能力变化!</span>`);
+            // 【修复】只有存在非零能力变化时才传递和显示日志
+            const hasNonZeroBoost = Object.values(savedBoosts).some(v => v !== 0);
+            if (hasNonZeroBoost) {
+                Object.keys(savedBoosts).forEach(stat => {
+                    newE.boosts[stat] = (newE.boosts[stat] || 0) + savedBoosts[stat];
+                    newE.boosts[stat] = Math.max(-6, Math.min(6, newE.boosts[stat]));
+                });
+                console.log(`[BATON PASS] ${newE.cnName} 继承了能力变化:`, newE.boosts);
+                log(`<span style="color:#9b59b6">${newE.cnName} 继承了能力变化!</span>`);
+            }
+        }
+        // 【修复】Baton Pass 替身传递
+        if (savedSubstitute > 0) {
+            if (!newE.volatile) newE.volatile = {};
+            newE.volatile.substitute = savedSubstitute;
+            console.log(`[BATON PASS] ${newE.cnName} 继承了替身! (HP: ${savedSubstitute})`);
+            log(`<span style="color:#3498db">🛡️ ${newE.cnName} 继承了替身! (替身HP: ${savedSubstitute})</span>`);
+        }
+        // 【修复】Shed Tail 替身传递
+        if (savedShedTailSub > 0) {
+            if (!newE.volatile) newE.volatile = {};
+            newE.volatile.substitute = savedShedTailSub;
+            console.log(`[SHED TAIL] ${newE.cnName} 继承了断尾替身! (HP: ${savedShedTailSub})`);
+            log(`<span style="color:#3498db">🛡️ ${newE.cnName} 继承了替身保护! (替身HP: ${savedShedTailSub})</span>`);
         }
         log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
         
