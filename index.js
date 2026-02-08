@@ -499,6 +499,101 @@ async function initGame() {
 // 【已迁移】JSON 数据加载 -> systems/data-loader.js
 // =========================================================
 
+/* ================= TERA CROWN SYSTEM (太晶化悬浮图腾) ================= */
+
+const TERA_GEM_PATH = 'm49.996 50.41-15.215 8.7812h30.43zm-16.652 6.3047 15.215-26.355v17.57zm-1.4336 5.3594 18.09 31.332 18.09-31.332zm15.602-35.641-18.09 31.328-18.09-31.328zm41.156 0-18.09 31.332-18.09-31.332zm-61.203 33.676-4.8984-8.4844-9.7969 16.969zm6.332 10.965h-19.59l14.691-8.4805zm37.305-8.4805 14.688 8.4805h-19.586zm6.332-10.973-4.8984 8.4805 14.691 8.4844zm-25.992-28.066h9.7891l-9.7891-16.961zm-12.672 0h9.7891v-16.961zm27.887 33.156-15.215-8.7852v-17.57z';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const XLINK_NS = 'http://www.w3.org/1999/xlink';
+
+/**
+ * 启动太晶化悬浮图腾 (SVG 渲染版)
+ * @param {string} type - 太晶属性 (fire, water, grass...)
+ * @param {string} targetSide - 'player' | 'enemy'
+ */
+function triggerTeraCrown(type, targetSide) {
+    const wrapper = document.querySelector(`.${targetSide}-pos`);
+    if (!wrapper) return;
+
+    // 防止重复触发
+    const existing = wrapper.querySelector('.tera-crown-container');
+    if (existing) existing.remove();
+
+    const typeLower = (type || 'normal').toLowerCase();
+    const color = (window.TYPE_COLORS && window.TYPE_COLORS[typeLower]) || '#22d3ee';
+    const CDN_ICON = `https://cdn.jsdelivr.net/gh/duiker101/pokemon-type-svg-icons/icons/${typeLower}.svg`;
+
+    // 1. 外层容器
+    const container = document.createElement('div');
+    container.className = 'tera-crown-container';
+    if (typeLower === 'stellar') container.classList.add('stellar');
+    container.style.setProperty('--tera-color', color);
+    container.style.animation = 'tera-crown-spawn 0.8s ease-out forwards, tera-crown-float 4s ease-in-out 0.8s infinite';
+
+    // 2. SVG 层
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'tera-svg-layer');
+    svg.setAttribute('viewBox', '-5 -10 110 135');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.style.filter = `drop-shadow(0 0 10px ${color})`;
+
+    // 3. 宝石切面 path
+    const gemPath = document.createElementNS(SVG_NS, 'path');
+    gemPath.setAttribute('class', 'gem-shape');
+    gemPath.setAttribute('d', TERA_GEM_PATH);
+    gemPath.style.fill = color;
+    gemPath.style.fillOpacity = '0.3';
+    gemPath.style.stroke = 'white';
+    svg.appendChild(gemPath);
+
+    // 4. 居中属性图标 (宝石中心约 x:50 y:45，图标尺寸40，所以偏移 -20)
+    const icon = document.createElementNS(SVG_NS, 'image');
+    icon.setAttribute('class', 'type-icon-img');
+    icon.setAttributeNS(XLINK_NS, 'href', CDN_ICON);
+    icon.setAttribute('href', CDN_ICON);
+    icon.setAttribute('x', '30');
+    icon.setAttribute('y', '27');
+    icon.setAttribute('width', '40');
+    icon.setAttribute('height', '40');
+    icon.style.filter = `brightness(0) invert(1) drop-shadow(0 0 2px ${color}) drop-shadow(0 0 5px ${color})`;
+    icon.style.opacity = '0.95';
+    svg.appendChild(icon);
+
+    // 5. 能量连接线
+    const connector = document.createElement('div');
+    connector.className = 'tera-connector';
+    connector.style.background = `linear-gradient(to top, transparent, ${color} 40%, rgba(255,255,255,0.8) 100%)`;
+
+    // 组装
+    container.appendChild(svg);
+    container.appendChild(connector);
+    wrapper.appendChild(container);
+
+    // 播放音效
+    if (typeof AudioSys !== 'undefined' && AudioSys.play) {
+        AudioSys.play('Hit_Super');
+    }
+
+    console.log(`[TERA CROWN] ${targetSide} activated: ${typeLower} (${color})`);
+}
+window.triggerTeraCrown = triggerTeraCrown;
+
+/**
+ * 移除太晶化悬浮图腾
+ * @param {string} targetSide - 'player' | 'enemy'
+ */
+function removeTeraCrown(targetSide) {
+    const wrapper = document.querySelector(`.${targetSide}-pos`);
+    const crown = wrapper?.querySelector('.tera-crown-container');
+    if (crown) {
+        crown.style.transition = 'opacity 0.5s, transform 0.5s';
+        crown.style.opacity = '0';
+        crown.style.transform = 'translate(-50%, -20px) scale(0.3)';
+        setTimeout(() => crown.remove(), 500);
+    }
+    console.log(`[TERA CROWN] ${targetSide} removed`);
+}
+window.removeTeraCrown = removeTeraCrown;
+
 /**
  * 更新战斗精灵图（用于 Imposter/Illusion 特性触发后刷新）
  * 导出到 window 供 ability-handlers.js 调用
@@ -566,9 +661,20 @@ function updateAllVisuals(forceSpriteAnim = false) {
         // 清除所有太晶属性颜色类
         const allTeraTypes = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy', 'stellar'];
         allTeraTypes.forEach(type => playerSpriteEl.classList.remove(`tera-type-${type}`));
-        // 如果太晶化，添加对应属性颜色类
+        // 如果太晶化，添加对应属性颜色类 + 悬浮图腾
         if (p.isTerastallized && p.teraType) {
             playerSpriteEl.classList.add(`tera-type-${p.teraType.toLowerCase()}`);
+            // 【TERA CROWN】确保悬浮图腾存在
+            const playerWrapper = playerSpriteEl.closest('.sprite-wrapper');
+            if (playerWrapper && !playerWrapper.querySelector('.tera-crown-container')) {
+                triggerTeraCrown(p.teraType, 'player');
+            }
+        } else {
+            // 【TERA CROWN】移除悬浮图腾
+            const playerWrapper = playerSpriteEl.closest('.sprite-wrapper');
+            if (playerWrapper && playerWrapper.querySelector('.tera-crown-container')) {
+                removeTeraCrown('player');
+            }
         }
         
         // 清除非官方 Mega 效果（如果当前宝可梦不是非官方 Mega）
@@ -599,9 +705,20 @@ function updateAllVisuals(forceSpriteAnim = false) {
         // 清除所有太晶属性颜色类
         const allTeraTypes = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy', 'stellar'];
         allTeraTypes.forEach(type => enemySpriteEl.classList.remove(`tera-type-${type}`));
-        // 如果太晶化，添加对应属性颜色类
+        // 如果太晶化，添加对应属性颜色类 + 悬浮图腾
         if (e.isTerastallized && e.teraType) {
             enemySpriteEl.classList.add(`tera-type-${e.teraType.toLowerCase()}`);
+            // 【TERA CROWN】确保悬浮图腾存在
+            const enemyWrapper = enemySpriteEl.closest('.sprite-wrapper');
+            if (enemyWrapper && !enemyWrapper.querySelector('.tera-crown-container')) {
+                triggerTeraCrown(e.teraType, 'enemy');
+            }
+        } else {
+            // 【TERA CROWN】移除悬浮图腾
+            const enemyWrapper = enemySpriteEl.closest('.sprite-wrapper');
+            if (enemyWrapper && enemyWrapper.querySelector('.tera-crown-container')) {
+                removeTeraCrown('enemy');
+            }
         }
         
         // 清除非官方 Mega 效果（如果当前宝可梦不是非官方 Mega）

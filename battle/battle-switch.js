@@ -272,6 +272,8 @@ export async function handleEnemyFainted(e) {
         enemySpriteEl.classList.remove('state-terastal');
         const allTeraTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy','stellar'];
         allTeraTypes.forEach(t => enemySpriteEl.classList.remove(`tera-type-${t}`));
+        // 【TERA CROWN】移除悬浮图腾
+        if (typeof removeTeraCrown === 'function') removeTeraCrown('enemy');
     }
     
     // 超级进化清理
@@ -581,6 +583,8 @@ export async function handlePlayerFainted(p) {
         playerSpriteEl.classList.remove('state-terastal');
         const allTeraTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy','stellar'];
         allTeraTypes.forEach(t => playerSpriteEl.classList.remove(`tera-type-${t}`));
+        // 【TERA CROWN】移除悬浮图腾
+        if (typeof removeTeraCrown === 'function') removeTeraCrown('player');
     }
     
     // 超级进化清理

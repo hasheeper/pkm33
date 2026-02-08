@@ -32,6 +32,8 @@ const TYPE_COLORS = {
     dark: '#705848',     steel: '#b8b8d0',   fairy: '#ee99ac'
 };
 
+window.TYPE_COLORS = TYPE_COLORS;
+
 const CDN_TYPE_ICONS = 'https://cdn.jsdelivr.net/gh/duiker101/pokemon-type-svg-icons/icons/';
 
 // ============================================

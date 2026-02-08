@@ -4542,6 +4542,107 @@ body {
 }
 
 /* =========================================================
+   [TERA CROWN] 太晶化悬浮图腾系统 (Floating Crest)
+   SVG 渲染 + crystal-gloss 滤镜 + 居中属性图标
+   ========================================================= */
+
+/* 1. 图腾容器 */
+.tera-crown-container {
+    position: absolute;
+    bottom: 85%;
+    left: 50%;
+    width: 90px;
+    height: 110px;
+    transform: translateX(-50%);
+    animation: tera-crown-float 4s ease-in-out infinite;
+    z-index: 80;
+    pointer-events: none;
+}
+
+/* 玩家方位置微调 */
+.player-pos .tera-crown-container {
+    bottom: 80%;
+    width: 80px;
+    height: 100px;
+}
+
+/* 2. SVG 层：承载宝石形状 + 图标 */
+.tera-svg-layer {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 10px var(--tera-color, #22d3ee));
+    overflow: visible;
+}
+
+/* 3. 宝石切面：半透明填充 + 白色棱线 + 镜面滤镜 */
+.gem-shape {
+    fill: var(--tera-color, #22d3ee);
+    fill-opacity: 0.3;
+    stroke: white;
+    stroke-width: 1.5;
+    stroke-opacity: 0.9;
+    filter: url(#crystal-gloss);
+}
+
+/* 4. 内部属性图标：纯白发光 + 绝对坐标居中 */
+.type-icon-img {
+    filter:
+        brightness(0) invert(1)
+        drop-shadow(0 0 2px var(--tera-color, #22d3ee))
+        drop-shadow(0 0 5px var(--tera-color, #22d3ee));
+    opacity: 0.95;
+}
+
+/* 5. 能量连接线 */
+.tera-connector {
+    position: absolute;
+    top: 90%;
+    left: 50%;
+    width: 2px;
+    height: 60px;
+    transform: translateX(-50%);
+    background: linear-gradient(to top,
+        transparent,
+        var(--tera-color, #22d3ee) 40%,
+        rgba(255,255,255,0.8) 100%
+    );
+    opacity: 0.6;
+    filter: blur(1px);
+}
+
+.player-pos .tera-connector {
+    height: 45px;
+}
+
+/* 6. 悬浮呼吸动画 */
+@keyframes tera-crown-float {
+    0%, 100% { transform: translate(-50%, 0); }
+    50%      { transform: translate(-50%, -10px); }
+}
+
+/* 7. 入场动画 */
+@keyframes tera-crown-spawn {
+    0%   { transform: translate(-50%, -30px) scale(0); opacity: 0; }
+    60%  { transform: translate(-50%, 5px) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+
+/* 8. 星晶(Stellar)特殊图腾 */
+.tera-crown-container.stellar .gem-shape {
+    fill: url(#mega-rainbow);
+    fill-opacity: 0.4;
+    stroke: white;
+    stroke-width: 1.2;
+}
+
+.tera-crown-container.stellar .tera-svg-layer {
+    filter:
+        drop-shadow(0 0 6px #fff)
+        drop-shadow(0 0 12px rgba(0,255,255,0.5))
+        drop-shadow(0 0 18px rgba(255,0,150,0.4));
+}
+
+/* =========================================================
    【心眼系统】属性克制提示样式 (enable_insight)
    ========================================================= */
 .insight-hint {

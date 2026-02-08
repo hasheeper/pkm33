@@ -28,98 +28,204 @@
  */
 function getDefaultBattleData() {
     return {
-  "difficulty": "expert",
+  "difficulty": "expert", 
   "settings": {
     "enableAVS": true,
     "enableCommander": true,
+    "enableEVO": true,
+    "enableBGM": true,
+    "enableSFX": true,
     "enableClash": true
   },
   "player": {
-    "name": "MechanicCheck",
-    "trainerProficiency": 200,
-    "unlocks": { "enable_mega": true },
+    "name": "Champion",
+    "trainerProficiency": 255,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_styles": true,
+      "enable_bond": true,
+      "enable_tera": true,
+      "enable_dynamax": true
+    },
     "party": [
       {
         "slot": 1,
-        "name": "Drifblim",
-        "nickname": "随风球(接棒诅咒)",
-        "species": "Drifblim",
-        "lv": 60,
-        "ability": "Unburden",
-        "item": "Sitrus Berry",
-        "intro": "【任务】T1变小(Minimize) -> T2接棒(Baton Pass)给队友。之后上场测试 T3诅咒(Curse)。",
-        "moves": ["Baton Pass", "Minimize", "Curse", "Shadow Ball"],
+        "name": "Dragapult",
+        "nickname": "幽影",
+        "lv": 88,
+        "isLead": true,
+        "ability": "Infiltrator",
+        "nature": "Timid",
+        "item": "Choice Specs",
+        "isAce": true,
+        "moves": ["Shadow Ball", "Draco Meteor", "U-turn", "Flamethrower"],
         "stats_meta": { "ev_level": 252 },
-        "_check": "幽灵系Curse扣50%血逻辑；接棒能否传替身/回避率。"
+        "friendship": { "avs": { "passion": 200, "insight": 220 } }
       },
       {
         "slot": 2,
-        "name": "Incineroar",
-        "nickname": "宇宙第一(狠话)",
-        "species": "Incineroar",
-        "lv": 60,
-        "ability": "Intimidate",
-        "moves": ["Parting Shot", "Flare Blitz", "Darkest Lariat", "Fake Out"],
-        "_check": "对魔法镜使用抛下狠话(应反弹把自己弹走?)；对不服输使用狠话(攻击力是否反升)。"
+        "name": "Beedrill",
+        "nickname": "蜂皇",
+        "lv": 88,
+        "item": "Beedrillite",
+        "mechanic": "mega",
+        "mega_target": "beedrillmega",
+        "nature": "Jolly",
+        "isAce": true,
+        "moves": ["Poison Jab", "U-turn", "Drill Run", "Fell Stinger"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 255 } }
       },
       {
         "slot": 3,
-        "name": "Pyukumuku",
-        "nickname": "拳海参(痛楚)",
-        "species": "Pyukumuku",
-        "lv": 60,
-        "ability": "Unaware",
-        "item": "Leftovers",
-        "moves": ["Pain Split", "Soak", "Toxic", "Recover"],
-        "_check": "对自己残血、对面满血使用【分担痛楚】，是否能奶回来。"
+        "name": "Coalossal",
+        "nickname": "熔炉",
+        "lv": 88,
+        "mechanic": "dynamax",
+        "ability": "Steam Engine",
+        "nature": "Relaxed",
+        "item": "Weakness Policy",
+        "isAce": true,
+        "moves": ["Heat Crash", "Stone Edge", "Scald", "Rapid Spin"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 255, "insight": 180 } }
       },
       {
         "slot": 4,
-        "name": "Espeon",
-        "nickname": "太阳伊布(接收)",
-        "species": "Espeon",
-        "lv": 60,
-        "ability": "Magic Bounce",
-        "moves": ["Stored Power", "Dazzling Gleam", "Psychic", "Morning Sun"],
-        "_check": "专门用来接收接棒，看看回避率还在不在。"
+        "name": "Kommo-o",
+        "nickname": "战龙",
+        "lv": 88,
+        "mechanic": "zmove",
+        "ability": "Bulletproof",
+        "item": "Kommonium Z",
+        "nature": "Naive",
+        "isAce": true,
+        "moves": ["Clanging Scales", "Close Combat", "Poison Jab", "Clangorous Soul"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "devotion": 200 } }
+      },
+      {
+        "slot": 5,
+        "name": "Mimikyu",
+        "nickname": "谜拟Q",
+        "lv": 88,
+        "isAce": true,
+        "ability": "Disguise",
+        "item": "Life Orb",
+        "isAce": true,
+        "moves": ["Play Rough", "Shadow Claw", "Shadow Sneak", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 240, "passion": 240, "insight": 255 } }
+      },
+      {
+        "slot": 6,
+        "name": "Dragonite",
+        "nickname": "快龙",
+        "lv": 88,
+        "ability": "Multiscale",
+        "mechanic": "tera",
+        "teraType": "Normal",
+        "item": "Heavy-Duty Boots",
+        "isAce": true,
+        "moves": ["Extreme Speed", "Earthquake", "Dragon Claw", "Roost"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 200 } }
       }
     ]
   },
   "enemy": {
-    "name": "LogicGate",
-    "type": "VETERAN",
-    "trainerProficiency": 200,
+    "name": "Leon (Ultimate)",
+    "type": "CHAMPION",
+    "trainerProficiency": 255,
+    "unlocks": {
+      "enable_mega": true,
+      "enable_z_move": true,
+      "enable_bond": true,
+      "enable_styles": true,
+      "enable_tera": true,
+      "enable_dynamax": true
+    },
     "party": [
       {
-        "name": "Annihilape",
-        "species": "Annihilape",
-        "lv": 62,
+        "name": "Meowscarada",
+        "lv": 88,
         "isLead": true,
-        "ability": "Defiant",
-        "item": "Choice Scarf",
+        "gender": "F",
+        "ability": "Protean",
         "nature": "Jolly",
-        "intr o": "不服输：能力下降时攻击力+2。很好的狠话测试员。",
-        "moves": ["Final Gambit", "Rage Fist", "Close Combat", "U-turn"]
+        "item": "Focus Sash",
+        "mechanic": "tera",
+        "teraType": "Grass",
+        "moves": ["Flower Trick", "Knock Off", "U-turn", "Play Rough"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "insight": 200 } }
       },
       {
-        "name": "Hatterene",
-        "species": "Hatterene",
-        "lv": 60,
-        "ability": "Magic Bounce",
+        "name": "Garganacl",
+        "lv": 88,
+        "ability": "Purifying Salt",
         "item": "Leftovers",
-        "intro": "魔法镜：测试诅咒/抛下狠话的反弹逻辑。",
-        "moves": ["Psychic", "Dazzling Gleam", "Trick Room", "Mycical Fire"]
+        "nature": "Careful",
+        "moves": ["Salt Cure", "Recover", "Earthquake", "Body Press"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 150, "devotion": 150 } }
       },
       {
-        "name": "Wailord",
-        "species": "Wailord",
-        "lv": 65,
+        "name": "Lucario",
+        "lv": 88,
+        "gender": "M",
+        "ability": "Justified",
+        "nature": "Jolly",
+        "mechanic": "mega",
+        "mega_target": "lucariomega",
+        "item": "Lucarionite",
+        "moves": ["Close Combat", "Bullet Punch", "Meteor Mash", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 220, "insight": 180 } }
+      },
+      {
+        "name": "Charizard",
+        "lv": 89,
         "mechanic": "dynamax",
-        "item": "Chesto Berry",
-        "intro": "HP极高（还可以极巨化）。分担痛楚的最佳靶子。",
-        "moves": ["Water Spout", "Heavy Slam", "Rest", "Sleep Talk"]
+        "mega_target": "charizardgmax",
+        "ability": "Solar Power",
+        "nature": "Timid",
+        "item": "Heavy-Duty Boots",
+        "moves": ["Heat Wave", "Air Slash", "Solar Beam", "Ancient Power"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "passion": 180, "trust": 100 } }
+      },
+      {
+        "name": "Necrozma",
+        "lv": 90,
+        "isAce": true,
+        "ability": "Prism Armor",
+        "nature": "Adamant",
+        "mechanic": "zmove",
+        "item": "Ultranecrozium Z",
+        "moves": ["Photon Geyser", "Poltergeist", "Earthquake", "Swords Dance"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { 
+            "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 } 
+        }
+      },
+      {
+        "name": "Solgaleo",
+        "lv": 89,
+        "ability": "Full Metal Body",
+        "nature": "Adamant",
+        "item": "Leftovers",
+        "moves": ["Sunsteel Strike", "Psychic Fangs", "Earthquake", "Flare Blitz"],
+        "stats_meta": { "ev_level": 252 },
+        "friendship": { "avs": { "trust": 220, "devotion": 220 } }
       }
-    ]
+    ],
+    "lines": {
+      "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
+      "lose": "这就是……传说中的英雄吗……精彩绝伦！",
+      "win": "看来你的冠军时刻还没有到来啊！"
+    }
   }
 }
 
