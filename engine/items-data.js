@@ -2055,7 +2055,7 @@ const ItemEffects = {
      * @returns {boolean} 是否触发了气势披带
      */
     checkFocusSash(pokemon, damage) {
-        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         if (itemId !== 'focussash') return false;
         if (pokemon.currHp !== pokemon.maxHp) return false;
         if (damage < pokemon.currHp) return false;
@@ -2080,7 +2080,7 @@ const ItemEffects = {
      * 获取 Light Clay 的壁持续回合数
      */
     getScreenDuration(pokemon) {
-        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z]/g, '');
+        const itemId = (pokemon.item || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         if (itemId === 'lightclay') return 8;
         return 5;
     },
@@ -2110,8 +2110,10 @@ const ItemEffects = {
      * @param {number} effectiveness - 属性克制倍率
      * @returns {Object} { triggered: boolean, damageMultiplier: number, message: string }
      */
-    checkResistBerry(pokemon, moveType, effectiveness) {
-        if (!pokemon.item || effectiveness < 2) return { triggered: false, damageMultiplier: 1 };
+    checkResistBerry(pokemon, moveType, effectiveness, opponent = null) {
+        // 【BUG修复】Chilan Berry（奇朗果）不需要效果拔群，一般属性攻击即可触发
+        // 其他抗性果需要 effectiveness >= 2（效果拔群）
+        if (!pokemon.item) return { triggered: false, damageMultiplier: 1 };
         
         const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
         const itemData = ITEMS[itemId];
@@ -2119,9 +2121,31 @@ const ItemEffects = {
         if (!itemData || itemData.effect !== 'resistBerry') return { triggered: false, damageMultiplier: 1 };
         if (itemData.resistType !== moveType) return { triggered: false, damageMultiplier: 1 };
         
+        // Chilan Berry 特殊判定：一般属性攻击即触发（不需要效果拔群）
+        // 其他抗性果需要效果拔群
+        if (itemData.resistType !== 'Normal' && effectiveness < 2) {
+            return { triggered: false, damageMultiplier: 1 };
+        }
+        
+        // 【BUG修复】Unnerve（紧张感）检查：对手有紧张感时无法吃树果
+        if (opponent && opponent.ability) {
+            const oppAbilityId = opponent.ability.toLowerCase().replace(/[^a-z]/g, '');
+            if (oppAbilityId === 'unnerve') {
+                console.log(`[UNNERVE] ${pokemon.cnName} 因对手的紧张感无法吃抗性果`);
+                return { triggered: false, damageMultiplier: 1 };
+            }
+        }
+        if (pokemon.cannotEatBerry) {
+            return { triggered: false, damageMultiplier: 1 };
+        }
+        
         // 触发抗性果
         const berryName = itemData.cnName || itemData.name;
+        const consumedBerry = pokemon.item;
         pokemon.item = null;
+        
+        // 【BUG修复】触发吃树果相关特性钩子（Cheek Pouch / Unburden 等）
+        this._triggerBerryAbilityHooks(pokemon, consumedBerry, []);
         
         return {
             triggered: true,
@@ -2250,18 +2274,24 @@ const ItemEffects = {
         // 聚气树果 (兰萨果)
         if (itemData.effect === 'pinchCrit') {
             pokemon.item = null;
+            pokemon.usedBerry = consumedBerry;
             if (!pokemon.volatile) pokemon.volatile = {};
             pokemon.volatile.focusenergy = true;
             logs.push(`<span style="color:#e74c3c">🔥 ${pokemon.cnName} 吃掉了${berryName}，进入了聚气状态！</span>`);
+            // 【BUG修复】触发吃树果相关特性钩子
+            this._triggerBerryAbilityHooks(pokemon, consumedBerry, logs);
             return true;
         }
         
         // 先制树果 (释陀果)
         if (itemData.effect === 'pinchPriority') {
             pokemon.item = null;
+            pokemon.usedBerry = consumedBerry;
             if (!pokemon.volatile) pokemon.volatile = {};
             pokemon.volatile.custap = true;
             logs.push(`<span style="color:#9b59b6">⚡ ${pokemon.cnName} 吃掉了${berryName}，下一次行动将获得先制！</span>`);
+            // 【BUG修复】触发吃树果相关特性钩子
+            this._triggerBerryAbilityHooks(pokemon, consumedBerry, logs);
             return true;
         }
         
@@ -2275,8 +2305,15 @@ const ItemEffects = {
      * @param {Array} logs - 日志数组
      * @returns {boolean} 是否触发了树果
      */
-    checkStatusBerry(pokemon, logs = []) {
+    checkStatusBerry(pokemon, logs = [], opponent = null) {
         if (!pokemon.item || !pokemon.status) return false;
+        
+        // 【BUG修复】Unnerve（紧张感）检查
+        if (opponent && opponent.ability) {
+            const oppAbilityId = opponent.ability.toLowerCase().replace(/[^a-z]/g, '');
+            if (oppAbilityId === 'unnerve') return false;
+        }
+        if (pokemon.cannotEatBerry) return false;
         
         const itemId = pokemon.item.toLowerCase().replace(/[^a-z0-9]/g, '');
         const itemData = ITEMS[itemId];
@@ -2287,12 +2324,16 @@ const ItemEffects = {
         // 状态治愈树果 (cureStatus)
         if (itemData.effect === 'cureStatus' && itemData.cures === pokemon.status) {
             const statusNames = { par: '麻痹', brn: '灶伤', psn: '中毒', tox: '剧毒', slp: '睡眠', frz: '冰冻' };
+            const consumedBerry = pokemon.item;
             pokemon.status = null;
             pokemon.statusTurns = 0;
             pokemon.sleepTurns = 0;
             pokemon.sleepDuration = 0;
             pokemon.item = null;
+            pokemon.usedBerry = consumedBerry;
             logs.push(`<span style="color:#27ae60">🍒 ${pokemon.cnName} 吃掉了${berryName}，治愈了${statusNames[itemData.cures] || '异常状态'}！</span>`);
+            // 【BUG修复】触发吃树果相关特性钩子
+            this._triggerBerryAbilityHooks(pokemon, consumedBerry, logs);
             return true;
         }
         
@@ -2300,12 +2341,16 @@ const ItemEffects = {
         if (itemData.effect === 'cureAll' && pokemon.status) {
             const statusNames = { par: '麻痹', brn: '灶伤', psn: '中毒', tox: '剧毒', slp: '睡眠', frz: '冰冻' };
             const oldStatus = pokemon.status;
+            const consumedBerry = pokemon.item;
             pokemon.status = null;
             pokemon.statusTurns = 0;
             pokemon.sleepTurns = 0;
             pokemon.sleepDuration = 0;
             pokemon.item = null;
+            pokemon.usedBerry = consumedBerry;
             logs.push(`<span style="color:#27ae60">🍒 ${pokemon.cnName} 吃掉了${berryName}，治愈了${statusNames[oldStatus] || '异常状态'}！</span>`);
+            // 【BUG修复】触发吃树果相关特性钩子
+            this._triggerBerryAbilityHooks(pokemon, consumedBerry, logs);
             return true;
         }
         
@@ -2368,9 +2413,21 @@ const ItemEffects = {
         const cures = ['taunt', 'encore', 'torment', 'healblock', 'disable', 'attract'];
         if (!cures.includes(condition)) return false;
         
-        // 解除状态
+        // 【BUG修复】根据不同状态使用正确的清除方式
         if (pokemon.volatile) {
-            pokemon.volatile[condition] = 0;
+            if (condition === 'encore') {
+                pokemon.volatile.encore = 0;
+                pokemon.volatile.encoreMove = null;
+            } else if (condition === 'torment') {
+                pokemon.volatile.torment = false;
+            } else if (condition === 'disable') {
+                pokemon.volatile.disable = 0;
+                pokemon.volatile.disabledMove = null;
+            } else if (condition === 'attract') {
+                pokemon.volatile.attract = false;
+            } else {
+                pokemon.volatile[condition] = 0;
+            }
         }
         
         const conditionNames = {

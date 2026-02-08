@@ -1283,10 +1283,12 @@ export function calcDamage(attacker, defender, move, options = {}) {
     }
 
     // === 抗性树果减伤 ===
+    // BUG修复：移除外层 effectiveness >= 2 检查，让 checkResistBerry 内部自行判断（Chilan Berry 不需要效果拔群）
+    // BUG修复：传入 attacker 作为 opponent 参数，用于 Unnerve 检查
     let resistBerryTriggered = false;
     let resistBerryMessage = '';
-    if (typeof ItemEffects !== 'undefined' && ItemEffects.checkResistBerry && effectiveness >= 2) {
-        const berryResult = ItemEffects.checkResistBerry(defender, move.type, effectiveness);
+    if (typeof ItemEffects !== 'undefined' && ItemEffects.checkResistBerry) {
+        const berryResult = ItemEffects.checkResistBerry(defender, move.type, effectiveness, attacker);
         if (berryResult.triggered) {
             singleHitDamage = Math.floor(singleHitDamage * berryResult.damageMultiplier);
             resistBerryTriggered = true;

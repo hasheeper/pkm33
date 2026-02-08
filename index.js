@@ -973,22 +973,58 @@ async function handleAttack(moveIndex, options = {}) {
     // 【BUG修复】Choice 道具锁招强制检查
     // 如果玩家持有 Choice 道具且已锁定技能，必须使用锁定的技能
     // 如果尚未锁定，则在此处锁定（在对冲逻辑之前）
+    // 【重要修复】Choice 道具只应锁定攻击技，不应锁定变化技
     // =========================================================
     const pItem = p.item || '';
     const pIsChoiceItem = pItem.includes('Choice') || pItem.includes('讲究');
     if (pIsChoiceItem) {
+        // 辅助函数：检查技能是否为变化技（Status move）
+        const _isStatusMove = (moveName) => {
+            if (!moveName) return false;
+            const mid = moveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const mdata = (typeof MOVES !== 'undefined' && MOVES[mid]) ? MOVES[mid] : null;
+            return mdata && (mdata.category === 'Status' || mdata.basePower === 0);
+        };
+        
         if (p.choiceLockedMove) {
-            // 已锁定：强制使用锁定的技能
-            const lockedMoveObj = p.moves.find(m => m.name === p.choiceLockedMove);
-            if (lockedMoveObj && playerMove.name !== p.choiceLockedMove) {
-                console.log(`[CHOICE ENFORCE] 玩家试图使用 ${playerMove.name}，但被 ${pItem} 锁定在 ${p.choiceLockedMove}`);
-                log(`<span style="color:#e74c3c">${p.cnName} 被 ${pItem} 锁定，只能使用 ${lockedMoveObj.cn || p.choiceLockedMove}！</span>`);
-                playerMove = lockedMoveObj;
+            // 【BUG修复】如果被锁定的是变化技（不应发生），清除锁定
+            if (_isStatusMove(p.choiceLockedMove)) {
+                console.log(`[CHOICE FIX] ${p.name} 被错误锁定在变化技 ${p.choiceLockedMove}，清除锁定`);
+                delete p.choiceLockedMove;
+            } else {
+                // 已锁定攻击技：强制使用锁定的技能
+                const lockedMoveObj = p.moves.find(m => m.name === p.choiceLockedMove);
+                if (lockedMoveObj && playerMove.name !== p.choiceLockedMove) {
+                    console.log(`[CHOICE ENFORCE] 玩家试图使用 ${playerMove.name}，但被 ${pItem} 锁定在 ${p.choiceLockedMove}`);
+                    log(`<span style="color:#e74c3c">${p.cnName} 被 ${pItem} 锁定，只能使用 ${lockedMoveObj.cn || p.choiceLockedMove}！</span>`);
+                    playerMove = lockedMoveObj;
+                }
             }
-        } else {
-            // 尚未锁定：在选择招式时立即锁定（不管对冲结果如何）
-            p.choiceLockedMove = playerMove.name;
-            console.log(`[CHOICE LOCK] ${p.name} 被 ${pItem} 锁定在 ${playerMove.name}`);
+        }
+        // 尚未锁定：只锁定攻击技，变化技不触发锁定
+        if (!p.choiceLockedMove) {
+            if (!_isStatusMove(playerMove.name)) {
+                p.choiceLockedMove = playerMove.name;
+                console.log(`[CHOICE LOCK] ${p.name} 被 ${pItem} 锁定在 ${playerMove.name}`);
+            } else {
+                console.log(`[CHOICE SKIP] ${p.name} 使用变化技 ${playerMove.name}，Choice 道具不锁定`);
+            }
+        }
+    }
+    
+    // =========================================================
+    // 【BUG修复】Choice 强制替换后，再次检查 canUseMove
+    // 修复 Torment + Choice 逻辑死锁：被锁定的技能可能被无理取闹/定身法等阻止
+    // 此时应该 fallback 到挣扎（Struggle）
+    // =========================================================
+    if (typeof MoveEffects !== 'undefined' && MoveEffects.canUseMove) {
+        const postChoiceCheck = MoveEffects.canUseMove(p, playerMove);
+        if (!postChoiceCheck.canUse) {
+            console.log(`[CHOICE+TORMENT] ${p.name} 被锁定在 ${playerMove.name} 但无法使用: ${postChoiceCheck.reason}`);
+            log(`<span style="color:#e74c3c">${postChoiceCheck.reason}</span>`);
+            // Fallback 到挣扎
+            playerMove = { name: 'Struggle', cn: '挣扎', power: 50, type: 'Normal', cat: 'phys', accuracy: true, flags: { contact: 1 } };
+            log(`<span style="color:#ef4444">${p.cnName} 无技可用，只能挣扎!</span>`);
         }
     }
     
@@ -2827,10 +2863,20 @@ async function handleAttack(moveIndex, options = {}) {
             if (!canUseResult.canUse) {
                 log(`<span style="color:#e74c3c">${canUseResult.reason}</span>`);
                 await wait(500);
-                // 跳过玩家行动，直接进入回合结算
-                await executeEndPhase(p, e);
-                battle.locked = false;
-                return;
+                // 【BUG修复】不应直接跳过玩家行动，应尝试选择其他可用技能或使用挣扎
+                const availableMoves = p.moves.filter(m => {
+                    const check = MoveEffects.canUseMove(p, m);
+                    return check.canUse;
+                });
+                if (availableMoves.length > 0) {
+                    playerMove = availableMoves[0];
+                    console.log(`[TAUNT REDIRECT] 玩家改用: ${playerMove.name}`);
+                    log(`<span style="color:#f59e0b">${p.cnName} 改为使用 ${playerMove.cn || playerMove.name}!</span>`);
+                } else {
+                    // 没有可用技能，使用挣扎
+                    playerMove = { name: 'Struggle', cn: '挣扎', power: 50, type: 'Normal', cat: 'phys', accuracy: true, flags: { contact: 1 } };
+                    log(`<span style="color:#ef4444">${p.cnName} 无技可用，只能挣扎!</span>`);
+                }
             }
         }
         

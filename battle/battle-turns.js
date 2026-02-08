@@ -235,12 +235,20 @@ export async function executePlayerTurn(p, e, move) {
     
     // =========================================================
     // Choice 道具锁招（讲究头带/眼镜/围巾）- 玩家
+    // 【BUG修复】Choice 道具只应锁定攻击技，不应锁定变化技
     // =========================================================
     const pItem = p.item || '';
     const pIsChoiceItem = pItem.includes('Choice') || pItem.includes('讲究');
     if (pIsChoiceItem && !p.choiceLockedMove) {
-        p.choiceLockedMove = move.name;
-        console.log(`[CHOICE] ${p.name} 被 ${pItem} 锁定在 ${move.name}`);
+        const pMoveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const pMoveData = (typeof MOVES !== 'undefined' && MOVES[pMoveId]) ? MOVES[pMoveId] : null;
+        const pIsStatus = pMoveData && (pMoveData.category === 'Status' || pMoveData.basePower === 0);
+        if (!pIsStatus) {
+            p.choiceLockedMove = move.name;
+            console.log(`[CHOICE] ${p.name} 被 ${pItem} 锁定在 ${move.name}`);
+        } else {
+            console.log(`[CHOICE SKIP] ${p.name} 使用变化技 ${move.name}，Choice 不锁定`);
+        }
     }
     
     // =========================================================
@@ -456,12 +464,20 @@ export async function executeEnemyTurn(e, p, move) {
     
     // =========================================================
     // Choice 道具锁招（讲究头带/眼镜/围巾）
+    // 【BUG修复】Choice 道具只应锁定攻击技，不应锁定变化技
     // =========================================================
     const eItem = e.item || '';
     const eIsChoiceItem = eItem.includes('Choice') || eItem.includes('讲究');
     if (eIsChoiceItem && !e.choiceLockedMove) {
-        e.choiceLockedMove = move.name;
-        console.log(`[CHOICE] ${e.name} 被 ${eItem} 锁定在 ${move.name}`);
+        const eMoveId = (move.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const eMoveData = (typeof MOVES !== 'undefined' && MOVES[eMoveId]) ? MOVES[eMoveId] : null;
+        const eIsStatus = eMoveData && (eMoveData.category === 'Status' || eMoveData.basePower === 0);
+        if (!eIsStatus) {
+            e.choiceLockedMove = move.name;
+            console.log(`[CHOICE] ${e.name} 被 ${eItem} 锁定在 ${move.name}`);
+        } else {
+            console.log(`[CHOICE SKIP] ${e.name} 使用变化技 ${move.name}，Choice 不锁定`);
+        }
     }
     
     // =========================================================
