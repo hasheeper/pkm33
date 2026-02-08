@@ -112,8 +112,14 @@ export const AbilityHandlers = {
 
     // 【漂浮】免疫地面
     // 【钩子统一】onImmunity: (atkType, move)
+    // 【BUG修复】千箭齐发(Thousand Arrows)无视漂浮的地面免疫
     'Levitate': {
-        onImmunity: (atkType, move) => atkType === 'Ground',
+        onImmunity: (atkType, move) => {
+            if (atkType !== 'Ground') return false;
+            const mid = (move?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (mid === 'thousandarrows') return false; // 千箭齐发穿透漂浮
+            return true;
+        },
         groundImmune: true
     },
     // 【引火】免疫火系+威力提升50%

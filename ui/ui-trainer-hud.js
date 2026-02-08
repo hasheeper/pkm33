@@ -43,11 +43,14 @@ const AVATAR_LIBRARY = [
     'acerola',
     'skyla',
     'iris',
-    'nemona'
+    'nemona',
+    'leon'
 ];
 
 const AVATAR_ALIAS_MAP = {
-    hex: 'hexmaniac'
+    hex: 'hexmaniac',
+    leonultimate: 'leon',
+    leonchampion: 'leon'
 };
 
 const NORMALIZED_AVATARS = AVATAR_LIBRARY.map(name => ({

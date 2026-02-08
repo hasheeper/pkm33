@@ -514,7 +514,9 @@ export function calcDamage(attacker, defender, move, options = {}) {
             const defItemData = ITEMS[defItemId];
             const atkMoveType = move.type || fullMoveData.type || 'Normal';
             // 道具免疫检查（如气球免疫地面）
-            if (defItemData.immunity && Array.isArray(defItemData.immunity) && defItemData.immunity.includes(atkMoveType)) {
+            // 【BUG修复】千箭齐发(Thousand Arrows)无视气球/漂浮/飞行的地面免疫
+            const isThousandArrows = moveId === 'thousandarrows';
+            if (defItemData.immunity && Array.isArray(defItemData.immunity) && defItemData.immunity.includes(atkMoveType) && !isThousandArrows) {
                 console.log(`[ITEM IMMUNE] ${defender.cnName} 的 ${defItemData.cnName || defItemData.name} 免疫了 ${atkMoveType} 系招式 ${move.name}！`);
                 return { 
                     damage: 0, effectiveness: 0, isCrit: false, miss: false, hitCount: 0, 
@@ -573,7 +575,8 @@ export function calcDamage(attacker, defender, move, options = {}) {
     // 变化技不造成伤害
     if (basePower === 0 || category === 'Status') {
         // === 【恶作剧之心】恶系免疫检查 ===
-        const isPrankster = attackerAbilityId === 'prankster';
+        // 【BUG修复】Magic Bounce 反弹后的招式带有 _prankster 标记，也应触发恶系免疫
+        const isPrankster = attackerAbilityId === 'prankster' || move._prankster === true;
         const defenderTypes = defender.types || [];
         const defenderIsDark = defenderTypes.includes('Dark');
         const moveTarget = fullMoveData.target || 'normal';

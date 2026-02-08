@@ -64,7 +64,12 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
             const bouncedSpriteId = isPlayerAttacking ? 'player-sprite' : 'enemy-sprite';
             
             // 递归调用，但标记为已反弹防止无限循环
+            // 【BUG修复】保留 Prankster 标记：如果原使用者有恶作剧之心，
+            // 反弹后的招式仍然带有 _prankster 标记，恶系目标（原使用者）应该免疫
             const bouncedMove = { ...move, _bounced: true };
+            if (attackerAbility === 'prankster') {
+                bouncedMove._prankster = true;
+            }
             return applyDamage(defender, attacker, bouncedMove, bouncedSpriteId);
         }
     }

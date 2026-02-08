@@ -2347,7 +2347,30 @@ export const MoveHandlers = {
         onUse: (attacker, defender, logs) => {
             if (attacker.isTransformed) {
                 logs.push(`但是 ${attacker.cnName} 已经变身过了!`);
-                return;
+                return { failed: true };
+            }
+            
+            // 【BUG修复】对方已变身时，变身失败（百变怪对百变怪）
+            if (defender.isTransformed) {
+                logs.push(`但是失败了！（对方已经处于变身状态）`);
+                return { failed: true };
+            }
+            
+            // 【BUG修复】穿透 Illusion 幻觉：复制本体数据而非伪装数据
+            // Illusion 只改变 displayName/displayCnName，实际 types/stats/moves 仍是本体
+            // 但如果 defender.illusionActive 为 true，需要先破解幻觉
+            if (defender.illusionActive) {
+                defender.illusionActive = false;
+                const fakeName = defender.illusionTarget?.cnName || '???';
+                defender.displayName = null;
+                defender.displayCnName = null;
+                defender.displaySpriteUrl = null;
+                defender.displaySpriteId = null;
+                defender.illusionTarget = null;
+                logs.push(`<b style="color:#8b5cf6">👻 幻觉破解！${fakeName} 的真身是 ${defender.cnName}！</b>`);
+                if (typeof window !== 'undefined' && typeof window.updateBattleSprites === 'function') {
+                    window.updateBattleSprites();
+                }
             }
 
             // 1. 复制属性
