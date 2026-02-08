@@ -616,6 +616,22 @@ export async function enemyTurn() {
         move = e.moves[Math.floor(Math.random() * e.moves.length)];
     }
 
+    // 【PP系统】检查敌方招式PP
+    if (typeof window.PPSystem !== 'undefined' && move && move.pp !== undefined && move.pp <= 0) {
+        const ppAvailable = e.moves.filter(m => m.pp === undefined || m.pp > 0);
+        if (ppAvailable.length > 0) {
+            move = ppAvailable[Math.floor(Math.random() * ppAvailable.length)];
+        } else {
+            move = { name: 'Struggle', cn: '挣扎', power: 50, type: 'Normal', cat: 'phys' };
+            log(`<span style="color:#aaa">${e.cnName} 所有招式PP耗尽，只能挣扎!</span>`);
+        }
+    }
+    // 【PP系统】扣减敌方PP (target=p 用于 Pressure 判定)
+    if (typeof window.PPSystem !== 'undefined' && move) {
+        const ppResult = window.PPSystem.deductPP(e, move, p);
+        if (ppResult && ppResult.logs) ppResult.logs.forEach(msg => log(msg));
+    }
+
     // 执行敌方回合
     await executeEnemyTurn(e, p, move);
 

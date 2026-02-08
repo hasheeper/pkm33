@@ -593,9 +593,11 @@ export const MoveHandlers = {
     // 【王牌 Trump Card】威力取决于剩余PP（PP越少威力越高）
     'Trump Card': {
         basePowerCallback: (attacker, defender) => {
-            // 简化：无法追踪PP，使用固定高威力
-            // 实际公式: PP=4→40, PP=3→50, PP=2→60, PP=1→80, PP=0→200
-            return 80;
+            // 使用 PPSystem 获取真实 PP 值
+            if (typeof window !== 'undefined' && window.PPSystem) {
+                return window.PPSystem.getTrumpCardPower(attacker);
+            }
+            return 80; // fallback
         },
         description: '剩余PP越少威力越高，最高200'
     },

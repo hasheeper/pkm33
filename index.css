@@ -5777,3 +5777,40 @@ body {
 
 /* 结束标记 */
 /* ========================================================== END CLASH SYSTEM ========================================================== */
+
+/* ==========================================================
+   PP 系统样式
+   ========================================================== */
+
+/* PP 徽章 - 技能按钮右下角小灰标 */
+.pp-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #b0b0b0;
+    font-family: var(--font-number);
+    z-index: 3;
+    letter-spacing: 0.3px;
+    transform: skewX(8deg);
+    pointer-events: none;
+    line-height: 1;
+}
+
+/* PP 低时变色 */
+.pp-badge.pp-low {
+    color: #e8a735;
+}
+.pp-badge.pp-critical {
+    color: #ef4444;
+}
+.pp-badge.pp-zero {
+    color: #999;
+}
+
+.action-btn:disabled .pp-badge {
+    color: #ccc;
+}
+
+/* ========================================================== END PP SYSTEM ========================================================== */

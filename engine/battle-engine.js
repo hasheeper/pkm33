@@ -672,6 +672,8 @@ export class Pokemon {
             // 使用 Locale 工具获取技能中文名
             const cnName = (typeof window !== 'undefined' && window.Locale) ? window.Locale.get(md.name) : md.name;
             // 【修复】保留 target 字段，用于精神场地等机制判断招式目标类型
+            // 【PP系统】从原始数据获取 PP 值
+            const basePP = rawData ? (rawData.pp || 5) : 5;
             return { 
                 name: md.name, 
                 cn: cnName, 
@@ -679,14 +681,16 @@ export class Pokemon {
                 power: md.power || 0, 
                 cat: md.cat || 'phys',
                 target: md.target || 'normal',  // 【关键】保留目标类型
-                priority: md.priority || 0      // 【关键】保留优先度
+                priority: md.priority || 0,     // 【关键】保留优先度
+                pp: basePP,                      // 【PP系统】当前PP
+                maxPp: basePP                    // 【PP系统】最大PP
             };
         });
         
         // 如果没给技能或过滤后为空，给个默认的
         if (this.moves.length === 0) {
             const tackleCN = (typeof window !== 'undefined' && window.Locale) ? window.Locale.get('Tackle') : 'Tackle';
-            this.moves = [{ name: 'Tackle', cn: tackleCN, type: 'Normal', power: 40, cat: 'phys' }];
+            this.moves = [{ name: 'Tackle', cn: tackleCN, type: 'Normal', power: 40, cat: 'phys', pp: 35, maxPp: 35 }];
         }
     }
     

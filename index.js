@@ -797,6 +797,12 @@ function updateAllVisuals(forceSpriteAnim = false) {
                     console.log(`[GRUDGE UI] ${m.name} 被怨恨封印，按钮禁用`);
                 }
                 
+                // 【PP系统】PP 耗尽时禁用
+                if (m.pp !== undefined && m.pp <= 0) {
+                    isDisabled = true;
+                    console.log(`[PP UI] ${m.name} PP耗尽，按钮禁用`);
+                }
+                
                 // 【环境图层系统】检查技能是否被环境禁用
                 let envBanned = false;
                 if (typeof window.envOverlay !== 'undefined' && window.envOverlay.isMoveBanned) {
@@ -879,6 +885,10 @@ function updateAllVisuals(forceSpriteAnim = false) {
                     `;
                 } else {
                     // 普通技能
+                    const ppCur = m.pp !== undefined ? m.pp : '?';
+                    const ppMax = m.maxPp !== undefined ? m.maxPp : '?';
+                    const ppRatio = (typeof ppCur === 'number' && typeof ppMax === 'number' && ppMax > 0) ? ppCur / ppMax : 1;
+                    const ppColorClass = ppCur === 0 ? 'pp-zero' : ppRatio <= 0.25 ? 'pp-critical' : ppRatio <= 0.5 ? 'pp-low' : '';
                     btn.innerHTML = `
                         <div class="deco-bar"></div>
                         <div class="content-unskew">
@@ -893,6 +903,7 @@ function updateAllVisuals(forceSpriteAnim = false) {
                                 <img src="${typeSvgPath}">
                             </div>
                         </div>
+                        <span class="pp-badge ${ppColorClass}">${ppCur}/${ppMax}</span>
                     `;
                 }
                 
@@ -918,7 +929,7 @@ function updateAllVisuals(forceSpriteAnim = false) {
             }
         });
         
-        // 【环境图层系统】检查是否所有技能都被禁用，如果是则启用"挣扎"
+        // 【环境图层系统 + PP系统】检查是否所有技能都被禁用，如果是则启用"挣扎"
         const allBtns = btnIds.map(id => document.getElementById(id)).filter(b => b);
         const allDisabled = allBtns.every(btn => btn.disabled || btn.style.visibility === 'hidden');
         if (allDisabled && p.moves.length > 0) {
@@ -1402,6 +1413,12 @@ async function handleAttack(moveIndex, options = {}) {
         if (typeof window.refreshCommanderBubble === 'function') {
             window.refreshCommanderBubble();
         }
+    }
+
+    // === 【PP系统】扣减玩家招式 PP (target=e 用于 Pressure 判定) ===
+    if (window.PPSystem && playerMove) {
+        const ppResult = window.PPSystem.deductPP(p, playerMove, e);
+        if (ppResult && ppResult.logs) ppResult.logs.forEach(msg => log(msg));
     }
 
     // === 回合开始：清除双方的 Protect 状态（新回合开始，守住失效）===
@@ -1973,15 +1990,29 @@ async function handleAttack(moveIndex, options = {}) {
             enemyMove = e.moves[Math.floor(Math.random() * e.moves.length)];
         }
         
+        // === 【PP系统】检查敌方选中招式是否有PP ===
+        if (window.PPSystem && enemyMove && enemyMove.pp !== undefined && enemyMove.pp <= 0) {
+            console.log(`[AI PP] ${e.cnName} 的 ${enemyMove.cn || enemyMove.name} PP耗尽，重新选招`);
+            const ppAvailable = e.moves.filter(m => m.pp === undefined || m.pp > 0);
+            if (ppAvailable.length > 0) {
+                enemyMove = ppAvailable[Math.floor(Math.random() * ppAvailable.length)];
+                console.log(`[AI PP] 改用: ${enemyMove.cn || enemyMove.name}`);
+            } else {
+                enemyMove = { name: 'Struggle', cn: '挣扎', power: 50, type: 'Normal', cat: 'phys' };
+                log(`<span style="color:#aaa">${e.cnName} 所有招式PP耗尽，只能挣扎!</span>`);
+            }
+        }
+        
         // === 【修复】检查 Taunt 等 Volatile 状态是否阻止 AI 使用该技能 ===
         if (typeof MoveEffects !== 'undefined' && MoveEffects.canUseMove && enemyMove) {
             const canUseResult = MoveEffects.canUseMove(e, enemyMove);
             if (!canUseResult.canUse) {
                 log(`<span style="color:#e74c3c">${canUseResult.reason}</span>`);
-                // 尝试选择其他可用技能
+                // 尝试选择其他可用技能（同时过滤PP耗尽的招式）
                 const availableMoves = e.moves.filter(m => {
                     const check = MoveEffects.canUseMove(e, m);
-                    return check.canUse;
+                    const hasPP = m.pp === undefined || m.pp > 0;
+                    return check.canUse && hasPP;
                 });
                 if (availableMoves.length > 0) {
                     enemyMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
@@ -2305,6 +2336,12 @@ async function handleAttack(moveIndex, options = {}) {
         e = newE;
     }
     
+    // === 【PP系统】扣减敌方招式 PP (target=p 用于 Pressure 判定) ===
+    if (window.PPSystem && enemyMove && !enemyWillSwitch) {
+        const ppResult = window.PPSystem.deductPP(e, enemyMove, p);
+        if (ppResult && ppResult.logs) ppResult.logs.forEach(msg => log(msg));
+    }
+
     // === 阶段 2：执行攻击（按速度/优先级顺序） ===
     // 如果敌方换人了，它这回合不攻击，只有玩家攻击
     if (enemyWillSwitch) {
@@ -2603,7 +2640,8 @@ async function handleAttack(moveIndex, options = {}) {
                 // 只对 expert 难度生效，其他难度不改变招式
                 // =====================================================
                 let finalEnemyMove = enemyMove;
-                if (battle.aiDifficulty === 'expert' && typeof window.getHardAiMove === 'function') {
+                // 【修复】Z招式/Max招式不应被见招拆招覆盖
+                if (battle.aiDifficulty === 'expert' && typeof window.getHardAiMove === 'function' && !enemyMove.isZ && !enemyMove.isMax) {
                     // AI 知道玩家选了什么招式，重新计算最优对冲招式
                     const recalcMove = window.getHardAiMove(e, p, battle.enemyParty);
                     if (recalcMove && recalcMove.name !== enemyMove.name) {
