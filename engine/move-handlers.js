@@ -1878,6 +1878,43 @@ export const MoveHandlers = {
     // 旧的 onUse handler 写入 battle.hazards（错误路径），applySideCondition 写入 battle.playerSide/enemySide（正确路径）
     // 双路径导致：1) 成功+失败双消息 2) 数据写入不一致
     
+    // ============================================
+    // 【BUG修复】Stone Axe (岩斧) - 攻击技 + 设置隐形岩
+    // PS data 的 onAfterHit 被 null 化，需要手动实现
+    // ============================================
+    'Stone Axe': {
+        onHit: (attacker, defender, damage, logs, battle) => {
+            if (!battle || damage <= 0) return {};
+            const targetSide = (attacker === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            if (!targetSide) return {};
+            if (!targetSide.stealthRock) {
+                targetSide.stealthRock = true;
+                logs.push(`<span style="color:#a8a29e">🪨 尖锐的岩石漂浮在对手场地周围！</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并在对方场地设置隐形岩'
+    },
+    
+    // ============================================
+    // 【BUG修复】Ceaseless Edge (秘剑・千重涛) - 攻击技 + 设置撒菱
+    // PS data 的 onAfterHit 被 null 化，需要手动实现
+    // ============================================
+    'Ceaseless Edge': {
+        onHit: (attacker, defender, damage, logs, battle) => {
+            if (!battle || damage <= 0) return {};
+            const targetSide = (attacker === battle.getPlayer()) ? battle.enemySide : battle.playerSide;
+            if (!targetSide) return {};
+            const currentLayers = targetSide.spikes || 0;
+            if (currentLayers < 3) {
+                targetSide.spikes = currentLayers + 1;
+                logs.push(`<span style="color:#a8a29e">🔺 尖刺散布在对手场地！(撒菱 ${currentLayers + 1} 层)</span>`);
+            }
+            return {};
+        },
+        description: '造成伤害并在对方场地设置撒菱'
+    },
+    
     // Rapid Spin, Defog 已在后面定义（完整版本，支持 side 和速度+1）
     
     // ============================================
@@ -2612,7 +2649,9 @@ export const MoveHandlers = {
                 // 顺风/守护/白雾
                 'tailwind', 'safeguard', 'mist',
                 // G-Max DOT 效果
-                'gmaxWildfire', 'gmaxCannonade', 'gmaxVineLash', 'gmaxVolcalith'
+                'gmaxWildfire', 'gmaxCannonade', 'gmaxVineLash', 'gmaxVolcalith',
+                // 【BUG修复】G-Max Steelsurge (钢之撒菱)
+                'gmaxSteelsurge'
             ];
             
             let swapped = false;
@@ -3663,11 +3702,13 @@ export const MoveHandlers = {
     },
 
     // 【挣扎】PP耗尽时的最后手段
+    // 【BUG修复】挣扎反伤必须绕过所有锁血机制（气势披带/AVs Trust/Second Wind/Bond Endure等）
+    // 官方机制：挣扎反伤直接扣除HP，无视任何生存效果，可以自杀
     'Struggle': {
         onHit: (attacker, defender, damage, logs) => {
-            // 反伤 1/4 最大HP
+            // 反伤 1/4 最大HP — 直接操作 currHp，绕过 takeDamage 的所有锁血检查
             const recoil = Math.max(1, Math.floor(attacker.maxHp / 4));
-            attacker.takeDamage(recoil);
+            attacker.currHp = Math.max(0, attacker.currHp - recoil);
             logs.push(`<span style="color:#e74c3c">${attacker.cnName} 受到了反作用伤害！(-${recoil})</span>`);
             if (typeof window.updateAllVisuals === 'function') window.updateAllVisuals(false);
             return {};
@@ -3707,15 +3748,29 @@ export const MoveHandlers = {
 
     // 【高速旋转】清除己方场地钉子 + 速度+1
     'Rapid Spin': {
-        onHit: (attacker, defender, damage, logs, battle, isPlayer) => {
+        onHit: (attacker, defender, damage, logs, battle, move) => {
             if (!battle) return {};
-            const userSide = isPlayer ? battle.playerSide : battle.enemySide;
+            // 【BUG修复】判断攻击方是否为玩家，传递正确参数给 clearEntryHazards(isPlayer, battle)
+            const isAttackerPlayer = battle.playerParty && battle.playerParty.includes(attacker);
+            const userSide = isAttackerPlayer ? battle.playerSide : battle.enemySide;
             if (!userSide) return {};
             
             // 使用 move-effects.js 的 clearEntryHazards 函数
             if (typeof MoveEffects !== 'undefined' && MoveEffects.clearEntryHazards) {
-                const clearLogs = MoveEffects.clearEntryHazards(userSide);
+                const clearLogs = MoveEffects.clearEntryHazards(isAttackerPlayer, battle);
                 clearLogs.forEach(l => logs.push(l));
+            }
+            
+            // 清除束缚状态 (partiallytrapped / leechseed)
+            if (attacker.volatile) {
+                if (attacker.volatile.partiallytrapped) {
+                    delete attacker.volatile.partiallytrapped;
+                    logs.push(`${attacker.cnName} 挣脱了束缚！`);
+                }
+                if (attacker.volatile.leechseed) {
+                    delete attacker.volatile.leechseed;
+                    logs.push(`${attacker.cnName} 甩掉了寄生种子！`);
+                }
             }
             
             // 速度+1 (第8世代新增效果)
@@ -3728,6 +3783,37 @@ export const MoveHandlers = {
         description: '清除己方场地钉子，速度+1'
     },
 
+    // 【BUG修复】臓旋 (Mortal Spin) - 清除己方场地钉子 + 中毒（毒由 secondary 处理）
+    // PS data 的 onAfterHit 被 null 化，需要手动实现清除逻辑
+    'Mortal Spin': {
+        onHit: (attacker, defender, damage, logs, battle, move) => {
+            if (!battle) return {};
+            const isAttackerPlayer = battle.playerParty && battle.playerParty.includes(attacker);
+            
+            // 清除己方场地钉子
+            if (typeof MoveEffects !== 'undefined' && MoveEffects.clearEntryHazards) {
+                const clearLogs = MoveEffects.clearEntryHazards(isAttackerPlayer, battle);
+                clearLogs.forEach(l => logs.push(l));
+            }
+            
+            // 清除束缚状态 (partiallytrapped / leechseed)
+            if (attacker.volatile) {
+                if (attacker.volatile.partiallytrapped) {
+                    delete attacker.volatile.partiallytrapped;
+                    logs.push(`${attacker.cnName} 挣脱了束缚！`);
+                }
+                if (attacker.volatile.leechseed) {
+                    delete attacker.volatile.leechseed;
+                    logs.push(`${attacker.cnName} 甩掉了寄生种子！`);
+                }
+            }
+            
+            // 中毒效果由 moves-data.js 的 secondary: { chance: 100, status: 'psn' } 处理
+            return {};
+        },
+        description: '清除己方场地钉子+束缚，并使对手中毒'
+    },
+
     // 【清除浓雾】清除双方场地效果 + 暂时驱散 Shadow Fog 天气
     'Defog': {
         onUse: (user, target, logs, battle, isPlayer) => {
@@ -3737,10 +3823,12 @@ export const MoveHandlers = {
             
             let cleared = false;
             
-            // 使用 move-effects.js 的 clearEntryHazards 函数
+            // 【BUG修复】clearEntryHazards 签名是 (isPlayer, battle)，不是 (sideObj)
             if (typeof MoveEffects !== 'undefined' && MoveEffects.clearEntryHazards) {
-                const userClearLogs = MoveEffects.clearEntryHazards(userSide);
-                const targetClearLogs = MoveEffects.clearEntryHazards(targetSide);
+                const userClearLogs = MoveEffects.clearEntryHazards(isPlayer, battle);
+                const targetClearLogs = MoveEffects.clearEntryHazards(!isPlayer, battle);
+                userClearLogs.forEach(l => logs.push(l));
+                targetClearLogs.forEach(l => logs.push(l));
                 if (userClearLogs.length > 0 || targetClearLogs.length > 0) cleared = true;
             }
             
@@ -5059,6 +5147,12 @@ export const MoveHandlers = {
                 if (mySide.stickyWeb) {
                     mySide.stickyWeb = false;
                     logs.push(`${sideNameCN}场地的黏黏网消失了!`);
+                    clearedAnything = true;
+                }
+                // 【BUG修复】清除 G-Max Steelsurge (钢之撒菱)
+                if (mySide.gmaxSteelsurge) {
+                    mySide.gmaxSteelsurge = false;
+                    logs.push(`${sideNameCN}场地的钢刺消失了!`);
                     clearedAnything = true;
                 }
             }

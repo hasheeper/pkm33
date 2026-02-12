@@ -1106,6 +1106,26 @@ function applyEntryHazards(pokemon, isPlayer, battle) {
         }
     }
     
+    // === 【BUG修复】G-Max Steelsurge (钢之撒菱) ===
+    // 钢系伤害，根据属性克制计算（与隐形岩类似，但是钢系）
+    if (side.gmaxSteelsurge) {
+        let steelEff = 1;
+        const steelChart = {
+            weak: ['Ice', 'Rock', 'Fairy'],
+            resist: ['Fire', 'Water', 'Electric', 'Steel']
+        };
+        // 钢系免疫：无（没有属性免疫钢系）
+        
+        for (const type of types) {
+            if (steelChart.weak.includes(type)) steelEff *= 2;
+            if (steelChart.resist.includes(type)) steelEff *= 0.5;
+        }
+        
+        const steelDmg = Math.max(1, Math.floor(pokemon.maxHp * steelEff / 8));
+        pokemon.takeDamage(steelDmg);
+        logs.push(`尖锐的钢刺扎进了 ${pokemon.cnName}! (-${steelDmg})`);
+    }
+    
     return logs;
 }
 
@@ -1139,6 +1159,11 @@ function clearEntryHazards(isPlayer, battle) {
     }
     if (side.stickyWeb) {
         side.stickyWeb = false;
+        cleared = true;
+    }
+    // 【BUG修复】清除 G-Max Steelsurge (钢之撒菱)
+    if (side.gmaxSteelsurge) {
+        side.gmaxSteelsurge = false;
         cleared = true;
     }
     

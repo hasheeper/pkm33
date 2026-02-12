@@ -1955,12 +1955,26 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
                 return -500; // 大幅降低优先级，转而攻击
             }
             
-            // 首发撒钉：只有血量健康且对手没强化时才撒
-            if (hpPercent >= 0.9) {
-                console.log(`[AI TACTIC] ${attacker.cnName} 首发撒钉: ${moveName}`);
-                return 2500 + Math.random() * 500;
+            // 【优化】对手剩余存活数量越多，钉子价值越高
+            let enemyAliveForHazard = 1;
+            if (typeof battle !== 'undefined' && battle.playerParty) {
+                enemyAliveForHazard = battle.playerParty.filter(p => p && p.currHp > 0).length;
             }
-            // 非首发不撒钉子
+            const hazardPartyBonus = (enemyAliveForHazard - 1) * 200; // 每多一只 +200
+            
+            // 首发撒钉：血量健康且对手没强化时才撒
+            if (hpPercent >= 0.85) {
+                const baseScore = 2500 + hazardPartyBonus + Math.random() * 500;
+                console.log(`[AI TACTIC] ${attacker.cnName} 首发撒钉: ${moveName} (对手剩${enemyAliveForHazard}只，分数${Math.round(baseScore)})`);
+                return baseScore;
+            }
+            // 【优化】中等血量时，如果对手队伍大，仍可考虑撒钉
+            if (hpPercent >= 0.6 && enemyAliveForHazard >= 3) {
+                const midScore = 800 + hazardPartyBonus + Math.random() * 300;
+                console.log(`[AI TACTIC] ${attacker.cnName} 中期补钉: ${moveName} (对手剩${enemyAliveForHazard}只，分数${Math.round(midScore)})`);
+                return midScore;
+            }
+            // 血量不足或对手队伍小，不撒钉子
             return -100;
         }
         
@@ -3499,6 +3513,121 @@ function calcMoveScore(attacker, defender, move, aiParty = null) {
                     score += sec.chance * 1.5;
                     if (sec.status === 'brn' && defender.atk > defender.spa) {
                         score += sec.chance * 2;
+                    }
+                }
+            }
+        }
+    }
+
+    // =========================================================
+    // 【BUG修复 + 优化】攻击技附带钉子效果评分
+    // Stone Axe (岩斧) → 隐形岩, Ceaseless Edge (秘剑) → 撒菱
+    // 这些是攻击技，不走 sideCondition 路径，需要单独评估
+    // =========================================================
+    const hazardAttackMoves = {
+        'Stone Axe': { hazardKey: 'stealthRock', type: 'boolean', label: '隐形岩' },
+        'Ceaseless Edge': { hazardKey: 'spikes', type: 'stackable', max: 3, label: '撒菱' }
+    };
+    
+    if (hazardAttackMoves[moveName]) {
+        const hazardInfo = hazardAttackMoves[moveName];
+        const battleObj = (typeof battle !== 'undefined') ? battle : (typeof window !== 'undefined' ? window.battle : null);
+        
+        if (battleObj) {
+            const isAiAttacker = battleObj.playerParty && !battleObj.playerParty.includes(attacker);
+            const targetSide = isAiAttacker ? battleObj.playerSide : battleObj.enemySide;
+            
+            if (targetSide) {
+                let canSetHazard = false;
+                if (hazardInfo.type === 'boolean') {
+                    canSetHazard = !targetSide[hazardInfo.hazardKey];
+                } else if (hazardInfo.type === 'stackable') {
+                    canSetHazard = (targetSide[hazardInfo.hazardKey] || 0) < hazardInfo.max;
+                }
+                
+                if (canSetHazard) {
+                    // 对手剩余存活数量越多，钉子价值越高
+                    let enemyAliveCount = 1;
+                    const enemyParty = isAiAttacker ? battleObj.playerParty : battleObj.enemyParty;
+                    if (enemyParty) {
+                        enemyAliveCount = enemyParty.filter(p => p && p.currHp > 0).length;
+                    }
+                    
+                    // 基础加分 + 每多一只对手额外加分（钉子是长线投资）
+                    const hazardBonus = 200 + (enemyAliveCount - 1) * 100;
+                    score += hazardBonus;
+                    console.log(`[AI HAZARD] ${moveName} 可设置${hazardInfo.label}，加分 +${hazardBonus} (对手剩${enemyAliveCount}只)`);
+                } else {
+                    // 钉子已满，但仍是攻击技，不减分（纯伤害价值保留）
+                    console.log(`[AI HAZARD] ${moveName} ${hazardInfo.label}已满/已存在，仅作攻击技评估`);
+                }
+            }
+        }
+    }
+    
+    // =========================================================
+    // 【优化】钉子清除技能评分 (Rapid Spin / Defog / Mortal Spin / Tidy Up)
+    // 己方场地有钉子时，清除技能价值大幅提升
+    // =========================================================
+    const hazardRemovalMoves = ['Rapid Spin', 'Mortal Spin', 'Defog', 'Tidy Up'];
+    if (hazardRemovalMoves.includes(moveName)) {
+        const battleObj = (typeof battle !== 'undefined') ? battle : (typeof window !== 'undefined' ? window.battle : null);
+        
+        if (battleObj) {
+            const isAiAttacker = battleObj.playerParty && !battleObj.playerParty.includes(attacker);
+            const mySide = isAiAttacker ? battleObj.enemySide : battleObj.playerSide;
+            
+            if (mySide) {
+                let hazardCount = 0;
+                let hazardSeverity = 0;
+                
+                if (mySide.stealthRock) { hazardCount++; hazardSeverity += 3; } // 隐形岩伤害最高
+                if (mySide.spikes > 0) { hazardCount++; hazardSeverity += mySide.spikes; }
+                if (mySide.toxicSpikes > 0) { hazardCount++; hazardSeverity += mySide.toxicSpikes * 2; } // 毒菱持续伤害
+                if (mySide.stickyWeb) { hazardCount++; hazardSeverity += 2; }
+                if (mySide.gmaxSteelsurge) { hazardCount++; hazardSeverity += 3; }
+                
+                if (hazardCount > 0) {
+                    // 己方队伍剩余存活数量越多，清除钉子价值越高
+                    let myAliveCount = 1;
+                    const myParty = isAiAttacker ? battleObj.enemyParty : battleObj.playerParty;
+                    if (myParty) {
+                        myAliveCount = myParty.filter(p => p && p.currHp > 0).length;
+                    }
+                    
+                    const removalBonus = hazardSeverity * 80 + (myAliveCount - 1) * 50;
+                    score += removalBonus;
+                    console.log(`[AI HAZARD REMOVAL] ${moveName} 清除${hazardCount}种钉子，加分 +${removalBonus} (己方剩${myAliveCount}只)`);
+                    
+                    // Defog 特殊处理：会同时清除对方钉子，如果对方也有钉子则减分
+                    if (moveName === 'Defog') {
+                        const oppSide = isAiAttacker ? battleObj.playerSide : battleObj.enemySide;
+                        if (oppSide) {
+                            let oppHazards = 0;
+                            if (oppSide.stealthRock) oppHazards++;
+                            if (oppSide.spikes > 0) oppHazards++;
+                            if (oppSide.toxicSpikes > 0) oppHazards++;
+                            if (oppSide.stickyWeb) oppHazards++;
+                            if (oppSide.gmaxSteelsurge) oppHazards++;
+                            
+                            if (oppHazards > 0) {
+                                // 清除对方钉子是负面效果，减分
+                                const defogPenalty = oppHazards * 100;
+                                score -= defogPenalty;
+                                console.log(`[AI HAZARD REMOVAL] Defog 会清除对方${oppHazards}种钉子，减分 -${defogPenalty}`);
+                            }
+                        }
+                    }
+                } else {
+                    // 己方没有钉子，清除技能价值降低（但 Rapid Spin 还有速度+1，Mortal Spin 有毒）
+                    if (moveName === 'Defog') {
+                        // Defog 没有额外效果，己方无钉子时不值得用
+                        // 但如果对方有壁（Reflect/Light Screen），Defog 仍有价值
+                        const oppSide = isAiAttacker ? battleObj.playerSide : battleObj.enemySide;
+                        if (oppSide && (oppSide.reflect > 0 || oppSide.lightScreen > 0 || oppSide.auroraVeil > 0)) {
+                            score += 200;
+                            console.log(`[AI HAZARD REMOVAL] Defog 可清除对方壁，加分 +200`);
+                        }
                     }
                 }
             }

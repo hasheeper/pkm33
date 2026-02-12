@@ -1010,27 +1010,39 @@ async function handleStruggle() {
     
     log(`<span style="color:#ef4444">🌍 ${p.cnName} 被环境压制，无技可用，只能挣扎!</span>`);
     
-    // 执行挣扎攻击
+    // 执行挣扎攻击（反伤已在 move-handlers.js 的 Struggle onHit 中处理）
     if (typeof window.executePlayerTurn === 'function') {
         await window.executePlayerTurn(p, e, struggleMove);
     }
     
-    // 挣扎反伤：扣除自身 1/4 最大 HP
-    const recoil = Math.floor(p.maxHp / 4);
-    p.takeDamage(recoil);
-    log(`<span style="color:#e74c3c">${p.cnName} 因挣扎受到了 ${recoil} 点反作用力伤害!</span>`);
-    
     updateAllVisuals();
     
-    // 检查战斗结束
+    // 【BUG修复】挣扎反伤后必须检查玩家是否倒下
+    if (!p.isAlive()) {
+        log(`<span style="color:#e74c3c">${p.cnName} 因挣扎的反作用力倒下了!</span>`);
+        updateAllVisuals();
+        // 检查战斗结束（可能全灭）
+        if (battle.checkBattleEnd()) {
+            battle.locked = false;
+            return;
+        }
+        // 玩家倒下但还有后备 → 换人
+        if (typeof window.handlePlayerFainted === 'function') {
+            await window.handlePlayerFainted(p);
+        }
+        battle.locked = false;
+        return;
+    }
+    
+    // 检查战斗结束（敌方可能被击倒）
     if (battle.checkBattleEnd()) {
         battle.locked = false;
         return;
     }
     
     // AI 回合
-    if (typeof window.handleAITurn === 'function') {
-        await window.handleAITurn();
+    if (typeof window.enemyTurn === 'function') {
+        await window.enemyTurn();
     }
     
     // 回合结束阶段

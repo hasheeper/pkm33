@@ -6378,6 +6378,14 @@ if (typeof window !== 'undefined') {
     eventEmit('era:insertByObject', data);
   }
 
+  /**
+   * 删除ERA变量
+   * @param {object} data - 要删除的数据对象（值为 {} 表示删除该节点）
+   */
+  function deleteEraVars(data) {
+    eventEmit('era:deleteByObject', data);
+  }
+
   // ============================================
   //    玩家队伍管理
   // ============================================
@@ -6409,6 +6417,14 @@ if (typeof window !== 'undefined') {
       ability: null,
       shiny: false,
       item: null,
+      mechanic: null,
+      teraType: null,
+      isAce: false,
+      isLead: false,
+      friendship: {
+        avs: { trust: 0, passion: 0, insight: 0, devotion: 0 },
+        av_up: { trust: 0, passion: 0, insight: 0, devotion: 0 }
+      },
       moves: {
         move1: null,
         move2: null,
@@ -6424,10 +6440,73 @@ if (typeof window !== 'undefined') {
           spd: null,
           spe: null
         },
-        ev_level: null
+        ev_level: 0,
+        ev_up: 0
       },
       notes: null
     };
+  }
+
+  /**
+   * 【防呆】检查并修复 party 中被设为 null 的槽位
+   * 当 AI 错误地将整个 slot 设为 null 时，恢复为空槽位模板
+   * @param {object} party - party 对象 {slot1: ..., slot2: ..., ...}
+   * @param {boolean} persist - 是否将修复结果持久化到 ERA
+   * @returns {object} repairInfo - { repaired: boolean, repairedSlots: string[] }
+   */
+  // 防呆修复旁路标志：repairNullSlots 设为 true 时，guardDeleteSlots 放行
+  let _repairBypass = false;
+
+  async function repairNullSlots(party, persist = true) {
+    if (!party || typeof party !== 'object') return { repaired: false, repairedSlots: [] };
+    
+    const repairedSlots = [];
+    
+    for (let i = 1; i <= 6; i++) {
+      const key = `slot${i}`;
+      // 槽位是 null、undefined、或不是对象 → 需要修复
+      if (party[key] === null || party[key] === undefined || typeof party[key] !== 'object') {
+        const wasValue = party[key];
+        const emptySlot = createEmptySlot(i);
+        party[key] = emptySlot;
+        repairedSlots.push(key);
+        console.warn(`${PLUGIN_NAME} [防呆] ${key} 被检测为 ${JSON.stringify(wasValue)}，已恢复为空槽位模板`);
+        
+        if (persist) {
+          // 根据 ERA 规则：Edit 只改不增，无法恢复被 null 化的路径
+          // 必须先 Delete 损坏的键，再 Insert 新的空模板
+          try {
+            // 开启旁路，让 guardDeleteSlots 放行本次修复操作
+            _repairBypass = true;
+            
+            // Step 1: VariableDelete - 删除损坏的 slot 节点
+            const deleteData = { player: { party: { [key]: {} } } };
+            deleteEraVars(deleteData);
+            console.log(`${PLUGIN_NAME} [防呆] Step 1: VariableDelete ${key}`);
+            
+            // 短暂等待删除完成
+            await new Promise(r => setTimeout(r, 50));
+            
+            // Step 2: VariableInsert - 插入全新的空槽位模板
+            const insertData = { player: { party: { [key]: emptySlot } } };
+            insertEraVars(insertData);
+            console.log(`${PLUGIN_NAME} [防呆] Step 2: VariableInsert ${key} 完整模板`);
+            
+            _repairBypass = false;
+            console.log(`${PLUGIN_NAME} [防呆] ✓ ${key} 修复完成 (Delete + Insert)`);
+          } catch (e) {
+            _repairBypass = false;
+            console.error(`${PLUGIN_NAME} [防呆] ${key} 持久化修复失败:`, e);
+          }
+        }
+      }
+    }
+    
+    if (repairedSlots.length > 0) {
+      console.log(`${PLUGIN_NAME} [防呆] ✓ 共修复 ${repairedSlots.length} 个损坏槽位: ${repairedSlots.join(', ')}`);
+    }
+    
+    return { repaired: repairedSlots.length > 0, repairedSlots };
   }
 
 
@@ -8056,6 +8135,14 @@ if (typeof window !== 'undefined') {
       });
       
       if (slotKeys.length > 0) {
+        // 【防呆】检查并修复 null 槽位
+        for (const k of slotKeys) {
+          if (party[k] === null || party[k] === undefined || typeof party[k] !== 'object') {
+            const slotNum = parseInt(k.replace('slot', ''));
+            console.warn(`${PLUGIN_NAME} [防呆] parsePartyData: ${k} 为 ${JSON.stringify(party[k])}，恢复为空槽位模板`);
+            party[k] = createEmptySlot(slotNum);
+          }
+        }
         // 新的槽位格式
         partyArray = slotKeys.map(k => party[k]);
         console.log(`${PLUGIN_NAME} [DEBUG] 槽位格式转数组:`, partyArray.length, '个槽位');
@@ -9168,6 +9255,14 @@ ${inventorySection}${boxSection}
       // 获取玩家数据
       const playerData = await getPlayerParty();
       console.log(`${PLUGIN_NAME} [DEBUG] 原始 playerData:`, JSON.stringify(playerData, null, 2));
+      
+      // 【防呆】检查并修复被 AI 设为 null 的槽位
+      if (playerData && playerData.party) {
+        const repairResult = await repairNullSlots(playerData.party, true);
+        if (repairResult.repaired) {
+          console.warn(`${PLUGIN_NAME} [防呆] 已修复 ${repairResult.repairedSlots.length} 个损坏槽位: ${repairResult.repairedSlots.join(', ')}`);
+        }
+      }
       
       // === 处理 ev_up：智能累加或替换 ===
       const evUpdateData = {};
@@ -10410,6 +10505,16 @@ ${unlockItem.effect}
     // input: 宝可梦名称(single) 或 队伍数组(custom)
     setPlayerParty,
     
+    // 【防呆】手动修复被 AI 设为 null 的槽位
+    async repairPartySlots() {
+      const playerData = await getPlayerParty();
+      if (!playerData || !playerData.party) {
+        console.log(`${PLUGIN_NAME} [防呆] 没有找到队伍数据`);
+        return { repaired: false, repairedSlots: [] };
+      }
+      return repairNullSlots(playerData.party, true);
+    },
+    
     // 手动添加宝可梦到队伍
     async addToParty(pokemon) {
       const playerData = await getPlayerParty() || { name: '训练家', party: [], reserve: [] };
@@ -10550,6 +10655,18 @@ ${unlockItem.effect}
   async function preprocessEraUpdate(updateData) {
     if (!updateData || typeof updateData !== 'object') return updateData;
     
+    // 【防呆】拦截扁平键路径中的 null slot 值
+    // 例如: { "player.party.slot3": null } 或 { "pkm.player.party.slot3": null }
+    // VariableEdit 是「只改不增」，如果 AI 试图把 slot 改成 null，直接从 edit 数据中移除该键
+    // 这样 ERA 中原有的 slot 数据不会被破坏
+    for (const key of Object.keys(updateData)) {
+      const slotMatch = key.match(/(?:pkm\.)?player\.party\.(slot(\d+))$/);
+      if (slotMatch && (updateData[key] === null || updateData[key] === undefined)) {
+        console.warn(`${PLUGIN_NAME} [防呆·拦截] 阻止 VariableEdit 将 ${slotMatch[1]} 设为 null，已从更新数据中移除`);
+        delete updateData[key];
+      }
+    }
+    
     // 获取当前 ERA 变量
     const currentVars = await getEraVars();
     
@@ -10572,6 +10689,18 @@ ${unlockItem.effect}
           
           // 重置 proficiency_up 为 0
           obj.proficiency_up = 0;
+        }
+      }
+      
+      // === 【防呆】拦截 AI 将 slot 设为 null 的操作 ===
+      // 当 path 是 player.party 或 pkm.player.party 时，检查所有 slotX 键
+      // VariableEdit 是「只改不增」，直接从 edit 数据中移除 null 的 slot 键，保护 ERA 中的原数据
+      if (path === 'player.party' || path === 'pkm.player.party' || path.endsWith('.party')) {
+        for (const slotKey of Object.keys(obj)) {
+          if (/^slot\d+$/.test(slotKey) && (obj[slotKey] === null || obj[slotKey] === undefined)) {
+            console.warn(`${PLUGIN_NAME} [防呆·拦截] 阻止 VariableEdit 将 ${slotKey} 设为 null，已从更新数据中移除`);
+            delete obj[slotKey];
+          }
         }
       }
       
@@ -10614,7 +10743,7 @@ ${unlockItem.effect}
     return processObject(updateData);
   }
   
-  // 拦截 era:updateByObject 事件
+  // 拦截 ERA 事件（updateByObject / deleteByObject）
   const originalEventEmit = window.eventEmit;
   if (originalEventEmit) {
     window.eventEmit = function(eventName, data) {
@@ -10625,12 +10754,49 @@ ${unlockItem.effect}
         preprocessEraUpdate(data).then(processedData => {
           originalEventEmit.call(window, eventName, processedData);
         });
+      } else if (eventName === 'era:deleteByObject' && data) {
+        // 【防呆】拦截 VariableDelete，阻止删除 party slot 节点
+        // VariableDelete 格式: { player: { party: { slot3: {} } } } 表示删除 slot3
+        const guardedData = guardDeleteSlots(data);
+        originalEventEmit.call(window, eventName, guardedData);
       } else {
         // 其他事件直接透传
         originalEventEmit.apply(window, arguments);
       }
     };
-    console.log(`${PLUGIN_NAME} ✓ ERA 变量更新拦截器已安装（ev_up/proficiency_up 自动累加模式）`);
+    console.log(`${PLUGIN_NAME} ✓ ERA 变量拦截器已安装（防呆 + ev_up/proficiency_up 自动累加）`);
+  }
+
+  /**
+   * 【防呆】拦截 VariableDelete 中对 party slot 的删除操作
+   * 阻止 AI 删除 slot1-slot6 节点（这些节点必须始终存在）
+   * @param {object} data - VariableDelete 数据
+   * @returns {object} - 过滤后的数据
+   */
+  function guardDeleteSlots(data) {
+    if (!data || typeof data !== 'object') return data;
+    
+    // 如果是防呆修复操作自身触发的删除，放行
+    if (_repairBypass) return data;
+    
+    // 检查嵌套路径: { player: { party: { slotX: {} } } }
+    const partyPaths = [
+      data?.player?.party,
+      data?.pkm?.player?.party
+    ];
+    
+    for (const partyObj of partyPaths) {
+      if (partyObj && typeof partyObj === 'object') {
+        for (const key of Object.keys(partyObj)) {
+          if (/^slot\d+$/.test(key)) {
+            console.warn(`${PLUGIN_NAME} [防呆·拦截] 阻止 VariableDelete 删除 ${key}，队伍槽位不可删除`);
+            delete partyObj[key];
+          }
+        }
+      }
+    }
+    
+    return data;
   }
 
   console.log(`${PLUGIN_NAME} ✓✓✓ 插件加载完成 (v1.1.0) ✓✓✓`);

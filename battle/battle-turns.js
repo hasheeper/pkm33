@@ -635,6 +635,46 @@ export async function enemyTurn() {
     // 执行敌方回合
     await executeEnemyTurn(e, p, move);
 
+    // 【BUG修复】检查敌方是否因自身反伤（如挣扎）倒下
+    if (!e.isAlive()) {
+        log(`<span style="color:#e74c3c">${e.cnName} 倒下了!</span>`);
+        updateAllVisuals();
+        // 检查战斗是否结束（敌方可能全灭）
+        const battleEndResult = battle.checkBattleEnd();
+        if (battleEndResult === 'win') {
+            log("🏆 <b style='color:#27ae60'>敌方全部战败！你赢了！</b>");
+            if (typeof window.battleEndSequence === 'function') {
+                setTimeout(() => window.battleEndSequence('win'), 2000);
+            }
+            return;
+        } else if (battleEndResult === 'loss') {
+            // 双方同归于尽
+            log(" <b style='color:#e74c3c'>... 你输了.</b>");
+            if (typeof window.battleEndSequence === 'function') {
+                setTimeout(() => window.battleEndSequence('loss'), 2000);
+            }
+            return;
+        }
+        // 敌方还有后备 → 换人
+        if (typeof battle.nextAliveEnemy === 'function') {
+            battle.nextAliveEnemy();
+            const newE = battle.getEnemy();
+            if (newE) {
+                log(`<span style="color:#ef4444">敌方派出了 ${newE.cnName}！</span>`);
+                if (typeof window.triggerEntryAbilities === 'function') {
+                    window.triggerEntryAbilities(newE, p);
+                }
+                if (typeof MoveEffects !== 'undefined' && MoveEffects.applyEntryHazards) {
+                    const hazardLogs = MoveEffects.applyEntryHazards(newE, false, battle);
+                    hazardLogs.forEach(msg => log(msg));
+                }
+                updateAllVisuals();
+            }
+        }
+        battle.locked = false;
+        return;
+    }
+
     // 检查玩家是否倒下
     if (!p.isAlive()) {
         if (typeof window.handlePlayerFainted === 'function') {
