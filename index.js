@@ -3153,6 +3153,50 @@ async function executeEndPhase(p, e) {
             return;
         }
         
+        // =========================================================
+        // 祈愿 (Wish) 延迟回复结算 — 在状态伤害之前
+        // 【机制】使用祈愿后，下回合结束时该位置上的宝可梦回复HP
+        // 回复量 = 使用祈愿的宝可梦最大HP的50%（第五世代及之后）
+        // =========================================================
+        const resolveWish = (pokemon, side, isPlayer) => {
+            if (!side || !side.wishPending || !pokemon || !pokemon.isAlive()) return;
+            const wish = side.wishPending;
+            if (wish.turnsLeft > 0) {
+                // 倒计时：使用回合设为1，下回合递减到0时生效
+                wish.turnsLeft--;
+                console.log(`[WISH] ${isPlayer ? '玩家' : '敌方'}侧祈愿倒计时: turnsLeft=${wish.turnsLeft}`);
+                return;
+            }
+            // turnsLeft === 0，生效
+            if (pokemon.currHp < pokemon.maxHp) {
+                const actualHeal = (typeof pokemon.heal === 'function') 
+                    ? pokemon.heal(wish.amount) 
+                    : Math.min(wish.amount, pokemon.maxHp - pokemon.currHp);
+                if (typeof pokemon.heal !== 'function') {
+                    pokemon.currHp = Math.min(pokemon.maxHp, pokemon.currHp + wish.amount);
+                }
+                log(`<b style="color:#f0c27f">⭐ ${wish.source || ''}的愿望实现了！${pokemon.cnName} 恢复了 ${actualHeal} 点体力!</b>`);
+                console.log(`[WISH] 祈愿生效: ${pokemon.cnName} 回复 ${actualHeal} HP (来源: ${wish.source})`);
+                if (typeof window.playSFX === 'function') window.playSFX('HEAL');
+                if (typeof window.BattleVFX !== 'undefined') {
+                    window.BattleVFX.triggerStatVFX('HEAL', isPlayer ? 'player-sprite' : 'enemy-sprite');
+                }
+                updateAllVisuals();
+            } else {
+                log(`<span style="color:#aaa">${wish.source || ''}的愿望实现了...但 ${pokemon.cnName} 的体力已满!</span>`);
+            }
+            delete side.wishPending;
+        };
+        
+        // 玩家侧祈愿
+        if (battle.playerSide) {
+            resolveWish(p, battle.playerSide, true);
+        }
+        // 敌方侧祈愿
+        if (battle.enemySide) {
+            resolveWish(e, battle.enemySide, false);
+        }
+        
         if (typeof window.getEndTurnStatusLogs === 'function') {
         // 结算玩家的状态伤害（isPlayerPoke = true，AVs 效果生效）
         if (p.isAlive()) {
@@ -3288,6 +3332,21 @@ async function executeEndPhase(p, e) {
         const fainted = await applyGMaxDOT(e, battle.enemySide, false);
         if (fainted) return;
     }
+    
+    // =========================================================
+    // 羽栖 (Roost) 飞行属性恢复 — 回合结束时恢复
+    // =========================================================
+    const restoreRoost = (pokemon) => {
+        if (!pokemon || !pokemon.volatile || !pokemon.volatile.roost) return;
+        if (pokemon.volatile.roostOriginalTypes) {
+            pokemon.types = pokemon.volatile.roostOriginalTypes;
+            console.log(`[ROOST] ${pokemon.cnName} 恢复飞行属性: ${pokemon.types.join('/')}`);
+        }
+        delete pokemon.volatile.roost;
+        delete pokemon.volatile.roostOriginalTypes;
+    };
+    if (p) restoreRoost(p);
+    if (e) restoreRoost(e);
     
     // 增加双方上场回合数（用于 Fake Out 等首回合限制技能）
     // 辅助函数：检查是否为守住类技能（数据驱动）

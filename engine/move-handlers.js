@@ -2512,7 +2512,21 @@ export const MoveHandlers = {
             const actualHeal = applyHeal(attacker, baseHeal);
             if (actualHeal > 0) {
                 logs.push(`${attacker.cnName} 降落休息恢复了体力!`);
-                // 羽栖效果：本回合失去飞行属性（简化处理，不实现）
+                // 【完整实现】羽栖效果：本回合失去飞行属性
+                if (attacker.types && attacker.types.includes('Flying')) {
+                    if (!attacker.volatile) attacker.volatile = {};
+                    attacker.volatile.roost = true;
+                    // 保存原始属性用于回合末恢复
+                    attacker.volatile.roostOriginalTypes = [...attacker.types];
+                    // 移除飞行属性
+                    attacker.types = attacker.types.filter(t => t !== 'Flying');
+                    // 如果移除后没有属性了（纯飞行系），变为普通属性
+                    if (attacker.types.length === 0) {
+                        attacker.types = ['Normal'];
+                    }
+                    logs.push(`<span style="color:#94a3b8">${attacker.cnName} 暂时失去了飞行属性!</span>`);
+                    console.log(`[ROOST] ${attacker.cnName} 失去飞行属性，当前属性: ${attacker.types.join('/')}`);
+                }
             } else {
                 logs.push(`${attacker.cnName} 的体力已满!`);
             }
@@ -2913,14 +2927,18 @@ export const MoveHandlers = {
     
     'Wish': {
         onHit: (attacker, defender, damage, logs, battle) => {
-            // 下回合结束时回复50%HP（简化：立即回复）
-            // 完整实现需要延迟效果系统
+            // 【完整实现】下回合结束时，该位置上的宝可梦回复"使用者最大HP的50%"
             if (battle) {
-                battle.wishPending = {
-                    target: 'player',
+                // 判断使用者是玩家方还是敌方
+                const isPlayer = battle.playerParty && battle.playerParty.includes(attacker);
+                const side = isPlayer ? 'playerSide' : 'enemySide';
+                if (!battle[side]) battle[side] = {};
+                battle[side].wishPending = {
                     amount: Math.floor(attacker.maxHp / 2),
-                    turnsLeft: 1
+                    turnsLeft: 1,
+                    source: attacker.cnName
                 };
+                console.log(`[WISH] ${attacker.cnName} 许愿，回复量=${Math.floor(attacker.maxHp / 2)}，标记到 battle.${side}.wishPending`);
             }
             logs.push(`${attacker.cnName} 许下了愿望!`);
             return { wish: true };
