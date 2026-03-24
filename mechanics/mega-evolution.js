@@ -342,7 +342,11 @@ function performMegaEvolution(pokemon) {
     }
     
     const newStats = typeof calcStats === 'function'
-        ? calcStats(megaData.baseStats, pokemon.level, 31, evLevel)
+        ? calcStats(megaData.baseStats, pokemon.level, {
+            ivs: pokemon.statsMeta?.ivs,
+            ev_level: evLevel,
+            nature: pokemon.nature
+        })
         : megaData.baseStats;
     
     // HP 保持不变 (Mega 进化的核心规则)

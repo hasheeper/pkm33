@@ -270,7 +270,8 @@ function applyDynamaxState(pokemon, isActive) {
                 cat: inheritedCat,
                 category: maxMoveData.category || (inheritedCat === 'phys' ? 'Physical' : 'Special'),
                 isMax: true,
-                isGMax: maxTarget.isGMax
+                isGMax: maxTarget.isGMax,
+                baseMove: m.name
             };
         });
         

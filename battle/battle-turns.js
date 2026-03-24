@@ -215,8 +215,11 @@ export async function executePlayerTurn(p, e, move) {
         await wait(800);
     }
     
+    const baseMoveName = move.baseMove || move.originalMoveName || move.name;
+
     // 记录本回合使用的技能
     p.lastMoveUsed = move.name;
+    p.lastBaseMoveUsed = baseMoveName;
     
     // 【Gen7同命机制】使用其他招式时清除同命成功标记，重置连锁
     if (move.name !== 'Destiny Bond') {
@@ -230,7 +233,7 @@ export async function executePlayerTurn(p, e, move) {
     // 【珍藏(Last Resort)支持】追踪所有成功使用过的招式
     if (!result?.failed) {
         if (!p.usedMoves) p.usedMoves = new Set();
-        p.usedMoves.add(move.name);
+        p.usedMoves.add(baseMoveName);
     }
     
     // =========================================================
@@ -244,8 +247,8 @@ export async function executePlayerTurn(p, e, move) {
         const pMoveData = (typeof MOVES !== 'undefined' && MOVES[pMoveId]) ? MOVES[pMoveId] : null;
         const pIsStatus = pMoveData && (pMoveData.category === 'Status' || pMoveData.basePower === 0);
         if (!pIsStatus) {
-            p.choiceLockedMove = move.name;
-            console.log(`[CHOICE] ${p.name} 被 ${pItem} 锁定在 ${move.name}`);
+            p.choiceLockedMove = baseMoveName;
+            console.log(`[CHOICE] ${p.name} 被 ${pItem} 锁定在 ${baseMoveName}`);
         } else {
             console.log(`[CHOICE SKIP] ${p.name} 使用变化技 ${move.name}，Choice 不锁定`);
         }
@@ -444,8 +447,11 @@ export async function executeEnemyTurn(e, p, move) {
         await wait(800);
     }
     
+    const enemyBaseMoveName = move.baseMove || move.originalMoveName || move.name;
+
     // 记录本回合使用的技能
     e.lastMoveUsed = move.name;
+    e.lastBaseMoveUsed = enemyBaseMoveName;
     
     // 【Gen7同命机制】使用其他招式时清除同命成功标记，重置连锁
     if (move.name !== 'Destiny Bond') {
@@ -459,7 +465,7 @@ export async function executeEnemyTurn(e, p, move) {
     // 【珍藏(Last Resort)支持】追踪所有成功使用过的招式
     if (!result?.failed) {
         if (!e.usedMoves) e.usedMoves = new Set();
-        e.usedMoves.add(move.name);
+        e.usedMoves.add(enemyBaseMoveName);
     }
     
     // =========================================================
@@ -473,8 +479,8 @@ export async function executeEnemyTurn(e, p, move) {
         const eMoveData = (typeof MOVES !== 'undefined' && MOVES[eMoveId]) ? MOVES[eMoveId] : null;
         const eIsStatus = eMoveData && (eMoveData.category === 'Status' || eMoveData.basePower === 0);
         if (!eIsStatus) {
-            e.choiceLockedMove = move.name;
-            console.log(`[CHOICE] ${e.name} 被 ${eItem} 锁定在 ${move.name}`);
+            e.choiceLockedMove = enemyBaseMoveName;
+            console.log(`[CHOICE] ${e.name} 被 ${eItem} 锁定在 ${enemyBaseMoveName}`);
         } else {
             console.log(`[CHOICE SKIP] ${e.name} 使用变化技 ${move.name}，Choice 不锁定`);
         }

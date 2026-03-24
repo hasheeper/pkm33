@@ -110,12 +110,13 @@ const PPSystem = {
      */
     applySpite(target) {
         const logs = [];
-        if (!target || !target.lastMoveUsed) {
+        const lastMoveName = target?.lastBaseMoveUsed || target?.lastMoveUsed;
+        if (!target || !lastMoveName) {
             logs.push(`<span style="color:#aaa">但是失败了！</span>`);
             return logs;
         }
 
-        const move = this.findMove(target, target.lastMoveUsed);
+        const move = this.findMove(target, lastMoveName);
         if (!move || move.pp === undefined) {
             logs.push(`<span style="color:#aaa">但是失败了！</span>`);
             return logs;
@@ -145,12 +146,13 @@ const PPSystem = {
      */
     applyGrudge(fainted, attacker) {
         const logs = [];
-        if (!fainted || !attacker || !attacker.lastMoveUsed) return logs;
+        const lastMoveName = attacker?.lastBaseMoveUsed || attacker?.lastMoveUsed;
+        if (!fainted || !attacker || !lastMoveName) return logs;
 
         // 检查 grudge volatile
         if (!fainted.volatile || !fainted.volatile.grudge) return logs;
 
-        const move = this.findMove(attacker, attacker.lastMoveUsed);
+        const move = this.findMove(attacker, lastMoveName);
         if (!move || move.pp === undefined) return logs;
 
         const moveName = move.cn || move.name;
@@ -182,9 +184,10 @@ const PPSystem = {
      */
     applyEerieSpell(target) {
         const logs = [];
-        if (!target || !target.lastMoveUsed) return logs;
+        const lastMoveName = target?.lastBaseMoveUsed || target?.lastMoveUsed;
+        if (!target || !lastMoveName) return logs;
 
-        const move = this.findMove(target, target.lastMoveUsed);
+        const move = this.findMove(target, lastMoveName);
         if (!move || move.pp === undefined) return logs;
 
         const reduction = Math.min(3, move.pp);
@@ -208,9 +211,10 @@ const PPSystem = {
      */
     applyGMaxDepletion(target) {
         const logs = [];
-        if (!target || !target.lastMoveUsed) return logs;
+        const lastMoveName = target?.lastBaseMoveUsed || target?.lastMoveUsed;
+        if (!target || !lastMoveName) return logs;
 
-        const move = this.findMove(target, target.lastMoveUsed);
+        const move = this.findMove(target, lastMoveName);
         if (!move || move.pp === undefined) return logs;
 
         const reduction = Math.min(2, move.pp);

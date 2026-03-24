@@ -913,9 +913,10 @@ function updateAllVisuals(forceSpriteAnim = false) {
                     btn.onclick = null;
                 } else {
                     btn.disabled = false;
-                    // 如果是 Z 招式模式，传递 useZ 标记和推导结果
+                    // 如果是 Z 招式模式，只传递 useZ 标记
+                    // 真正的目标招式在 handleAttack 中按当前形态重新推导，避免 Ultra Burst 时序覆盖
                     if (showZStyle) {
-                        btn.onclick = () => handleAttack(i, { useZ: true, zTarget: zTarget });
+                        btn.onclick = () => handleAttack(i, { useZ: true });
                     } else {
                         btn.onclick = () => handleAttack(i);
                     }
@@ -1173,13 +1174,15 @@ async function handleAttack(moveIndex, options = {}) {
     // 【互斥检查】Mega/极巨化状态下禁止使用 Z 招式
     // 【Ultra Burst】日/月骡子使用 Z 招式时先触发 Ultra Burst
     // =========================================================
-    if (options.useZ && options.zTarget && !battle.playerZUsed) {
+    if (options.useZ && !battle.playerZUsed) {
         // 【安全检查】如果已经 Mega 或极巨化，禁止使用 Z 招式
         if (p.isMega || p.isDynamaxed || p.hasBondResonance) {
             console.warn(`[CHEAT BLOCK] 试图在 Mega/极巨化 状态下使用 Z 招式！已强制拦截。`);
             log(`<b style="color:#aaa">...但在目前的形态下无法引出 Z 力量！</b>`);
             // 不转换，使用原始招式
         } else {
+            const requestedBaseMoveName = playerMove.baseMove || playerMove.originalMoveName || playerMove.name;
+
             // =========================================================
             // 【Ultra Burst】日/月骡子 → 究极奈克洛兹玛
             // 使用专属 Z 招式 "Light That Burns the Sky" 时触发
@@ -1194,39 +1197,48 @@ async function handleAttack(moveIndex, options = {}) {
                     p = battle.getPlayer();
                 }
             }
-            
-            const zTarget = options.zTarget;
-            const zMoveId = zTarget.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const zMoveData = (typeof MOVES !== 'undefined' && MOVES[zMoveId]) ? MOVES[zMoveId] : {};
-            
-            // 使用自动推导的 Z 招式数据
-            playerMove = {
-                name: zTarget.name,
-                cn: zMoveData.cn || zTarget.name,
-                type: zTarget.type || playerMove.type || 'Normal',
-                power: zTarget.power || 180,
-                basePower: zTarget.power || 180,
-                accuracy: 100,
-                pp: 1,
-                isZ: true,
-                priority: zMoveData.priority || 0,
-                cat: zMoveData.category === 'Physical' ? 'phys' : 'spec',
-                category: zMoveData.category || 'Special'
-            };
-            
-            // === 【Ambrosia 时空醉】标记下回合混乱 ===
-            if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkNeuroBacklash) {
-                const currentWeather = battle?.weather || '';
-                const neuroResult = window.WeatherEffects.checkNeuroBacklash(currentWeather, 'zmove', p, null);
-                if (neuroResult.shouldTrigger) {
-                    p.volatile = p.volatile || {};
-                    p.volatile.neuroBacklash = true;
-                    console.log(`[AMBROSIA] ⚡ 时空醉：${p.name} 使用Z招式后被标记，下回合将混乱`);
-                    log(neuroResult.message);
+
+            const baseMoveForZ = (p.moves || []).find(m => m.name === requestedBaseMoveName) || playerMove;
+            const zTarget = typeof getZMoveTarget === 'function'
+                ? getZMoveTarget(baseMoveForZ, p)
+                : null;
+
+            if (zTarget) {
+                const zMoveId = zTarget.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const zMoveData = (typeof MOVES !== 'undefined' && MOVES[zMoveId]) ? MOVES[zMoveId] : {};
+                
+                // 使用自动推导的 Z 招式数据
+                playerMove = {
+                    name: zTarget.name,
+                    cn: zMoveData.cn || zTarget.name,
+                    type: zTarget.type || baseMoveForZ.type || playerMove.type || 'Normal',
+                    power: zTarget.power || 180,
+                    basePower: zTarget.power || 180,
+                    accuracy: 100,
+                    pp: 1,
+                    isZ: true,
+                    priority: zMoveData.priority || 0,
+                    cat: zMoveData.category === 'Physical' ? 'phys' : 'spec',
+                    category: zMoveData.category || 'Special',
+                    baseMove: baseMoveForZ.name
+                };
+                
+                // === 【Ambrosia 时空醉】标记下回合混乱 ===
+                if (typeof window.WeatherEffects !== 'undefined' && window.WeatherEffects.checkNeuroBacklash) {
+                    const currentWeather = battle?.weather || '';
+                    const neuroResult = window.WeatherEffects.checkNeuroBacklash(currentWeather, 'zmove', p, null);
+                    if (neuroResult.shouldTrigger) {
+                        p.volatile = p.volatile || {};
+                        p.volatile.neuroBacklash = true;
+                        console.log(`[AMBROSIA] ⚡ 时空醉：${p.name} 使用Z招式后被标记，下回合将混乱`);
+                        log(neuroResult.message);
+                    }
                 }
+                
+                console.log(`[Z-MOVE] 自动推导 Z 招式: ${playerMove.name} (威力: ${playerMove.power})`);
+            } else {
+                console.warn(`[Z-MOVE] 无法为 ${requestedBaseMoveName} 推导 Z 招式，回退原始招式`);
             }
-            
-            console.log(`[Z-MOVE] 自动推导 Z 招式: ${playerMove.name} (威力: ${playerMove.power})`);
         }
     }
     
@@ -2085,6 +2097,15 @@ async function handleAttack(moveIndex, options = {}) {
                         e = battle.getEnemy();
                     }
                 }
+
+                const refreshedBaseMove = (e.moves || []).find(m => m.name === zBaseMove.name) || zBaseMove;
+                const refreshedZTarget = typeof getZMoveTarget === 'function'
+                    ? getZMoveTarget(refreshedBaseMove, e)
+                    : null;
+                if (refreshedZTarget) {
+                    zTarget = refreshedZTarget;
+                    zBaseMove = refreshedBaseMove;
+                }
                 
                 console.log(`[AI Z-MOVE] 敌方 AI 推导 Z 招式: ${zBaseMove.name} -> ${zTarget.name} (威力: ${zTarget.power})`);
                 // 创建 Z 招式对象
@@ -2095,6 +2116,7 @@ async function handleAttack(moveIndex, options = {}) {
                     cat: zBaseMove.cat || 'phys',
                     accuracy: true, // Z 招式必中
                     isZ: true,
+                    cn: (typeof window !== 'undefined' && window.Locale) ? window.Locale.get(zTarget.name) : zTarget.name,
                     baseMove: zBaseMove.name // 保留原始招式名
                 };
                 

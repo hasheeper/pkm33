@@ -552,7 +552,8 @@ export class Pokemon {
         this.turnsOnField = 0;
         
         // === 技能使用追踪 (用于连续使用限制) ===
-        this.lastMoveUsed = null;       // 上回合使用的技能名称
+        this.lastMoveUsed = null;       // 上回合实际使用的技能名称（含 Z/Max 等临时招式）
+        this.lastBaseMoveUsed = null;   // 上回合对应的基础招式名称（用于 Encore/Disable/PP 等）
         this.protectCounter = 0;        // 连续使用守住类技能的次数
         this.mustRecharge = false;      // 是否需要蓄力/僵直（破坏光线等）
         
@@ -736,6 +737,43 @@ export class Pokemon {
         }
         
         return cappedValue;
+    }
+
+    /**
+     * 重新计算当前形态的能力值
+     * 用于合体、Ultra Burst 等直接修改 baseStats 的形态变化
+     */
+    recalculateStats() {
+        if (!this.baseStats || !this.level) return;
+
+        const oldMaxHp = this.maxHp || 1;
+        const oldCurrHp = this.currHp ?? oldMaxHp;
+        const hpRatio = oldMaxHp > 0 ? oldCurrHp / oldMaxHp : 1;
+        const isShedinja = (this.name || '').toLowerCase().replace(/[^a-z0-9]/g, '') === 'shedinja';
+
+        const stats = calcStats(this.baseStats, this.level, {
+            ivs: this.statsMeta?.ivs,
+            ev_level: this.statsMeta?.ev_level,
+            nature: this.nature
+        });
+
+        if (isShedinja) {
+            this.maxHp = 1;
+            this.currHp = oldCurrHp <= 0 ? 0 : 1;
+        } else {
+            this.maxHp = stats.hp;
+            if (oldCurrHp <= 0) {
+                this.currHp = 0;
+            } else {
+                this.currHp = Math.min(this.maxHp, Math.max(1, Math.round(this.maxHp * hpRatio)));
+            }
+        }
+
+        this.atk = stats.atk;
+        this.def = stats.def;
+        this.spa = stats.spa;
+        this.spd = stats.spd;
+        this.spe = stats.spe;
     }
     
     // 获取精灵图 URL
@@ -1046,6 +1084,7 @@ export class Pokemon {
         this.boosts = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, accuracy: 0, evasion: 0 };
         this.turnsOnField = 0;      // 重置上场回合数
         this.lastMoveUsed = null;   // 重置上回合技能
+        this.lastBaseMoveUsed = null; // 重置上回合基础技能
         this.protectCounter = 0;    // 重置守住计数器
         this.mustRecharge = false;  // 重置僵直状态
         
@@ -1356,7 +1395,8 @@ export function checkCanMove(pokemon, move = null) {
     
     // 5b. 再来一次 (Encore) - 只能使用被锁定的招式
     if (pokemon.volatile && pokemon.volatile.encore > 0 && pokemon.volatile.encoreMove && move) {
-        if (move.name !== pokemon.volatile.encoreMove) {
+        const currentMoveName = move.baseMove || move.originalMoveName || move.name;
+        if (currentMoveName !== pokemon.volatile.encoreMove) {
             return { 
                 can: false, 
                 msg: `${pokemon.cnName} 被再来一次锁定了!`,
@@ -1367,7 +1407,8 @@ export function checkCanMove(pokemon, move = null) {
     
     // 5c. 定身法 (Disable) - 无法使用被封印的招式
     if (pokemon.volatile && pokemon.volatile.disable > 0 && pokemon.volatile.disabledMove && move) {
-        if (move.name === pokemon.volatile.disabledMove) {
+        const currentMoveName = move.baseMove || move.originalMoveName || move.name;
+        if (currentMoveName === pokemon.volatile.disabledMove) {
             return { can: false, msg: `${pokemon.cnName} 的 ${move.cn || move.name} 被封印了!` };
         }
     }

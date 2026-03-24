@@ -28,206 +28,142 @@
  */
 function getDefaultBattleData() {
     return {
-  "difficulty": "expert", 
-  "settings": {
-    "enableAVS": true,
-    "enableCommander": true,
-    "enableEVO": true,
-    "enableBGM": true,
-    "enableSFX": true,
-    "enableClash": true
-  },
-  "player": {
-    "name": "Champion",
-    "trainerProficiency": 255,
-    "unlocks": {
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_styles": true,
-      "enable_bond": true,
-      "enable_tera": true,
-      "enable_dynamax": true
-    },
-    "party": [
-      {
-        "slot": 1,
-        "name": "Dragapult",
-        "nickname": "幽影",
-        "lv": 88,
-        "isLead": true,
-        "ability": "Infiltrator",
-        "nature": "Timid",
-        "item": "Choice Specs",
-        "isAce": true,
-        "moves": ["Shadow Ball", "Draco Meteor", "U-turn", "Flamethrower"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 200, "insight": 220 } }
-      },
-      {
-        "slot": 2,
-        "name": "Beedrill",
-        "nickname": "蜂皇",
-        "lv": 88,
-        "item": "Beedrillite",
-        "mechanic": "mega",
-        "mega_target": "beedrillmega",
-        "nature": "Jolly",
-        "isAce": true,
-        "moves": ["Poison Jab", "U-turn", "Drill Run", "Fell Stinger"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 255 } }
-      },
-      {
-        "slot": 3,
-        "name": "Coalossal",
-        "nickname": "熔炉",
-        "lv": 88,
-        "mechanic": "dynamax",
-        "ability": "Steam Engine",
-        "nature": "Relaxed",
-        "item": "Weakness Policy",
-        "isAce": true,
-        "moves": ["Heat Crash", "Stone Edge", "Scald", "Rapid Spin"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 255, "insight": 180 } }
-      },
-      {
-        "slot": 4,
-        "name": "Kommo-o",
-        "nickname": "战龙",
-        "lv": 88,
-        "mechanic": "zmove",
-        "ability": "Bulletproof",
-        "item": "Kommonium Z",
-        "nature": "Naive",
-        "isAce": true,
-        "moves": ["Clanging Scales", "Close Combat", "Poison Jab", "Clangorous Soul"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "devotion": 200 } }
-      },
-      {
-        "slot": 5,
-        "name": "Mimikyu",
-        "nickname": "谜拟Q",
-        "lv": 88,
-        "isAce": true,
-        "ability": "Disguise",
-        "item": "Life Orb",
-        "isAce": true,
-        "moves": ["Play Rough", "Shadow Claw", "Shadow Sneak", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 240, "passion": 240, "insight": 255 } }
-      },
-      {
-        "slot": 6,
-        "name": "Dragonite",
-        "nickname": "快龙",
-        "lv": 88,
-        "ability": "Multiscale",
-        "mechanic": "tera",
-        "teraType": "Normal",
-        "item": "Heavy-Duty Boots",
-        "isAce": true,
-        "moves": ["Extreme Speed", "Earthquake", "Dragon Claw", "Roost"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 200 } }
-      }
-    ]
-  },
-  "enemy": {
-    "name": "Leon (Ultimate)",
-    "type": "CHAMPION",
-    "trainerProficiency": 255,
-    "unlocks": {
-      "enable_mega": true,
-      "enable_z_move": true,
-      "enable_bond": true,
-      "enable_styles": true,
-      "enable_tera": true,
-      "enable_dynamax": true
-    },
-    "party": [
-      {
-        "name": "Meowscarada",
-        "lv": 88,
-        "isLead": true,
-        "gender": "F",
-        "ability": "Protean",
-        "nature": "Jolly",
-        "item": "Focus Sash",
-        "mechanic": "tera",
-        "teraType": "Grass",
-        "moves": ["Flower Trick", "Knock Off", "U-turn", "Play Rough"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "insight": 200 } }
-      },
-      {
-        "name": "Garganacl",
-        "lv": 88,
-        "ability": "Purifying Salt",
-        "item": "Leftovers",
-        "nature": "Careful",
-        "moves": ["Salt Cure", "Recover", "Earthquake", "Body Press"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 150, "devotion": 150 } }
-      },
-      {
-        "name": "Lucario",
-        "lv": 88,
-        "gender": "M",
-        "ability": "Justified",
-        "nature": "Jolly",
-        "mechanic": "mega",
-        "mega_target": "lucariomega",
-        "item": "Lucarionite",
-        "moves": ["Close Combat", "Bullet Punch", "Meteor Mash", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 220, "insight": 180 } }
-      },
-      {
-        "name": "Charizard",
-        "lv": 89,
-        "mechanic": "dynamax",
-        "mega_target": "charizardgmax",
-        "ability": "Solar Power",
-        "nature": "Timid",
-        "item": "Heavy-Duty Boots",
-        "moves": ["Heat Wave", "Air Slash", "Solar Beam", "Ancient Power"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "passion": 180, "trust": 100 } }
-      },
-      {
-        "name": "Necrozma",
-        "lv": 90,
-        "isAce": true,
-        "ability": "Prism Armor",
-        "nature": "Adamant",
-        "mechanic": "zmove",
-        "item": "Ultranecrozium Z",
-        "moves": ["Photon Geyser", "Poltergeist", "Earthquake", "Swords Dance"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { 
-            "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 255 } 
+        "difficulty": "expert",
+        "settings": {
+            "enableAVS": true,
+            "enableCommander": true,
+            "enableEVO": true,
+            "enableBGM": true,
+            "enableSFX": true,
+            "enableClash": true,
+            "enableEnvironment": false
+        },
+        "player": {
+            "name": "Bug Fix Tester",
+            "trainerProficiency": 255,
+            "unlocks": {
+                "enable_mega": true,
+                "enable_z_move": true,
+                "enable_styles": false,
+                "enable_bond": false,
+                "enable_tera": false,
+                "enable_dynamax": false,
+                "enable_insight": true,
+                "enable_proficiency_cap": true
+            },
+            "party": [
+                {
+                    "slot": 1,
+                    "name": "Necrozma",
+                    "lv": 90,
+                    "isLead": true,
+                    "isAce": true,
+                    "ability": "Prism Armor",
+                    "nature": "Naive",
+                    "mechanic": "zmove",
+                    "item": "Ultranecrozium Z",
+                    "moves": ["Photon Geyser", "Earthquake", "Dragon Pulse", "Protect"],
+                    "stats_meta": {
+                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 4, "atk": 252, "def": 0, "spa": 0, "spd": 0, "spe": 252 }
+                    },
+                    "friendship": { "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 200 } }
+                },
+                {
+                    "slot": 2,
+                    "name": "Solgaleo",
+                    "lv": 90,
+                    "ability": "Full Metal Body",
+                    "nature": "Adamant",
+                    "item": "Leftovers",
+                    "moves": ["Sunsteel Strike", "Earthquake", "Morning Sun", "Protect"],
+                    "stats_meta": {
+                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                        "ev_level": 252
+                    }
+                },
+                {
+                    "slot": 3,
+                    "name": "Magearna",
+                    "lv": 88,
+                    "ability": "Soul-Heart",
+                    "nature": "Modest",
+                    "item": "Weakness Policy",
+                    "moves": ["Dazzling Gleam", "Flash Cannon", "Aura Sphere", "Calm Mind"],
+                    "stats_meta": {
+                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 252, "atk": 0, "def": 0, "spa": 252, "spd": 4, "spe": 0 }
+                    }
+                },
+                {
+                    "slot": 4,
+                    "name": "Milotic",
+                    "lv": 88,
+                    "ability": "Marvel Scale",
+                    "nature": "Bold",
+                    "item": "Flame Orb",
+                    "moves": ["Scald", "Ice Beam", "Recover", "Mirror Coat"],
+                    "stats_meta": {
+                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 252, "atk": 0, "def": 252, "spa": 0, "spd": 4, "spe": 0 }
+                    }
+                }
+            ]
+        },
+        "enemy": {
+            "name": "Regression Suite",
+            "type": "DEBUG",
+            "trainerProficiency": 255,
+            "unlocks": {
+                "enable_mega": true,
+                "enable_z_move": false,
+                "enable_bond": false,
+                "enable_styles": false,
+                "enable_tera": false,
+                "enable_dynamax": false,
+                "enable_insight": false,
+                "enable_proficiency_cap": true
+            },
+            "party": [
+                {
+                    "name": "Wobbuffet",
+                    "lv": 88,
+                    "isLead": true,
+                    "ability": "Shadow Tag",
+                    "nature": "Calm",
+                    "item": "Mental Herb",
+                    "moves": ["Encore", "Counter", "Mirror Coat", "Safeguard"],
+                    "stats_meta": {
+                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 252, "atk": 0, "def": 128, "spa": 0, "spd": 128, "spe": 0 }
+                    }
+                },
+                {
+                    "name": "Garchomp",
+                    "lv": 100,
+                    "gender": "F",
+                    "nature": "Naughty",
+                    "mechanic": "mega",
+                    "item": "Garchompite",
+                    "isAce": true,
+                    "hasSecondWind": true,
+                    "stats_meta": {
+                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 0, "atk": 252, "def": 0, "spa": 100, "spd": 0, "spe": 158 }
+                    },
+                    "moves": ["Earthquake", "Stone Edge", "Draco Meteor", "Poison Jab"],
+                    "friendship": {
+                        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 200 }
+                    }
+                }
+            ],
+            "lines": {
+                "start": "这一战专门用于复现和验证：奈克洛兹玛 Ultra Burst、Z招式被 Encore 锁定，以及 Mega 烈咬陆鲨伤害异常。",
+                "lose": "这些回归案例终于都稳定了。",
+                "win": "还不够，再把日志多看两轮。"
+            }
         }
-      },
-      {
-        "name": "Solgaleo",
-        "lv": 89,
-        "ability": "Full Metal Body",
-        "nature": "Adamant",
-        "item": "Leftovers",
-        "moves": ["Sunsteel Strike", "Psychic Fangs", "Earthquake", "Flare Blitz"],
-        "stats_meta": { "ev_level": 252 },
-        "friendship": { "avs": { "trust": 220, "devotion": 220 } }
-      }
-    ],
-    "lines": {
-      "start": "从伽勒尔到阿罗拉，我和我的队伍已经掌握了所有的可能性。现在让你见识一下……真正的最强！",
-      "lose": "这就是……传说中的英雄吗……精彩绝伦！",
-      "win": "看来你的冠军时刻还没有到来啊！"
-    }
-  }
-}
+    };
 
 
 }

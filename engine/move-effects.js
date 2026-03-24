@@ -1309,12 +1309,13 @@ function applyVolatileStatus(user, target, move) {
             
         case 'Encore':
             // 再来一次：强制使用上一个技能
-            if (!target.lastMoveUsed) {
+            const encoreMoveName = target.lastBaseMoveUsed || target.lastMoveUsed;
+            if (!encoreMoveName) {
                 logs.push(`但是失败了!`);
                 return { success: false, logs };
             }
             target.volatile.encore = 3;
-            target.volatile.encoreMove = target.lastMoveUsed;
+            target.volatile.encoreMove = encoreMoveName;
             logs.push(`${target.cnName} 被强制再来一次!`);
             // 【精神香草】检查
             if (checkMentalHerb(target, 'encore', logs)) {
@@ -1324,13 +1325,14 @@ function applyVolatileStatus(user, target, move) {
             
         case 'Disable':
             // 定身法：封印上一个技能
-            if (!target.lastMoveUsed) {
+            const disabledMoveName = target.lastBaseMoveUsed || target.lastMoveUsed;
+            if (!disabledMoveName) {
                 logs.push(`但是失败了!`);
                 return { success: false, logs };
             }
             target.volatile.disable = 4;
-            target.volatile.disabledMove = target.lastMoveUsed;
-            logs.push(`${target.cnName} 的 ${target.lastMoveUsed} 被封印了!`);
+            target.volatile.disabledMove = disabledMoveName;
+            logs.push(`${target.cnName} 的 ${disabledMoveName} 被封印了!`);
             // 【精神香草】检查
             if (checkMentalHerb(target, 'disable', logs)) {
                 return { success: true, logs };
@@ -1545,13 +1547,16 @@ function canUseMove(pokemon, move) {
     
     // 再来一次检查
     if (pokemon.volatile.encore && pokemon.volatile.encore > 0) {
-        if (pokemon.volatile.encoreMove && move.name !== pokemon.volatile.encoreMove) {
+        const currentMoveName = move.baseMove || move.originalMoveName || move.name;
+        if (pokemon.volatile.encoreMove && currentMoveName !== pokemon.volatile.encoreMove) {
             return { canUse: false, reason: `被强制使用 ${pokemon.volatile.encoreMove}!` };
         }
     }
     
     // 无理取闹检查
-    if (pokemon.volatile.torment && pokemon.lastMoveUsed === move.name) {
+    const currentMoveName = move.baseMove || move.originalMoveName || move.name;
+    const lastMoveName = pokemon.lastBaseMoveUsed || pokemon.lastMoveUsed;
+    if (pokemon.volatile.torment && lastMoveName === currentMoveName) {
         return { canUse: false, reason: `${pokemon.cnName} 无法连续使用同一技能!` };
     }
     
