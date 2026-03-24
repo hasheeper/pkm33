@@ -149,23 +149,23 @@ function updateTrainerHud() {
 
     const resolvedFromName = resolveAvatarId(displayName);
     const resolvedFromId = resolveAvatarId(t.id);
-    const rawId = String(t.id || '')
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '');
-
     const candidates = [];
     if (resolvedFromId) candidates.push(resolvedFromId);
     if (resolvedFromName) candidates.push(resolvedFromName);
-    if (rawId) candidates.push(rawId);
-    if (displayName) candidates.push(displayName.toLowerCase());
 
     const uniqueCandidates = [...new Set(candidates)].filter(Boolean);
     let attemptIndex = 0;
 
     avatarEl.onload = null;
     avatarEl.onerror = null;
+
+    if (uniqueCandidates.length === 0) {
+        avatarEl.onload = null;
+        avatarEl.onerror = () => { hud.classList.add('hidden'); };
+        avatarEl.src = MISSING_AVATAR;
+        hud.classList.remove('hidden');
+        return;
+    }
 
     const tryNext = () => {
         if (attemptIndex >= uniqueCandidates.length) {

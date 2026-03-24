@@ -197,23 +197,27 @@ async function initGame() {
                 console.log(`[COMMANDER] 从 JSON 读取训练家熟练度: ${battle.trainerProficiency} (上限: ${proficiencyCap})`);
             }
             
-            // 【战术指挥系统】初始化
-            if (typeof initCommanderSystem === 'function') {
-                initCommanderSystem();
-            }
-            
             // 检查玩家是否有 Mega 权限 (直接从 unlocks 读取)
             const playerCanMega = battle.playerUnlocks.enable_mega;
             battle.setPlayerParty(json.player.party, playerCanMega);
             battle.playerName = json.player.name || '主角';
             log(`<b>${battle.playerName}</b> 准备战斗！`);
+
+            const refreshCommanderState = () => {
+                if (typeof initCommanderSystem === 'function') {
+                    initCommanderSystem();
+                }
+            };
             
             // === Necrozma 合体检测 ===
             // 检测队伍中是否有 Necrozma + Solgaleo/Lunala 组合
             if (typeof checkAndProcessNecrozmaFusion === 'function') {
                 checkAndProcessNecrozmaFusion(battle.playerParty, log, () => {
                     console.log('[NECROZMA FUSION] 合体检测完成');
+                    refreshCommanderState();
                 });
+            } else {
+                refreshCommanderState();
             }
         } else {
             // Fallback: 默认玩家队伍
@@ -4936,11 +4940,14 @@ function initCommanderSystem() {
     // 【初始冷却】Commander Score < 120 时，战斗开始就有冷却
     const p = battle.getPlayer?.();
     const initSyncScore = p ? getCommanderSyncScore(battle.trainerProficiency ?? 0, p) : 0;
+    const initialCommanderCooldown = getCommanderCooldown(initSyncScore);
     
-    if (initSyncScore < 120) {
+    if (initialCommanderCooldown < 0) {
+        battle.commandCooldown = 0;
+        console.log(`[COMMANDER v2] 默契不足，初始不可用 (同步率: ${initSyncScore} < 60)`);
+    } else if (initSyncScore < 120) {
         // 低同步率：战斗开始时有初始冷却
-        battle.commandCooldown = getCommanderCooldown(initSyncScore);
-        if (battle.commandCooldown < 0) battle.commandCooldown = 0; // 不可用时设为0
+        battle.commandCooldown = initialCommanderCooldown;
         console.log(`[COMMANDER v2] 初始冷却: ${battle.commandCooldown}回合 (同步率: ${initSyncScore} < 120)`);
     } else {
         // 高同步率(120+)：无初始冷却，第一回合即可使用
