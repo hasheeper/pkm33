@@ -502,6 +502,78 @@ function layer4_numericalSpotCheck() {
     return { checked };
 }
 
+// ── Layer 5: 特殊招式回归 ──
+function layer5_specialMoveRegression() {
+    const originalRandom = Math.random;
+    let checked = 0;
+
+    try {
+        Math.random = () => 0;
+        const ohkoAttacker = createMockPokemon({ level: 80, currHp: 220, maxHp: 220 });
+        const ohkoDefender = createMockPokemon({ level: 50, currHp: 187, maxHp: 187 });
+        const pollutedSheerCold = {
+            name: 'Sheer Cold',
+            power: 80,
+            type: 'Ice',
+            cat: 'spec',
+            accuracy: 30,
+        };
+
+        const hitResult = calcDamage(ohkoAttacker, ohkoDefender, pollutedSheerCold);
+        assert(hitResult.ohko === true, 'L5 OHKO: Sheer Cold 命中标记', JSON.stringify(hitResult));
+        assert(hitResult.damage === 187, 'L5 OHKO: Sheer Cold 直接击倒', `damage=${hitResult.damage}`);
+        checked += 2;
+
+        Math.random = () => 0.99;
+        const missResult = calcDamage(ohkoAttacker, ohkoDefender, pollutedSheerCold);
+        assert(missResult.miss === true && missResult.damage === 0, 'L5 OHKO: Sheer Cold 未命中', JSON.stringify(missResult));
+        checked += 1;
+
+        Math.random = () => 0;
+        const underleveledAttacker = createMockPokemon({ level: 40 });
+        const highLevelDefender = createMockPokemon({ level: 50, currHp: 150, maxHp: 150 });
+        const failResult = calcDamage(underleveledAttacker, highLevelDefender, pollutedSheerCold);
+        assert(failResult.failed === true && /等级太高/.test(failResult.failMessage || ''), 'L5 OHKO: 等级限制', JSON.stringify(failResult));
+        checked += 1;
+
+        const fissureVsFlying = calcDamage(
+            createMockPokemon({ level: 80 }),
+            createMockPokemon({ types: ['Flying'], currHp: 160, maxHp: 160 }),
+            { name: 'Fissure', power: 80, type: 'Ground', cat: 'phys', accuracy: 30 }
+        );
+        assert(fissureVsFlying.effectiveness === 0 && fissureVsFlying.damage === 0, 'L5 OHKO: 地裂打不到飞行', JSON.stringify(fissureVsFlying));
+        checked += 1;
+
+        const guillotineVsGhost = calcDamage(
+            createMockPokemon({ level: 80 }),
+            createMockPokemon({ types: ['Ghost'], currHp: 160, maxHp: 160 }),
+            { name: 'Guillotine', power: 80, type: 'Normal', cat: 'phys', accuracy: 30 }
+        );
+        assert(guillotineVsGhost.effectiveness === 0 && guillotineVsGhost.damage === 0, 'L5 OHKO: 断头台打不到幽灵', JSON.stringify(guillotineVsGhost));
+        checked += 1;
+
+        const hornDrillVsGhost = calcDamage(
+            createMockPokemon({ level: 80 }),
+            createMockPokemon({ types: ['Ghost'], currHp: 160, maxHp: 160 }),
+            { name: 'Horn Drill', power: 80, type: 'Normal', cat: 'phys', accuracy: 30 }
+        );
+        assert(hornDrillVsGhost.effectiveness === 0 && hornDrillVsGhost.damage === 0, 'L5 OHKO: 角钻打不到幽灵', JSON.stringify(hornDrillVsGhost));
+        checked += 1;
+
+        const sheerColdVsIce = calcDamage(
+            createMockPokemon({ level: 80 }),
+            createMockPokemon({ types: ['Ice'], currHp: 160, maxHp: 160 }),
+            pollutedSheerCold
+        );
+        assert(sheerColdVsIce.effectiveness === 0 && sheerColdVsIce.damage === 0, 'L5 OHKO: 绝对零度打不到冰', JSON.stringify(sheerColdVsIce));
+        checked += 1;
+    } finally {
+        Math.random = originalRandom;
+    }
+
+    return { checked };
+}
+
 // ============================================
 // 6. 运行所有测试
 // ============================================
@@ -517,7 +589,7 @@ function main() {
     console.log = (...args) => testOutput.push(args.join(' '));
     console.warn = (...args) => testOutput.push('[WARN] ' + args.join(' '));
     
-    let l1, l2, l3, l4;
+    let l1, l2, l3, l4, l5;
     try {
         origLog('\n── Layer 1: 全量 Smoke Test (calcDamage) ──');
         l1 = layer1_smokeTestAllMoves();
@@ -537,6 +609,10 @@ function main() {
         origLog('\n── Layer 4: 数值校验 ──');
         l4 = layer4_numericalSpotCheck();
         origLog(`   精确校验: ${l4.checked} 个招式`);
+
+        origLog('\n── Layer 5: 特殊招式回归 ──');
+        l5 = layer5_specialMoveRegression();
+        origLog(`   回归校验: ${l5.checked} 项`);
     } finally {
         console.log = origLog;
         console.warn = origWarn;

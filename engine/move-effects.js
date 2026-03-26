@@ -667,6 +667,24 @@ function checkOHKOMove(attacker, defender, move) {
         const ohkoMoves = ['Fissure', 'Horn Drill', 'Guillotine', 'Sheer Cold'];
         if (!ohkoMoves.includes(move.name)) return null;
     }
+
+    // 属性免疫仍然生效：地裂打不到飞行/飘浮，角钻/断头台打不到幽灵。
+    let defensiveTypes = defender.types || ['Normal'];
+    if (defender.isTerastallized) {
+        defensiveTypes = defender.teraType === 'Stellar'
+            ? (defender.originalTypes || defender.types || ['Normal'])
+            : [defender.teraType];
+    }
+
+    const moveType = move.type || fullMoveData.type || 'Normal';
+    if (typeof getTypeEffectiveness === 'function' && getTypeEffectiveness(moveType, defensiveTypes, move.name) === 0) {
+        return { success: false, damage: 0, noEffect: true, message: null };
+    }
+
+    // Sheer Cold 的 ohko: 'Ice' 表示冰属性目标免疫。
+    if (typeof fullMoveData.ohko === 'string' && defensiveTypes.includes(fullMoveData.ohko)) {
+        return { success: false, damage: 0, noEffect: true, message: null };
+    }
     
     // 等级低于对方则无效
     if (attacker.level < defender.level) {

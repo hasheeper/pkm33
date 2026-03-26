@@ -28,94 +28,91 @@
  */
 function getDefaultBattleData() {
     return {
-        "difficulty": "expert",
+        "difficulty": "normal",
         "settings": {
-            "enableAVS": true,
-            "enableCommander": true,
-            "enableEVO": true,
+            "enableAVS": false,
+            "enableCommander": false,
+            "enableEVO": false,
             "enableBGM": true,
             "enableSFX": true,
-            "enableClash": true,
+            "enableClash": false,
             "enableEnvironment": false
         },
         "player": {
-            "name": "Bug Fix Tester",
-            "trainerProficiency": 255,
+            "name": "OHKO Tester",
+            "trainerProficiency": 0,
             "unlocks": {
-                "enable_mega": true,
-                "enable_z_move": true,
+                "enable_mega": false,
+                "enable_z_move": false,
                 "enable_styles": false,
                 "enable_bond": false,
                 "enable_tera": false,
                 "enable_dynamax": false,
-                "enable_insight": true,
+                "enable_insight": false,
                 "enable_proficiency_cap": true
             },
             "party": [
                 {
                     "slot": 1,
-                    "name": "Necrozma",
-                    "lv": 90,
+                    "name": "Crobat",
+                    "lv": 70,
                     "isLead": true,
-                    "isAce": true,
-                    "ability": "Prism Armor",
-                    "nature": "Naive",
-                    "mechanic": "zmove",
-                    "item": "Ultranecrozium Z",
-                    "moves": ["Photon Geyser", "Earthquake", "Dragon Pulse", "Protect"],
+                    "ability": "Inner Focus",
+                    "nature": "Jolly",
+                    "item": "Leftovers",
+                    "moves": ["Roost", "Fly", "Taunt", "Protect"],
                     "stats_meta": {
                         "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
                         "ev_level": { "hp": 4, "atk": 252, "def": 0, "spa": 0, "spd": 0, "spe": 252 }
-                    },
-                    "friendship": { "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 200 } }
+                    }
                 },
                 {
                     "slot": 2,
-                    "name": "Solgaleo",
-                    "lv": 90,
-                    "ability": "Full Metal Body",
-                    "nature": "Adamant",
+                    "name": "Gengar",
+                    "lv": 70,
+                    "ability": "Cursed Body",
+                    "nature": "Timid",
                     "item": "Leftovers",
-                    "moves": ["Sunsteel Strike", "Earthquake", "Morning Sun", "Protect"],
+                    "moves": ["Shadow Ball", "Substitute", "Disable", "Protect"],
                     "stats_meta": {
-                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
                         "ev_level": 252
                     }
                 },
                 {
                     "slot": 3,
-                    "name": "Magearna",
-                    "lv": 88,
-                    "ability": "Soul-Heart",
-                    "nature": "Modest",
-                    "item": "Weakness Policy",
-                    "moves": ["Dazzling Gleam", "Flash Cannon", "Aura Sphere", "Calm Mind"],
+                    "name": "Lapras",
+                    "lv": 70,
+                    "ability": "Water Absorb",
+                    "nature": "Calm",
+                    "item": "Leftovers",
+                    "moves": ["Freeze-Dry", "Surf", "Rest", "Protect"],
                     "stats_meta": {
                         "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 252, "atk": 0, "def": 0, "spa": 252, "spd": 4, "spe": 0 }
+                        "ev_level": { "hp": 252, "atk": 0, "def": 0, "spa": 4, "spd": 252, "spe": 0 }
                     }
                 },
                 {
                     "slot": 4,
-                    "name": "Milotic",
-                    "lv": 88,
-                    "ability": "Marvel Scale",
-                    "nature": "Bold",
-                    "item": "Flame Orb",
-                    "moves": ["Scald", "Ice Beam", "Recover", "Mirror Coat"],
+                    "name": "Snorlax",
+                    "lv": 70,
+                    "ability": "Immunity",
+                    "nature": "Careful",
+                    "item": "Leftovers",
+                    "moves": ["Body Slam", "Rest", "Sleep Talk", "Protect"],
                     "stats_meta": {
-                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 252, "atk": 0, "def": 252, "spa": 0, "spd": 4, "spe": 0 }
+                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 252, "atk": 0, "def": 4, "spa": 0, "spd": 252, "spe": 0 }
                     }
                 }
             ]
         },
         "enemy": {
-            "name": "Regression Suite",
+            "name": "OHKO Regression Suite",
             "type": "DEBUG",
-            "trainerProficiency": 255,
+            "trainerProficiency": 0,
             "unlocks": {
-                "enable_mega": true,
+                "enable_mega": false,
                 "enable_z_move": false,
                 "enable_bond": false,
                 "enable_styles": false,
@@ -126,41 +123,59 @@ function getDefaultBattleData() {
             },
             "party": [
                 {
-                    "name": "Wobbuffet",
-                    "lv": 88,
+                    "name": "Dugtrio",
+                    "lv": 70,
                     "isLead": true,
-                    "ability": "Shadow Tag",
-                    "nature": "Calm",
-                    "item": "Mental Herb",
-                    "moves": ["Encore", "Counter", "Mirror Coat", "Safeguard"],
+                    "ability": "Arena Trap",
+                    "nature": "Jolly",
+                    "item": "Wide Lens",
+                    "moves": ["Fissure", "Fissure", "Fissure", "Fissure"],
                     "stats_meta": {
-                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 252, "atk": 0, "def": 128, "spa": 0, "spd": 128, "spe": 0 }
+                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 0, "atk": 252, "def": 0, "spa": 0, "spd": 4, "spe": 252 }
                     }
                 },
                 {
-                    "name": "Garchomp",
-                    "lv": 100,
-                    "gender": "F",
-                    "nature": "Naughty",
-                    "mechanic": "mega",
-                    "item": "Garchompite",
-                    "isAce": true,
-                    "hasSecondWind": true,
+                    "name": "Kingler",
+                    "lv": 70,
+                    "nature": "Adamant",
+                    "ability": "Hyper Cutter",
+                    "item": "Wide Lens",
                     "stats_meta": {
                         "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 0, "atk": 252, "def": 0, "spa": 100, "spd": 0, "spe": 158 }
+                        "ev_level": { "hp": 4, "atk": 252, "def": 0, "spa": 0, "spd": 0, "spe": 252 }
                     },
-                    "moves": ["Earthquake", "Stone Edge", "Draco Meteor", "Poison Jab"],
-                    "friendship": {
-                        "avs": { "trust": 255, "passion": 255, "insight": 255, "devotion": 200 }
-                    }
+                    "moves": ["Guillotine", "Guillotine", "Guillotine", "Guillotine"]
+                },
+                {
+                    "name": "Rhydon",
+                    "lv": 70,
+                    "nature": "Adamant",
+                    "ability": "Lightning Rod",
+                    "item": "Wide Lens",
+                    "stats_meta": {
+                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 252, "atk": 252, "def": 4, "spa": 0, "spd": 0, "spe": 0 }
+                    },
+                    "moves": ["Horn Drill", "Horn Drill", "Horn Drill", "Horn Drill"]
+                },
+                {
+                    "name": "Lapras",
+                    "lv": 70,
+                    "nature": "Calm",
+                    "ability": "Water Absorb",
+                    "item": "Wide Lens",
+                    "stats_meta": {
+                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 252, "atk": 0, "def": 0, "spa": 4, "spd": 252, "spe": 0 }
+                    },
+                    "moves": ["Sheer Cold", "Sheer Cold", "Sheer Cold", "Sheer Cold"]
                 }
             ],
             "lines": {
-                "start": "这一战专门用于复现和验证：奈克洛兹玛 Ultra Burst、Z招式被 Encore 锁定，以及 Mega 烈咬陆鲨伤害异常。",
-                "lose": "这些回归案例终于都稳定了。",
-                "win": "还不够，再把日志多看两轮。"
+                "start": "这是 OHKO 招式测试场。地裂、断头台、角钻、绝对零度都在这里，直接换人就能测。",
+                "lose": "四个一击必杀招式的回归都通过了。",
+                "win": "继续看日志，确认不会再冒出固定数值伤害。"
             }
         }
     };

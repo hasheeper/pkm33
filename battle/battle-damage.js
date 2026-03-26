@@ -554,6 +554,10 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         if (result.hitCount > 1) {
             infoParts.push(`<span style="color:#9b59b6">(命中 ${result.hitCount} 次)</span>`);
         }
+
+        if (result.ohko && result.ohkoMessage) {
+            log(`<b style="color:#e74c3c">${result.ohkoMessage}</b>`);
+        }
         
         if (result.effectiveness >= 2) infoParts.push('<b style="color:#e74c3c">(效果拔群!)</b>');
         else if (result.effectiveness <= 0.5 && result.effectiveness > 0) infoParts.push('(效果不好...)');

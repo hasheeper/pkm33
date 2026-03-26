@@ -571,6 +571,145 @@ export function calcDamage(attacker, defender, move, options = {}) {
     if (ignoresAbilities && defender.ability) {
         console.log(`[MOLD BREAKER] ${attacker.cnName} 的特性/招式无视了 ${defender.cnName} 的 ${defender.ability}！`);
     }
+
+    // === 特殊伤害招式优先处理 ===
+    // 某些招式在 getMoveByName() 中会带上 AI/UI 用的估算 power（例如 80），
+    // 这里必须优先按 moves-data.js 的真实语义处理，避免把 OHKO/固定伤害招式误算成普通攻击。
+    const moveEffects = (typeof MoveEffects !== 'undefined')
+        ? MoveEffects
+        : ((typeof window !== 'undefined') ? window.MoveEffects : null);
+
+    const fixedDamageResult = (moveEffects && typeof moveEffects.checkFixedDamageMove === 'function')
+        ? moveEffects.checkFixedDamageMove(attacker, defender, move)
+        : (() => {
+            if (fullMoveData.damage === 'level') {
+                return { damage: attacker.level };
+            }
+            if (typeof fullMoveData.damage === 'number') {
+                return { damage: fullMoveData.damage };
+            }
+
+            const fixedDamageMoves = {
+                'Sonic Boom': 20,
+                'Dragon Rage': 40,
+                'Seismic Toss': 'level',
+                'Night Shade': 'level',
+                'Psywave': 'random',
+                'Super Fang': 'half',
+                'Nature\'s Madness': 'half',
+                'Guardian of Alola': 'threequarters',
+                'Ruination': 'half',
+                'Endeavor': 'endeavor'
+            };
+
+            const fixedType = fixedDamageMoves[move.name];
+            if (!fixedType) return null;
+
+            switch (fixedType) {
+                case 'level':
+                    return { damage: attacker.level };
+                case 'random':
+                    return { damage: Math.floor(attacker.level * (0.5 + Math.random())) };
+                case 'half':
+                    return { damage: Math.floor(defender.currHp / 2) };
+                case 'threequarters':
+                    return { damage: Math.floor(defender.currHp * 3 / 4) };
+                case 'endeavor':
+                    return { damage: Math.max(0, defender.currHp - attacker.currHp) };
+                default:
+                    return (typeof fixedType === 'number') ? { damage: fixedType } : null;
+            }
+        })();
+
+    if (fixedDamageResult) {
+        return {
+            damage: Math.max(1, fixedDamageResult.damage),
+            effectiveness: 1,
+            isCrit: false,
+            miss: false,
+            hitCount: 1,
+            fixedDamage: true
+        };
+    }
+
+    const ohkoResult = (moveEffects && typeof moveEffects.checkOHKOMove === 'function')
+        ? moveEffects.checkOHKOMove(attacker, defender, move)
+        : (() => {
+            const isOhkoMove = !!fullMoveData.ohko || ['Fissure', 'Horn Drill', 'Guillotine', 'Sheer Cold'].includes(move.name);
+            if (!isOhkoMove) return null;
+
+            let defensiveTypes = defender.types || ['Normal'];
+            if (defender.isTerastallized) {
+                defensiveTypes = defender.teraType === 'Stellar'
+                    ? (defender.originalTypes || defender.types || ['Normal'])
+                    : [defender.teraType];
+            }
+
+            const ohkoMoveType = move.type || fullMoveData.type || 'Normal';
+            const effectiveness = getTypeEffectiveness(ohkoMoveType, defensiveTypes, move.name);
+            if (effectiveness === 0) {
+                return { success: false, damage: 0, noEffect: true };
+            }
+
+            if (typeof fullMoveData.ohko === 'string' && defensiveTypes.includes(fullMoveData.ohko)) {
+                return { success: false, damage: 0, noEffect: true };
+            }
+
+            if (attacker.level < defender.level) {
+                return { success: false, damage: 0, message: `${defender.cnName} 的等级太高了!` };
+            }
+
+            const hitChance = 30 + (attacker.level - defender.level);
+            if (Math.random() * 100 < hitChance) {
+                return { success: true, damage: defender.currHp, message: '一击必杀!' };
+            }
+
+            return { success: false, damage: 0, message: null };
+        })();
+
+    if (ohkoResult) {
+        if (ohkoResult.success) {
+            return {
+                damage: ohkoResult.damage,
+                effectiveness: 1,
+                isCrit: false,
+                miss: false,
+                hitCount: 1,
+                ohko: true,
+                ohkoMessage: ohkoResult.message
+            };
+        }
+
+        if (ohkoResult.noEffect) {
+            return {
+                damage: 0,
+                effectiveness: 0,
+                isCrit: false,
+                miss: false,
+                hitCount: 0
+            };
+        }
+
+        if (ohkoResult.message) {
+            return {
+                damage: 0,
+                effectiveness: 0,
+                isCrit: false,
+                miss: false,
+                hitCount: 0,
+                failed: true,
+                failMessage: ohkoResult.message
+            };
+        }
+
+        return {
+            damage: 0,
+            effectiveness: 1,
+            isCrit: false,
+            miss: true,
+            hitCount: 0
+        };
+    }
     
     // 变化技不造成伤害
     if (basePower === 0 || category === 'Status') {
