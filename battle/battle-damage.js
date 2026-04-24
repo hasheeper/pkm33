@@ -329,6 +329,7 @@ export function applyDamage(attacker, defender, move, spriteIdRef) {
         result.pivot = fxResult.pivot || false;
         result.passBoosts = fxResult.passBoosts || false;  // 【修复】传递 Baton Pass 标记
         result.phaze = fxResult.phaze || false;  // 【修复】传递 phaze 标记
+        result.needRevivalChoice = fxResult.revivalChoice || false;
         return result;
     }
     

@@ -40,6 +40,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     // 【修复】提前声明 pivot/passBoosts 标记，供 onUse 和 onHit 共用
     let pivotTriggered = false;
     let passBoostsTriggered = false;
+    let revivalChoiceTriggered = false;
     
     // === onUse 钩子 (变化技/天气/场地等，以及技能前置检查如 Fake Out) ===
     // 【重要】蓄力技能的 onUse 已在 applyDamage 中处理，此处跳过
@@ -53,7 +54,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         console.log(`[MOVE HANDLER] onUse returned, logs now:`, logs);
         if (result) {
             if (result.failed) {
-                return { logs, pivot: false };
+                return { logs, pivot: false, revivalChoice: false };
             }
             // 【修复】捕获 onUse 返回的 pivot/passBoosts (Baton Pass, Teleport 等)
             if (result.pivot) {
@@ -62,10 +63,13 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             if (result.passBoosts) {
                 passBoostsTriggered = true;
             }
+            if (result.needRevivalChoice) {
+                revivalChoiceTriggered = true;
+            }
             // 【蓄力技能】正在蓄力中，跳过伤害计算
             if (result.charging && result.skipDamage) {
                 console.log(`[CHARGE MOVE] ${move.name} is charging, skipping damage`);
-                return { logs, pivot: false, charging: true };
+                return { logs, pivot: false, charging: true, revivalChoice: revivalChoiceTriggered };
             }
             if (result.selfDestruct) {
                 // 自爆类技能已在 handler 中处理 HP
@@ -101,14 +105,17 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
                     // 状态招式：直接调用副作用处理
                     const subResult = applyMoveSecondaryEffects(user, target, moveToExecute, 0, battle, isPlayer);
                     logs.push(...subResult.logs);
+                    if (subResult.revivalChoice) {
+                        revivalChoiceTriggered = true;
+                    }
                     if (subResult.pivot) {
-                        return { logs, pivot: true };
+                        return { logs, pivot: true, revivalChoice: revivalChoiceTriggered };
                     }
                 }
                 
                 // 跳过原招式的后续处理
                 if (result.skipDamage) {
-                    return { logs, pivot: false };
+                    return { logs, pivot: false, revivalChoice: revivalChoiceTriggered };
                 }
             }
         }
@@ -138,7 +145,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
         // 【回复封锁 Heal Block / Psychic Noise】检查
         if (user.volatile && user.volatile.healBlock && user.volatile.healBlock > 0) {
             logs.push(`<span style="color:#e056fd">${user.cnName} 处于回复封锁状态，无法回复!</span>`);
-            return { logs, pivot: pivotTriggered };
+            return { logs, pivot: pivotTriggered, revivalChoice: revivalChoiceTriggered };
         }
         const [num, den] = fullMoveData.heal;
         const baseHeal = Math.floor(user.maxHp * num / den);
@@ -840,19 +847,19 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
             // 草系免疫
             if (target.types && target.types.includes('Grass')) {
                 logs.push(`${target.cnName} 的草属性免疫了粉末类招式!`);
-                return { logs, pivot: pivotTriggered };
+                return { logs, pivot: pivotTriggered, revivalChoice: revivalChoiceTriggered };
             }
             // 防尘护目镜免疫
             const targetItemId = (target.item || '').toLowerCase().replace(/[^a-z]/g, '');
             if (targetItemId === 'safetygoggles') {
                 logs.push(`${target.cnName} 的防尘护目镜免疫了粉末类招式!`);
-                return { logs, pivot: pivotTriggered };
+                return { logs, pivot: pivotTriggered, revivalChoice: revivalChoiceTriggered };
             }
             // 防尘特性免疫
             const targetAbilityId = (target.ability || '').toLowerCase().replace(/[^a-z]/g, '');
             if (targetAbilityId === 'overcoat') {
                 logs.push(`${target.cnName} 的防尘特性免疫了粉末类招式!`);
-                return { logs, pivot: pivotTriggered };
+                return { logs, pivot: pivotTriggered, revivalChoice: revivalChoiceTriggered };
             }
         }
         
@@ -1195,7 +1202,7 @@ export function applyMoveSecondaryEffects(user, target, move, damageDealt = 0, b
     }
     
     // 返回日志和 pivot/phaze/passBoosts 状态
-    return { logs, pivot: pivotTriggered, phaze: phazeTriggered, passBoosts: passBoostsTriggered };
+    return { logs, pivot: pivotTriggered, phaze: phazeTriggered, passBoosts: passBoostsTriggered, revivalChoice: revivalChoiceTriggered };
 }
 
 // ============================================

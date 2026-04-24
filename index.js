@@ -3627,10 +3627,12 @@ function checkPlayerDefeatOrForceSwitch() {
 
 // 渲染切换列表
 function renderSwitchMenu(allowCancel = true) {
-    if (battle.locked && battle.phase !== 'force_switch' && battle.phase !== 'pivot_switch') return;
+    if (battle.locked && battle.phase !== 'force_switch' && battle.phase !== 'pivot_switch' && battle.phase !== 'revival_choice') return;
+
+    const isRevivalChoice = battle.phase === 'revival_choice' && battle.pendingRevival && battle.pendingRevival.side === 'player';
 
     // 【抓人机制】检查是否被困住（强制换人和 Pivot 换人除外）
-    if (allowCancel && battle.phase !== 'force_switch' && battle.phase !== 'pivot_switch') {
+    if (allowCancel && battle.phase !== 'force_switch' && battle.phase !== 'pivot_switch' && battle.phase !== 'revival_choice') {
         if (typeof window.canPlayerSwitch === 'function') {
             const switchCheck = window.canPlayerSwitch();
             if (!switchCheck.canSwitch) {
@@ -3652,13 +3654,16 @@ function renderSwitchMenu(allowCancel = true) {
 
     const header = document.createElement('div');
     header.className = 'switch-header-modern';
-    const actionColor = !allowCancel ? 'var(--primary-pink)' : 'var(--accent-blue)';
+    const actionColor = isRevivalChoice ? 'var(--accent-green, #2ecc71)' : (!allowCancel ? 'var(--primary-pink)' : 'var(--accent-blue)');
+    const subtitle = isRevivalChoice
+        ? 'Select a fainted partner to revive'
+        : (!allowCancel ? 'Choose a replacement (Must Switch)' : 'Select a partner to switch in');
     header.innerHTML = `
         <div style="width:6px; height:40px; background:${actionColor}; border-radius:10px;"></div>
         <div>
             <h2>pokémon</h2>
             <div class="switch-header-subtitle">
-                ${!allowCancel ? 'Choose a replacement (Must Switch)' : 'Select a partner to switch in'}
+                ${subtitle}
             </div>
         </div>
     `;
@@ -3670,6 +3675,11 @@ function renderSwitchMenu(allowCancel = true) {
         const card = document.createElement('div');
         const isCurrent = (idx === battle.playerActive);
         const isDead = (pm.currHp <= 0);
+        const isRevivalTarget = isRevivalChoice &&
+            !isCurrent &&
+            isDead &&
+            Array.isArray(battle.pendingRevival?.eligibleIndexes) &&
+            battle.pendingRevival.eligibleIndexes.includes(idx);
         const hpRatio = pm.maxHp ? (pm.currHp / pm.maxHp) : 0;
 
         card.className = 'party-card-modern';
@@ -3677,7 +3687,11 @@ function renderSwitchMenu(allowCancel = true) {
 
         if (isCurrent) card.classList.add('current');
         if (isDead) card.classList.add('dead');
-        if (!allowCancel && isDead) card.classList.add('disabled');
+        if (isRevivalChoice) {
+            if (!isRevivalTarget) card.classList.add('disabled');
+        } else if (!allowCancel && isDead) {
+            card.classList.add('disabled');
+        }
 
         let hpColor = '#4fd1c5';
         if (hpRatio < 0.5) hpColor = '#fbc63e';
@@ -3810,7 +3824,7 @@ function renderSwitchMenu(allowCancel = true) {
             ${isDead ? '<div class="status-tag">FANT</div>' : ''}
         `;
 
-        if (!isDead && !isCurrent) {
+        if (isRevivalChoice ? isRevivalTarget : (!isDead && !isCurrent)) {
             card.onclick = () => {
                 console.log('[renderSwitchMenu] Card clicked, calling performSwitch with index:', idx);
                 layer.classList.add('hidden');
@@ -3864,6 +3878,51 @@ async function performSwitch(newIndex) {
     console.log('[performSwitch] battle.locked:', battle.locked);
     
     document.getElementById('switch-menu-layer').classList.add('hidden');
+
+    if (battle.phase === 'revival_choice' && battle.pendingRevival?.side === 'player') {
+        const target = battle.playerParty[newIndex];
+        const isEligible = target &&
+            newIndex !== battle.playerActive &&
+            target.currHp <= 0 &&
+            Array.isArray(battle.pendingRevival.eligibleIndexes) &&
+            battle.pendingRevival.eligibleIndexes.includes(newIndex);
+
+        if (!isEligible) {
+            log(`<span style="color:#ef4444">复生祈祷只能选择一只濒死的后备宝可梦！</span>`);
+            renderSwitchMenu(false);
+            return;
+        }
+
+        const wasTerastallized = !!target.isTerastallized;
+        const originalTypes = Array.isArray(target.originalTypes) && target.originalTypes.length > 0
+            ? [...target.originalTypes]
+            : [...(target.types || ['Normal'])];
+        const reviveHp = Math.max(1, Math.floor(target.maxHp / 2));
+
+        target.currHp = reviveHp;
+        target.status = null;
+        target.statusTurns = 0;
+        target.volatile = {};
+
+        if (wasTerastallized) {
+            target.isTerastallized = false;
+            target.types = originalTypes;
+            log(`<span style="color:#67e8f9">💎 ${target.cnName} 失去太晶化状态，恢复为原本属性！</span>`);
+        }
+
+        log(`<span style="color:#2ecc71">🙏 ${target.cnName} 复活了! (HP: ${reviveHp}/${target.maxHp})</span>`);
+
+        battle.pendingRevival = null;
+        battle.phase = 'battle';
+        updateAllVisuals();
+
+        if (battle.revivalResolve) {
+            const resolve = battle.revivalResolve;
+            battle.revivalResolve = null;
+            resolve('revived');
+        }
+        return;
+    }
 
     const oldP = battle.getPlayer();
     // 【修复】强制换人包括：宝可梦倒下 或 被吹飞/吼叫等技能强制换人
@@ -4081,6 +4140,18 @@ async function performSwitch(newIndex) {
     }
 }
 
+function handlePlayerRevivalChoice() {
+    if (!battle.pendingRevival || battle.pendingRevival.side !== 'player') {
+        return Promise.resolve('no-revival-pending');
+    }
+
+    battle.phase = 'revival_choice';
+    renderSwitchMenu(false);
+    return new Promise((resolve) => {
+        battle.revivalResolve = resolve;
+    });
+}
+
 // 辅助 LOG
 function log(msg) {
     const box = document.getElementById('log-box');
@@ -4140,6 +4211,7 @@ function tryRun() {
 window.initGame = initGame;
 window.handleAttack = handleAttack;
 window.renderSwitchMenu = renderSwitchMenu;
+window.handlePlayerRevivalChoice = handlePlayerRevivalChoice;
 window.tryRun = tryRun;
 window.log = log;
 window.updateAllVisuals = updateAllVisuals;

@@ -298,6 +298,11 @@ export async function executePlayerTurn(p, e, move) {
         await wait(700);
     }
     updateAllVisuals();
+
+    if (result?.needRevivalChoice && typeof window.handlePlayerRevivalChoice === 'function') {
+        await window.handlePlayerRevivalChoice();
+        updateAllVisuals();
+    }
     
     // === 检查危机 BGM 切换 (馆主战专用) ===
     if (typeof checkCrisisBgm === 'function') {
@@ -311,7 +316,8 @@ export async function executePlayerTurn(p, e, move) {
         pivot: result?.pivot || false,
         passSub: result?.passSub || false,  // 【修复】传递替身传递标记 (Shed Tail)
         passBoosts: result?.passBoosts || false,  // 【修复】传递能力变化标记 (Baton Pass)
-        phaze: result?.phaze || false  // 【新增】强制换人标记 (Roar/Dragon Tail/Circle Throw)
+        phaze: result?.phaze || false,  // 【新增】强制换人标记 (Roar/Dragon Tail/Circle Throw)
+        revivalChoice: result?.needRevivalChoice || false
     };
 }
 

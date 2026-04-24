@@ -39,14 +39,15 @@ function getDefaultBattleData() {
             "enableEnvironment": false
         },
         "player": {
-            "name": "OHKO Tester",
+            "name": "Revival Blessing Tester",
             "trainerProficiency": 0,
+            "faintedPartyIndexes": [1],
             "unlocks": {
                 "enable_mega": false,
                 "enable_z_move": false,
                 "enable_styles": false,
                 "enable_bond": false,
-                "enable_tera": false,
+                "enable_tera": true,
                 "enable_dynamax": false,
                 "enable_insight": false,
                 "enable_proficiency_cap": true
@@ -54,13 +55,13 @@ function getDefaultBattleData() {
             "party": [
                 {
                     "slot": 1,
-                    "name": "Crobat",
+                    "name": "Pawmot",
                     "lv": 70,
                     "isLead": true,
-                    "ability": "Inner Focus",
+                    "ability": "Iron Fist",
                     "nature": "Jolly",
-                    "item": "Leftovers",
-                    "moves": ["Roost", "Fly", "Taunt", "Protect"],
+                    "item": "Leppa Berry",
+                    "moves": ["Revival Blessing", "Double Shock", "Close Combat", "Mach Punch"],
                     "stats_meta": {
                         "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
                         "ev_level": { "hp": 4, "atk": 252, "def": 0, "spa": 0, "spd": 0, "spe": 252 }
@@ -68,47 +69,36 @@ function getDefaultBattleData() {
                 },
                 {
                     "slot": 2,
-                    "name": "Gengar",
+                    "name": "Ceruledge",
                     "lv": 70,
-                    "ability": "Cursed Body",
-                    "nature": "Timid",
-                    "item": "Leftovers",
-                    "moves": ["Shadow Ball", "Substitute", "Disable", "Protect"],
+                    "ability": "Weak Armor",
+                    "nature": "Jolly",
+                    "mechanic": "tera",
+                    "teraType": "Fire",
+                    "item": "Clear Amulet",
+                    "moves": ["Bitter Blade", "Shadow Sneak", "Close Combat", "Swords Dance"],
                     "stats_meta": {
-                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                        "ev_level": 252
+                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
+                        "ev_level": { "hp": 4, "atk": 252, "def": 0, "spa": 0, "spd": 0, "spe": 252 }
                     }
                 },
                 {
                     "slot": 3,
-                    "name": "Lapras",
+                    "name": "Gengar",
                     "lv": 70,
-                    "ability": "Water Absorb",
-                    "nature": "Calm",
-                    "item": "Leftovers",
-                    "moves": ["Freeze-Dry", "Surf", "Rest", "Protect"],
+                    "ability": "Cursed Body",
+                    "nature": "Timid",
+                    "item": "Focus Sash",
+                    "moves": ["Shadow Ball", "Sludge Bomb", "Thunderbolt", "Protect"],
                     "stats_meta": {
                         "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 252, "atk": 0, "def": 0, "spa": 4, "spd": 252, "spe": 0 }
-                    }
-                },
-                {
-                    "slot": 4,
-                    "name": "Snorlax",
-                    "lv": 70,
-                    "ability": "Immunity",
-                    "nature": "Careful",
-                    "item": "Leftovers",
-                    "moves": ["Body Slam", "Rest", "Sleep Talk", "Protect"],
-                    "stats_meta": {
-                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 252, "atk": 0, "def": 4, "spa": 0, "spd": 252, "spe": 0 }
+                        "ev_level": { "hp": 0, "atk": 0, "def": 0, "spa": 252, "spd": 4, "spe": 252 }
                     }
                 }
             ]
         },
         "enemy": {
-            "name": "OHKO Regression Suite",
+            "name": "Revival Blessing Dummy",
             "type": "DEBUG",
             "trainerProficiency": 0,
             "unlocks": {
@@ -123,59 +113,23 @@ function getDefaultBattleData() {
             },
             "party": [
                 {
-                    "name": "Dugtrio",
+                    "name": "Garchomp",
                     "lv": 70,
                     "isLead": true,
-                    "ability": "Arena Trap",
+                    "ability": "Rough Skin",
                     "nature": "Jolly",
-                    "item": "Wide Lens",
-                    "moves": ["Fissure", "Fissure", "Fissure", "Fissure"],
+                    "item": "Soft Sand",
+                    "moves": ["Earthquake", "Dragon Claw", "Stone Edge", "Swords Dance"],
                     "stats_meta": {
                         "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
                         "ev_level": { "hp": 0, "atk": 252, "def": 0, "spa": 0, "spd": 4, "spe": 252 }
                     }
-                },
-                {
-                    "name": "Kingler",
-                    "lv": 70,
-                    "nature": "Adamant",
-                    "ability": "Hyper Cutter",
-                    "item": "Wide Lens",
-                    "stats_meta": {
-                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 4, "atk": 252, "def": 0, "spa": 0, "spd": 0, "spe": 252 }
-                    },
-                    "moves": ["Guillotine", "Guillotine", "Guillotine", "Guillotine"]
-                },
-                {
-                    "name": "Rhydon",
-                    "lv": 70,
-                    "nature": "Adamant",
-                    "ability": "Lightning Rod",
-                    "item": "Wide Lens",
-                    "stats_meta": {
-                        "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 0, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 252, "atk": 252, "def": 4, "spa": 0, "spd": 0, "spe": 0 }
-                    },
-                    "moves": ["Horn Drill", "Horn Drill", "Horn Drill", "Horn Drill"]
-                },
-                {
-                    "name": "Lapras",
-                    "lv": 70,
-                    "nature": "Calm",
-                    "ability": "Water Absorb",
-                    "item": "Wide Lens",
-                    "stats_meta": {
-                        "ivs": { "hp": 31, "atk": 0, "def": 31, "spa": 31, "spd": 31, "spe": 31 },
-                        "ev_level": { "hp": 252, "atk": 0, "def": 0, "spa": 4, "spd": 252, "spe": 0 }
-                    },
-                    "moves": ["Sheer Cold", "Sheer Cold", "Sheer Cold", "Sheer Cold"]
                 }
             ],
             "lines": {
-                "start": "这是 OHKO 招式测试场。地裂、断头台、角钻、绝对零度都在这里，直接换人就能测。",
-                "lose": "四个一击必杀招式的回归都通过了。",
-                "win": "继续看日志，确认不会再冒出固定数值伤害。"
+                "start": "这是复生祈祷测试场。默认后排有一只预设为倒下的目标，用来验证复活选择与太晶回退。",
+                "lose": "复生祈祷的测试通过了。",
+                "win": "继续看日志，确认选择菜单、复活 HP 和太晶回退都正常。"
             }
         }
     };
@@ -222,6 +176,27 @@ function loadBattleFromJSON(jsonString) {
             const playerCanMega = battle.playerUnlocks.enable_mega;
             battle.setPlayerParty(json.player.party, playerCanMega);
             battle.playerName = json.player.name || '主角';
+
+            const faintedPartyIndexes = Array.isArray(json.player.faintedPartyIndexes)
+                ? json.player.faintedPartyIndexes
+                : [];
+            const teraFaintedIndexes = Array.isArray(json.player.teraFaintedIndexes)
+                ? json.player.teraFaintedIndexes
+                : [];
+
+            faintedPartyIndexes.forEach((idx) => {
+                const partyMember = battle.playerParty?.[idx];
+                if (!partyMember || idx === battle.playerActive) return;
+                if (teraFaintedIndexes.includes(idx)) {
+                    partyMember.isTerastallized = true;
+                    partyMember.types = [partyMember.teraType];
+                    battle.playerTeraUsed = true;
+                }
+                partyMember.currHp = 0;
+                partyMember.status = null;
+                partyMember.statusTurns = 0;
+                partyMember.volatile = {};
+            });
         }
         
         // 加载敌方数据

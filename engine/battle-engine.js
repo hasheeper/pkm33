@@ -1511,6 +1511,8 @@ export class BattleState {
         this.phase = 'intro';
         this.trainer = null;
         this.locked = false;
+        this.pendingRevival = null;
+        this.revivalResolve = null;
         this.scriptedResult = null;
         this.aiDifficulty = 'normal';
         // Mega Evolution 状态

@@ -11598,13 +11598,9 @@ export const MOVES = {
 		pp: 1,
 		noPPBoosts: true,
 		priority: 0,
-		flags: { heal: 1, nosketch: 1 },
+		flags: { heal: 1, noassist: 1, failcopycat: 1, failmimic: 1, failinstruct: 1, nosketch: 1, nosleeptalk: 1 },
 		onTryHit: null,
 		slotCondition: 'revivalblessing',
-		// No this not a real switchout move
-		// This is needed to trigger a switch protocol to choose a fainted party member
-		// Feel free to refactor
-		selfSwitch: true,
 		condition: null,
 		secondary: null,
 		target: "self",

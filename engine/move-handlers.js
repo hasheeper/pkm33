@@ -5249,6 +5249,28 @@ export const MoveHandlers = {
     // ============================================
     'Revival Blessing': {
         onUse: (user, target, logs, battle, isPlayer) => {
+            const resetRevivedPokemonState = (pokemon, sideLabel) => {
+                const wasTerastallized = !!pokemon.isTerastallized;
+                const originalTypes = Array.isArray(pokemon.originalTypes) && pokemon.originalTypes.length > 0
+                    ? [...pokemon.originalTypes]
+                    : [...(pokemon.types || ['Normal'])];
+                const reviveHp = Math.max(1, Math.floor(pokemon.maxHp / 2));
+
+                pokemon.currHp = reviveHp;
+                pokemon.status = null;
+                pokemon.statusTurns = 0;
+                pokemon.volatile = {};
+
+                if (wasTerastallized) {
+                    pokemon.isTerastallized = false;
+                    pokemon.types = originalTypes;
+                    logs.push(`<span style="color:#67e8f9">💎 ${pokemon.cnName} 的太晶光辉褪去了，恢复为原本属性！</span>`);
+                    console.log(`[Revival Blessing] ${sideLabel} ${pokemon.cnName} revived and Tera state was cleared`);
+                }
+
+                return reviveHp;
+            };
+
             // 检查是否有濒死的队友
             const party = isPlayer ? battle?.playerParty : battle?.enemyParty;
             if (!party) {
@@ -5271,11 +5293,7 @@ export const MoveHandlers = {
             if (!isPlayer) {
                 // AI: 随机选择一只濒死的队友复活
                 const toRevive = faintedMembers[Math.floor(Math.random() * faintedMembers.length)];
-                const reviveHp = Math.floor(toRevive.maxHp / 2);
-                toRevive.currHp = reviveHp;
-                // 清除异常状态（虽然濒死时应该已经清了）
-                toRevive.status = null;
-                toRevive.statusTurns = 0;
+                const reviveHp = resetRevivedPokemonState(toRevive, 'enemy');
                 logs.push(`<span style="color:#2ecc71">✨ ${user.cnName} 使用了复生祈祷!</span>`);
                 logs.push(`<span style="color:#2ecc71">🙏 ${toRevive.cnName} 复活了! (HP: ${reviveHp}/${toRevive.maxHp})</span>`);
                 return {};
@@ -5283,9 +5301,18 @@ export const MoveHandlers = {
             
             // 玩家: 需要 UI 选择，这里标记需要选择
             logs.push(`<span style="color:#2ecc71">✨ ${user.cnName} 使用了复生祈祷!</span>`);
+            if (battle) {
+                battle.pendingRevival = {
+                    side: 'player',
+                    moveName: 'Revival Blessing',
+                    userName: user.cnName,
+                    eligibleIndexes: faintedMembers
+                        .map(member => party.indexOf(member))
+                        .filter(idx => idx >= 0)
+                };
+            }
             return { 
-                needRevivalChoice: true,
-                faintedMembers: faintedMembers
+                needRevivalChoice: true
             };
         },
         description: '复活一只濒死的队友，回复 50% HP (PP: 1)'
@@ -5311,7 +5338,7 @@ export const MoveHandlers = {
             const copyableMoves = opponent.moves.filter(m => {
                 const moveId = (m.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
                 // 黑名单：不能复制的技能
-                const blacklist = ['copycat', 'metronome', 'mimic', 'sketch', 'transform', 'assist'];
+                const blacklist = ['copycat', 'metronome', 'mimic', 'sketch', 'transform', 'assist', 'revivalblessing'];
                 return !blacklist.includes(moveId);
             });
             
